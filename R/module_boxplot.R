@@ -26,6 +26,10 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
   colnames(x) <- paste0("B", stringr::str_pad(1:ncol(x), pad = "0", nchar(ncol(x))))
   mat_i <- x[i, , drop = FALSE]
   tlpmap <- structure(o.name, names = colnames(x))
+  if (length(highlight) == 0)
+    highlight <- NULL
+  if (length(i) == 0)
+    i <- NULL
   
   convertDF <- function(m, c, maxr = 200) {
     if (nrow(m) > maxr)
@@ -35,6 +39,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
     df$Cat <- c("n", "c")[as.integer(df$Var2 %in% hp)+1]
     na.omit(df)
   }
+  
   df <- convertDF(x, c = highlight)
   
   fig <- plot_ly(showlegend = FALSE)
@@ -77,7 +82,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
     return( layout(fig, yaxis = list(title = ylab)) )
   
     figext <- plot_ly(
-      x = colnames(x), y = extvar, type = "bar", showlegend = FALSE# , yaxis = list(title = "ss")
+      x = colnames(x), y = extvar, type = "bar", showlegend = FALSE
     )
   ff <- subplot(figext, fig, shareX = TRUE, nrows = 2, heights = c(0.2, 0.8), margin = 0, titleY = TRUE)
   layout(ff, yaxis = list(title = ylab.extvar), yaxis2 = list(title = ylab))
@@ -100,8 +105,8 @@ plotly_boxplot_module <- function(input, output, session, reactive_param_plotly_
     do.call(plotly_boxplot, args = reactive_param_plotly_boxplot()) 
   })
 }
-# 
-# # ### examples
+
+# # # ### examples
 # library(shiny)
 # 
 # ui <- fluidPage(
@@ -116,7 +121,7 @@ plotly_boxplot_module <- function(input, output, session, reactive_param_plotly_
 #   colnames(x) <- paste("C", 1:ncol(x), sep = "")
 #   callModule(plotly_boxplot_module, id = "testplotly",
 #              reactive_param_plotly_boxplot = reactive(list(
-#                x = x#, i  = c(4, 20, 80), highlight = c(1, 4, 5, 20), extvar = 1:30
+#                x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
 #                ))
 #              )
 # }

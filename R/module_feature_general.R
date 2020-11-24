@@ -107,7 +107,6 @@ feature_general_module <- function(input, output, session,
       if (is.null(l$tooltips))
         l$tooltips <- sprintf("<b>Feature: </b>%s<br><b>Sample: </b>%s", df$Var1, df$Var2)
     }
-    
     l
   })
   
@@ -147,28 +146,32 @@ feature_general_module <- function(input, output, session,
   # observe(print(v_scatter()))
 }
 
-# 
+# # 
 # library(shiny)
 # library(shinyBS)
 # library(Biobase)
 # dat <- readRDS("Dat/exampleEset.RDS")
-# source("shiny/module_triselector.R")
-# source("shiny/module_barplot.R")
-# source("shiny/module_scatter.R")
-# # source("shiny/module_beeswarm.R")
-# source("shiny/module_boxplot.R")
+# source("Git/R/module_triselector.R")
+# source("Git/R/module_scatter.R")
+# source("Git/R/module_contTableStats.R")
+# source("Git/R/module_survival.R")
+# source("Git/R/module_boxplot.R")
+# source("Git/R/module_figureAttr4.R")
+# source("Git/R/auxi_figureAttr4.R")
+# 
 # 
 # ui <- fluidPage(
 #   feature_general_ui("tres")
 # )
 # 
 # server <- function(input, output, session) {
-#   v <- callModule(feature_general_module, id = "tres", 
-#                   reactive_expr = reactive(exprs(dat)), 
+#   v <- callModule(feature_general_module, id = "tres",
+#                   reactive_expr = reactive(exprs(dat)),
 #                   # reactive_i = reactive(c(5, 6, 7)),
-#                   # reactive_i = reactive(c( 7)),
+#                   reactive_i = reactive(c( 7)),
 #                   reactive_highlight = reactive(c(3, 5, 10)),
-#                   reactive_phenoData = reactive(pData(dat)))
+#                   reactive_phenoData = reactive(pData(dat)),
+#                   reactive_featureData = reactive(fData(dat)))
 # }
 # 
 # shinyApp(ui, server)

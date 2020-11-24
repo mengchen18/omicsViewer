@@ -65,7 +65,8 @@ vectORA <- function(
   if (is.null(feature_desc))
     feature_desc <- rownames(gs)
   fi <- feature_desc[i]
-  overlap <- apply(mat[i, ], 2, function(x) {
+  overlap <- lapply(1:col(mat), function(j) {
+    x <- mat[i, j, drop = FALSE]
     fi[x != 0]
   })
   

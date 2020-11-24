@@ -7,7 +7,7 @@ triselector_ui <- function(id) {
       ),
       column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
              div(style="display: inline-block;vertical-align:top;", h5("Analysis:")),
-             div(style="display: inline-block;vertical-align:top; width:66%;", 
+             div(style="display: inline-block;vertical-align:top; width:65%;", 
                  uiOutput(ns("analysis.output")))),
       
       column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
@@ -17,7 +17,7 @@ triselector_ui <- function(id) {
       
       column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
              div(style="display: inline-block;vertical-align:top;", h5("Variable:")),
-             div(style="display: inline-block;vertical-align:top; width:75%;", 
+             div(style="display: inline-block;vertical-align:top; width:74%;", 
                  uiOutput(ns("variable.output"))))
     )
   )

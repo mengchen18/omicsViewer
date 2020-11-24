@@ -92,17 +92,10 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata) {
   observe( selectedFeatures(tab_expr()) )
   
   reactive({
-    # print( selectedFeatures() )
-    # print( selectedSamples() )
     list(
       feature = selectedFeatures(),
       sample = selectedSamples()
     )
   })
-
-  
-  # expression matrix
-  
-  
 }
 

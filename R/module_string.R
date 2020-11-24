@@ -2,7 +2,7 @@
 string_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    actionButton(ns("run"), "Run!"),
+    uiOutput(ns("errorOrRun")),
     shinycssloaders::withSpinner(
       color="#0dc5c1", 
       DT::dataTableOutput(ns("strtab"))
@@ -20,6 +20,23 @@ string_module <- function(
   
   ns <- session$ns
   
+  output$errorOrRun <- renderUI({
+    tagList(
+      verbatimTextOutput(ns("error.msg")),
+      if (!overflow())
+        actionButton(ns("run"), "Run!")
+    )
+  })
+  
+  overflow <- reactive({
+    length(reactive_ids()) > 300
+  })
+  
+  output$error.msg <- renderText({
+    req(overflow())
+    sprintf("%s features selected, allow max 300 input features!", length(reactive_ids()))
+  })
+  
   nk <- eventReactive(input$run, stringNetwork(genes = reactive_ids(), taxid = reactive_taxid()) )
   gs <- eventReactive(input$run, stringGSA(genes = reactive_ids(), taxid = reactive_taxid()) )
   
@@ -27,12 +44,14 @@ string_module <- function(
   
   output$network <- renderForceNetwork({
     req(nrow(nk()) > 0)
+    req(!overflow())
     stringD3Net(ntwk = nk(), gsa = gs(), i = highlight(), label = input$showLabel)
   })
   
   output$strtab <- DT::renderDataTable({
-    print(nrow(gs()))
+    req(!overflow())
     req(nrow(gs()) > 0)
+    
     tab <- gs()[, c("category", "term", "description", "number_of_genes", "number_of_genes_in_background", "p_value", "fdr")]
     colnames(tab) <- c("category", "term", "desc", "genes", "background", "p value", "fdr")
     print(dim(tab))
@@ -45,14 +64,14 @@ string_module <- function(
   })
 }
 
-# 
-# #################### 
+# #
+# ####################
 library(shiny)
 library(shinycssloaders)
 source("Git/R/auxi_queryStringdb.R")
 dat <- readRDS("Dat/exampleEset.RDS")
 fd <- Biobase::fData(dat)
-ids <- fd$`General|All|Protein ID`[which(fd$`t-test|RE_BR|pval` < 0.05 & fd$`t-test|RE_BR|md` > 0.5)]
+ids <- fd$`General|All|Protein ID`[which(fd$`t-test|RE_BR|pval` < 0.05 & fd$`t-test|RE_BR|md` > 0.3)]
 
 ui <- fluidPage(
   string_ui("str")

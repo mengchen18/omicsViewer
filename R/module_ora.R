@@ -2,6 +2,7 @@ enrichment_analysis_ui <- function(id) {
   ns <- NS(id)
   tagList(
     # table
+    uiOutput(ns("error")),
     DT::dataTableOutput(ns("stab")),
     # plotly barplot
     plotlyOutput(ns("bplot"))
@@ -12,9 +13,7 @@ enrichment_analysis_module <- function(
   input, output, session, reactive_pathway_mat, reactive_i
 ) {
   
-  # observe({
-  #   print(length(reactive_i()))
-  # })
+  ns <- session$ns
   
   rii <- reactive({
     req(length(reactive_i()) > 3)
@@ -25,15 +24,24 @@ enrichment_analysis_module <- function(
   
   oraTab <- reactive({
     tab <- vectORA(reactive_pathway_mat(), i = rii())
-    req(tab)
-      # return(data.frame("No signicant result" = "Too little input, overlap < minOverlap!"))
+    if (is.null(tab))
+      return("No geneset has been tested, please try to include more input feature IDs!")
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))
     tab[, ic] <- lapply(tab[, ic], signif, digits = 3)
     tab
   })
-  # observe(print(head(oraTab())))
+  
+  output$errorMsg <- renderText({
+    req(is.character(oraTab()))
+    oraTab()
+  })
+  
+  output$error <- renderUI(
+    verbatimTextOutput(ns("errorMsg"))
+  )
 
   output$stab <- DT::renderDataTable({
+    req(is.data.frame(oraTab()))
     DT::datatable(oraTab()[, setdiff(colnames(oraTab()), "overlap_ids")],
                   options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
   })
@@ -61,10 +69,10 @@ enrichment_analysis_module <- function(
   )
 }
 
-# #######
-# source("shiny/auxi_fgsea.R")
-# source("shiny/auxi_vectORA.R")
-# source("shiny/module_barplotGsea.R")
+# # #######
+# source("Git/R/auxi_fgsea.R")
+# source("Git/R/auxi_vectORA.R")
+# source("Git/R/module_barplotGsea.R")
 # 
 # dat <- readRDS("Dat/exampleEset.RDS")
 # fd <- fData(dat)
@@ -76,7 +84,7 @@ enrichment_analysis_module <- function(
 # )
 # 
 # server <- function(input, output, session) {
-#   callModule(enrichment_analysis_module, id = "ea", 
+#   callModule(enrichment_analysis_module, id = "ea",
 #              reactive_pathway_mat = reactive(fdgs), reactive_i = reactive(selected_ids)
 #   )
 # }

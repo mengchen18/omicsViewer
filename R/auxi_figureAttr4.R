@@ -24,6 +24,8 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
   if (x$variable %in% c("Select a variable!", "")) {
     if (is.null(alternative))
       return(NULL)
+    if (alternative %in% c("", "Select a variable!"))
+      return(NULL)
     alternative <- gsub(" ", "<br>", alternative)
     return(alternative)
   }

@@ -68,18 +68,19 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
       tooltips <- attr4select$tooltips
       if (is.null(tooltips))
         tooltips <- rownames(reactive_phenoData())
+      
       l <- list(
         x = select(), 
         y = pheno()$value,
-        xlab = "", 
+        xlab = "Category", 
         ylab = do.call(paste, list(v1(), collapse = "|")),
         tooltips = tooltips
       )
       l$color <- attr4select$color
-      l$shape = attr4select$shape
-      l$size = attr4select$size
-      l$highlight = attr4select$highlight
-      l$lighlightName = attr4select$highlightName
+      l$shape <- attr4select$shape
+      l$size <- attr4select$size
+      l$highlight <- attr4select$highlight
+      l$highlightName <- attr4select$highlightName
       l
     }), 
     reactive_regLine = showRegLine,
@@ -90,6 +91,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   # cont table stats
+  observe(print( pheno()$value ))
   callModule(factorIndependency_module, id = "sample_general_contab", 
              x = select, y = reactive(pheno()$value),
              reactive_checkpoint = reactive(pheno()$type == "table")
@@ -102,7 +104,6 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   )
   
   ## table
-  
   metatab <- reactive({
     req(reactive_j())
     tab <- reactive_phenoData()
@@ -117,17 +118,17 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   output$mtab <- DT::renderDataTable(
     DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
   )
-  
-  
 }
-
-# ####
-# library(shiny)
 # 
+# # # ####
+# library(shiny)
+# #
 # source("Git/R/module_triselector.R")
 # source("Git/R/module_scatter.R")
 # source("Git/R/module_contTableStats.R")
 # source("Git/R/module_survival.R")
+# source("Git/R/module_figureAttr4.R")
+# source("Git/R/auxi_figureAttr4.R")
 # 
 # dat <- readRDS("Dat/exampleEset.RDS")
 # pd <- pData(dat)

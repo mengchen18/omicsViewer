@@ -39,8 +39,10 @@ L1_result_space_module <- function(
                      fd[, grep("^GS\\|", colnames(fd))]
                    }), reactive_i = reactive_i)
   
-  v4 <- callModule(string_module, id = "stringdb", reactive_ids = reactive({
-    reactive_featureData()[reactive_i(), "General|All|Protein ID"]
+  v4 <- callModule(
+    string_module, id = "stringdb", reactive_ids = reactive({
+    i <- grep("^StringDB\\|", colnames(reactive_featureData()))
+    reactive_featureData()[reactive_i(), i[1]]
   }))
   
   v5 <- callModule(

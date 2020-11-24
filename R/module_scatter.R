@@ -106,6 +106,7 @@ plotly_scatter <- function(
   df$color <- f0(color, i = df$index)
   df$shape <- f0(shape, i = df$index)
   df$size <- f0(size, i = df$index)
+  
   if (!is.null(tooltips))
     tlp <- paste0("<b>", tooltips[df$index], "</b><br>", tlp)
   df$tlp <- tlp
@@ -128,7 +129,8 @@ plotly_scatter <- function(
   if (i1 || i2) {
     set.seed(100)
     fig <- add_trace(fig, x = ~ x, y = ~ y, color = ~ color, colors = cc, symbol = ~ shape, size = ~ size, 
-                     sizes = sizeRange, marker = list(sizemode = 'diameter'), type = "scatter", mode = "markers")
+                     sizes = sizeRange, marker = list(sizemode = 'diameter'), type = "scatter", mode = "markers",
+                     text = ~ tlp, hoverinfo = 'text', showlegend = FALSE)
     if (i1)
       fig <- plotly::layout(
         fig, yaxis = list(title = ylab), xaxis = list( title = xlab, tickvals = unique(round(df$x)), ticktext = unique(df$x.orig) )
@@ -137,7 +139,6 @@ plotly_scatter <- function(
       fig <- plotly::layout(
         fig, xaxis = list(title = xlab), yaxis = list( title = ylab, tickvals = unique(round(df$y)), ticktext = unique(df$x.orig) )
       )
-    fig <- add_trace( fig, text = df$tlp, hoverinfo = 'text', showlegend = FALSE )
   } else {
     set.seed(100)
     fig <- add_trace(
@@ -145,7 +146,6 @@ plotly_scatter <- function(
       marker = list(sizemode = 'diameter'), text = ~ tlp, hoverinfo = "text", type = "scatter", mode = "markers"
     )
     # marker = list(size = ~ size, sizes = c(10, 50), sizemode = 'diameter') # this not warnings but doesn't work well
-    
     if (regressionLine) {
       
       mod <- lm(df$y ~ df$x)

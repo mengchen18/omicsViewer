@@ -9,6 +9,7 @@
 factorIndependency <- function(x, y) {
   
   tab <- table(x, y)
+  print(tab)
   suppressWarnings( r1 <- chisq.test(tab) )
   r2 <- fisher.test(tab)
   
@@ -37,6 +38,7 @@ factorIndependency_ui <- function(id) {
   
   tagList(
     wellPanel(
+      uiOutput(ns("error")),
       DT::dataTableOutput(ns("count.table.output")),
       DT::dataTableOutput(ns("residual.ratio.output")),
       DT::dataTableOutput(ns("p.table.output")))
@@ -47,36 +49,51 @@ factorIndependency_module <- function(
   input, output, session, x, y, reactive_checkpoint = reactive(TRUE)
 ) {
   
+  ns <- session$ns
+  
   stats <- reactive({
     req(reactive_checkpoint())
     tx <- table(x())
     ty <- table(y())
-    req(length(tx) > 1 && length(ty) > 1)
+    if (length(tx) < 2 || length(ty) < 2 || max(tx) < 2 || max(ty) < 2 || length(tx) > 12 || length(ty) > 12)
+      return(NULL)
     factorIndependency(x = x(), y = y()) 
   })
   
-  output$count.table.output <- DT::renderDataTable(
+  output$error <- renderUI(
+    verbatimTextOutput(ns("errorMsg"))
+  )
+  
+  output$errorMsg <- renderText({
+    req(is.null(stats()))
+    "The selected variable is not suitable for independence test, too many distinct values or no duplicate value!"
+  })
+  
+  output$count.table.output <- DT::renderDataTable({
+    req(stats())
     DT::datatable(stats()$cont.table,
                   options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), 
                   rownames = TRUE, class = "compact",
                   caption = "Contingency table")
-  )
+  })
   
-  output$residual.ratio.output <- DT::renderDataTable(
+  output$residual.ratio.output <- DT::renderDataTable({
+    req(stats())
     DT::datatable(stats()$residual.ratio, 
                   options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), 
                   rownames = TRUE, class = "compact",
                   caption = "Contingency table fold change (observed/expect)"
-                  )
-  )
+    )
+  })
   
-  output$p.table.output <- DT::renderDataTable(
+  output$p.table.output <- DT::renderDataTable({
+    req(stats())
     DT::datatable(stats()$p.table,
                   options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), 
                   rownames = FALSE, class = "compact",
                   caption = "Significance test of the independence"
-                  )
-  )
+    )
+  })
 }
 
 # library(shiny)
