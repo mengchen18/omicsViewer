@@ -49,13 +49,15 @@ enrichment_analysis_module <- function(
   hd <- reactive({
     req(i <- input$stab_rows_selected )
     i <- oraTab()[i, ]
-    pathway_name <- i$pathway
+    pathway_name <- as.character(i$pathway)
+    print(pathway_name)
     aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
     stats <- rep(-1, nrow(reactive_pathway_mat()))
     stats[aid] <- 1
     positive_ids <- i$overlap_ids[[1]]
     hid <- fastmatch::fmatch(positive_ids, rownames(reactive_pathway_mat()))
     bid <- setdiff(rii(), hid)
+    aa <<- list(hid = hid, bid = bid, stats = stats, names = rownames(reactive_pathway_mat()))
     list(hid = hid, bid = bid, stats = stats, names = rownames(reactive_pathway_mat()))
   })
 
@@ -70,23 +72,23 @@ enrichment_analysis_module <- function(
 }
 
 # # #######
-# source("Git/R/auxi_fgsea.R")
-# source("Git/R/auxi_vectORA.R")
-# source("Git/R/module_barplotGsea.R")
-# 
-# dat <- readRDS("Dat/exampleEset.RDS")
-# fd <- fData(dat)
-# fdgs <- fd[, grep("^GS\\|", colnames(fd))]
-# selected_ids <- which(fd$`PCA|All|PC1(9.2%)` > 0.02 )
-# 
-# ui <- fluidPage(
-#   enrichment_analysis_ui("ea")
-# )
-# 
-# server <- function(input, output, session) {
-#   callModule(enrichment_analysis_module, id = "ea",
-#              reactive_pathway_mat = reactive(fdgs), reactive_i = reactive(selected_ids)
-#   )
-# }
-# 
-# shinyApp(ui, server)
+source("Git/R/auxi_fgsea.R")
+source("Git/R/auxi_vectORA.R")
+source("Git/R/module_barplotGsea.R")
+
+dat <- readRDS("Dat/exampleEset.RDS")
+fd <- fData(dat)
+fdgs <- fd[, grep("^GS\\|", colnames(fd))]
+selected_ids <- which(fd$`PCA|All|PC1(9.1%)` > 0.02 )
+
+ui <- fluidPage(
+  enrichment_analysis_ui("ea")
+)
+
+server <- function(input, output, session) {
+  callModule(enrichment_analysis_module, id = "ea",
+             reactive_pathway_mat = reactive(fdgs), reactive_i = reactive(selected_ids)
+  )
+}
+
+shinyApp(ui, server)

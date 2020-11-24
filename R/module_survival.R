@@ -10,7 +10,7 @@ survival_ui <- function(id) {
 
 survival_module <- function(
   input, output, session, reactive_resp, reactive_strata, reactive_checkpoint = reactive(TRUE)
-  ) {
+) {
   
   ns <- session$ns
   
@@ -27,7 +27,13 @@ survival_module <- function(
   
   output$censor_output <- renderUI({
     nm <- max(dat()$time, na.rm = TRUE)
-    sliderInput(ns("censor"), label = 'Censor at', min = min(dat()$time, na.rm = TRUE), max = nm, value = nm)
+    fluidRow(
+      column(12, offset = 0, style='padding-left:5px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+             div(style="display: inline-block;vertical-align:top;", h5("Censor at")),
+             div(style="padding-left:25px; display: inline-block;vertical-align:top; width:65%;", 
+                 sliderInput(ns("censor"), label = NULL, min = min(dat()$time, na.rm = TRUE), max = nm, value = nm)
+             )
+      ))
   })
   
   output$kmplot <- renderPlot({

@@ -1,7 +1,7 @@
 
 
 stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
-  # ntwk$score <- ntwk$score*10
+  
   nd <- data.frame(name = unique(unlist(ntwk[, c('preferredName_A', 'preferredName_B')])), 
                    stringsAsFactors = FALSE)
   rownames(nd) <- nd$name
@@ -14,14 +14,13 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
     value = (ntwk$score-0.4)^2*10
   )
   
-  ColourScale <- 'd3.scaleOrdinal()
-  .domain(["lions", "tigers"])
-  .range(["#4462ea", "#ea4467"]);'
+  colorfunc <- JS('colorfunc = function(i) { return i == 1 ? "#64A0C8" : "#E37222" };')
   lab <- ifelse(label, 1, 0)
   forceNetwork(Links = links, Nodes = nd, Source = "source", linkColour = "gray",
                Target = "target", Value = "value", NodeID = "name", charge = -5,
-               Group = "group", opacity = 0.7, fontSize = 12, opacityNoHover = lab,
-               colourScale = networkD3::JS(ColourScale), zoom = TRUE)
+               Group = "group", colourScale = colorfunc, 
+               opacity = 0.7, fontSize = 12, opacityNoHover = lab,
+               zoom = TRUE, legend = TRUE)
 }
 
 
@@ -61,7 +60,7 @@ stringNetwork <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
   dd <- unique(dd)
   if (!is.data.frame(dd)) {
     warning('stringdb error, return NULL!')
-    return(NULL)
+    return(dd)
   }
   as.data.frame(dd)
 }
@@ -149,9 +148,10 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
   # call string
   response <- httr::GET(url = request_url, query = params) # requests.post(request_url, data=params)
   dd <- suppressMessages( httr::content(response) )
+  print("ee")
   if (!is.data.frame(dd)) {
     warning('stringdb error, return NULL!')
-    return(NULL)
+    return(dd)
   }
   as.data.frame(dd)
 }

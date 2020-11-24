@@ -2,11 +2,11 @@
 # expr <- exprs(dat)
 # pdata <- pData(dat)
 # fdata <- fData(dat)
-a <- installed.packages()
+
+library(fgsea)
 library(tidyr, lib.loc = "/usr/local/lib/R/site-library")
 library(survminer)
 library(survival)
-library(fgsea)
 library(Biobase)
 library(shiny)
 library(shinyBS)
@@ -23,6 +23,10 @@ for (.i in .f) source(.i)
 ui <- fluidPage(
   uiOutput("summary"),
   br(),
+  absolutePanel(
+    top = 10, right = 20, 
+    downloadButton(outputId = "download", label = "Download", class = NULL)
+    ),
   fluidRow(
     column(6, L1_data_space_ui('dataspace')),
     column(6, L1_result_space_ui("resultspace"))
@@ -40,7 +44,7 @@ server <- function(input, output, session) {
   
   output$summary <- renderUI({
     txt <- sprintf(
-      '<h1 style="display:inline;">ExpressionSetViewer</h1> <h3 style="display:inline;">---- ExpressionSet with %s features and %s samples:</h3>', 
+      '<h1 style="display:inline;">ExpressionSetViewer</h1> <h3 style="display:inline;">  ----   %s features and %s samples:</h3>', 
       nrow(expr()), ncol(expr())
       )
     HTML(txt)
@@ -67,3 +71,5 @@ server <- function(input, output, session) {
   )
 }
 shinyApp(ui, server)
+
+
