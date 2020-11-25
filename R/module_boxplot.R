@@ -69,7 +69,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
                                      "<b>Sample: </b>", tlpmap[dfi$Var2]), 
                        hoverinfo = "text")
   }
-  fig <- layout(
+  fig <- plotly::layout(
     fig, 
     xaxis = list(
       categoryarray = colnames(x), 
@@ -79,13 +79,13 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
       title = ""))
   
   if (is.null(extvar))
-    return( layout(fig, yaxis = list(title = ylab)) )
+    return( plotly::layout(fig, yaxis = list(title = ylab)) )
   
     figext <- plot_ly(
       x = colnames(x), y = extvar, type = "bar", showlegend = FALSE
     )
   ff <- subplot(figext, fig, shareX = TRUE, nrows = 2, heights = c(0.2, 0.8), margin = 0, titleY = TRUE)
-  layout(ff, yaxis = list(title = ylab.extvar), yaxis2 = list(title = ylab))
+  plotly::layout(ff, yaxis = list(title = ylab.extvar), yaxis2 = list(title = ylab))
   
 }
 

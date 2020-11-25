@@ -2,8 +2,6 @@
 #' @param x a matrix object or ExpressionSet
 #' @param fData feature data, ignored if x is an ExpressionSet
 #' @param pData phenotype data, ignored if x is an ExpressionSet
-#' @export
-#' @import Biobase
 #' @importFrom matrixStats rowSums2
 #' 
 iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
@@ -189,7 +187,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   
   ######## prepare heatmap data ########
   mm <- reactive({
-    
+    req(input$scale)
     if (input$scale == "row") {
       mm <- t(scale(t(mat()))) 
       brk <- c(min(mm, na.rm = TRUE), seq(-2, 2, length.out = 99), max(mm, na.rm = TRUE))
@@ -220,7 +218,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   })
   
   colSB <- eventReactive(list(input$colSortBy, mm()$mat), {
-    input$colSortBy
+    req(input$colSortBy)
     hcl_c <- NULL
     ord_c <- 1:ncol(mm()$mat)
     if (!input$colSortBy %in% c("", "none", "hierarchical cluster")) {
@@ -303,7 +301,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     ranges$x <- c(0, nrow(hm()$mat))+0.5
     ranges$y <- c(0, ncol(hm()$mat))+0.5
   })
-  
+  # 
   .rg <- function(x, tx) {
     v1 <- ceiling(x[1])
     v2 <- floor(x[2])
@@ -314,7 +312,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       rev(RColorBrewer::brewer.pal(n = 7, name = input$heatmapColors))
     )(100)
   })
-  
+
   observeEvent(input$heatmap_dblclick, {
     brush <- input$heatmap_brush
     if (!is.null(brush)) {
@@ -327,7 +325,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       ranges$y <- c(0, ncol(hm()$mat))+0.5
     }
   })
-  
+
   ######## update range - dendrogram ########
   observeEvent(input$dendRow_dblclick, {
     brush <- input$dendRow_brush
@@ -345,7 +343,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       ranges$x <- c(0, nrow(hm()$mat))+0.5
     }
   })
-  
+
   ######## update range - sidebar ########
   observeEvent(input$rowSideCol_dblclick, {
     brush <- input$rowSideCol_brush
@@ -363,22 +361,22 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       ranges$x <- c(0, nrow(hm()$mat))+0.5
     }
   })
-  
+
   ######### render keys ##########
   output$key_heatmap <- renderPlot(
     heatmapKey(range(hm()$mat, na.rm = TRUE), heatColor())
   )
-  output$key_heatmap_ui <- renderUI({ 
+  output$key_heatmap_ui <- renderUI({
     plotOutput(ns("key_heatmap"), height = "45px")
   })
-  
+
   output$key_colSideCor <- renderPlot({
     lg <- dat_colSideCol()
     req(lg$key)
     if (lg$type == 2) {
       sideCorKey(x = lg$key, label = lg$var.name)
     } else {
-      layout(matrix(1:length(lg$key), 1))
+      graphics::layout(matrix(1:length(lg$key), 1))
       for (i in 1:length(lg$key))
         sideCorKey(x = lg$key[[i]], label = lg$var.name[i])
     }
@@ -391,14 +389,14 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       plotOutput(ns("key_colSideCor"), height = 266)
     )
   })
-  
+
   output$key_rowSideCor <- renderPlot({
     lg <- dat_rowSideCol()
     req(lg$key)
     if (lg$type == 2) {
       sideCorKey(x = lg$key, label = lg$var.name)
     } else {
-      layout(matrix(1:length(lg$key), 1))
+      graphics::layout(matrix(1:length(lg$key), 1))
       for (i in 1:length(lg$key))
         sideCorKey(x = lg$key[[i]], label = lg$var.name[i])
     }
@@ -411,9 +409,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       plotOutput(ns("key_rowSideCor"), height = 266)
     )
   })
-  
-  
-  
+
+
+
   ######### place holder plots ##########
   output$empty1 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
@@ -431,28 +429,28 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     par(mar = c(0, 0, 0, 0))
     plot(0, axes = FALSE, col = NA)
   })
-  
+
   ######### dynamic UI render; dynamic layout ##########
   show_col_dend <- reactiveVal(TRUE)
   observe( show_col_dend(input$colSortBy == "hierarchical cluster") )
-  
+
   show_col_sideColor <- reactiveVal(FALSE)
   observe( show_col_sideColor(length(input$annotCol) != 0) )
-  
+
   show_row_dend <- reactiveVal(TRUE)
   observe( show_row_dend(input$rowSortBy == "hierarchical cluster") ) #clusterRow
-  
+
   show_row_sideColor <- reactiveVal(FALSE)
   observe( show_row_sideColor(length(input$annotRow) != 0) )
-  
+
   width_left <- reactive( 2 )
-  width_mid <- reactive ({ 
+  width_mid <- reactive ({
     if (length(input$annotRow) <= 3)
       r <- 1 else if (length(input$annotRow) < 6)
         r <- 2 else
           r <- 3
   })
-  width_right <- reactive({ 
+  width_right <- reactive({
     if (show_row_sideColor() & show_row_dend()) {
       wid <- 12 - width_mid() - width_left()
     } else if (!show_row_sideColor() & show_row_dend()) {
@@ -463,14 +461,14 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       wid <- 12
     wid
   })
-  
-  # top left 
+
+  # top left
   height_colSideCol <- reactive({
     if ( dat_colSideCol()$type == 1 )
       return("50px")
     paste0(20*length(input$annotCol), "px")
   })
-  
+
   output$topleft <- renderUI({
     if (!show_col_dend() || !show_row_dend())
       return(NULL)
@@ -491,9 +489,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
                                      brush = brushOpts(id = ns("dendCol_brush"), resetOnNew = TRUE),
                                      height = "100px" ), offset = 0, style='padding:0px;')
   })
-  
+
   # middle left
-  output$middleleft <- renderUI({ 
+  output$middleleft <- renderUI({
     if (!show_col_sideColor() || !show_row_dend() )
       return(NULL)
     column(width_left(), plotOutput(ns("empty3"), height = height_colSideCol() ), offset = 0, style='padding:0px;')
@@ -508,10 +506,10 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   output$column_sideColor_ui <- renderUI({
     if ( !show_col_sideColor() )
       return(NULL)
-    column(width_right(), plotOutput(ns("colSideCol"), 
-                                     click = ns("colSideCol_click"), 
-                                     dblclick = ns("colSideCol_dblclick"), 
-                                     hover = hoverOpts(id = ns("colSideCol_hover"), delay = 150), 
+    column(width_right(), plotOutput(ns("colSideCol"),
+                                     click = ns("colSideCol_click"),
+                                     dblclick = ns("colSideCol_dblclick"),
+                                     hover = hoverOpts(id = ns("colSideCol_hover"), delay = 150),
                                      brush = brushOpts(id = ns("colSideCol_brush"), resetOnNew = TRUE),
                                      height = height_colSideCol() ), offset = 0, style='padding:0px;')
   })
@@ -519,8 +517,8 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   output$row_dend_ui <- renderUI({
     if ( ! show_row_dend() )
       return(NULL)
-    column(width_left(), plotOutput(ns("dendRow"), 
-                                    dblclick = ns("dendRow_dblclick"), 
+    column(width_left(), plotOutput(ns("dendRow"),
+                                    dblclick = ns("dendRow_dblclick"),
                                     brush = brushOpts(id = ns("dendRow_brush"), resetOnNew = TRUE),
                                     height = "800px" ), offset = 0, style='padding:0px;')
   })
@@ -528,27 +526,27 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   output$row_sideColor_ui <- renderUI({
     if ( !show_row_sideColor() )
       return(NULL)
-    column(width_mid(), plotOutput(ns("rowSideCol"), 
-                                   click = ns("rowSideCol_click"), 
-                                   dblclick = ns("rowSideCol_dblclick"), 
-                                   hover = hoverOpts(id = ns("rowSideCol_hover"), delay = 150), 
+    column(width_mid(), plotOutput(ns("rowSideCol"),
+                                   click = ns("rowSideCol_click"),
+                                   dblclick = ns("rowSideCol_dblclick"),
+                                   hover = hoverOpts(id = ns("rowSideCol_hover"), delay = 150),
                                    brush = brushOpts(id = ns("rowSideCol_brush"), resetOnNew = TRUE),
                                    height = "800px" ), offset = 0, style='padding:0px;')
   })
   # bottom right
   output$heatmap_ui <- renderUI({
-    column(width_right(),  
-           plotOutput(ns("heatmap"), click = ns("heatmap_click"), 
-                      dblclick = ns("heatmap_dblclick"), 
-                      hover = hoverOpts(id = ns("heatmap_hover"), delay = 150), 
+    column(width_right(),
+           plotOutput(ns("heatmap"), click = ns("heatmap_click"),
+                      dblclick = ns("heatmap_dblclick"),
+                      hover = hoverOpts(id = ns("heatmap_hover"), delay = 150),
                       brush = brushOpts(id = ns("heatmap_brush"), resetOnNew = TRUE),
                       height = "800px"),
            offset = 0, style='padding:0px;')
-    
+
   })
-  
+
   ############### tooltips ################
-  
+
   dat_tooltip <- reactive({
     list(
       pd = pd()[hm()$ord_c, colnames(pd()) %in% input$tooltipInfo, drop = FALSE],
@@ -557,7 +555,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   })
   tooltip_mouse <- reactiveVal(NULL)
   # col side color tooltips
-  observeEvent(list(input$annotCol, input$annotRow), { 
+  observeEvent(list(input$annotCol, input$annotRow), {
     tooltip_mouse(NULL)
   })
   observe({
@@ -570,7 +568,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     y <- ceiling(input$colSideCol_click$y)
     if (hover_x == x && hover_y == y && dat_colSideCol()$type %in% 2:3) {
       if (dat_colSideCol()$type == 2) {
-        varname <- dat_colSideCol()$var.name 
+        varname <- dat_colSideCol()$var.name
         key <- dat_colSideCol()$key
         leg <- names(dat_colSideCol()$key$color)[x]
       } else {
@@ -583,7 +581,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     }
     tooltip_mouse(res)
   })
-  
+
   # row side color tooltips
   observe({
     res <- NULL
@@ -595,7 +593,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     y <- ceiling(input$rowSideCol_click$y)
     if (hover_x == x && hover_y == y && dat_rowSideCol()$type %in% 2:3) {
       if (dat_rowSideCol()$type == 2) {
-        varname <- dat_rowSideCol()$var.name 
+        varname <- dat_rowSideCol()$var.name
         key <- dat_rowSideCol()$key
         leg <- names(dat_rowSideCol()$key$color)[y]
       } else {
@@ -608,7 +606,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     }
     tooltip_mouse(res)
   })
-  
+
   clickedName <- reactiveVal(NULL)
   # heatmap tooltips
   observe({
@@ -619,9 +617,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     hover_y <- round(input$heatmap_hover$y)
     x <- round(input$heatmap_click$x)
     y <- round(input$heatmap_click$y)
-    
+
     if (hover_x == x && hover_y == y ) {
-      
+
       l <- c(dat_tooltip()$pd[x, , drop = FALSE], dat_tooltip()$fd[y, , drop = FALSE])
       tl <- sapply(names(l), function(x) {
         if (is.numeric(cv <- l[[x]]))
@@ -635,15 +633,15 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       )
       res <- paste(res, tl, sep = "<br>")
     }
-    
+
     clickedName( c(col = rownames(hm()$mat)[x], row = colnames(hm()$mat)[y] ) )
     tooltip_mouse(res)
   })
-  
-  callModule(shinyPlotTooltips, id = "tlp_heatmap", points = tooltip_mouse) 
-  
+
+  callModule(shinyPlotTooltips, id = "tlp_heatmap", points = tooltip_mouse)
+
   ############### return ##############
-  
+
   brushedValues <- reactive({
     brush <- input$heatmap_brush
     l <- list(col = NULL, row = NULL)
@@ -659,7 +657,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     }
     l
   })
-  
+
   reactive({
     list(clicked = clickedName(),
          brushed = brushedValues())

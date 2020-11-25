@@ -60,7 +60,7 @@ plotly_barplot <- function(
     fig <- add_bars(fig, x = data$xpos[highlight], y = y, type = "bar", name = highlight_legend,
                     marker = list(color = highlight_color), opacity = 0.8, width = highlight_width,
                     text = txt[highlight], hoverinfo = 'text')
-    fig <- layout(fig, xaxis= list(
+    fig <- plotly::layout(fig, xaxis= list(
       showticklabels = TRUE, tickvals = data$xpos[highlight], ticktext = data$names[highlight])
       )
   }
@@ -73,7 +73,7 @@ plotly_barplot <- function(
                     text = txt[background], hoverinfo = 'text')
   }
   
-  layout(fig, yaxis = list(title = ylab), xaxis = list(title = xlab), legend = list(
+  plotly::layout(fig, yaxis = list(title = ylab), xaxis = list(title = xlab), legend = list(
     orientation = 'h', xanchor = "center", x = 0.5, yancher = "center", y = 1.1)
     )
 }

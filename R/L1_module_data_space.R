@@ -34,19 +34,19 @@ L1_data_space_ui <- function(id) {
 
 L1_data_space_module <- function(input, output, session, expr, pdata, fdata) {
   
-  # heatmap
+  heatmap
   s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata )
   
-  # sample space 
+  # sample space
   s_sample_fig <- callModule(
     meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample"
   )
-  
+
   # feature space
   s_feature_fig <- callModule(
     meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, combine = "feature", source = "scatter_meta_feature"
   )
-  
+
   ## tables
   tab_pd <- callModule(dataTable_module, id = "tab_pheno",  reactive_data = pdata)
   tab_fd <- callModule(dataTable_module, id = "tab_feature",  reactive_data = fdata)
@@ -57,40 +57,40 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata) {
   ### return selected feature and samples
   selectedFeatures <- reactiveVal()
   selectedSamples <- reactiveVal()
-  
+
   observeEvent(s_heatmap(), {
-    
+
     if (!is.null(s_heatmap()$brushed$row)) {
-      selectedFeatures(s_heatmap()$brushed$row) 
+      selectedFeatures(s_heatmap()$brushed$row)
     } else if (!is.null(s_heatmap()$clicked))
       selectedFeatures(s_heatmap()$clicked["row"])
-    
+
     if (!is.null(s_heatmap()$brushed$col)) {
-      selectedSamples(s_heatmap()$brushed$col) 
+      selectedSamples(s_heatmap()$brushed$col)
     } else if (!is.null(s_heatmap()$clicked))
       selectedSamples(s_heatmap()$clicked["col"])
   }
   )
-  
+  # 
   observeEvent(s_feature_fig(), {
     if (!is.null(s_feature_fig()$selected) && length(s_feature_fig()$selected) > 0) {
       selectedFeatures( s_feature_fig()$selected )
-    } else if ( !is.null(s_feature_fig()$clicked) ) 
+    } else if ( !is.null(s_feature_fig()$clicked) )
       selectedFeatures( s_feature_fig()$clicked )
   })
-  
+
   observeEvent(s_sample_fig(), {
     print( s_sample_fig() )
     if (!is.null(s_sample_fig()$selected) && length(s_sample_fig()$selected) > 0) {
       selectedSamples( s_sample_fig()$selected )
-    } else if ( !is.null(s_sample_fig()$clicked) ) 
+    } else if ( !is.null(s_sample_fig()$clicked) )
       selectedSamples( s_sample_fig()$clicked )
   })
-  
+
   observe( selectedSamples(tab_pd()) )
   observe( selectedFeatures(tab_fd()) )
   observe( selectedFeatures(tab_expr()) )
-  
+
   reactive({
     list(
       feature = selectedFeatures(),

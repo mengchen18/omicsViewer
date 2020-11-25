@@ -1,6 +1,3 @@
-library(shinyWidgets)
-
-
 L1_result_space_ui <- function(id) {
   ns <- NS(id)
   tagList(

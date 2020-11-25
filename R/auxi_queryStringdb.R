@@ -24,12 +24,8 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
 }
 
 
-prepStringHTML <- function(x, filename, template = "Git/inst/stringdb_template.html") {
-  file.copy(template, filename, overwrite = TRUE)
-  xfun::gsub_files(filename, pattern = "_geneidquotedspacesep_", replacement = paste0('"', paste(x, collapse = '", "'), '"'))
-}  
-
-#' @description get strign network
+#' Retrieve string network
+#' @description get string network
 #' @param stringIds a character vector of gene ids
 #' @param esetIds expression set IDs= NULL
 #' @param taxid taxonomy ids
@@ -72,11 +68,11 @@ stringNetwork <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
 #' @param taxid taxonomy ids
 #' @param caller your identifier for string-db.org
 #' @note https://string-db.org/cgi/help.pl?subpage=api%23mapping-identifiers
-#' @export
-#' @import httr GET content
+#' @import httr
 #' @examples 
-#' gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
-#' getStringId(gg)
+#' 1
+#' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
+#' # getStringId(gg)
 
 getStringId <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
   string_api_url = "https://string-db.org/api"
@@ -111,11 +107,11 @@ getStringId <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
 #'   to convet your id to string id.
 #' @param caller your identifier for string-db.org
 #' @note https://string-db.org/cgi/help.pl?subpage=api%23getting-functional-enrichment
-#' @export
-#' @import httr GET content
-#' @examples 
-# gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
-# u <- stringGSA(gg)
+#' @import httr
+#' @examples
+#' 1
+#' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
+#' # u <- stringGSA(gg)
 
 stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "ExpressionSetViewer") {
   

@@ -77,10 +77,10 @@ meta_scatter_module <- function(
 # library(shiny)
 # library(Biobase)
 # dat <- readRDS("Dat/exampleEset.RDS")
-# source("shiny/module_triselector.R")
-# source("shiny/module_barplot.R")
-# source("shiny/module_scatter.R")
-# source("shiny/module_boxplot.R")
+# source("Git/R/module_triselector.R")
+# source("Git/R/module_barplot.R")
+# source("Git/R/module_scatter.R")
+# source("Git/R/module_boxplot.R")
 # 
 # 
 # ui <- fluidPage(

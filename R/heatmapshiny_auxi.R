@@ -167,10 +167,6 @@ sideCorKey <- function(x, label) {
 
 ############## tooltips ################
 #' Tooltips for shiny plot, UI
-#' @param id the id
-#' @describeIn tooltipsShinyPlot
-#' @export
-
 shinyPlotTooltipsUI <- function(id) {
   
   ns <- NS(id)
@@ -211,32 +207,32 @@ shinyPlotTooltipsUI <- function(id) {
 #' @param session session
 #' @param points legend
 #' @details modified from https://stackoverflow.com/questions/39346273/how-to-place-shiny-panel-near-the-pointer-mouse/50623683
-#' @export
 #' @name tooltipsShinyPlot
-#' @examples 
-#' require(shiny)
-#' require(ggplot2)
-#' ui <- shinyUI(fluidPage(
-#' shinyPlotTooltipsUI("stp"),
-#' plotOutput( "myplot", hover = hoverOpts(id ="myplot_hover") )
-#' ))
+#' @examples
+#' 1
+#' # require(shiny)
+#' # require(ggplot2)
+#' # ui <- shinyUI(fluidPage(
+#' # shinyPlotTooltipsUI("stp"),
+#' # plotOutput( "myplot", hover = hoverOpts(id ="myplot_hover") )
+#' # ))
 #' 
-#' server <- shinyServer(function(input, output, session) {
+#' # server <- shinyServer(function(input, output, session) {
 #'   
-#' output$myplot <- renderPlot({
-#' ggplot(mtcars) + geom_point(aes(mpg,cyl))
-#' })
+#' # output$myplot <- renderPlot({
+#' # ggplot(mtcars) + geom_point(aes(mpg,cyl))
+#' # })
 #' 
-#' # Create reactive variable
-#' points <- reactive({
-#' req(input$myplot_hover)
-#' unlist(nearPoints(mtcars, input$myplot_hover, maxpoints=1))
-#' })
+#' ## Create reactive variable
+#' #points <- reactive({
+#' # req(input$myplot_hover)
+#' # unlist(nearPoints(mtcars, input$myplot_hover, maxpoints=1))
+#' # })
 #'   
-#' callModule(shinyPlotTooltips, id = "stp", points = points)
-#' })
+#' # callModule(shinyPlotTooltips, id = "stp", points = points)
+#' # })
 #' 
-#' shinyApp(ui, server)
+#' # shinyApp(ui, server)
 #' 
 shinyPlotTooltips <- function(input, output, session, points) {
   

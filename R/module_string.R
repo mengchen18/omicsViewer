@@ -98,22 +98,22 @@ string_module <- function(
   })
 }
 
-# # #
-# # ####################
-library(shiny)
-library(shinycssloaders)
-source("Git/R/auxi_queryStringdb.R")
-dat <- readRDS("Dat/exampleEset.RDS")
-fd <- Biobase::fData(dat)
-ids <- fd$`General|All|Protein ID`[which(fd$`t-test|RE_BR|pval` < 0.05 & fd$`t-test|RE_BR|md` > 0.5)]
 
-ui <- fluidPage(
-  string_ui("str")
-)
-
-server <- function(input, output, session) {
-  callModule(string_module, id = "str", reactive_ids = reactive(ids))
-}
-
-shinyApp(ui, server)
+# # # ####################
+# library(shiny)
+# library(shinycssloaders)
+# source("Git/R/auxi_queryStringdb.R")
+# dat <- readRDS("Dat/exampleEset.RDS")
+# fd <- Biobase::fData(dat)
+# ids <- fd$`General|All|Protein ID`[which(fd$`t-test|RE_BR|pval` < 0.05 & fd$`t-test|RE_BR|md` > 0.5)]
+# 
+# ui <- fluidPage(
+#   string_ui("str")
+# )
+# 
+# server <- function(input, output, session) {
+#   callModule(string_module, id = "str", reactive_ids = reactive(ids))
+# }
+# 
+# shinyApp(ui, server)
 

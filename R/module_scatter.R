@@ -168,7 +168,7 @@ plotly_scatter <- function(
       ct <- cor.test(x, y)
       p <- signif(ct$p.value, digits = 2)
       r <- signif(ct$estimate, digits = 2)
-      fig <- layout(fig, title = list(text = sprintf("R = %s; p-value = %s", r, p), font = t))
+      fig <- plotly::layout(fig, title = list(text = sprintf("R = %s; p-value = %s", r, p), font = t))
     }
   }
   if (!is.null(highlight)) {
@@ -178,7 +178,7 @@ plotly_scatter <- function(
       showlegend = FALSE
     )
   }
-  fig <- layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab))
+  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab))
   set.seed(100)
   # suppressWarnings( fig )
   return(list(fig = fig, data = df))

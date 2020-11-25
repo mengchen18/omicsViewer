@@ -5,7 +5,7 @@
 # fdgs <- fd[, grep("^GS\\|", colnames(fd))]
 # res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500)
 # res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500, gs_desc = colnames(fdgs))
-
+#' fgsea wrapper using binary matrix input
 #' @param gs a matrix where rows are features and columns are gene sets. The zeros in the matrix 
 #'   indicate a gene is not a memeber of the gene sets in the column. 
 #' @param stats other parameter passed to fgsea

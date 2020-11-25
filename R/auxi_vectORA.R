@@ -18,13 +18,14 @@
 #' @param sort could be one of c("none", "p.value", "OR") to indicate how the result should be sorted. 
 #' @importFrom fastmatch %fin%
 #' @examples 
-# library(Biobase)
-# dat <- readRDS("Dat/exampleEset.RDS")
-# fd <- fData(dat)
-# fdgs <- fd[, grep("^GS\\|", colnames(fd))]
-# ir <- which(fd$`t-test|OV_BR|pval` < 0.05)
-# res <- vectORA(gs = fdgs, i = ir, unconditional.or = FALSE)
-# res2 <- vectORA(gs = fdgs, i = ir, unconditional.or = TRUE)
+#' 1
+#' # library(Biobase)
+#' # dat <- readRDS("Dat/exampleEset.RDS")
+#' # fd <- fData(dat)
+#' # fdgs <- fd[, grep("^GS\\|", colnames(fd))]
+#' # ir <- which(fd$`t-test|OV_BR|pval` < 0.05)
+#' # res <- vectORA(gs = fdgs, i = ir, unconditional.or = FALSE)
+#' # res2 <- vectORA(gs = fdgs, i = ir, unconditional.or = TRUE)
 
 vectORA <- function(
   gs, i, background=NA, minOverlap = 3, minSize=5, maxSize=Inf, gs_desc = NULL, feature_desc = NULL,

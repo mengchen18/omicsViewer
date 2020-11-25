@@ -61,29 +61,29 @@ attr4selector_module <- function(
   params
 }
 
-###########################
-library(shiny)
-library(shinyjs)
-library(Biobase)
-library(shinyWidgets)
-source("Git/R/module_triselector.R")
-dat <- readRDS("Dat/exampleEset.RDS")
-pd <- pData(dat)
-fd <- fData(dat)
-expr <- exprs(dat)
-ts <- trisetter(meta = pd, expr = expr, combine = "pheno")
-# ts <- stringr::str_split_fixed(colnames(pd), pattern = "\\|", n = 3)
+# ###########################
+# library(shiny)
+# library(shinyjs)
+# library(Biobase)
+# library(shinyWidgets)
+# source("Git/R/module_triselector.R")
+# dat <- readRDS("Dat/exampleEset.RDS")
+# pd <- pData(dat)
+# fd <- fData(dat)
+# expr <- exprs(dat)
+# ts <- trisetter(meta = pd, expr = expr, combine = "pheno")
+# # ts <- stringr::str_split_fixed(colnames(pd), pattern = "\\|", n = 3)
 
-ui <- fluidPage(
-  attr4selector_ui("a4test")
-)
+# ui <- fluidPage(
+#   attr4selector_ui("a4test")
+# )
 
-server <- function(input, output, session) {
-  k <- callModule(attr4selector_module, id = "a4test", reactive_meta=reactive(pd), reactive_expr=reactive(expr), reactive_triset = reactive(ts))
-  # observe(
-  #   print(k())
-  # )
-}
+# server <- function(input, output, session) {
+#   k <- callModule(attr4selector_module, id = "a4test", reactive_meta=reactive(pd), reactive_expr=reactive(expr), reactive_triset = reactive(ts))
+#   # observe(
+#   #   print(k())
+#   # )
+# }
 
-shinyApp(ui, server)
+# shinyApp(ui, server)
 

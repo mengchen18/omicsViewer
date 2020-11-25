@@ -71,24 +71,24 @@ enrichment_analysis_module <- function(
   )
 }
 
-# # #######
-source("Git/R/auxi_fgsea.R")
-source("Git/R/auxi_vectORA.R")
-source("Git/R/module_barplotGsea.R")
+# # # #######
+# source("Git/R/auxi_fgsea.R")
+# source("Git/R/auxi_vectORA.R")
+# source("Git/R/module_barplotGsea.R")
 
-dat <- readRDS("Dat/exampleEset.RDS")
-fd <- fData(dat)
-fdgs <- fd[, grep("^GS\\|", colnames(fd))]
-selected_ids <- which(fd$`PCA|All|PC1(9.1%)` > 0.02 )
+# dat <- readRDS("Dat/exampleEset.RDS")
+# fd <- fData(dat)
+# fdgs <- fd[, grep("^GS\\|", colnames(fd))]
+# selected_ids <- which(fd$`PCA|All|PC1(9.1%)` > 0.02 )
 
-ui <- fluidPage(
-  enrichment_analysis_ui("ea")
-)
+# ui <- fluidPage(
+#   enrichment_analysis_ui("ea")
+# )
 
-server <- function(input, output, session) {
-  callModule(enrichment_analysis_module, id = "ea",
-             reactive_pathway_mat = reactive(fdgs), reactive_i = reactive(selected_ids)
-  )
-}
+# server <- function(input, output, session) {
+#   callModule(enrichment_analysis_module, id = "ea",
+#              reactive_pathway_mat = reactive(fdgs), reactive_i = reactive(selected_ids)
+#   )
+# }
 
-shinyApp(ui, server)
+# shinyApp(ui, server)
