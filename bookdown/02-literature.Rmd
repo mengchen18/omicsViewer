@@ -1,0 +1,25 @@
+# Preparing ExpressionSet for the Viewer
+
+## requirement
+
+## Reserved keywords
+
+## Data preparation
+
+Data preparation
+
+###   - General (feature and sample)
+
+###   - GS (feature)
+
+###  - t-test (feature)
+
+###   - PCA (feature and sample)
+
+###   - StringDB (feature)
+
+###   - Surv (sample)
+
+###   - others - elastic net/PLS/clustering results (free keywords)
+
+
