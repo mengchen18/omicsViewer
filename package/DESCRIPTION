@@ -7,7 +7,7 @@ Description: ExpressionSetViewer visualizes ExpressionSet in an interactive way.
 Depends: R (>= 3.6.0)
 License: GPL (>= 2)
 Imports: survminer, survival, fastmatch, reshape2, stringr, beeswarm, grDevices, randomcoloR, DT, shiny, shinycssloaders, shinythemes, shinyWidgets, plotly, networkD3, httr, matrixStats, RColorBrewer, Biobase, fgsea, openxlsx
-Suggests: knitr, rmarkdown
+Suggests: BiocStyle, knitr, rmarkdown
 VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
