@@ -71,3 +71,8 @@ saveRDS(d, file = "dtest.RDS")
 ##  to open the viewer
 # ExpressionSetViewer("./")
 ```
+
+## sessionInfo
+```{r session}
+sessionInfo()
+```
