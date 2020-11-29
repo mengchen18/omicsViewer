@@ -4,24 +4,26 @@
 string_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    fluidRow(
-      column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-             div(style="display: inline-block;vertical-align:top;", h5("Taxonomy code: ")),
-             div(style="display: inline-block;vertical-align:top; width:50%", 
-                 textInput(ns("tax"), label = NULL, value = "9606"))),
-      column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-             div(style="display: inline-block;vertical-align:top;", 
-                 uiOutput(ns("errorOrRun"))))
+      fluidRow(
+        column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+               div(style="display: inline-block;vertical-align:top;", h5("Tax ID: ")),
+               div(style="display: inline-block;vertical-align:top; width:50%", 
+                   textInput(ns("tax"), label = NULL, value = "9606"))),
+        column(6, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+               div(style="display: inline-block;vertical-align:top;", 
+                   uiOutput(ns("errorOrRun")))),
+        column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+               align = "right", uiOutput(ns("showButton")) )
     ),
     uiOutput(ns("noresRet")),
     shinycssloaders::withSpinner(
       color="#0dc5c1",
       DT::dataTableOutput(ns("strtab"))
     ),
-    wellPanel(
+    
       checkboxInput(ns("showLabel"), label = "Show labels", value = FALSE),
-      forceNetworkOutput(ns("network"))
-    )
+      forceNetworkOutput(ns("network")),
+    
   )
 }
 
@@ -84,11 +86,15 @@ string_module <- function(
       }
       r
     })
-  gs <- eventReactive(input$run, stringGSA(genes = reactive_ids(), taxid = input$tax) )
+  gs <- eventReactive(input$run, {
+    tab <- stringGSA(genes = reactive_ids(), taxid = input$tax) 
+    colnames(tab) <- c("category", "term", "gene number", "background number", "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
+    tab
+  })
   
   nores <- reactive( {
     !is.data.frame(nk()) || !is.data.frame(gs()) 
-    })
+  })
   
   output$nores.msg <- renderText({
     nores()
@@ -114,10 +120,31 @@ string_module <- function(
     req(!nores())
     req(!overflow())
     req(nrow(gs()) > 0)
-    tab <- gs()[, c("category", "term", "description", "number_of_genes", "number_of_genes_in_background", "p_value", "fdr")]
-    colnames(tab) <- c("category", "term", "desc", "genes", "background", "p value", "fdr")
+    tab <- gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
     DT::datatable(data = tab, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
   })
+  
+  output$showButton <- renderUI({
+    # print( nrow(gs()) > 0 )
+    # req(nrow(gs()) > 0)
+    downloadButton(ns("downloadData"), ".tsv")
+  })
+  
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste0("StringORA_", Sys.time(), ".tsv")
+    },
+    content = function(file) {
+      tab <- gs()
+      ic <- which(sapply(tab, is.list))
+      if (length(ic) > 0) {
+        for (ii in ic) {
+          tab[, ii] <- sapply(tab[, ii], paste, collapse = ";")
+        }
+      }
+      write.table(tab, file, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+    }
+  )
   
   observe({
     req(input$strtab_rows_selected)

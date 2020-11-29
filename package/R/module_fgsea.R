@@ -8,7 +8,8 @@ enrichment_fgsea_ui <- function(id) {
     # plotly barplot
     plotlyOutput(ns("bplot")),
     # table
-    DT::dataTableOutput(ns("stab"))
+    # DT::dataTableOutput(ns("stab"))
+    dataTableDownload_ui(ns("stab"))
   )
 }
 
@@ -48,7 +49,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     cn <- colnames(fd)[sapply(fd, is.numeric) & !grepl("^GS\\|", colnames(fd))]
     str_split_fixed(cn, "\\|", n = 3)
   })
-  v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "fgsea on:")
+  v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value")
   
   # run fgsea
   tab <- reactive({
@@ -65,18 +66,24 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     )
   })
   
-  output$stab <- DT::renderDataTable({
-    t0 <- tab()$table[, setdiff(colnames(tab()$table), "leadingEdge")]
-    ic <- which(sapply(t0, function(x) is.numeric(x) & !is.integer(x)))
-    t0[, ic] <- lapply(t0[, ic], signif, digits = 3)
-    DT::datatable(t0, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  })
+  vi <- callModule(
+    dataTableDownload_module, id = "stab", 
+    reactive_table = reactive(tab()$table), 
+    reactive_cols = reactive(setdiff(colnames(tab()$table), "leadingEdge")), 
+    prefix = "fgsea_"
+    )
+  # output$stab <- DT::renderDataTable({
+  #   t0 <- tab()$table[, setdiff(colnames(tab()$table), "leadingEdge")]
+  #   ic <- which(sapply(t0, function(x) is.numeric(x) & !is.integer(x)))
+  #   t0[, ic] <- lapply(t0[, ic], signif, digits = 3)
+  #   DT::datatable(t0, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+  # })
   
   output$bplot <- renderPlotly({
     
     hid <- bid <- NULL
     
-    if (!is.null(i <- input$stab_rows_selected )) {
+    if (!is.null(i <- vi() )) {
       i <- tab()$table[i, ]
       hid <- fmatch(i$leadingEdge[[1]], tab()$statsNames)
       bid <- setdiff(which(tab()$pathway_mat[, i$pathway] != 0), hid)

@@ -5,13 +5,13 @@ L1_result_space_ui <- function(id) {
   ns <- NS(id)
   tagList(
     navbarPage(
-      "Data represent",
+      "Analyst",
       theme = shinytheme("spacelab"), 
-      tabPanel("Feature output", feature_general_ui(ns("feature_general"))),
-      tabPanel("sample output", sample_general_ui(ns("sample_general"))),
-      tabPanel("fgesa", enrichment_fgsea_ui(ns("fgsea"))),
+      tabPanel("Feature general", feature_general_ui(ns("feature_general"))),
+      tabPanel("Sample general", sample_general_ui(ns("sample_general"))),      
       tabPanel('ORA', enrichment_analysis_ui(ns("ora"))),
-      tabPanel("STRING", string_ui(ns("stringdb")))
+      tabPanel("StringDB", string_ui(ns("stringdb"))),
+      tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))
     )
   )
 }

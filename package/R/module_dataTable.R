@@ -68,7 +68,7 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
     } else if (is.data.frame(reactive_data()))
       x <- reactive_data() else
         stop('reactive_data shold be either a matrix or data.frame')
-      x
+    x
   })
   
   cols <- reactive({

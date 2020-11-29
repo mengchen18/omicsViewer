@@ -83,7 +83,7 @@
 #' @import plotly
 # function def
 plotly_scatter <- function(
-  x, y, xlab = "xlab", ylab = "ylab", color = "defaultColor", shape = "circle", size = 10, tooltips=NULL, 
+  x, y, xlab = "", ylab = "ylab", color = "defaultColor", shape = "circle", size = 10, tooltips=NULL, 
   regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
   highlight = NULL, highlightName = "Highlighted"
 ) {

@@ -11,7 +11,8 @@ feature_general_ui <- function(id) {
     ),
     uiOutput(ns("a4s_output")),
     uiOutput(ns("feature_general_plot")),
-    DT::dataTableOutput(ns('mtab'))
+    # DT::dataTableOutput(ns('mtab'))
+    dataTableDownload_ui(ns("mtab"))
   )
 }
 
@@ -69,7 +70,7 @@ feature_general_module <- function(input, output, session,
     ts <- trisetter(expr = reactive_expr(), meta = reactive_phenoData(), combine = "none")
     ts[ts[, 1] != "Surv", ]
   })
-  v1 <- callModule(triselector_module, id = "tris_feature_general", reactive_x = triset, label = 'Var')
+  v1 <- callModule(triselector_module, id = "tris_feature_general", reactive_x = triset, label = 'Value')
   attr4select <- callModule(
     attr4selector_module, id = "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr, reactive_triset = triset
   )
@@ -138,6 +139,7 @@ feature_general_module <- function(input, output, session,
       df <- melt(reactive_expr()[reactive_i(), , drop = FALSE])
       df$color <- rep(l$color, each = length(reactive_i()))
       df$pheno <- rep(pheno(), each = length(reactive_i()))
+      xlab <- ""
       ylab <- rownames(reactive_expr())[reactive_i()]
       if (length(ylab) > 1)
         ylab <- "Abundance of multiple selected features"
@@ -180,7 +182,11 @@ feature_general_module <- function(input, output, session,
     tab
   })
   
-  output$mtab <- DT::renderDataTable(
-    DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+  callModule(
+    dataTableDownload_module, id = "mtab", reactive_table = metatab, prefix = "FeatureTable_"
   )
+  
+  # output$mtab <- DT::renderDataTable(
+  #   DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+  # )
 }

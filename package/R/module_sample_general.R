@@ -9,7 +9,8 @@ sample_general_ui <- function(id) {
       column(11, triselector_ui(ns("tris_sample_general")))
     ),
     uiOutput(ns("sample_general_plot")),
-    DT::dataTableOutput(ns('mtab'))
+    # DT::dataTableOutput(ns('mtab'))
+    dataTableDownload_ui(ns("msatab"))
   )
 }
 
@@ -49,7 +50,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   triset <- reactive({
     trisetter(meta = reactive_phenoData(), combine = "none")
   })
-  v1 <- callModule(triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Compare")
+  v1 <- callModule(triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Value")
   attr4select <- callModule(
     attr4selector_module, id = "a4_gp", reactive_meta = reactive_phenoData, reactive_triset = triset
   )
@@ -104,7 +105,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
       l <- list(
         x = select(), 
         y = pheno()$value,
-        xlab = "Category", 
+        xlab = "", 
         ylab = do.call(paste, list(v1(), collapse = "|")),
         tooltips = tooltips
       )
@@ -123,7 +124,6 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   # cont table stats
-  observe(print( pheno()$value ))
   callModule(factorIndependency_module, id = "sample_general_contab", 
              x = select, y = reactive(pheno()$value),
              reactive_checkpoint = reactive(pheno()$type == "table")
@@ -147,7 +147,10 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
     tab
   })
   
-  output$mtab <- DT::renderDataTable(
-    DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+  callModule(
+    dataTableDownload_module, id = "msatab", reactive_table = metatab, prefix = "SampleTable_"
   )
+  # output$mtab <- DT::renderDataTable(
+  #   DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+  # )
 }

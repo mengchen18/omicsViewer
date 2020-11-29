@@ -150,7 +150,6 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
   # call string
   response <- httr::GET(url = request_url, query = params) 
   dd <- suppressMessages( httr::content(response) )
-  print("ee")
   if (!is.data.frame(dd)) {
     warning('stringdb error, return NULL!')
     return(dd)

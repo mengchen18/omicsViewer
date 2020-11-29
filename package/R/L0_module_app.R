@@ -8,12 +8,12 @@ app_ui <- function(id) {
     uiOutput(ns("summary")),
     br(),
     absolutePanel(
-      top = 8, right = 150, style = "z-index: 9999;",
-      selectInput(inputId = ns("selectFile"), label = NULL, choices = NULL, selectize = TRUE)
+      top = 8, right = 120, style = "z-index: 9999;",
+      selectizeInput(inputId = ns("selectFile"), label = NULL, choices = NULL, options = list(placeholder = "Select a dataset here") )
     ),
     absolutePanel(
       top = 5, right = 20, style = "z-index: 9999;",
-      downloadButton(outputId = ns("download"), label = "Download", class = NULL)
+      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL)
     ),
     fluidRow(
       column(6, L1_data_space_ui(ns('dataspace'))),
@@ -45,7 +45,8 @@ app_ui <- function(id) {
 #'  t.test
 #'  uniroot
 #'  wilcox.test
-
+#' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
+#' 
 #' 
 app_module <- function(input, output, session, dir) {
   
@@ -54,7 +55,7 @@ app_module <- function(input, output, session, dir) {
   observe({
     req(dir())
     ll <- list.files(dir(), pattern = ".RDS$", ignore.case = TRUE)
-    updateSelectInput(session = session, inputId = "selectFile", choices = ll, selected = "")
+    updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
   })
   
   reactive_eset <- reactive({
@@ -77,6 +78,39 @@ app_module <- function(input, output, session, dir) {
     req(reactive_eset())
     fData(reactive_eset())
   })
+  
+  output$download <- downloadHandler(
+    filename = function() {
+      paste0("ExpressenSet", Sys.time(), ".xlsx")
+    },
+    content = function(file) {
+      td <- function(tab) {
+        ic <- which(sapply(tab, is.list))
+        if (length(ic) > 0) {
+          for (ii in ic) {
+            tab[, ii] <- sapply(tab[, ii], paste, collapse = ";")
+          }
+        }
+        tab
+      }
+      withProgress(message = 'Writing table', value = 0, {
+        wb <- createWorkbook(creator = "BayBioMS")
+        addWorksheet(wb, sheetName = "Phenotype info")
+        addWorksheet(wb, sheetName = "Feature info")
+        addWorksheet(wb, sheetName = "Expression")
+        incProgress(1/4, detail = "expression matrix")
+        id <- paste0("ID", 1:nrow(expr()))
+        writeData(wb, sheet = "Expression", data.frame(ID = id, expr()))
+        incProgress(1/4, detail = "feature table")
+        writeData(wb, sheet = "Feature info", td(cbind(ID = id, fdata())))
+        incProgress(1/4, detail = "phenotype table")
+        writeData(wb, sheet = "Phenotype info", td(pdata()))
+        incProgress(1/4, detail = "Saving table")
+        saveWorkbook(wb, file = file, overwrite = TRUE)
+      })
+      
+    }
+  )
   
   output$summary <- renderUI({
     if (is.null(input$selectFile) || input$selectFile == "")

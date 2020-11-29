@@ -9,10 +9,10 @@ L1_data_space_ui <- function(id) {
   tagList(
     # tabsetPanel(
     navbarPage(
-      "Data analysis",
+      "Eset",
       theme = shinytheme("spacelab"), 
       tabPanel(
-        "heatmap",
+        "Heatmap",
         dropdownButton(
           inputId = "mydropdown",
           label = "Controls",
@@ -27,11 +27,11 @@ L1_data_space_ui <- function(id) {
         ),
         iheatmapOutput(id = ns("heatmapViewer"))
       ),
-      tabPanel("Sample space", meta_scatter_ui(ns("sample_space"))),
-      tabPanel('feature_space', meta_scatter_ui(ns('feature_space'))),
-      tabPanel("phenotype_tab", dataTable_ui(ns("tab_pheno"))),
-      tabPanel("feature_tab", dataTable_ui(ns("tab_feature"))),
-      tabPanel("exprs", dataTable_ui(ns("tab_expr"), selector = FALSE))
+      tabPanel("Samples", meta_scatter_ui(ns("sample_space"))),
+      tabPanel('Features', meta_scatter_ui(ns('feature_space'))),
+      tabPanel("Sample-tab", dataTable_ui(ns("tab_pheno"))),
+      tabPanel("Feature-tab", dataTable_ui(ns("tab_feature"))),
+      tabPanel("Exprs", dataTable_ui(ns("tab_expr"), selector = FALSE))
     )
   )
 }
@@ -91,7 +91,6 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata) {
   })
 
   observeEvent(s_sample_fig(), {
-    print( s_sample_fig() )
     if (!is.null(s_sample_fig()$selected) && length(s_sample_fig()$selected) > 0) {
       selectedSamples( s_sample_fig()$selected )
     } else if ( !is.null(s_sample_fig()$clicked) )

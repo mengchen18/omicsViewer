@@ -6,7 +6,8 @@ enrichment_analysis_ui <- function(id) {
   tagList(
     # table
     uiOutput(ns("error")),
-    DT::dataTableOutput(ns("stab")),
+    # DT::dataTableOutput(ns("stab")),
+    dataTableDownload_ui(ns("stab")),
     # plotly barplot
     plotlyOutput(ns("bplot"))
   )
@@ -71,18 +72,26 @@ enrichment_analysis_module <- function(
   output$error <- renderUI(
     verbatimTextOutput(ns("errorMsg"))
   )
-
-  output$stab <- DT::renderDataTable({
-    req(is.data.frame(oraTab()))
-    DT::datatable(oraTab()[, setdiff(colnames(oraTab()), "overlap_ids")],
-                  options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  })
+  
+  vi <- callModule(
+    dataTableDownload_module, id = "stab", 
+    reactive_table = reactive({
+      req(is.data.frame(oraTab()))
+      oraTab()
+    }), 
+    reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
+    prefix = "ORA_"
+  )
+  # output$stab <- DT::renderDataTable({
+  #   req(is.data.frame(oraTab()))
+  #   DT::datatable(oraTab()[, setdiff(colnames(oraTab()), "overlap_ids")],
+  #                 options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+  # })
 
   hd <- reactive({
-    req(i <- input$stab_rows_selected )
+    req( i <- vi() )
     i <- oraTab()[i, ]
     pathway_name <- as.character(i$pathway)
-    print(pathway_name)
     aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
     stats <- rep(-1, nrow(reactive_pathway_mat()))
     stats[aid] <- 1
@@ -97,7 +106,7 @@ enrichment_analysis_module <- function(
       x = hd()$stats, names = hd()$names,
       highlight = hd()$hid, highlight_color = "red", highlight_width = 1, highlight_legend = "highlighted",
       background = hd()$bid, background_color = "gray", background_width = 1, background_legend = "background",
-      ylab = "ylab", xlab = '', sort = "dec", source = "plotlybarchart"
+      ylab = "Background <- -> GS members", xlab = '', sort = "dec", source = "plotlybarchart"
     )
   )
 }

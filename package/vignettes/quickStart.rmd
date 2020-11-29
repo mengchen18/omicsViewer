@@ -1,0 +1,73 @@
+---
+title: "Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer"
+output: 
+  html_document:
+  # rmarkdown::html_vignette
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Put the title of your vignette here}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## A quick start
+
+To open the xcmsViewer with shiny:
+
+```{r eval=FALSE}
+library(ExpressionSetViewer)
+ExpressionSetViewer(system.file("extdata", package = "ExpressionSetViewer"))
+```
+
+## More detailed instruction
+
+A simple pipeline:
+```{r simple_pipeline}
+library(ExpressionSetViewer)
+packdir <- system.file("extdata", package = "ExpressionSetViewer")
+# reading expression
+expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
+colnames(expr) <- make.names(colnames(expr))
+rownames(expr) <- make.names(rownames(expr))
+# reading feature data
+fd <- read.delim(file.path(packdir, "featureGeneral.tsv"), stringsAsFactors = FALSE)
+# reading phenotype data
+pd <- read.delim(file.path(packdir, "sampleGeneral.tsv"), stringsAsFactors = FALSE)
+
+#  reading other datasets
+drugData <- read.delim(file.path(packdir, "sampleDrug.tsv"))
+# survival data
+# this data is from cell line, the survival data are fake data to show how to use the survival data in ExpressionSetViewer
+surv <- read.delim(file.path(packdir, "sampleSurv.tsv"))
+# gene set information
+genesets <- read.delim(file.path(packdir, "featureGS.tsv"))
+
+# Define t-test to be done
+tests <- rbind(
+ c("Origin", "RE", "ME"),
+ c("Origin", "RE", "LE"),
+ c('TP53.Status', "MT", "WT")
+ )
+
+# prepare column for stringDB query
+strid <- sapply(strsplit(fd$Protein.ID, ";|-"), "[", 1)
+
+###
+d <- prepEsetViewer(
+  expr = expr, pData = pd, fData = fd, 
+  PCA = TRUE, pca.fillNA = TRUE,
+  t.test = tests, ttest.fillNA = FALSE, 
+  gs = genesets, stringDB = strid, surv = surv)
+
+saveRDS(d, file = "dtest.RDS")
+##  to open the viewer
+# ExpressionSetViewer("./")
+```
