@@ -4,7 +4,10 @@
 \alias{L1_data_space_module}
 \title{Application level 1 module - data space}
 \usage{
-L1_data_space_module(input, output, session, expr, pdata, fdata)
+L1_data_space_module(input, output, session, expr, pdata, fdata,
+  x1_s = NULL, x2_s = NULL, x3_s = NULL, y1_s = NULL,
+  y2_s = NULL, y3_s = NULL, x1_f = NULL, x2_f = NULL,
+  x3_f = NULL, y1_f = NULL, y2_f = NULL, y3_f = NULL)
 }
 \arguments{
 \item{input}{input}
@@ -18,6 +21,30 @@ L1_data_space_module(input, output, session, expr, pdata, fdata)
 \item{pdata}{reactive value; phenotype data}
 
 \item{fdata}{reactive value; feature data}
+
+\item{x1_s}{pre-selected x axis for sample space, treselector 1}
+
+\item{x2_s}{pre-selected x axis for sample space, treselector 2}
+
+\item{x3_s}{pre-selected x axis for sample space, treselector 3}
+
+\item{y1_s}{pre-selected y axis for sample space, treselector 1}
+
+\item{y2_s}{pre-selected y axis for sample space, treselector 2}
+
+\item{y3_s}{pre-selected y axis for sample space, treselector 3}
+
+\item{x1_f}{pre-selected x axis for feature space, treselector 1}
+
+\item{x2_f}{pre-selected x axis for feature space, treselector 2}
+
+\item{x3_f}{pre-selected x axis for feature space, treselector 3}
+
+\item{y1_f}{pre-selected y axis for feature space, treselector 1}
+
+\item{y2_f}{pre-selected y axis for feature space, treselector 2}
+
+\item{y3_f}{pre-selected y axis for feature space, treselector 3}
 }
 \description{
 Application level 1 module - data space

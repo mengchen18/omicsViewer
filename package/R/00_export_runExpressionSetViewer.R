@@ -12,6 +12,7 @@
 #' # )
 #' 
 ExpressionSetViewer <- function(dir) {
+  
   app <- list(
     ui = fluidPage(
       app_ui("app")

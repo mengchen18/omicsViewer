@@ -47,7 +47,6 @@ app_ui <- function(id) {
 #'  wilcox.test
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 #' 
-#' 
 app_module <- function(input, output, session, dir) {
   
   ns <- session$ns
@@ -78,6 +77,39 @@ app_module <- function(input, output, session, dir) {
     req(reactive_eset())
     fData(reactive_eset())
   })
+  
+  ########################
+  
+  ps <- reactive({
+    req(eset <- reactive_eset())
+    l <- list()
+    if (!is.null(t0 <- attr(eset, "sx"))){
+      t0 <- strsplit(t0, "\\|")[[1]]
+      l$x1_s <- t0[1]
+      l$x2_s <- t0[2]
+      l$x3_s <- t0[3]
+    }
+    if (!is.null(t0 <- attr(eset, "sy"))) {
+      t0 <- strsplit(t0, "\\|")[[1]]
+      l$y1_s <- t0[1]
+      l$y2_s <- t0[2]
+      l$y3_s <- t0[3]
+    }
+    if (!is.null(t0 <- attr(eset, "fx"))){ 
+      t0 <- strsplit(t0, "\\|")[[1]]
+      l$x1_f <- t0[1]
+      l$x2_f <- t0[2]
+      l$x3_f <- t0[3]
+    }
+    if (!is.null(t0 <- attr(eset, "fy"))){ 
+      t0 <- strsplit(t0, "\\|")[[1]]
+      l$y1_f <- t0[1]
+      l$y2_f <- t0[2]
+      l$y3_f <- t0[3]
+    }
+    l
+  })
+  #####################
   
   output$download <- downloadHandler(
     filename = function() {
@@ -122,7 +154,12 @@ app_module <- function(input, output, session, dir) {
     HTML(txt)
   })
   
-  v1 <- callModule(L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata)
+  v1 <- callModule(L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
+                   x1_s = ps()$x1_s, x2_s = ps()$x2_s, x3_s = ps()$x3_s,
+                   y1_s = ps()$y1_s, y2_s = ps()$y2_s, y3_s = ps()$y3_s,
+                   x1_f = ps()$x1_f, x2_f = ps()$x2_f, x3_f = ps()$x3_f,
+                   y1_f = ps()$y1_f, y2_f = ps()$y2_f, y3_f = ps()$y3_f
+                   )
   
   callModule(L1_result_space_module, id = "resultspace",
              reactive_expr = expr,

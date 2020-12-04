@@ -112,10 +112,8 @@ triselector_module <- function(input, output, session,
   outputOptions(output, "variable.output", suspendWhenHidden = suspendWhenHidden )
   
   observe({
-    # req(input$analysis)
     preselected <- NULL
     cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
-    preselected <- NULL
     if (!is.null(reactive_selector2()))
       if (reactive_selector2() %in% cc)
         preselected <- reactive_selector2()
@@ -128,7 +126,14 @@ triselector_module <- function(input, output, session,
     cc <- reactive_x()[, 3][reactive_x()[, 1] == input$analysis & reactive_x()[, 2] == input$subset]
     if (length(cc) > 1)
       cc <- c("Select a variable!", cc)
-    updateSelectInput(session, inputId = "variable", choices = cc)
+    
+    preselected <- NULL
+    if (!is.null(reactive_selector3())) {
+      preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
+      if (inherits(preselected, "try-error"))
+        preselected <- NULL
+    }
+    updateSelectInput(session, inputId = "variable", choices = cc, selected = preselected)
   })
   
   eventReactive(eventExpr = input$variable,

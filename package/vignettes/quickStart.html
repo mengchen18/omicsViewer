@@ -268,14 +268,72 @@ div.tocify {
 </div>
 
 
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>ExpressionSetViewer visualizes ExpressionSet in an interactive way. The ExpressionSetViewer has a separate back- and front-end. In the back-end, users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. Some extra requirement on the headers of phenotype data or feature data are imposed so that the provided information can be clearly recognized by the front-end, at the same time, keep a minimum modification on the existing ExpressionSet object. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented by shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly and the results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.</p>
+<p>In addition, the resulted data could be easily shared using a shiny server. Otherwise, a standalone version of ExpressionSetViewer together with designated omics data could be easily created by integrating it with portable R, which can be shared with collaborators or submitted as supplementary data together with a manuscript.</p>
+</div>
+<div id="design-concept" class="section level2">
+<h2>Design concept</h2>
+<p>Separate data processing and visualization</p>
+</div>
 <div id="a-quick-start" class="section level2">
 <h2>A quick start</h2>
 <p>To open the xcmsViewer with shiny:</p>
 <pre class="r"><code>library(ExpressionSetViewer)
 ExpressionSetViewer(system.file(&quot;extdata&quot;, package = &quot;ExpressionSetViewer&quot;))</code></pre>
 </div>
+<div id="new-requirement-on-the-expressionset" class="section level2">
+<h2>New requirement on the ExpressionSet</h2>
+<ul>
+<li>need to have names</li>
+<li>the three part header</li>
+</ul>
+<div id="the-reserved-headers" class="section level3">
+<h3>The reserved headers</h3>
+</div>
+</div>
 <div id="more-detailed-instruction" class="section level2">
 <h2>More detailed instruction</h2>
+<div id="general-information" class="section level3">
+<h3>General information</h3>
+</div>
+<div id="gene-set-information" class="section level3">
+<h3>Gene set information</h3>
+</div>
+<div id="survival-data" class="section level3">
+<h3>Survival data</h3>
+</div>
+<div id="t-test" class="section level3">
+<h3>t-test</h3>
+</div>
+<div id="pca" class="section level3">
+<h3>PCA</h3>
+</div>
+<div id="stringdb-connection" class="section level3">
+<h3>StringDB connection</h3>
+</div>
+</div>
+<div id="deployment" class="section level2">
+<h2>deployment</h2>
+<div id="standalone-version-using-docker" class="section level3">
+<h3>Standalone version using docker</h3>
+</div>
+<div id="standalone-version-using-r-portable" class="section level3">
+<h3>standalone version using R portable</h3>
+</div>
+<div id="shiny-server" class="section level3">
+<h3>shiny server</h3>
+</div>
+<div id="inside-r" class="section level3">
+<h3>inside R</h3>
+</div>
+<div id="comparison-of-different-deployment-methods" class="section level3">
+<h3>Comparison of different deployment methods</h3>
+</div>
+</div>
+<div id="a-simple-example-workflow" class="section level2">
+<h2>A simple example workflow</h2>
 <p>A simple pipeline:</p>
 <pre class="r"><code>library(ExpressionSetViewer)
 packdir &lt;- system.file(&quot;extdata&quot;, package = &quot;ExpressionSetViewer&quot;)

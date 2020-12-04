@@ -22,6 +22,12 @@ meta_scatter_ui <- function(id) {
 #' @param reactive_expr reactive expression data
 #' @param combine how to combine the expression and meta data, pheno or feature?
 #' @param source source id for plotly object
+#' @param reactive_x1 reactive value for pre-selected x-aixs, triselect 1
+#' @param reactive_x2 reactive value for pre-selected x-aixs, triselect 2
+#' @param reactive_x3 reactive value for pre-selected x-aixs, triselect 3
+#' @param reactive_y1 reactive value for pre-selected y-aixs, triselect 1
+#' @param reactive_y2 reactive value for pre-selected y-aixs, triselect 2
+#' @param reactive_y3 reactive value for pre-selected y-aixs, triselect 3
 #' #' # library(shiny)
 #' # library(Biobase)
 #' # dat <- readRDS("Dat/exampleEset.RDS")
@@ -48,7 +54,9 @@ meta_scatter_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 meta_scatter_module <- function(
-  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), combine = c("pheno", "feature"), source = "plotlyscattersource"
+  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), combine = c("pheno", "feature"), source = "plotlyscattersource",
+  reactive_x1 = reactive(NULL), reactive_x2 = reactive(NULL), reactive_x3 = reactive(NULL),
+  reactive_y1 = reactive(NULL), reactive_y2 = reactive(NULL), reactive_y3 = reactive(NULL)
 ) {
   ns <- session$ns
   
@@ -56,8 +64,18 @@ meta_scatter_module <- function(
     ts <- trisetter(expr = reactive_expr(), meta = reactive_meta(), combine = combine[1])
     ts[ts[, 1] != "Surv", ]
   } )
-  v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis")
-  v2 <- callModule(triselector_module, id = "tris_main_scatter2", reactive_x = triset, label = "Y-axis")
+  
+  # 
+  v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis", 
+                   reactive_selector1 = reactive_x1, 
+                   reactive_selector2 = reactive_x2, 
+                   reactive_selector3 = reactive_x3)
+  v2 <- callModule(triselector_module, id = "tris_main_scatter2", reactive_x = triset, label = "Y-axis",
+                   reactive_selector1 = reactive_y1, 
+                   reactive_selector2 = reactive_y2, 
+                   reactive_selector3 = reactive_y3)
+  # v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis")
+  # v2 <- callModule(triselector_module, id = "tris_main_scatter2", reactive_x = triset, label = "Y-axis")
   attr4select <- callModule(
     attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, reactive_triset = triset
   )

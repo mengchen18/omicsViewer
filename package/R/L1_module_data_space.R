@@ -11,6 +11,8 @@ L1_data_space_ui <- function(id) {
     navbarPage(
       "Eset",
       theme = shinytheme("spacelab"), 
+      tabPanel('Features', meta_scatter_ui(ns('feature_space'))),
+      tabPanel("Samples", meta_scatter_ui(ns("sample_space"))),
       tabPanel(
         "Heatmap",
         dropdownButton(
@@ -27,8 +29,6 @@ L1_data_space_ui <- function(id) {
         ),
         iheatmapOutput(id = ns("heatmapViewer"))
       ),
-      tabPanel("Samples", meta_scatter_ui(ns("sample_space"))),
-      tabPanel('Features', meta_scatter_ui(ns('feature_space'))),
       tabPanel("Sample-tab", dataTable_ui(ns("tab_pheno"))),
       tabPanel("Feature-tab", dataTable_ui(ns("tab_feature"))),
       tabPanel("Exprs", dataTable_ui(ns("tab_expr"), selector = FALSE))
@@ -43,19 +43,40 @@ L1_data_space_ui <- function(id) {
 #' @param expr reactive value; expression matrix
 #' @param pdata reactive value; phenotype data
 #' @param fdata reactive value; feature data
+#' @param x1_s pre-selected x axis for sample space, treselector 1
+#' @param x2_s pre-selected x axis for sample space, treselector 2
+#' @param x3_s pre-selected x axis for sample space, treselector 3
+#' @param y1_s pre-selected y axis for sample space, treselector 1
+#' @param y2_s pre-selected y axis for sample space, treselector 2
+#' @param y3_s pre-selected y axis for sample space, treselector 3
+#' @param x1_f pre-selected x axis for feature space, treselector 1
+#' @param x2_f pre-selected x axis for feature space, treselector 2
+#' @param x3_f pre-selected x axis for feature space, treselector 3
+#' @param y1_f pre-selected y axis for feature space, treselector 1
+#' @param y2_f pre-selected y axis for feature space, treselector 2
+#' @param y3_f pre-selected y axis for feature space, treselector 3
 #' 
-L1_data_space_module <- function(input, output, session, expr, pdata, fdata) {
+L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
+                                 x1_s = NULL, x2_s = NULL, x3_s = NULL,
+                                 y1_s = NULL, y2_s = NULL, y3_s = NULL,
+                                 x1_f = NULL, x2_f = NULL, x3_f = NULL,
+                                 y1_f = NULL, y2_f = NULL, y3_f = NULL
+                                 ) {
   
   s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata )
   
   # sample space
   s_sample_fig <- callModule(
-    meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample"
+    meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
+    reactive_x1 = reactive(x1_s), reactive_x2 = reactive(x2_s), reactive_x3 = reactive(x3_s),
+    reactive_y1 = reactive(y1_s), reactive_y2 = reactive(y2_s), reactive_y3 = reactive(y3_s)
   )
 
   # feature space
   s_feature_fig <- callModule(
-    meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, combine = "feature", source = "scatter_meta_feature"
+    meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, combine = "feature", source = "scatter_meta_feature",
+    reactive_x1 = reactive(x1_f), reactive_x2 = reactive(x2_f), reactive_x3 = reactive(x3_f),
+    reactive_y1 = reactive(y1_f), reactive_y2 = reactive(y2_f), reactive_y3 = reactive(y3_f)
   )
 
   ## tables

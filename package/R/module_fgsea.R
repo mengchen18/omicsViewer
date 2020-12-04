@@ -72,12 +72,6 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     reactive_cols = reactive(setdiff(colnames(tab()$table), "leadingEdge")), 
     prefix = "fgsea_"
     )
-  # output$stab <- DT::renderDataTable({
-  #   t0 <- tab()$table[, setdiff(colnames(tab()$table), "leadingEdge")]
-  #   ic <- which(sapply(t0, function(x) is.numeric(x) & !is.integer(x)))
-  #   t0[, ic] <- lapply(t0[, ic], signif, digits = 3)
-  #   DT::datatable(t0, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  # })
   
   output$bplot <- renderPlotly({
     
@@ -93,7 +87,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
       x = tab()$stats, names = tab()$statsNames, 
       highlight = hid, highlight_color = "red", highlight_width = 2, highlight_legend = "Leading edges",
       background = bid, background_color = "gray", background_width = 2, background_legend = "background", 
-      ylab = "ylab", xlab = '', sort = "dec", source = ns("plotlybarchart")
+      ylab = "Rankding stats", xlab = '', sort = "dec", source = ns("plotlybarchart")
     )
     
   })
