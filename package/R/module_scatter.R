@@ -92,6 +92,20 @@ plotly_scatter <- function(
   i1 <- (is.factor(x) || is.character(x) || is.logical(x)) && is.numeric(y) # beeswarm vertical
   i2 <- (is.factor(y) || is.character(y) || is.logical(y)) && is.numeric(x) # beeswarm horizontal
   i3 <- is.numeric(y) && is.numeric(x) # scatter
+    
+  cutnumorchar <- function(x, n = 60, alt = "") {
+    if (is.character(x) || is.factor(x)) {
+      message ("too many distinct values, not suitable for color mapping!")
+      v <- alt
+    } else if (is.numeric(x)) {
+      v <- as.character(cut(x, breaks = n, include.lowest = TRUE, dig.lab = 3))
+    } else
+      stop("cutnumorchar: x needs to be one of objects: numeric, character, factor")
+    v
+  }
+
+  if (length(unique(color)) > 60) color <- cutnumorchar(color, alt = "defaultColor")
+  if (length(unique(shape)) > 60) shape <- cutnumorchar(shape, alt = "circle")
   
   ## prepare data.frame differently
   if (i1) {

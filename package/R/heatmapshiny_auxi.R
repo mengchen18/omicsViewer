@@ -7,7 +7,7 @@
 value2color <- function(x, n=10) {
   if (is.numeric(x)) {
     nl <- cut(x,n)
-    set.seed(861018)
+    set.seed(8610)
     cp <- colorRampPalette(brewer.pal(n = 7, name = "Blues"))(n)
     names(cp) <- levels(nl)
     cc <- cp[nl]
@@ -15,11 +15,11 @@ value2color <- function(x, n=10) {
     x <- as.character(x)
     nl <- unique(x)
     if (length(nl) > 60) {
-      set.seed(861018)
+      set.seed(8610)
       cp <- distinctColorPalette(k = 60)
       cp <- rep(cp, ceiling(length(nl)/60))[1:length(nl)]
     } else {
-      set.seed(861018)
+      set.seed(8610)
       cp <- distinctColorPalette(k = length(nl))
     }
     names(cp) <- nl

@@ -110,7 +110,8 @@ https://sourceforge.net/projects/rportable/
 
 ExpressionSetViewer could be easily deployed using shiny server. For example, the ui file
 
-```{r deploy_shiny_ui}
+```{r deploy_shiny_ui,eval=FALSE}
+library(shiny)
 ui <- fluidPage(
   ExpressionSetViewer:::app_ui("app")
 )
@@ -118,7 +119,7 @@ ui <- fluidPage(
 
 The server file
 
-```{r deploy_shiny_server}
+```{r deploy_shiny_server,eval=FALSE}
 # dir need to be changed
 dir <- "path/to/object"
 server <- function(input, output, session) {
@@ -130,7 +131,8 @@ server <- function(input, output, session) {
 
 Assume you have prepared an object for ExpressionSetViewer, you can open it in R using
 
-```{r deploy_inside_R}
+```{r deploy_inside_R,eval=FALSE}
+library(ExpressionSetViewer)
 ExpressionSetViewer("path/to/object")
 ```
 
