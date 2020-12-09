@@ -33,39 +33,27 @@ triselector_module(input, output, session, reactive_x,
 Utility triselector ui
 }
 \examples{
-# ### examples
-# 
-# dat <- readRDS("Dat/exampleEset.RDS")
+# dat <- readRDS("inst/extdata/demo.RDS")
 # library(shiny)
-# phenoData <- pData(dat)
-# triset <- stringr::str_split_fixed(colnames(phenoData), '\\\\|', n= 3)
-# 
-# ui <- fluidPage(
-#   triselector_ui("tres")
-# )
-# server <- function(input, output, session) {
-#   observe(print(v()))
-# }
-# 
-# shinyApp(ui, server)
-
-# ###
-# 
-# 
-# dat <- readRDS("Dat/exampleEset.RDS")
-# library(shiny)
-# phenoData <- pData(dat)
-# triset <- stringr::str_split_fixed(colnames(phenoData), '\\\\|', n= 3)
+# library(Biobase)
+# fData <- fData(dat)
+# triset <- stringr::str_split_fixed(colnames(fData), '\\\\|', n= 3)
+# source("R/module_triselector.R")
 # 
 # ui <- fluidPage(
 #   triselector_ui("tres"),
 #   triselector_ui("tres2")
 # )
 # server <- function(input, output, session) {
-#   v1 <- callModule(triselector_module, id = "tres", x = reactive(triset))
-#   v2 <- callModule(triselector_module, id = "tres2", x = reactive(triset), 
-#                    reactive_selector1 = reactive(v1()$analysis), 
-#                    reactive_selector2 = reactive(v1()$subset))
+#   v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset), 
+#                    reactive_selector1 = reactive("ttest"),
+#                    reactive_selector2 = reactive("RE_vs_ME"),
+#                    reactive_selector3 = reactive("mean.diff")
+#                    )
+#   v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
+#                    reactive_selector1 = reactive("ttest"),
+#                    reactive_selector2 = reactive("RE_vs_ME"),
+#                    reactive_selector3 = reactive("log.fdr"))
 #   observe({
 #     print("/////////////////////////")
 #     print(v1())

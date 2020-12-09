@@ -37,40 +37,27 @@ triselector_ui <- function(id) {
 #' @param label of the triselector
 #' @param suspendWhenHidden seuspend when hidden
 #' @examples 
-#' # ### examples
-#' # 
-#' # dat <- readRDS("Dat/exampleEset.RDS")
+#' # dat <- readRDS("inst/extdata/demo.RDS")
 #' # library(shiny)
-#' # phenoData <- pData(dat)
-#' # triset <- stringr::str_split_fixed(colnames(phenoData), '\\|', n= 3)
-#' # 
-#' # ui <- fluidPage(
-#' #   triselector_ui("tres")
-#' # )
-#' # server <- function(input, output, session) {
-#   v <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset), label = #' "x-axis")
-#' #   observe(print(v()))
-#' # }
-#' # 
-#' # shinyApp(ui, server)
-#' 
-#' # ###
-#' # 
-#' # 
-#' # dat <- readRDS("Dat/exampleEset.RDS")
-#' # library(shiny)
-#' # phenoData <- pData(dat)
-#' # triset <- stringr::str_split_fixed(colnames(phenoData), '\\|', n= 3)
+#' # library(Biobase)
+#' # fData <- fData(dat)
+#' # triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)
+#' # source("R/module_triselector.R")
 #' # 
 #' # ui <- fluidPage(
 #' #   triselector_ui("tres"),
 #' #   triselector_ui("tres2")
 #' # )
 #' # server <- function(input, output, session) {
-#' #   v1 <- callModule(triselector_module, id = "tres", x = reactive(triset))
-#' #   v2 <- callModule(triselector_module, id = "tres2", x = reactive(triset), 
-#' #                    reactive_selector1 = reactive(v1()$analysis), 
-#' #                    reactive_selector2 = reactive(v1()$subset))
+#' #   v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset), 
+#' #                    reactive_selector1 = reactive("ttest"),
+#' #                    reactive_selector2 = reactive("RE_vs_ME"),
+#' #                    reactive_selector3 = reactive("mean.diff")
+#' #                    )
+#' #   v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
+#' #                    reactive_selector1 = reactive("ttest"),
+#' #                    reactive_selector2 = reactive("RE_vs_ME"),
+#' #                    reactive_selector3 = reactive("log.fdr"))
 #' #   observe({
 #' #     print("/////////////////////////")
 #' #     print(v1())
@@ -93,12 +80,38 @@ triselector_module <- function(input, output, session,
     h5(HTML(sprintf("<b>%s</b>", label)))
   })
   
+  ## assign preselect to reactive value so it is only take effect once when loaded
+  s1 <- reactiveVal(NULL)
+  s2 <- reactiveVal(NULL)
+  s3 <- reactiveVal(NULL)
+  
+  observe({
+    req(reactive_selector1())
+    s1(reactive_selector1())
+  })
+  
+  observe({
+    req(reactive_selector2())
+    s2(reactive_selector2())
+  })
+  
+  observe({
+    req(reactive_selector3())
+    s3(reactive_selector3())
+  })
+  
+  # init empty selectize input
   output$analysis.output <- renderUI({
+    reactive_selector1()
     cc <- unique(reactive_x()[, 1])
     preselected <- NULL
-    if (!is.null(reactive_selector1()))
-      if (reactive_selector1() %in% cc)
-        preselected <- reactive_selector1()
+    isolate({
+      if (!is.null(s1())) {
+        if (s1() %in% cc)
+          preselected <- s1()
+        s1(NULL)
+      }
+    })
     selectInput(inputId = ns("analysis"), label = NULL, choices = cc, selectize = TRUE, selected = preselected)
   })
   output$subset.output <- renderUI(
@@ -111,28 +124,37 @@ triselector_module <- function(input, output, session,
   outputOptions(output, "subset.output", suspendWhenHidden = suspendWhenHidden )
   outputOptions(output, "variable.output", suspendWhenHidden = suspendWhenHidden )
   
+  # updat selectize input when reactive_x is given
   observe({
+    req(input$analysis)
     preselected <- NULL
     cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
-    if (!is.null(reactive_selector2()))
-      if (reactive_selector2() %in% cc)
-        preselected <- reactive_selector2()
+    isolate({
+      if (!is.null(s2())) {
+        if (s2() %in% cc)
+          preselected <- s2()
+        s2(NULL)
+      }
+    })
     updateSelectInput(session, inputId = "subset", choices = cc, selected = preselected)
   })
   
-  observe({
-    # req(input$analysis)
-    # req(input$subset)
+  observeEvent(input$subset, {    
+    req(input$analysis)
+    req(input$subset)
+
     cc <- reactive_x()[, 3][reactive_x()[, 1] == input$analysis & reactive_x()[, 2] == input$subset]
     if (length(cc) > 1)
       cc <- c("Select a variable!", cc)
-    
     preselected <- NULL
-    if (!is.null(reactive_selector3())) {
-      preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
-      if (inherits(preselected, "try-error"))
-        preselected <- NULL
-    }
+    isolate({
+      if (!is.null(s3())) {
+        preselected <- try(match.arg(s3(), cc), silent = TRUE)
+        if (inherits(preselected, "try-error"))
+          preselected <- NULL
+        s3(NULL)
+      }
+    })
     updateSelectInput(session, inputId = "variable", choices = cc, selected = preselected)
   })
   

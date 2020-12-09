@@ -16,7 +16,7 @@ survival_ui <- function(id) {
 #' @param reactive_strata strata variable
 #' @param reactive_checkpoint checkpoint
 #' @importFrom survminer ggsurvplot surv_pvalue
-#' @importFrom survival survfit
+#' @importFrom survival survfit Surv
 #' @examples
 #' #' # library(shiny)
 #' # library(survminer)

@@ -102,8 +102,8 @@ prepEsetViewer <- function(
   rownames(expr) <- expr_rn
   colnames(expr) <- expr_cn
   
-  colnames(pData) <- paste('General|All|', colnames(pData))
-  colnames(fData) <- paste('General|All|', colnames(fData))
+  colnames(pData) <- paste('General|All|', trimws(colnames(pData)))
+  colnames(fData) <- paste('General|All|', trimws(colnames(fData)))
   
   
   ## ======================= PCA ============================
@@ -162,9 +162,9 @@ prepEsetViewer <- function(
       if (nrow(surv) != ncol(expr))
         stop( "nrow(surv) should equals ncol(expr)" )
       if (is.null(colnames(surv)))
-        colnames(surv) <- paste0("surv", 1:ncol(surv))
+        colnames(surv) <- paste0("Surv", 1:ncol(surv))
       surv <- data.frame(surv, stringsAsFactors = FALSE, check.names = TRUE)
-      colnames(surv) <- paste0("surv|all|", colnames(surv))
+      colnames(surv) <- paste0("Surv|all|", trimws(colnames(surv)))
     } else
       stop("incompatible 'surv'")
     sv <- sapply(surv, function(x) {

@@ -65,7 +65,6 @@ meta_scatter_module <- function(
     ts[ts[, 1] != "Surv", ]
   } )
   
-  # 
   v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis", 
                    reactive_selector1 = reactive_x1, 
                    reactive_selector2 = reactive_x2, 
@@ -74,8 +73,7 @@ meta_scatter_module <- function(
                    reactive_selector1 = reactive_y1, 
                    reactive_selector2 = reactive_y2, 
                    reactive_selector3 = reactive_y3)
-  # v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis")
-  # v2 <- callModule(triselector_module, id = "tris_main_scatter2", reactive_x = triset, label = "Y-axis")
+  
   attr4select <- callModule(
     attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, reactive_triset = triset
   )
@@ -116,7 +114,6 @@ meta_scatter_module <- function(
       l <- colnames(reactive_expr()) else
         l <- rownames(reactive_expr())
       
-      # print(v_scatter())
       i1 <- v_scatter()$selected
       i2 <- v_scatter()$clicked
       list(
