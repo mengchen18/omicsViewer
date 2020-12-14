@@ -17,7 +17,7 @@ Start ExpressionSetViewer
 1
 ## To start the shiny app: 
 # ExpressionSetViewer(
-# 	"/media/share_baybioms/Projects/008_Bioinformatics/B032_ExpressionSetViewer/Dat/"
+# 	ExpressionSetViewer(system.file("extdata", package = "ExpressionSetViewer"))
 # )
 
 }
