@@ -30,7 +30,7 @@ with a manuscript.
 ## Install package
 
 ```
-devtools::install_github("mengchen18/ExpressionSetViewer")
+devtools::install_github("mengchen18/ExpressionSetViewer/package")
 ```
 
 ## Start the viewer
