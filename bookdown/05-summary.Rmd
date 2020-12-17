@@ -1,9 +1,0 @@
-# Deployment
-
-## Inside R
-
-## shinyApp
-
-## standalone version together with R portable
-
-## Docker

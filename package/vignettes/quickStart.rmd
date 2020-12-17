@@ -54,8 +54,8 @@ A video introduction on how to use the viewer is here:
 ## New requirement on the ExpressionSet
 
 The ExpressionSetViewer tries to make the changes on ExpressionSet object as small
-as possible. In order to let the users quickly naviate the information they want to 
-check, there are two general requirement. 
+as possible. In order to let the users quickly navigate the information they want to 
+check, there are two general requirements. 
  - The expression matrix should have unique row names and column names. The row names
  of feature data should be the same as row names of expression matrix. The row names
  of phenotype data should be the same as column names of expression matrix. It is also 
@@ -71,11 +71,10 @@ check, there are two general requirement.
    return by the analysis, for example the fold change of 
    
 ### The reserved headers
- - Surv
- - StringDB
- - 
+ - **Surv** in phenotype data, this 
+ - **StringDB** in the feature data
 
-
+<!--
 ## More detailed instruction
 
 ### General information
@@ -91,6 +90,7 @@ check, there are two general requirement.
 ### StringDB connection
 
 ## Analysis can be done inside ExpressionSetViewer
+-->
 
 ## deployment
 
