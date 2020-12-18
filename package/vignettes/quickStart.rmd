@@ -20,24 +20,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-### ExpressionSet
+ExpressionSet is the S4 object storing high throughput omics data defined in Bioconductor. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf)
 
-ExpressionSet is the S4 object storing high throughput omics data defined in Bioconductor. The core component
-of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are
-samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about
-features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. 
-More detailed instruction of ExpressionSet could be found here:
-https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf
+ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. In the back-end, users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
 
-### ExpressionSet viewer
+## A quick start for the shinyapp (front-end) users
 
-ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has separate back- and front-end. In the back-end, users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. Some extra requirement on the headers of phenotype data or feature data are imposed so that the provided information can be clearly recognized by the front-end, at the same time, keep a minimum modification on the existing ExpressionSet object. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented by shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly and the results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R. 
-
-## A quick start
-
-Once the data for ExpressionSetViewer be done, the data could be visualized separately. This greatly 
-facilitate the commutation between bioinformaticians and experiemental biologist. To open the 
-ExpressionSetViewer with shiny:
+First, we assume the data for ExpressionSetViewer has been prepared, and the task now is to visualize the object using ExpressionSetViewer. Inside R, this can be done using：
 
 ```{r eval=FALSE}
 library(ExpressionSetViewer)
@@ -45,104 +34,14 @@ path2data <- system.file("extdata", package = "ExpressionSetViewer")
 ExpressionSetViewer(path2data)
 ```
 
-Here the path2data is folder that containing the .RDS files of ExpressionSetViewer. 
-All the .RDS files will be listed in the text box on the top right corner. Select the 
-data you want to load there. 
+Here *path2data* is the folder containing the *.RDS* files to be visualized by ExpressionSetViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets then it will be loaded. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
 
-A video introduction on how to use the viewer is here:
+## Preparing object for ExpressionSetViewer (for the back-end users)
 
-## New requirement on the ExpressionSet
+The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to performs the most basic analysis, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer. 
 
-The ExpressionSetViewer tries to make the changes on ExpressionSet object as small
-as possible. In order to let the users quickly navigate the information they want to 
-check, there are two general requirements. 
- - The expression matrix should have unique row names and column names. The row names
- of feature data should be the same as row names of expression matrix. The row names
- of phenotype data should be the same as column names of expression matrix. It is also 
- recommand to use meaningful names such as gene names, because the names will be displayed
- in the expression viewer. 
- - The columns of feature data and phenotype data should be in this three elements format:
-   "Analysis|Subset|Variable"
-   In this way, the variables could be selected with "three step selector", the first 
-   elements is call analysis, for example "t-test", "PCA". The second element is subset, it 
-   often indicates on which subset of samples/feature the analysis was played. For example, if in 
-   an experiment with three groups, e.g. A, B and C, a t-test was used to compare the group
-   A and B, the first two elements could be "ttest|A_vs_B". The last elements are the variables
-   return by the analysis, for example the fold change of 
-   
-### The reserved headers
- - **Surv** in phenotype data, this 
- - **StringDB** in the feature data
+A simple example:
 
-<!--
-## More detailed instruction
-
-### General information
-
-### Gene set information
-  
-### Survival data
-
-### t-test
-
-### PCA
-
-### StringDB connection
-
-## Analysis can be done inside ExpressionSetViewer
--->
-
-## deployment
-
-In addition, the resulted data could be easily shared using a shiny server. Otherwise, a standalone version of ExpressionSetViewer together with designated omics data could be easily created by integrating it with portable R, which can be shared with collaborators or submitted as supplementary data together with a manuscript. 
-
-### Standalone version using docker
-
-Docker is the easiest way to share the with docker user
-
-### standalone version using R portable
-
-To share the ExpressionSetViewer and data with windows user, you can install the r portable
-https://sourceforge.net/projects/rportable/
-
-
-### shiny server
-
-ExpressionSetViewer could be easily deployed using shiny server. For example, the ui file
-
-```{r deploy_shiny_ui,eval=FALSE}
-library(shiny)
-ui <- fluidPage(
-  ExpressionSetViewer:::app_ui("app")
-)
-```
-
-The server file
-
-```{r deploy_shiny_server,eval=FALSE}
-# dir need to be changed
-dir <- "path/to/object"
-server <- function(input, output, session) {
-  callModule(ExpressionSetViewer:::app_module, id = "app", dir = reactive(dir))
-}
-```
-
-### inside R
-
-Assume you have prepared an object for ExpressionSetViewer, you can open it in R using
-
-```{r deploy_inside_R,eval=FALSE}
-library(ExpressionSetViewer)
-ExpressionSetViewer("path/to/object")
-```
-
-The object could be loaded from the top-right corner. 
-
-### Comparison of different deployment methods
-
-## A simple example workflow
-
-A simple pipeline:
 ```{r simple_pipeline}
 library(ExpressionSetViewer)
 packdir <- system.file("extdata", package = "ExpressionSetViewer")
@@ -163,7 +62,9 @@ surv <- read.delim(file.path(packdir, "sampleSurv.tsv"))
 # gene set information
 genesets <- read.delim(file.path(packdir, "featureGS.tsv"))
 
-# Define t-test to be done
+# Define t-test to be done, a matrix nx3
+# every row define a t-test, the format
+# [column header] [group 1 in the test] [group 2 in the test]
 tests <- rbind(
  c("Origin", "RE", "ME"),
  c("Origin", "RE", "LE"),
@@ -193,6 +94,86 @@ attr(d, "sy") <- "PCA|All|PC2("
 ##  to open the viewer
 # ExpressionSetViewer("./")
 ```
+
+
+### Basic requirements on ExpressionSet
+
+The ExpressionSetViewer tries to make the changes on the ExpressionSet object as small as possible. There are two extra requirements imposed on the ExpressionSet:
+
+* The expression matrix should have unique row names and column names. The row names of feature data should be the same as the row names of the expression matrix. The row names of phenotype data should be the same as the column names of the expression matrix. It is also recommended to use meaningful names such as gene names because the names will be displayed in the expression viewer. 
+
+* The columns names of feature data and phenotype data should be in the format consist of three elements:
+
+   **Analysis|Subset|Variable**
+
+The first element is called *analysis*, such as "t-test", "PCA", which tells the front-end user from which analysis the result is. There are few *analysis* "keywords" reserved so the ExpressionSetViewer knows how to process/interpret it internally. Please see the next section for more information. The second element is *subset*, it often indicates which subset of samples/features was used in the analysis. For example, in an experiment with three groups *A, B* and *C*, a t-test was used to compare the group *A* and *B*, the first two elements could be "ttest|A_vs_B". Alternatively, the *Subset* can be anything that helps to further narrow down the information given an "Analysis". If nothing needs to give, a place holder (e.g. "All") needs to be added to this position. The last elements are the variables returned by the analysis, for example, the "fold change" and (log-transformed) "p-value" could be given by header "ttest|A_vs_B|fold.change" and "ttest|A_vs_B|p.value". 
+
+The purpose of this rule for headers is to let the users quickly navigate through the potentially large number of columns in the phenotype and feature data. Once the data are prepared in this way, the information of interest can be selected using a three-step selector in the front-end. 
+   
+#### The reserved headers
+ - **Surv** in *phenotype data*, indicating information used to create survival curves. 
+ - **StringDB** in the *feature data*, which means the feature IDst that can be used to query [stringDB](https://string-db.org/).
+
+<!--
+## More detailed instruction
+
+### General information
+
+### Gene set information
+  
+### Survival data
+
+### t-test
+
+### PCA
+
+### StringDB connection
+
+## Analysis can be done inside ExpressionSetViewer
+-->
+
+### Deployment
+
+In addition to open the viewer inside R, ExpressionSetViewer together with the data prepared, can be deploy via several other ways. 
+
+* **Docker**: Standalone version using docker
+
+* **Portable R:** To share the ExpressionSetViewer and data with users don't use docker, you can install ExpressionSetViewer in the [r portable](https://sourceforge.net/projects/rportable/).
+
+* **Shiny server:** ExpressionSetViewer could be easily deployed using shiny server. For example, the ui file
+
+```{r deploy_shiny_ui,eval=FALSE}
+library(shiny)
+ui <- fluidPage(
+  ExpressionSetViewer:::app_ui("app")
+)
+```
+
+The server file
+
+```{r deploy_shiny_server,eval=FALSE}
+# dir need to be changed
+dir <- "path/to/object"
+server <- function(input, output, session) {
+  callModule(ExpressionSetViewer:::app_module, id = "app", dir = reactive(dir))
+}
+```
+
+* **Inside R**
+
+Assume you have prepared an object for ExpressionSetViewer, you can open it in R using
+
+```{r deploy_inside_R,eval=FALSE}
+library(ExpressionSetViewer)
+ExpressionSetViewer("path/to/object")
+```
+
+The object could be loaded from the top-right corner. 
+
+<!--
+### Comparison of different deployment methods
+-->
+
 
 ## sessionInfo
 ```{r session}
