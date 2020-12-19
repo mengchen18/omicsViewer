@@ -1,5 +1,10 @@
 ---
 title: "Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer"
+author:
+  - name: "Chen Meng"
+    url: https://github.com/mengchen18/ExpressionSetViewer
+    affiliation: BayBioMS, TU Munich
+    affiliation_url: https://www.baybioms.tum.de/
 output: 
   html_document:
   # rmarkdown::html_vignette
@@ -7,7 +12,7 @@ output:
     toc_float: true
     toc_collapsed: true
     toc_depth: 3
-number_sections: true
+    number_sections: true
 vignette: >
   %\VignetteIndexEntry{Put the title of your vignette here}
   %\VignetteEngine{knitr::rmarkdown}
@@ -18,13 +23,15 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
+# Introduction
 
 ExpressionSet is the S4 object storing high throughput omics data defined in Bioconductor. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf)
 
 ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. In the back-end, users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
 
-## A quick start for the shinyapp (front-end) users
+# For the shiny-app user
+
+## Start the shinyapp inside R
 
 First, we assume the data for ExpressionSetViewer has been prepared, and the task now is to visualize the object using ExpressionSetViewer. Inside R, this can be done using：
 
@@ -34,11 +41,64 @@ path2data <- system.file("extdata", package = "ExpressionSetViewer")
 ExpressionSetViewer(path2data)
 ```
 
-Here *path2data* is the folder containing the *.RDS* files to be visualized by ExpressionSetViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets then it will be loaded. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
+Here *path2data* is the folder containing the *.RDS* files (not the *.RDS* files) to be visualized by ExpressionSetViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets to loaded it into the viewer. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
 
-## Preparing object for ExpressionSetViewer (for the back-end users)
+The example data is an object of *ExpressionSet*, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 7000 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively. 
 
-The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to performs the most basic analysis, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer. 
+## Layout
+The ExpressionViewer has a "Left and Right Halves Layout". The left side is the "Eset" panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the "Analyst" panel. In the "Analyst" panel, different statistical analyses will be performed depending on the features or samples selected. 
+
+### Tabs in Eset
+
+The left side visualize the ExpressionSetViewer, it contains the following tabs:
+
+* **Feature** visualizes the feature data. It is usually a scatter plot or beeswarm plot, every point in the plot is a feature. The x- and y-axis could be selected by the user. A single or multiple features can be selected from the plot and passed to the "analyst" (right) panel. A video tutorial about how to work with the *feature space":  
+<iframe width="560" height="315" src="https://www.youtube.com/embed/aojpqnXCc_Y" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+* **Sample** visualizes the sample data. Like the feature space, usually, a scatter plot or a beeswarm plot is shown here. But every point in this tab is a sample. One or more samples could be selected from the figure. A video tutorial about the data: 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/TIYi6RHti5c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+* **Heatmap** shows the expression matrix as heatmap. Additionally, the information in phenotype and feature data could be added as side colors or used as variables to sort the rows and columns of the heatmap. Both features and samples could be selected from the heatmap. Video tutorial:  
+<iframe width="560" height="315" src="https://www.youtube.com/embed/8wBtwMIrTyo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+### Tabs in Analyst
+
+*Analyst* will perform analysis in response to the features and samples selected from the *eset* panel. Depending on the input data (see [here](#reskey)), these tabs are maybe shown:
+
+* **Sample general** The selected samples from the left panel is shown here. If a second variable is selected as a contrast, a hypothesis test will be performed to test the association between the contrast variable with the selected samples. Depending on the type of contrast variable, the following test will be performed:  
+
+|contrast variable | Significance test | Visualization |
+|------------------|-------------------|---------------|
+| quantitative | t-test/Mann-Whitney U test| Beeswarm |
+| categorical | fischer's exact test/chi-sq test| Contingency table |
+| Surv | log-rank test | KM-curve |
+
+Video tutorial:  
+<iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+* **feature general** The selected feature from the left panel is shown here. If a second variable is selected as a contrast, a hypothesis test will be performed to test the association between the contrast variable with the selected feature(s). Depending on the type of contrast variable, the following test will be done:
+
+|contrast variable | Significance test | Visualization |
+|------------------|-------------------|---------------|
+| no | - | line chart/boxplot |
+| quantitative | Pearson correlation analysis| Scatter plot |
+| categorical | t-test/Mann-Whitney U test | Beeswarm |  
+
+Video tutorial:  
+<iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+* **ORA** represents *Over-Representation Analysis*, this tab will be shown if the gene set information is given in the feature data. This tab shows which gene sets are over-represented in the selected features. 
+
+* **fGSEA** the results of [fGSEA](http://bioconductor.org/packages/release/bioc/html/fgsea.html). Please note the result of *fgsea* does not depend on the feature selected, instead, the user needs to give a ranking statistic, which is usually stored in the feature data. 
+
+* **StringDB** This tab appears when there is a column in the feature data that can be used to query [string database](https://string-db.org/). When a subset of features is selected from the left panel, these features will be used to query Enrichment analysis and network analysis will be performed. 
+
+# For the back-end R user
+
+## A simple workflow to preparing object for ExpressionSetViewer
+
+The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to performs the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer. 
 
 A simple example:
 
@@ -96,43 +156,27 @@ attr(d, "sy") <- "PCA|All|PC2("
 ```
 
 
-### Basic requirements on ExpressionSet
+## Extra requirements on ExpressionSet
 
-The ExpressionSetViewer tries to make the changes on the ExpressionSet object as small as possible. There are two extra requirements imposed on the ExpressionSet:
+When you prepare the object by yourself, please note that to be compatible with expressionSetVeiwer, there are two extra requirements imposed on the ExpressionSet:
 
 * The expression matrix should have unique row names and column names. The row names of feature data should be the same as the row names of the expression matrix. The row names of phenotype data should be the same as the column names of the expression matrix. It is also recommended to use meaningful names such as gene names because the names will be displayed in the expression viewer. 
 
-* The columns names of feature data and phenotype data should be in the format consist of three elements:
-
-   **Analysis|Subset|Variable**
-
+* The columns names of feature data and phenotype data should be in the format consist of three elements:  
+**Analysis|Subset|Variable**  
 The first element is called *analysis*, such as "t-test", "PCA", which tells the front-end user from which analysis the result is. There are few *analysis* "keywords" reserved so the ExpressionSetViewer knows how to process/interpret it internally. Please see the next section for more information. The second element is *subset*, it often indicates which subset of samples/features was used in the analysis. For example, in an experiment with three groups *A, B* and *C*, a t-test was used to compare the group *A* and *B*, the first two elements could be "ttest|A_vs_B". Alternatively, the *Subset* can be anything that helps to further narrow down the information given an "Analysis". If nothing needs to give, a place holder (e.g. "All") needs to be added to this position. The last elements are the variables returned by the analysis, for example, the "fold change" and (log-transformed) "p-value" could be given by header "ttest|A_vs_B|fold.change" and "ttest|A_vs_B|p.value". 
 
-The purpose of this rule for headers is to let the users quickly navigate through the potentially large number of columns in the phenotype and feature data. Once the data are prepared in this way, the information of interest can be selected using a three-step selector in the front-end. 
+Any information could be added to the feature and sample data as long as they meet these requirements. The purpose of this rule for headers is to let the users quickly navigate through the potentially large number of columns in the phenotype and feature data. Once the data are prepared in this way, the information of interest can be selected using a three-step selector in the front-end. 
    
-#### The reserved headers
- - **Surv** in *phenotype data*, indicating information used to create survival curves. 
- - **StringDB** in the *feature data*, which means the feature IDst that can be used to query [stringDB](https://string-db.org/).
+### The reserved headers {#reskey}
 
-<!--
-## More detailed instruction
+These keywords are reserved for the **Analysis** element in the headers. User should avoid to use them in cases other than the desigated usage. 
 
-### General information
+ * **Surv** in *phenotype data*, indicating information used to create survival curves. 
+ * **StringDB** in the *feature data*, which means the feature IDst that can be used to query [stringDB](https://string-db.org/). If this header exists, the *StringDB* tab will be shown in the *analyst* panel. 
+ * **GS** in the *feature data*, storing the gene set information. If this header exists, the *ORA* and *fGSEA* will be shown. 
 
-### Gene set information
-  
-### Survival data
-
-### t-test
-
-### PCA
-
-### StringDB connection
-
-## Analysis can be done inside ExpressionSetViewer
--->
-
-### Deployment
+## Deployment
 
 In addition to open the viewer inside R, ExpressionSetViewer together with the data prepared, can be deploy via several other ways. 
 
@@ -170,12 +214,16 @@ ExpressionSetViewer("path/to/object")
 
 The object could be loaded from the top-right corner. 
 
-<!--
-### Comparison of different deployment methods
--->
 
+## Writing extensions
 
-## sessionInfo
+The users can also define their own analysis and plug it into the *Analyst* panel. Here is an example:
+
+```
+To be finished
+```
+
+# sessionInfo
 ```{r session}
 sessionInfo()
 ```
