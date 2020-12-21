@@ -219,8 +219,113 @@ The object could be loaded from the top-right corner.
 
 The users can also define their own analysis and plug it into the *Analyst* panel. Here is an example:
 
+```{r write extension_1,eval=FALSE}
+library(ExpressionSetViewer)
+ctxt <- function(x) paste(
+  x[1:min(10, length(x))], collapse = ";"
+)
+
+### extra tab 1 -- feature selected ###
+exampleCustomeUI_1 <- function(id) {
+  ns <- NS(id)
+  tagList(
+    verbatimTextOutput(ns("txt"))
+  )
+}
+
+exampleCustomeMoudule_1 <- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+) {
+  output$txt <- renderText({
+    sprintf(
+      "feature selected: %s ; index feature selected: %s",
+      ctxt(feature_selected()),
+      ctxt(match(feature_selected(), rownames(fdata())))
+    )
+  })
+}
+
+ll <- list(
+  list(
+    tabName = "CustomeAddOn",
+    moduleName = "opt1",
+    moduleUi = exampleCustomeUI_1,
+    moduleServer  = exampleCustomeMoudule_1
+  )
+)
+
+ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
-To be finished
+
+More than one tabs:
+
+```{r write extension_1,eval=FALSE}
+### continue from above : extra tab 2 -- sample selected ###
+exampleCustomeUI_2 <- function(id) {
+  ns <- NS(id)
+  tagList(
+    verbatimTextOutput(ns("txt"))
+  )
+}
+
+exampleCustomeMoudule_2 <- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+) {
+  
+  output$txt <- renderText({
+    sprintf(
+      "sample selected: %s ; colnames sample selected: %s",
+      ctxt(sample_selected()),
+      ctxt(match(sample_selected(), rownames(pdata())))
+      )
+  })
+}
+
+### use oiginal object ###
+exampleCustomeUI_3 <- function(id) {
+  ns <- NS(id)
+  tagList(
+    verbatimTextOutput(ns("txt"))
+  )
+}
+
+exampleCustomeMoudule_3 <- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+) {
+  output$txt <- renderText({
+    as.character(object()@.__classVersion__)
+  })
+}
+
+
+ll <- list(
+  
+  # first optional tab
+  list(
+    tabName = "Opt feature",
+    moduleName = "opt-feature",
+    moduleUi = exampleCustomeUI_1,
+    moduleServer  = exampleCustomeMoudule_1
+  ),
+  
+  # second optional tab
+  list(
+    tabName = "Opt sample",
+    moduleName = "opt-sample",
+    moduleUi = exampleCustomeUI_2,
+    moduleServer  = exampleCustomeMoudule_2
+  ),
+  
+  # third optional tab
+  list(
+    tabName = "Opt object",
+    moduleName = "opt-object",
+    moduleUi = exampleCustomeUI_3,
+    moduleServer  = exampleCustomeMoudule_3
+  )
+)
+
+ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 # sessionInfo

@@ -27,6 +27,11 @@ app_ui <- function(id) {
 #' @param output output
 #' @param session session
 #' @param dir reactive; directory containing the .RDS file of ExpressionSet
+#' @param additionalTabs additional tabs added to "Analyst" panel
+#' @param esetLoader function to load the eset object, if an RDS file, should be "readRDS"
+#' @param exprsGetter function to get the expression matrix from eset
+#' @param pDataGetter function to get the phenotype data from eset
+#' @param fDataGetter function to get the feature data from eset
 #' @importFrom Biobase exprs pData fData
 #' @importFrom grDevices colorRampPalette
 #' @importFrom graphics abline axis barplot image mtext par plot text
@@ -47,7 +52,9 @@ app_ui <- function(id) {
 #'  wilcox.test
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 #' 
-app_module <- function(input, output, session, dir) {
+app_module <- function(
+  input, output, session, dir, additionalTabs = NULL, 
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData) {
   
   ns <- session$ns
   
@@ -60,22 +67,22 @@ app_module <- function(input, output, session, dir) {
   reactive_eset <- reactive({
     req(input$selectFile)
     flink <- file.path(dir(), input$selectFile)
-    readRDS(flink)
+    esetLoader(flink)
   })
   
   expr <- reactive({
     req(reactive_eset())
-    exprs(reactive_eset())
+    exprsGetter(reactive_eset())
   })
   
   pdata <-reactive({
     req(reactive_eset())
-    pData(reactive_eset())
+    pDataGetter(reactive_eset())
   })
   
   fdata <-reactive({
     req(reactive_eset())
-    fData(reactive_eset())
+    fDataGetter(reactive_eset())
   })
   
   ########################
@@ -166,7 +173,9 @@ app_module <- function(input, output, session, dir) {
              reactive_phenoData = pdata,
              reactive_featureData = fdata,
              reactive_i = reactive(v1()$feature),
-             reactive_highlight = reactive(v1()$sample)
+             reactive_highlight = reactive(v1()$sample),
+             additionalTabs = additionalTabs,
+             object = reactive_eset
   )
 }
 

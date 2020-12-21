@@ -4,7 +4,9 @@
 \alias{app_module}
 \title{Application level 0 module}
 \usage{
-app_module(input, output, session, dir)
+app_module(input, output, session, dir, additionalTabs = NULL,
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
+  fDataGetter = fData)
 }
 \arguments{
 \item{input}{input}
@@ -14,6 +16,16 @@ app_module(input, output, session, dir)
 \item{session}{session}
 
 \item{dir}{reactive; directory containing the .RDS file of ExpressionSet}
+
+\item{additionalTabs}{additional tabs added to "Analyst" panel}
+
+\item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}
+
+\item{exprsGetter}{function to get the expression matrix from eset}
+
+\item{pDataGetter}{function to get the phenotype data from eset}
+
+\item{fDataGetter}{function to get the feature data from eset}
 }
 \description{
 Application level 0 module

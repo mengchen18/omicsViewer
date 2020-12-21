@@ -3,16 +3,9 @@
 #' @importFrom shinythemes shinytheme
 L1_result_space_ui <- function(id) {
   ns <- NS(id)
+  
   tagList(
-    navbarPage(
-      "Analyst",
-      theme = shinytheme("spacelab"), 
-      tabPanel("Feature general", feature_general_ui(ns("feature_general"))),
-      tabPanel("Sample general", sample_general_ui(ns("sample_general"))),      
-      tabPanel('ORA', enrichment_analysis_ui(ns("ora"))),
-      tabPanel("StringDB", string_ui(ns("stringdb"))),
-      tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))
-    )
+    uiOutput(ns("optTabs"))
   )
 }
 
@@ -25,14 +18,19 @@ L1_result_space_ui <- function(id) {
 #' @param reactive_featureData feature data
 #' @param reactive_i row ID/name of rows selected
 #' @param reactive_highlight col ID/name of columns selected
+#' @param additionalTabs additional tabs added to "Analyst" panel
+#' @param object originally loaded object, mostly an ExpressionSet object
 
 
 L1_result_space_module <- function(
   input, output, session, 
   reactive_expr, reactive_phenoData, reactive_featureData,
   reactive_i = reactive(NULL),  
-  reactive_highlight = reactive(NULL)
+  reactive_highlight = reactive(NULL),
+  additionalTabs = NULL,
+  object  = NULL
 ) {
+  ns <- session$ns
   
   v <- callModule(feature_general_module, id = "feature_general", 
                   reactive_expr = reactive_expr, 
@@ -52,13 +50,53 @@ L1_result_space_module <- function(
   
   v4 <- callModule(
     string_module, id = "stringdb", reactive_ids = reactive({
-    i <- grep("^StringDB\\|", colnames(reactive_featureData()))
-    reactive_featureData()[reactive_i(), i[1]]
-  }))
+      i <- grep("^StringDB\\|", colnames(reactive_featureData()))
+      reactive_featureData()[reactive_i(), i[1]]
+    }))
   
   v5 <- callModule(
     sample_general_module, id = "sample_general", 
     reactive_phenoData = reactive_phenoData, 
     reactive_j = reactive_highlight
+  )
+  # 
+  if (length(additionalTabs) > 0) {
+    for (lo in additionalTabs){
+      callModule(
+        lo$moduleServer, id = lo$moduleName,
+        pdata = reactive_phenoData, fdata = reactive_featureData, expr = reactive_expr, 
+        feature_selected = reactive_i, sample_selected = reactive_highlight, object = object
+      )
+    }
+  }
+  
+  output$optTabs <- renderUI({
+    
+    titleTabs <- list(
+      title = "Analyst",
+      theme = shinytheme("spacelab"), 
+      tabPanel("Feature general", feature_general_ui(ns("feature_general"))),
+      tabPanel("Sample general", sample_general_ui(ns("sample_general")))
     )
+    
+    optionalTabs <- list()
+    
+    if (any(grepl("^GS\\|", colnames(reactive_featureData())))) {
+      optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
+      optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))
+    }
+    
+    if (any(grepl("^StringDB\\|", colnames(reactive_featureData()))))
+      optionalTabs <- c(optionalTabs, list(tabPanel("StringDB", string_ui(ns("stringdb")))))
+    
+    ######
+    if (length(additionalTabs) > 0) {
+      for (lo in additionalTabs) {
+        optionalTabs <- c( optionalTabs, list(tabPanel(lo$tabName, lo$moduleUi(ns(lo$moduleName)))) )
+      }
+    }
+    ######
+    
+    do.call(navbarPage, c(titleTabs, optionalTabs))
+  })
 }

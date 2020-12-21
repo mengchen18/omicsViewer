@@ -4,11 +4,22 @@
 \alias{ExpressionSetViewer}
 \title{Start ExpressionSetViewer}
 \usage{
-ExpressionSetViewer(dir)
+ExpressionSetViewer(dir, additionalTabs = NULL, esetLoader = readRDS,
+  exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData)
 }
 \arguments{
 \item{dir}{directory to the ExpressionSet object. Only give the directoy
 in this argument, not the .rds file.}
+
+\item{additionalTabs}{additional tabs added to "Analyst" panel}
+
+\item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}
+
+\item{exprsGetter}{function to get the expression matrix from eset}
+
+\item{pDataGetter}{function to get the phenotype data from eset}
+
+\item{fDataGetter}{function to get the feature data from eset}
 }
 \description{
 Start ExpressionSetViewer

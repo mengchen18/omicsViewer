@@ -6,7 +6,8 @@
 \usage{
 L1_result_space_module(input, output, session, reactive_expr,
   reactive_phenoData, reactive_featureData, reactive_i = reactive(NULL),
-  reactive_highlight = reactive(NULL))
+  reactive_highlight = reactive(NULL), additionalTabs = NULL,
+  object = NULL)
 }
 \arguments{
 \item{input}{input}
@@ -24,6 +25,10 @@ L1_result_space_module(input, output, session, reactive_expr,
 \item{reactive_i}{row ID/name of rows selected}
 
 \item{reactive_highlight}{col ID/name of columns selected}
+
+\item{additionalTabs}{additional tabs added to "Analyst" panel}
+
+\item{object}{originally loaded object, mostly an ExpressionSet object}
 }
 \description{
 Utility L1 result space ui
