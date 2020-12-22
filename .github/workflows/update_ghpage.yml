@@ -15,10 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: copy files
-        run: |
-          git clone https://.:${{ secrets.REPO_TOKEN }}@github.com/ExpressionSetViewer 
+        run: |          
           rm ./docs/index.html
           cp ./package/vignettes/quickStart.html ./docs/index.html
-          git ./docs/index.html
+          git add ./docs/index.html
           git commit -m "update html"
           git push origin master
