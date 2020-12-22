@@ -26,6 +26,9 @@ jobs:
       id: buildx
       uses: docker/setup-buildx-action@v1
     
+    - name: install system dependencies
+      run: sudo apt-get install -y libgit2-dev 
+    
     - name: pull docker image
       run: docker pull mengchen18/expression_set_viewer:V0_1_13
     
