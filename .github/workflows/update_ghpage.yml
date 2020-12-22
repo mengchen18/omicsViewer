@@ -13,7 +13,7 @@ jobs:
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
         with: ${{ secrets.REPO_TOKEN }}
       - name: copy files
         run: |          
