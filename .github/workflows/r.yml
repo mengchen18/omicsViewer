@@ -29,9 +29,10 @@ jobs:
         uses: r-lib/actions/setup-r@ffe45a39586f073cc2e9af79c4ba563b657dc6e3
         with:
           r-version: ${{ matrix.r-version }}
+      - name: install system dependencies
+        run: sudo apt-get install -y libcurl4-openssl-dev        
       - name: Install dependencies
-        run: |
-          sudo apt-get install -y libcurl4-openssl-dev
+        run: |          
           install.packages(c("remotes", "rcmdcheck", "BiocManager"))
           BiocManager::install(c("BiocStyle", "fgsea", "Biobase"))
           remotes::install_deps(pkgdir = "./package", dependencies = TRUE)
