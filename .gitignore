@@ -8,3 +8,5 @@ rsconnect
 *.tar.gz
 *.Rcheck
 local
+.github
+docs
