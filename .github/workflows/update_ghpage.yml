@@ -1,0 +1,25 @@
+# This is a basic workflow to help you get started with Actions
+name: Render Rmarkdown files
+
+# Controls when the action will run. 
+on:
+  push:
+    paths:
+      - '**.Rmd'
+
+jobs:
+  render:
+    name: update gh-page
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+    steps:
+      - uses: actions/checkout@v2
+      - name: copy files
+        run: |
+          git clone https://.:${{ secrets.REPO_TOKEN }}@github.com/ExpressionSetViewer 
+          rm ./docs/index.html
+          cp ./package/vignettes/quickStart.html ./docs/index.html
+          git ./docs/index.html
+          git commit -m "update html"
+          git push origin master
