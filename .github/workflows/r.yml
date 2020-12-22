@@ -17,6 +17,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     strategy:
       matrix:
         r-version: [3.6]
