@@ -20,6 +20,8 @@ jobs:
         run: |          
           rm ./docs/index.html
           cp ./package/vignettes/quickStart.html ./docs/index.html
+          git config --global user.name "mengchen18"
+          git config --global user.email "mengchen18@gmail.com"
           git add ./docs/index.html
           git commit -m "update html"
           git push origin master
