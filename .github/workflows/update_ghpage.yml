@@ -4,8 +4,7 @@ name: Render Rmarkdown files
 # Controls when the action will run. 
 on:
   push:
-    paths:
-      - '**.Rmd'
+    branches: [ master ]
 
 jobs:
   render:
