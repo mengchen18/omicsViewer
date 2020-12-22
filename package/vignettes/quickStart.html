@@ -332,8 +332,8 @@ ExpressionSetViewer(path2data)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Video tutorial:<br />
-<iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+<p>           Video tutorial:<br />
+           <iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
 <ul>
 <li><strong>feature general</strong> The selected feature from the left panel is shown here. If a second variable is selected as a contrast, a hypothesis test will be performed to test the association between the contrast variable with the selected feature(s). Depending on the type of contrast variable, the following test will be done:</li>
 </ul>
@@ -363,8 +363,8 @@ ExpressionSetViewer(path2data)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Video tutorial:<br />
-<iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+<p>           Video tutorial:<br />
+           <iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
 <ul>
 <li><p><strong>ORA</strong> represents <em>Over-Representation Analysis</em>, this tab will be shown if the gene set information is given in the feature data. This tab shows which gene sets are over-represented in the selected features.</p></li>
 <li><p><strong>fGSEA</strong> the results of <a href="http://bioconductor.org/packages/release/bioc/html/fgsea.html">fGSEA</a>. Please note the result of <em>fgsea</em> does not depend on the feature selected, instead, the user needs to give a ranking statistic, which is usually stored in the feature data.</p></li>
@@ -479,8 +479,130 @@ ExpressionSetViewer(&quot;path/to/object&quot;)</code></pre>
 </div>
 <div id="writing-extensions" class="section level2">
 <h2><span class="header-section-number">3.4</span> Writing extensions</h2>
-<p>The users can also define their own analysis and plug it into the <em>Analyst</em> panel. Here is an example:</p>
-<pre><code>To be finished</code></pre>
+<p>The users can also define their own analysis and plug it into the <em>Analyst</em> panel. To add a self-defined analysis/tab, users first need to create a list of four elements:</p>
+<ul>
+<li><strong>tabName</strong> Tab name to be shown in the <em>Analyst</em> panel<br />
+</li>
+<li><strong>moduleName</strong> ID used when call modules<br />
+</li>
+<li><strong>moduleUi</strong> shiny module UI function<br />
+</li>
+<li><p><strong>moduleServer</strong> shiny module server function. The module function should a function with the following arguments:</p>
+<ul>
+<li>input, output, session: argument required when call <em>callModule</em> function, usually are not used inside the function</li>
+<li>pdata: phenotype data passed to the function<br />
+</li>
+<li>fdata: feature data passed to the function</li>
+<li>expr: expression matrix passed to the function<br />
+</li>
+<li>feature_selected: selected features, passed to the function</li>
+<li>sample_selected: selected samples, passed tot he function</li>
+<li>object: the original object loaded to the app, usually an ExpressionSet.</li>
+</ul></li>
+</ul>
+<p>Then the four-element list should be wrapped by a parent list, which can store a single or multiple &quot;four-element lists&quot;, each represent an additional analysis/tab. Here is an example include a single additional tab:</p>
+<pre class="r"><code>library(ExpressionSetViewer)
+ctxt &lt;- function(x) paste(
+  x[1:min(10, length(x))], collapse = &quot;;&quot;
+)
+
+### extra tab 1 -- feature selected ###
+exampleCustomeUI_1 &lt;- function(id) {
+  ns &lt;- NS(id)
+  tagList(
+    verbatimTextOutput(ns(&quot;txt&quot;))
+  )
+}
+
+exampleCustomeMoudule_1 &lt;- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+) {
+  output$txt &lt;- renderText({
+    sprintf(
+      &quot;feature selected: %s ; index feature selected: %s&quot;,
+      ctxt(feature_selected()),
+      ctxt(match(feature_selected(), rownames(fdata())))
+    )
+  })
+}
+
+ll &lt;- list(
+  list(
+    tabName = &quot;CustomeAddOn&quot;,
+    moduleName = &quot;opt1&quot;,
+    moduleUi = exampleCustomeUI_1,
+    moduleServer  = exampleCustomeMoudule_1
+  )
+)
+
+ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)</code></pre>
+<p>When more tabs should be added, simply add more elements in to the list and pass it to the <em>additionalTabs</em> argument:</p>
+<pre class="r"><code>### continue from above : extra tab 2 -- sample selected ###
+exampleCustomeUI_2 &lt;- function(id) {
+  ns &lt;- NS(id)
+  tagList(
+    verbatimTextOutput(ns(&quot;txt&quot;))
+  )
+}
+
+exampleCustomeMoudule_2 &lt;- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+) {
+  
+  output$txt &lt;- renderText({
+    sprintf(
+      &quot;sample selected: %s ; colnames sample selected: %s&quot;,
+      ctxt(sample_selected()),
+      ctxt(match(sample_selected(), rownames(pdata())))
+      )
+  })
+}
+
+### use oiginal object ###
+exampleCustomeUI_3 &lt;- function(id) {
+  ns &lt;- NS(id)
+  tagList(
+    verbatimTextOutput(ns(&quot;txt&quot;))
+  )
+}
+
+exampleCustomeMoudule_3 &lt;- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+) {
+  output$txt &lt;- renderText({
+    as.character(object()@.__classVersion__)
+  })
+}
+
+
+ll &lt;- list(
+  
+  # first optional tab
+  list(
+    tabName = &quot;Opt feature&quot;,
+    moduleName = &quot;opt-feature&quot;,
+    moduleUi = exampleCustomeUI_1,
+    moduleServer  = exampleCustomeMoudule_1
+  ),
+  
+  # second optional tab
+  list(
+    tabName = &quot;Opt sample&quot;,
+    moduleName = &quot;opt-sample&quot;,
+    moduleUi = exampleCustomeUI_2,
+    moduleServer  = exampleCustomeMoudule_2
+  ),
+  
+  # third optional tab
+  list(
+    tabName = &quot;Opt object&quot;,
+    moduleName = &quot;opt-object&quot;,
+    moduleUi = exampleCustomeUI_3,
+    moduleServer  = exampleCustomeMoudule_3
+  )
+)
+
+ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)</code></pre>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
@@ -506,7 +628,7 @@ ExpressionSetViewer(&quot;path/to/object&quot;)</code></pre>
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ExpressionSetViewer_0.1.13
+## [1] ExpressionSetViewer_0.2.0
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] matrixStats_0.54.0  RColorBrewer_1.1-2  httr_1.4.1         

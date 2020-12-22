@@ -10,7 +10,7 @@ output:
   # rmarkdown::html_vignette
     toc: true
     toc_float: true
-    toc_collapsed: true
+    toc_collapsed: false
     toc_depth: 3
     number_sections: true
 vignette: >
@@ -74,8 +74,8 @@ The left side visualize the ExpressionSetViewer, it contains the following tabs:
 | categorical | fischer's exact test/chi-sq test| Contingency table |
 | Surv | log-rank test | KM-curve |
 
-Video tutorial:  
-<iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Video tutorial:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 * **feature general** The selected feature from the left panel is shown here. If a second variable is selected as a contrast, a hypothesis test will be performed to test the association between the contrast variable with the selected feature(s). Depending on the type of contrast variable, the following test will be done:
 
@@ -85,8 +85,8 @@ Video tutorial:
 | quantitative | Pearson correlation analysis| Scatter plot |
 | categorical | t-test/Mann-Whitney U test | Beeswarm |  
 
-Video tutorial:  
-<iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Video tutorial:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 * **ORA** represents *Over-Representation Analysis*, this tab will be shown if the gene set information is given in the feature data. This tab shows which gene sets are over-represented in the selected features. 
 
@@ -217,7 +217,22 @@ The object could be loaded from the top-right corner.
 
 ## Writing extensions
 
-The users can also define their own analysis and plug it into the *Analyst* panel. Here is an example:
+The users can also define their own analysis and plug it into the *Analyst* panel. To add a self-defined analysis/tab, users first need to create a list of four elements:  
+
+ * **tabName** Tab name to be shown in the *Analyst* panel  
+ * **moduleName** ID used when call modules  
+ * **moduleUi** shiny module UI function  
+ * **moduleServer** shiny module server function. The module function should a function with the following arguments:
+ 
+    + input, output, session: argument required when call *callModule* function, usually are not used inside the function 
+    + pdata: phenotype data passed to the function  
+    + fdata: feature data passed to the function
+    + expr: expression matrix passed to the function  
+    + feature_selected: selected features, passed to the function
+    + sample_selected: selected samples, passed tot he function
+    + object: the original object loaded to the app, usually an ExpressionSet. 
+  
+Then the four-element list should be wrapped by a parent list, which can store a single or multiple "four-element lists", each represent an additional analysis/tab. Here is an example include a single additional tab:
 
 ```{r write extension_1,eval=FALSE}
 library(ExpressionSetViewer)
@@ -257,9 +272,9 @@ ll <- list(
 ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
-More than one tabs:
+When more tabs should be added, simply add more elements in to the list and pass it to the *additionalTabs* argument:
 
-```{r write extension_1,eval=FALSE}
+```{r write extension_2,eval=FALSE}
 ### continue from above : extra tab 2 -- sample selected ###
 exampleCustomeUI_2 <- function(id) {
   ns <- NS(id)
