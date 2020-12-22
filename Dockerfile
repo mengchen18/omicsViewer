@@ -8,6 +8,3 @@ RUN R -e 'devtools::install_github("mengchen18/ExpressionSetViewer/package", dep
 
 COPY shinyApp/ui.R /srv/shiny-server/sample-apps/ExpressionSetViewer/
 COPY shinyApp/server.R /srv/shiny-server/sample-apps/ExpressionSetViewer/
-
-RUN mkdir /media/ExpressionSetViewerData
-RUN chmod 775 /media/ExpressionSetViewerData
