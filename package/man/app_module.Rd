@@ -6,7 +6,8 @@
 \usage{
 app_module(input, output, session, dir, additionalTabs = NULL,
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
-  fDataGetter = fData)
+  fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
+  "sy", "fx", "fy")[1]) attr(x, what))
 }
 \arguments{
 \item{input}{input}
@@ -26,6 +27,10 @@ app_module(input, output, session, dir, additionalTabs = NULL,
 \item{pDataGetter}{function to get the phenotype data from eset}
 
 \item{fDataGetter}{function to get the feature data from eset}
+
+\item{defaultAxisGetter}{function to get the default axes to be visualized. It should be a function with two 
+arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
+sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.}
 }
 \description{
 Application level 0 module

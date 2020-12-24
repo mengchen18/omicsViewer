@@ -32,6 +32,9 @@ app_ui <- function(id) {
 #' @param exprsGetter function to get the expression matrix from eset
 #' @param pDataGetter function to get the phenotype data from eset
 #' @param fDataGetter function to get the feature data from eset
+#' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
+#'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
+#'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively. 
 #' @importFrom Biobase exprs pData fData
 #' @importFrom grDevices colorRampPalette
 #' @importFrom graphics abline axis barplot image mtext par plot text
@@ -54,7 +57,9 @@ app_ui <- function(id) {
 #' 
 app_module <- function(
   input, output, session, dir, additionalTabs = NULL, 
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData) {
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
+  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what)
+) {
   
   ns <- session$ns
   
@@ -90,25 +95,25 @@ app_module <- function(
   ps <- reactive({
     req(eset <- reactive_eset())
     l <- list()
-    if (!is.null(t0 <- attr(eset, "sx"))){
+    if (!is.null(t0 <- defaultAxisGetter(eset, "sx"))){
       t0 <- strsplit(t0, "\\|")[[1]]
       l$x1_s <- t0[1]
       l$x2_s <- t0[2]
       l$x3_s <- t0[3]
     }
-    if (!is.null(t0 <- attr(eset, "sy"))) {
+    if (!is.null(t0 <- defaultAxisGetter(eset, "sy"))) {
       t0 <- strsplit(t0, "\\|")[[1]]
       l$y1_s <- t0[1]
       l$y2_s <- t0[2]
       l$y3_s <- t0[3]
     }
-    if (!is.null(t0 <- attr(eset, "fx"))){ 
+    if (!is.null(t0 <- defaultAxisGetter(eset, "fx"))){ 
       t0 <- strsplit(t0, "\\|")[[1]]
       l$x1_f <- t0[1]
       l$x2_f <- t0[2]
       l$x3_f <- t0[3]
     }
-    if (!is.null(t0 <- attr(eset, "fy"))){ 
+    if (!is.null(t0 <- defaultAxisGetter(eset, "fy"))){ 
       t0 <- strsplit(t0, "\\|")[[1]]
       l$y1_f <- t0[1]
       l$y2_f <- t0[2]
