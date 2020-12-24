@@ -5,6 +5,8 @@ name: copy html to docs folder
 on:
   push:
     branches: [ master ]
+    paths:
+      - 'package/vignettes/**'
 
 jobs:
   render:
