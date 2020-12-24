@@ -19,7 +19,6 @@ phenotype variable is selected, a significance test on means (t-test or ranked b
 variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data 
 is categorical) will be performed to test the association between the phenotype of interest with the selected 
 samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses 
-
 can be explored in a short time without the need for knowledge of R.
 
 In addition, the resulted data could be easily shared using a shiny server. Otherwise, a standalone version 
@@ -40,6 +39,10 @@ library(ExpressionSetViewer)
 ExpressionSetViewer(system.file("extdata", package = "ExpressionSetViewer"))
 ```
 
+## Vignette
+
+[Link](https://mengchen18.github.io/ExpressionSetViewer/index.html)
+
 ## Docker image:
 
 ```
@@ -48,6 +51,6 @@ docker pull mengchen18/expression_set_viewer
 
 [link to dockerhub](https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer)
 
-## Known issues:
+## Compatibility:
 
 Currently ExpressionSetViwer works on R3.6. 
