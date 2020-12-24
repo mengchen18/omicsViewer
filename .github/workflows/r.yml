@@ -11,8 +11,12 @@ name: R
 on:
   push:
     branches: [ master ]
+    paths: 
+      - 'package/**'    
   pull_request:
     branches: [ master ]
+    paths: 
+      - 'package/**'
 
 jobs:
   build:
