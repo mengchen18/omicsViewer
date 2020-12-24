@@ -9,4 +9,3 @@ rsconnect
 *.Rcheck
 local
 .github
-docs
