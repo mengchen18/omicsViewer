@@ -7,6 +7,9 @@
 #' @param exprsGetter function to get the expression matrix from eset
 #' @param pDataGetter function to get the phenotype data from eset
 #' @param fDataGetter function to get the feature data from eset
+#' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
+#'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
+#'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.
 #' @export
 #' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
 #' @examples
@@ -18,7 +21,8 @@
 #' 
 ExpressionSetViewer <- function(
   dir, additionalTabs = NULL, 
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
+  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what)
   ) {
   
   app <- list(
@@ -26,10 +30,12 @@ ExpressionSetViewer <- function(
       app_ui("app")
     ),
     server = function(input, output, session, aTabs = additionalTabs,
-                      f_eset = esetLoader, f_exprs = exprsGetter, f_pd = pDataGetter, f_fd = fDataGetter) {
+                      f_eset = esetLoader, f_exprs = exprsGetter, f_pd = pDataGetter, f_fd = fDataGetter,
+                      axg = defaultAxisGetter) {
       callModule(
         app_module, id = "app", dir = reactive(dir), additionalTabs = aTabs,
-        esetLoader = f_eset, exprsGetter = f_exprs, pDataGetter = f_pd, fDataGetter = f_fd
+        esetLoader = f_eset, exprsGetter = f_exprs, pDataGetter = f_pd, fDataGetter = f_fd,
+        defaultAxisGetter = axg
         )
     }
   )

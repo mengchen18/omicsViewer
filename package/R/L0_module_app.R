@@ -36,6 +36,7 @@ app_ui <- function(id) {
 #'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
 #'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively. 
 #' @importFrom Biobase exprs pData fData
+#' @importFrom utils packageVersion
 #' @importFrom grDevices colorRampPalette
 #' @importFrom graphics abline axis barplot image mtext par plot text
 #' @importFrom stats 
@@ -160,8 +161,8 @@ app_module <- function(
     if (is.null(input$selectFile) || input$selectFile == "")
       return(HTML('<h1 style="display:inline;">ExpressionSetViewer</h1>'))
     txt <- sprintf(
-      '<h1 style="display:inline;">ExpressionSetViewer</h1> <h3 style="display:inline;">  --   %s features and %s samples:</h3>', 
-      nrow(expr()), ncol(expr())
+      '<h1 style="display:inline;">ExpressionSetViewer</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>', 
+      paste0("v", packageVersion("ExpressionSetViewer")), nrow(expr()), ncol(expr())
     )
     HTML(txt)
   })

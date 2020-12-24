@@ -2,9 +2,9 @@
 title: "Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer"
 author:
   - name: "Chen Meng"
-    url: https://github.com/mengchen18/ExpressionSetViewer
     affiliation: BayBioMS, TU Munich
     affiliation_url: https://www.baybioms.tum.de/
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   html_document:
   # rmarkdown::html_vignette
@@ -25,9 +25,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-ExpressionSet is the S4 object storing high throughput omics data defined in Bioconductor. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf)
+ExpressionSet is an S4 object defined in _Biobase_ package storing high throughput omics data. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf)
 
-ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. In the back-end, users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
+ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. Coding in R is only required in the back-end, where users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
 
 # For the shiny-app user
 
@@ -94,9 +94,9 @@ The left side visualize the ExpressionSetViewer, it contains the following tabs:
 
 * **StringDB** This tab appears when there is a column in the feature data that can be used to query [string database](https://string-db.org/). When a subset of features is selected from the left panel, these features will be used to query Enrichment analysis and network analysis will be performed. 
 
-# For the back-end R user
+# For the back-end user
 
-## A simple workflow to preparing object for ExpressionSetViewer
+## Quick start
 
 The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to performs the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer. 
 
@@ -156,7 +156,7 @@ attr(d, "sy") <- "PCA|All|PC2("
 ```
 
 
-## Extra requirements on ExpressionSet
+## Requirements on ExpressionSet
 
 When you prepare the object by yourself, please note that to be compatible with expressionSetVeiwer, there are two extra requirements imposed on the ExpressionSet:
 
@@ -180,7 +180,11 @@ These keywords are reserved for the **Analysis** element in the headers. User sh
 
 In addition to open the viewer inside R, ExpressionSetViewer together with the data prepared, can be deploy via several other ways. 
 
-* **Docker**: Standalone version using docker
+* **Docker**: Standalone version using [docker image](https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer)
+
+```
+docker pull mengchen18/expression_set_viewer
+```
 
 * **Portable R:** To share the ExpressionSetViewer and data with users don't use docker, you can install ExpressionSetViewer in the [r portable](https://sourceforge.net/projects/rportable/).
 

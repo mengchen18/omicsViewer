@@ -266,14 +266,15 @@ div.tocify {
 <h1 class="title toc-ignore">Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer</h1>
 <h4 class="author">Chen Meng</h4>
 <address class="author_afil">
-BayBioMS, TU Munich<br>
+BayBioMS, TU Munich<br><h4 class="date">24 December, 2020</h4>
+
 </div>
 
 
 <div id="introduction" class="section level1">
 <h1><span class="header-section-number">1</span> Introduction</h1>
-<p>ExpressionSet is the S4 object storing high throughput omics data defined in Bioconductor. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found <a href="https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf">here</a></p>
-<p>ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. In the back-end, users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.</p>
+<p>ExpressionSet is an S4 object defined in <em>Biobase</em> package storing high throughput omics data. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found <a href="https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf">here</a></p>
+<p>ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. Coding in R is only required in the back-end, where users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.</p>
 </div>
 <div id="for-the-shiny-app-user" class="section level1">
 <h1><span class="header-section-number">2</span> For the shiny-app user</h1>
@@ -373,10 +374,10 @@ ExpressionSetViewer(path2data)</code></pre>
 </div>
 </div>
 </div>
-<div id="for-the-back-end-r-user" class="section level1">
-<h1><span class="header-section-number">3</span> For the back-end R user</h1>
-<div id="a-simple-workflow-to-preparing-object-for-expressionsetviewer" class="section level2">
-<h2><span class="header-section-number">3.1</span> A simple workflow to preparing object for ExpressionSetViewer</h2>
+<div id="for-the-back-end-user" class="section level1">
+<h1><span class="header-section-number">3</span> For the back-end user</h1>
+<div id="quick-start" class="section level2">
+<h2><span class="header-section-number">3.1</span> Quick start</h2>
 <p>The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to performs the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer.</p>
 <p>A simple example:</p>
 <pre class="r"><code>library(ExpressionSetViewer)
@@ -431,8 +432,8 @@ attr(d, &quot;sy&quot;) &lt;- &quot;PCA|All|PC2(&quot;
 ##  to open the viewer
 # ExpressionSetViewer(&quot;./&quot;)</code></pre>
 </div>
-<div id="extra-requirements-on-expressionset" class="section level2">
-<h2><span class="header-section-number">3.2</span> Extra requirements on ExpressionSet</h2>
+<div id="requirements-on-expressionset" class="section level2">
+<h2><span class="header-section-number">3.2</span> Requirements on ExpressionSet</h2>
 <p>When you prepare the object by yourself, please note that to be compatible with expressionSetVeiwer, there are two extra requirements imposed on the ExpressionSet:</p>
 <ul>
 <li><p>The expression matrix should have unique row names and column names. The row names of feature data should be the same as the row names of the expression matrix. The row names of phenotype data should be the same as the column names of the expression matrix. It is also recommended to use meaningful names such as gene names because the names will be displayed in the expression viewer.</p></li>
@@ -455,7 +456,10 @@ The first element is called <em>analysis</em>, such as &quot;t-test&quot;, &quot
 <h2><span class="header-section-number">3.3</span> Deployment</h2>
 <p>In addition to open the viewer inside R, ExpressionSetViewer together with the data prepared, can be deploy via several other ways.</p>
 <ul>
-<li><p><strong>Docker</strong>: Standalone version using docker</p></li>
+<li><strong>Docker</strong>: Standalone version using <a href="https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer">docker image</a></li>
+</ul>
+<pre><code>docker pull mengchen18/expression_set_viewer</code></pre>
+<ul>
 <li><p><strong>Portable R:</strong> To share the ExpressionSetViewer and data with users don't use docker, you can install ExpressionSetViewer in the <a href="https://sourceforge.net/projects/rportable/">r portable</a>.</p></li>
 <li><p><strong>Shiny server:</strong> ExpressionSetViewer could be easily deployed using shiny server. For example, the ui file</p></li>
 </ul>
@@ -628,7 +632,7 @@ ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)<
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ExpressionSetViewer_0.2.0
+## [1] ExpressionSetViewer_0.2.1
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] matrixStats_0.54.0  RColorBrewer_1.1-2  httr_1.4.1         

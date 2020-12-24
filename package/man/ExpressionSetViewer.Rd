@@ -5,7 +5,9 @@
 \title{Start ExpressionSetViewer}
 \usage{
 ExpressionSetViewer(dir, additionalTabs = NULL, esetLoader = readRDS,
-  exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData)
+  exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
+  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy")[1])
+  attr(x, what))
 }
 \arguments{
 \item{dir}{directory to the ExpressionSet object. Only give the directoy
@@ -20,6 +22,10 @@ in this argument, not the .rds file.}
 \item{pDataGetter}{function to get the phenotype data from eset}
 
 \item{fDataGetter}{function to get the feature data from eset}
+
+\item{defaultAxisGetter}{function to get the default axes to be visualized. It should be a function with two 
+arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
+sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.}
 }
 \description{
 Start ExpressionSetViewer
