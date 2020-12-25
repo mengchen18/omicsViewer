@@ -45,7 +45,7 @@ Here *path2data* is the folder containing the *.RDS* files (not the *.RDS* files
 
 The example data is an object of *ExpressionSet*, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 7000 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively. 
 
-## Layout
+## User interface
 The ExpressionViewer has a "Left and Right Halves Layout". The left side is the "Eset" panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the "Analyst" panel. In the "Analyst" panel, different statistical analyses will be performed depending on the features or samples selected. 
 
 ### Tabs in Eset
@@ -347,7 +347,43 @@ ll <- list(
 ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
-# sessionInfo
+Include a "three-step selector" in the module:
+```{r write extension_3,eval=FALSE}
+selector_example_ui <- function(id) {
+  ns <- NS(id)
+  tagList(
+    # select variable
+    ExpressionSetViewer:::triselector_ui(ns("selector_id")) 
+  )
+}
+
+selector_example_module <- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+  ) {
+  ns <- session$ns
+  # select stats from feature data
+  triset <- reactive({
+    fd <- fdata()
+    cn <- colnames(fd)[sapply(fd, is.numeric) & !grepl("^GS\\|", colnames(fd))]
+    str_split_fixed(cn, "\\|", n = 3)
+  })
+  v1 <- callModule(
+    ExpressionSetViewer:::triselector_module, id = "selector_id", reactive_x = triset, label = "Label"
+    )
+}
+
+ll <- list(
+  list(
+    tabName = "selector",
+    moduleName = "selector-feature",
+    moduleUi = selector_example_ui,
+    moduleServer  = selector_example_module
+  )
+  )
+ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+```
+
+# SessionInfo
 ```{r session}
 sessionInfo()
 ```

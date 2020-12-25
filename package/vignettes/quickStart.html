@@ -266,7 +266,7 @@ div.tocify {
 <h1 class="title toc-ignore">Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer</h1>
 <h4 class="author">Chen Meng</h4>
 <address class="author_afil">
-BayBioMS, TU Munich<br><h4 class="date">24 December, 2020</h4>
+BayBioMS, TU Munich<br><h4 class="date">26 December, 2020</h4>
 
 </div>
 
@@ -287,8 +287,8 @@ ExpressionSetViewer(path2data)</code></pre>
 <p>Here <em>path2data</em> is the folder containing the <em>.RDS</em> files (not the <em>.RDS</em> files) to be visualized by ExpressionSetViewer. All the <em>.RDS</em> files will be listed in the text box on the top right corner. Select one of the datasets to loaded it into the viewer. A video introduction on how to use the viewer is <a href="https://www.youtube.com/watch?v=0nirB-exquY&amp;list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk">here</a>.</p>
 <p>The example data is an object of <em>ExpressionSet</em>, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 7000 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively.</p>
 </div>
-<div id="layout" class="section level2">
-<h2><span class="header-section-number">2.2</span> Layout</h2>
+<div id="user-interface" class="section level2">
+<h2><span class="header-section-number">2.2</span> User interface</h2>
 <p>The ExpressionViewer has a &quot;Left and Right Halves Layout&quot;. The left side is the &quot;Eset&quot; panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the &quot;Analyst&quot; panel. In the &quot;Analyst&quot; panel, different statistical analyses will be performed depending on the features or samples selected.</p>
 <div id="tabs-in-eset" class="section level3">
 <h3><span class="header-section-number">2.2.1</span> Tabs in Eset</h3>
@@ -607,10 +607,43 @@ ll &lt;- list(
 )
 
 ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)</code></pre>
+<p>Include a &quot;three-step selector&quot; in the module:</p>
+<pre class="r"><code>selector_example_ui &lt;- function(id) {
+  ns &lt;- NS(id)
+  tagList(
+    # select variable
+    ExpressionSetViewer:::triselector_ui(ns(&quot;selector_id&quot;)) 
+  )
+}
+
+selector_example_module &lt;- function(
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+  ) {
+  ns &lt;- session$ns
+  # select stats from feature data
+  triset &lt;- reactive({
+    fd &lt;- fdata()
+    cn &lt;- colnames(fd)[sapply(fd, is.numeric) &amp; !grepl(&quot;^GS\\|&quot;, colnames(fd))]
+    str_split_fixed(cn, &quot;\\|&quot;, n = 3)
+  })
+  v1 &lt;- callModule(
+    ExpressionSetViewer:::triselector_module, id = &quot;selector_id&quot;, reactive_x = triset, label = &quot;Label&quot;
+    )
+}
+
+ll &lt;- list(
+  list(
+    tabName = &quot;selector&quot;,
+    moduleName = &quot;selector-feature&quot;,
+    moduleUi = selector_example_ui,
+    moduleServer  = selector_example_module
+  )
+  )
+ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)</code></pre>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
-<h1><span class="header-section-number">4</span> sessionInfo</h1>
+<h1><span class="header-section-number">4</span> SessionInfo</h1>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.6.1 (2019-07-05)
 ## Platform: x86_64-pc-linux-gnu (64-bit)
@@ -632,7 +665,7 @@ ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)<
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ExpressionSetViewer_0.2.1
+## [1] ExpressionSetViewer_0.2.2
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] matrixStats_0.54.0  RColorBrewer_1.1-2  httr_1.4.1         
