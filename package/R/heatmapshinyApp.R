@@ -178,13 +178,13 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   clsRow <- reactive({
     if (nrow(mat()) > 750)
       return("none")
-    "hierarchical cluste"
+    "hierarchical cluster"
   })
   ######## update selectize input ########
   observe( updateSelectInput(session, "annotCol", choices = colnames(pd())) )
   observe( updateSelectInput(session, "annotRow", choices = colnames(fd())) )
   observe( updateSelectInput(session, "colSortBy", choices = c("hierarchical cluster", "none", colnames(pd()))) )
-  observe( updateSelectInput(session, "rowSortBy", choices = c("hierarchical cluster", "none", colnames(fd())), selected = clsRow()) )
+  observe( updateSelectInput(session, "rowSortBy", choices = c("none", "hierarchical cluster", colnames(fd())), selected = clsRow()) )
   observe( updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) )
   
   
