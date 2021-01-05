@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_triselector.R
 \name{triselector_module}
 \alias{triselector_module}
-\title{Utility triselector ui}
+\title{The three-step selector - the module function}
 \usage{
 triselector_module(input, output, session, reactive_x,
   reactive_selector1 = reactive(NULL),
@@ -30,7 +30,8 @@ triselector_module(input, output, session, reactive_x,
 \item{suspendWhenHidden}{seuspend when hidden}
 }
 \description{
-Utility triselector ui
+The selector is used to select columns of phenotype and feature data. It maybe useful when
+  develop modules.
 }
 \examples{
 # dat <- readRDS("inst/extdata/demo.RDS")
@@ -61,5 +62,4 @@ Utility triselector ui
 # }
 # 
 # shinyApp(ui, server)
-
 }

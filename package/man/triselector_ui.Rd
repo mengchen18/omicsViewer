@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_triselector.R
 \name{triselector_ui}
 \alias{triselector_ui}
-\title{Utility triselector ui}
+\title{The three-step selector - the ui function}
 \usage{
 triselector_ui(id)
 }
@@ -10,5 +10,5 @@ triselector_ui(id)
 \item{id}{id}
 }
 \description{
-Utility triselector ui
+The three-step selector - the ui function
 }

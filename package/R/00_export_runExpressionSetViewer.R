@@ -10,6 +10,8 @@
 #' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
 #'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
 #'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.
+#' @param appName name of the application
+#' @param appVersion version of the application
 #' @export
 #' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
 #' @examples
@@ -22,7 +24,8 @@
 ExpressionSetViewer <- function(
   dir, additionalTabs = NULL, 
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
-  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what)
+  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what),
+  appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
   ) {
   
   app <- list(
@@ -35,7 +38,7 @@ ExpressionSetViewer <- function(
       callModule(
         app_module, id = "app", dir = reactive(dir), additionalTabs = aTabs,
         esetLoader = f_eset, exprsGetter = f_exprs, pDataGetter = f_pd, fDataGetter = f_fd,
-        defaultAxisGetter = axg
+        defaultAxisGetter = axg, appName = appName, appVersion = appVersion
         )
     }
   )

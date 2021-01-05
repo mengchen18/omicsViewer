@@ -7,7 +7,8 @@
 app_module(input, output, session, dir, additionalTabs = NULL,
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
   fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
-  "sy", "fx", "fy")[1]) attr(x, what))
+  "sy", "fx", "fy")[1]) attr(x, what), appName = "ExpressionSetViewer",
+  appVersion = packageVersion("ExpressionSetViewer"))
 }
 \arguments{
 \item{input}{input}
@@ -31,6 +32,10 @@ app_module(input, output, session, dir, additionalTabs = NULL,
 \item{defaultAxisGetter}{function to get the default axes to be visualized. It should be a function with two 
 arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
 sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.}
+
+\item{appName}{name of the application}
+
+\item{appVersion}{version of the application}
 }
 \description{
 Application level 0 module

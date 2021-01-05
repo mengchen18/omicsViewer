@@ -1,6 +1,7 @@
-#' Utility triselector ui
+#' The three-step selector - the ui function
 #' @param id id
-#' 
+#' @export
+
 triselector_ui <- function(id) {
   ns <- NS(id)
   tagList(
@@ -26,7 +27,9 @@ triselector_ui <- function(id) {
   )
 }
 
-#' Utility triselector ui
+#' The three-step selector - the module function
+#' @description The selector is used to select columns of phenotype and feature data. It maybe useful when
+#'   develop modules. 
 #' @param input input
 #' @param output output
 #' @param session session
@@ -36,6 +39,7 @@ triselector_ui <- function(id) {
 #' @param reactive_selector3 default value for selector 3
 #' @param label of the triselector
 #' @param suspendWhenHidden seuspend when hidden
+#' @export
 #' @examples 
 #' # dat <- readRDS("inst/extdata/demo.RDS")
 #' # library(shiny)
@@ -65,7 +69,7 @@ triselector_ui <- function(id) {
 #' # }
 #' # 
 #' # shinyApp(ui, server)
-#' 
+
 triselector_module <- function(input, output, session, 
                                reactive_x, 
                                reactive_selector1 = reactive(NULL), 

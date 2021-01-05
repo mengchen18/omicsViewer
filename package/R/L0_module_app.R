@@ -35,6 +35,8 @@ app_ui <- function(id) {
 #' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
 #'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
 #'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively. 
+#' @param appName name of the application
+#' @param appVersion version of the application
 #' @importFrom Biobase exprs pData fData
 #' @importFrom utils packageVersion
 #' @importFrom grDevices colorRampPalette
@@ -59,14 +61,15 @@ app_ui <- function(id) {
 app_module <- function(
   input, output, session, dir, additionalTabs = NULL, 
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
-  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what)
+  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what),
+  appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
 ) {
   
   ns <- session$ns
   
   observe({
     req(dir())
-    ll <- list.files(dir(), pattern = ".RDS$", ignore.case = TRUE)
+    ll <- list.files(dir(), pattern = ".RDS$|.DB$", ignore.case = TRUE)
     updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
   })
   
@@ -159,10 +162,10 @@ app_module <- function(
   
   output$summary <- renderUI({
     if (is.null(input$selectFile) || input$selectFile == "")
-      return(HTML('<h1 style="display:inline;">ExpressionSetViewer</h1>'))
+      return(HTML(sprintf('<h1 style="display:inline;">%s</h1>', appName)))
     txt <- sprintf(
-      '<h1 style="display:inline;">ExpressionSetViewer</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>', 
-      paste0("v", packageVersion("ExpressionSetViewer")), nrow(expr()), ncol(expr())
+      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>', 
+      appName, paste0("v", appVersion), nrow(expr()), ncol(expr())
     )
     HTML(txt)
   })
