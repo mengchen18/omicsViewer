@@ -100,25 +100,27 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
   })
   
   formatTab <- function(tab) {
-    numc <- which(sapply(tab, function(x) is.numeric(x) && !is.integer(x)))
+    
     dt <- DT::datatable( 
       tab,
       selection =  "multiple",
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact",
-      options = list(scrollX = TRUE, scrollY = "800px", paging = FALSE, dom = 't')
+      options = list(scrollX = TRUE, pageLength = 25, dom = 'tip')
     )
-    dt <- DT::formatRound(dt, columns = numc, digits = 3)
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
   }
 
   output$table <- DT::renderDataTable({
-    tab <- rdd()[, scn()]
+    tab <- rdd()[, scn()]    
+    i <- which(sapply(tab, function(x) is.numeric(x) && !is.integer(x)))
+    if (any(i))
+      tab[i] <- lapply(tab[i], signif, digits = 3)
     formatTab(tab)
+
     # i <- sapply(tab, is.numeric)
-    # if (any(i))
-    #   tab[i] <- lapply(tab[i], signif, digits = 3)
+    
     # DT::datatable(tab, options = list(
     #   scrollX = TRUE, pageLength = 20
     #   ), 

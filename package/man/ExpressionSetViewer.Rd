@@ -39,7 +39,7 @@ Start ExpressionSetViewer
 1
 ## To start the shiny app: 
 # ExpressionSetViewer(
-# 	ExpressionSetViewer(system.file("extdata", package = "ExpressionSetViewer"))
+# 	system.file("extdata", package = "ExpressionSetViewer")
 # )
 
 }
