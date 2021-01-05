@@ -4,7 +4,7 @@
 \alias{app_module}
 \title{Application level 0 module}
 \usage{
-app_module(input, output, session, dir, filePattern = "RDS$",
+app_module(input, output, session, dir, filePattern = ".RDS$",
   additionalTabs = NULL, esetLoader = readRDS, exprsGetter = exprs,
   pDataGetter = pData, fDataGetter = fData,
   defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy")[1])

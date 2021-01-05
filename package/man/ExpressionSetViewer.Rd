@@ -4,10 +4,10 @@
 \alias{ExpressionSetViewer}
 \title{Start ExpressionSetViewer}
 \usage{
-ExpressionSetViewer(dir, additionalTabs = NULL, esetLoader = readRDS,
-  exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
-  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy")[1])
-  attr(x, what), appName = "ExpressionSetViewer",
+ExpressionSetViewer(dir, additionalTabs = NULL, filePattern = ".RDS$",
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
+  fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
+  "sy", "fx", "fy")[1]) attr(x, what), appName = "ExpressionSetViewer",
   appVersion = packageVersion("ExpressionSetViewer"))
 }
 \arguments{
@@ -15,6 +15,8 @@ ExpressionSetViewer(dir, additionalTabs = NULL, esetLoader = readRDS,
 in this argument, not the .rds file.}
 
 \item{additionalTabs}{additional tabs added to "Analyst" panel}
+
+\item{filePattern}{file pattern to be displayed.}
 
 \item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}
 

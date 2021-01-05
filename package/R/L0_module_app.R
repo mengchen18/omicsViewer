@@ -60,7 +60,7 @@ app_ui <- function(id) {
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 #' 
 app_module <- function(
-  input, output, session, dir, filePattern = "RDS$", additionalTabs = NULL, 
+  input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, 
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
