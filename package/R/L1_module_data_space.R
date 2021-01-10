@@ -31,7 +31,7 @@ L1_data_space_ui <- function(id) {
       ),
       tabPanel("Sample-tab", dataTable_ui(ns("tab_pheno"))),
       tabPanel("Feature-tab", dataTable_ui(ns("tab_feature"))),
-      tabPanel("Exprs", dataTable_ui(ns("tab_expr"), selector = FALSE))
+      tabPanel("Exprs", dataTable_ui(ns("tab_expr")))
     )
   )
 }

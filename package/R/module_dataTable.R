@@ -1,12 +1,12 @@
 #' utility - dataTable shiny UI
 #' @param id id
-#' @param selector where to show the selector
+#' @importFrom shinyWidgets switchInput
 #' 
-dataTable_ui <- function(id, selector = TRUE) {
+dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    if (selector)
-      triselector_ui(ns("select")),
+    shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px"),
+    uiOutput(ns("selector")),    
     DT::dataTableOutput(ns("table"))
   )
 }
@@ -17,6 +17,7 @@ dataTable_ui <- function(id, selector = TRUE) {
 #' @param session session
 #' @param reactive_data the data to be shown, a tabular objet
 #' @param selector whether a selector should be added to the output
+#' @param columns columns to show
 #' @importFrom stringr str_split_fixed
 #' @examples 
 #' # library(shiny)
@@ -60,8 +61,10 @@ dataTable_ui <- function(id, selector = TRUE) {
 #' # 
 #' # shinyApp(ui, server)
 #' 
-dataTable_module <- function(input, output, session, reactive_data, selector = TRUE) {
+dataTable_module <- function(input, output, session, reactive_data, selector = TRUE, columns = NULL) {
   
+  ns <- session$ns
+
   rdd <- reactive({
     if (is.matrix(reactive_data())) {
       x <- as.data.frame(reactive_data()) 
@@ -70,16 +73,21 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
         stop('reactive_data shold be either a matrix or data.frame')
     x
   })
-  
-  cols <- reactive({
-    cn <- colnames(rdd())
+
+  cols <- reactive({    
+    
+    cn <- intersect(columns, colnames(rdd()))    
+    if (length(cn) == 0)
+      cn <- grep("^General\\|", colnames(rdd()), ignore.case = TRUE, value = TRUE)
+    if (length(cn) == 0)
+      cn <- colnames(rdd())
+
+    opt <- NULL
     if (selector) {
-      i <- grepl("^General\\|", cn)
-      req(any(i))
-      opt <- str_split_fixed(cn[!i], pattern = "\\|", n = 3)
-      cn <- cn[i]
-    } else 
-      opt <- NULL
+      optx <- setdiff(colnames(rdd()), cn)
+      if (length(optx) > 0)
+        opt <- str_split_fixed(optx, pattern = "\\|", n = 3)
+    }      
     list(shown = cn, opt = opt)
   })
   
@@ -98,12 +106,16 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
     nc <- unique(c(oc, paste(addcols(), collapse = "|")))
     scn(nc)
   })
+
+  output$selector <- renderUI({
+    req(nrow(cols()$opt) > 0)
+    triselector_ui(ns("select"))
+    })
   
-  formatTab <- function(tab) {
-    
+  formatTab <- function(tab, sel) {    
     dt <- DT::datatable( 
       tab,
-      selection =  "multiple",
+      selection =  c("single", "multiple")[as.integer(sel)+1],
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact",
@@ -116,16 +128,8 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
     tab <- rdd()[, scn()]    
     i <- which(sapply(tab, function(x) is.numeric(x) && !is.integer(x)))
     if (any(i))
-      tab[i] <- lapply(tab[i], signif, digits = 3)
-    formatTab(tab)
-
-    # i <- sapply(tab, is.numeric)
-    
-    # DT::datatable(tab, options = list(
-    #   scrollX = TRUE, pageLength = 20
-    #   ), 
-    #   rownames = FALSE, selection = "multiple"
-    #   )
+      tab[i] <- lapply(tab[i], round, digits = 4)
+    formatTab(tab, sel = input$multisel)
   })
   
   reactive({

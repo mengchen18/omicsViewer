@@ -4,12 +4,10 @@
 \alias{dataTable_ui}
 \title{utility - dataTable shiny UI}
 \usage{
-dataTable_ui(id, selector = TRUE)
+dataTable_ui(id)
 }
 \arguments{
 \item{id}{id}
-
-\item{selector}{where to show the selector}
 }
 \description{
 utility - dataTable shiny UI

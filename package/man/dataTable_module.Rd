@@ -4,7 +4,8 @@
 \alias{dataTable_module}
 \title{utility - dataTable shiny module}
 \usage{
-dataTable_module(input, output, session, reactive_data, selector = TRUE)
+dataTable_module(input, output, session, reactive_data, selector = TRUE,
+  columns = NULL)
 }
 \arguments{
 \item{input}{input}
@@ -16,6 +17,8 @@ dataTable_module(input, output, session, reactive_data, selector = TRUE)
 \item{reactive_data}{the data to be shown, a tabular objet}
 
 \item{selector}{whether a selector should be added to the output}
+
+\item{columns}{columns to show}
 }
 \description{
 utility - dataTable shiny module
