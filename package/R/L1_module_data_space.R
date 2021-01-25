@@ -80,11 +80,18 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
   )
 
   ## tables
-  tab_pd <- callModule(dataTable_module, id = "tab_pheno",  reactive_data = pdata)
-  tab_fd <- callModule(dataTable_module, id = "tab_feature",  reactive_data = fdata)
-  tab_expr <- callModule(dataTable_module, id = "tab_expr",  reactive_data = reactive(
-    cbind(data.frame(feature = rownames(expr()), expr()))
-  ), selector = FALSE)
+  tab_pd <- callModule(
+    dataTable_module, id = "tab_pheno",  reactive_data = pdata,
+    reactiveSelectorMeta = s_sample_fig, reactiveSelectorHeatmap = s_heatmap, subset = "col"
+    )
+  tab_fd <- callModule(
+    dataTable_module, id = "tab_feature",  reactive_data = fdata,
+    reactiveSelectorMeta = s_feature_fig, reactiveSelectorHeatmap = s_heatmap, subset = "row"
+  )
+  tab_expr <- callModule(
+    dataTable_module, id = "tab_expr",  reactive_data = reactive(
+      cbind(data.frame(feature = rownames(expr()), expr()))
+    ), reactiveSelectorMeta = s_feature_fig, reactiveSelectorHeatmap = s_heatmap, subset = "row", selector = FALSE)
   
   ### return selected feature and samples
   selectedFeatures <- reactiveVal()

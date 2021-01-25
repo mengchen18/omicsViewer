@@ -1,12 +1,17 @@
 #' utility - dataTable for download shiny UI
 #' @param id id
+#' @param showTable logical, if the table should be shown
 #' 
-dataTableDownload_ui <- function(id) {
+dataTableDownload_ui <- function(id, showTable = TRUE) {
   ns <- NS(id)
-  tagList(
-    DT::dataTableOutput(ns("table")),
-    uiOutput(ns("showButton"))
-  )
+  if (showTable) {
+    r <- tagList(
+      DT::dataTableOutput(ns("table")),
+      uiOutput(ns("showButton"))
+    )
+  } else
+    r <- uiOutput(ns("showButton"))
+  r
 }
 
 #' utility - dataTable for download shiny module

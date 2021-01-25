@@ -5,7 +5,9 @@
 \title{utility - dataTable shiny module}
 \usage{
 dataTable_module(input, output, session, reactive_data, selector = TRUE,
-  columns = NULL)
+  columns = NULL, reactiveSelectorMeta = reactive(NULL),
+  reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col",
+  "none")[1])
 }
 \arguments{
 \item{input}{input}
@@ -19,6 +21,12 @@ dataTable_module(input, output, session, reactive_data, selector = TRUE,
 \item{selector}{whether a selector should be added to the output}
 
 \item{columns}{columns to show}
+
+\item{reactiveSelectorMeta}{object returned by pdata or fdata}
+
+\item{reactiveSelectorHeatmap}{object returned by heatmap}
+
+\item{subset}{subset row or column for heatmap}
 }
 \description{
 utility - dataTable shiny module

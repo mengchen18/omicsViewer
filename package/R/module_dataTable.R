@@ -5,7 +5,10 @@
 dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px"),
+    fluidRow(
+      column(8, shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")),
+      column(4, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
+    ),
     uiOutput(ns("selector")),    
     DT::dataTableOutput(ns("table"))
   )
@@ -18,6 +21,9 @@ dataTable_ui <- function(id) {
 #' @param reactive_data the data to be shown, a tabular objet
 #' @param selector whether a selector should be added to the output
 #' @param columns columns to show
+#' @param reactiveSelectorMeta object returned by pdata or fdata
+#' @param reactiveSelectorHeatmap object returned by heatmap
+#' @param subset subset row or column for heatmap
 #' @importFrom stringr str_split_fixed
 #' @examples 
 #' # library(shiny)
@@ -61,9 +67,48 @@ dataTable_ui <- function(id) {
 #' # 
 #' # shinyApp(ui, server)
 #' 
-dataTable_module <- function(input, output, session, reactive_data, selector = TRUE, columns = NULL) {
+dataTable_module <- function(
+  input, output, session, reactive_data, selector = TRUE, columns = NULL, 
+  reactiveSelectorMeta = reactive(NULL), reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col", "none")[1]) {
   
   ns <- session$ns
+  
+  # 
+  selectedRowOrCol <- reactiveVal(TRUE)
+  
+  notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
+  
+  if (subset %in% c('row', 'col')) {
+    observeEvent(reactiveSelectorHeatmap(), {
+      # req(reactiveSelectorHeatmap())
+      if (subset == "row") {
+        if (notNullAndPosLength(reactiveSelectorHeatmap()$brushed$row)) {
+          selectedRowOrCol(reactiveSelectorHeatmap()$brushed$row)
+        } else if (notNullAndPosLength(reactiveSelectorHeatmap()$clicked)) {
+          selectedRowOrCol(reactiveSelectorHeatmap()$clicked["row"])
+        } else
+          selectedRowOrCol(TRUE)
+      } else if (subset == "col") {
+        if (notNullAndPosLength(reactiveSelectorHeatmap()$brushed$col)) {
+          selectedRowOrCol(reactiveSelectorHeatmap()$brushed$col)
+        } else if (notNullAndPosLength(reactiveSelectorHeatmap()$clicked)) {
+          selectedRowOrCol(reactiveSelectorHeatmap()$clicked["col"])
+        } else
+          selectedRowOrCol(TRUE)
+      } else 
+        stop("Unknown subset, should be either 'row' or 'col'!")
+    })
+    
+    observeEvent(reactiveSelectorMeta(), {
+      # req(reactiveSelectorMeta())
+      if (notNullAndPosLength(reactiveSelectorMeta()$selected)) {
+        selectedRowOrCol( reactiveSelectorMeta()$selected )
+      } else if ( notNullAndPosLength(reactiveSelectorMeta()$clicked) ) {
+        selectedRowOrCol( reactiveSelectorMeta()$clicked )
+      } else
+        selectedRowOrCol(TRUE)
+    })
+  }
 
   rdd <- reactive({
     if (is.matrix(reactive_data())) {
@@ -71,10 +116,14 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
     } else if (is.data.frame(reactive_data()))
       x <- reactive_data() else
         stop('reactive_data shold be either a matrix or data.frame')
-    x
+    x <- x[selectedRowOrCol(), ]
   })
+  
+  callModule(
+    dataTableDownload_module, id = "downloadTable", reactive_table = rdd, prefix = "viewerTable_"
+  )
 
-  cols <- reactive({    
+  cols <- eventReactive(reactive_data(), {    
     
     cn <- intersect(columns, colnames(rdd()))    
     if (length(cn) == 0)
@@ -132,8 +181,11 @@ dataTable_module <- function(input, output, session, reactive_data, selector = T
     formatTab(tab, sel = input$multisel)
   })
   
-  reactive({
-    rownames(reactive_data())[input$table_rows_selected]
+  eventReactive(list(
+    input$table_rows_selected
+  ), {
+    req(notNullAndPosLength(input$table_rows_selected))
+    rownames(rdd())[input$table_rows_selected]
   })
 }
 

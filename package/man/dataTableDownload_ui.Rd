@@ -4,10 +4,12 @@
 \alias{dataTableDownload_ui}
 \title{utility - dataTable for download shiny UI}
 \usage{
-dataTableDownload_ui(id)
+dataTableDownload_ui(id, showTable = TRUE)
 }
 \arguments{
 \item{id}{id}
+
+\item{showTable}{logical, if the table should be shown}
 }
 \description{
 utility - dataTable for download shiny UI
