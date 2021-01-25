@@ -143,7 +143,7 @@ triselector_module <- function(input, output, session,
     updateSelectInput(session, inputId = "subset", choices = cc, selected = preselected)
   })
   
-  observeEvent(input$subset, {    
+  observeEvent(list(input$subset, input$analysis), {    
     req(input$analysis)
     req(input$subset)
 

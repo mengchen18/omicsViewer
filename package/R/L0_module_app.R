@@ -9,7 +9,7 @@ app_ui <- function(id) {
     br(),
     absolutePanel(
       top = 8, right = 120, style = "z-index: 9999;",
-      selectizeInput(inputId = ns("selectFile"), label = NULL, choices = NULL, options = list(placeholder = "Select a dataset here") )
+      selectizeInput(inputId = ns("selectFile"), label = NULL, choices = NULL, width = "550px", options = list(placeholder = "Select a dataset here") )
     ),
     absolutePanel(
       top = 5, right = 20, style = "z-index: 9999;",
