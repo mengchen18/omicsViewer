@@ -56,6 +56,11 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     req( ! v1()$variable %in% c("Select a variable!", ""))
     fdgs <- reactive_featureData()[, grepl("^GS\\|", colnames(reactive_featureData()))]
     stats <- reactive_featureData()[, paste(v1(), collapse = "|")]
+
+    ii <- !is.na(stats)
+    stats <- stats[ii]
+    fdgs <- fdgs[ii, ]
+
     res <- fgsea0(fdgs, stats = stats, nperm = 1000, minSize = 5, 
                   maxSize = 500, gs_desc = sub("GS\\|All\\|", "", colnames(fdgs)))
     list(

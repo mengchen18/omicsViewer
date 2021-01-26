@@ -84,13 +84,6 @@ triselector_module <- function(input, output, session,
     h5(HTML(sprintf("<b>%s</b>", label)))
   })
   
-  print(ns)
-  observe({
-    print(reactive_selector1())
-    print(reactive_selector2())
-    print(reactive_selector3())
-    })
-  
   # init empty selectize input
   output$analysis.output <- renderUI({    
     cc <- unique(reactive_x()[, 1])

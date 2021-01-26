@@ -7,9 +7,7 @@
 meta_scatter_module(input, output, session,
   reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
   combine = c("pheno", "feature"), source = "plotlyscattersource",
-  reactive_x1 = reactive(NULL), reactive_x2 = reactive(NULL),
-  reactive_x3 = reactive(NULL), reactive_y1 = reactive(NULL),
-  reactive_y2 = reactive(NULL), reactive_y3 = reactive(NULL))
+  reactive_x = reactive(NULL), reactive_y = reactive(NULL))
 }
 \arguments{
 \item{input}{input}
@@ -26,17 +24,9 @@ meta_scatter_module(input, output, session,
 
 \item{source}{source id for plotly object}
 
-\item{reactive_x1}{reactive value for pre-selected x-aixs, triselect 1}
+\item{reactive_x}{reactive value for pre-selected x-aixs}
 
-\item{reactive_x2}{reactive value for pre-selected x-aixs, triselect 2}
-
-\item{reactive_x3}{reactive value for pre-selected x-aixs, triselect 3}
-
-\item{reactive_y1}{reactive value for pre-selected y-aixs, triselect 1}
-
-\item{reactive_y2}{reactive value for pre-selected y-aixs, triselect 2}
-
-\item{reactive_y3}{reactive value for pre-selected y-aixs, triselect 3
+\item{reactive_y}{reactive value for pre-selected y-aixs
 #' # library(shiny)
 # library(Biobase)
 # dat <- readRDS("Dat/exampleEset.RDS")
