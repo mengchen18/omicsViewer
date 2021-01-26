@@ -110,6 +110,8 @@ dataTable_module <- function(
     })
   }
 
+  observeEvent( reactive_data(), selectedRowOrCol(TRUE) )
+
   rdd <- reactive({
     if (is.matrix(reactive_data())) {
       x <- as.data.frame(reactive_data()) 

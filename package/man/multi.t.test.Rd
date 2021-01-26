@@ -7,7 +7,7 @@
 multi.t.test(x, pheno, compare = NULL, fillNA = FALSE, ...)
 }
 \arguments{
-\item{x}{an expression matrix}
+\item{x}{an expression matrix, log10 transformed}
 
 \item{pheno}{phenotype data of x, nrow(pheno) must equal ncol(x)}
 

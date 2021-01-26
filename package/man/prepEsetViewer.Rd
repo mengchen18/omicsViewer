@@ -5,11 +5,12 @@
 \title{Prepare data that can be viewer by ExpressionSetViewer}
 \usage{
 prepEsetViewer(expr, pData, fData, PCA = TRUE, ncomp = min(8,
-  ncol(expr)), pca.fillNA, t.test = NULL, ttest.fillNA = FALSE, ...,
-  gs = NULL, stringDB = NULL, surv = NULL)
+  ncol(expr)), pca.fillNA = TRUE, t.test = NULL,
+  ttest.fillNA = FALSE, ..., gs = NULL, stringDB = NULL,
+  surv = NULL)
 }
 \arguments{
-\item{expr}{expression matrix where the rows are feature and columns are samples}
+\item{expr}{expression matrix where the rows are feature and columns are samples, matrix should be log10 transformed}
 
 \item{pData}{phenotype data}
 

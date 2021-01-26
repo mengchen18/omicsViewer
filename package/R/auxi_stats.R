@@ -1,5 +1,5 @@
 #' Function to perform pairwse t-test
-#' @param x an expression matrix
+#' @param x an expression matrix, log10 transformed
 #' @param pheno phenotype data of x, nrow(pheno) must equal ncol(x)
 #' @param compare comparison want to do. If not null, it a nx3 matrix. 
 #'   The first column should be column headers in pData, the second and 
@@ -36,23 +36,10 @@
 #' 
 multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
   
-  # log10 = FALSE, median.center = TRUE, 
   if( is.vector(compare) || length(compare) == 3)
-    compare <- matrix(compare, nrow = 1)
-  
-  halfValue <- function(x) x - log10(2)
-  
-  if (fillNA) {
-    x <- apply(x, 1, function(xx) {
-      x3 <- xx
-      x3[is.na(x3)] <- halfValue(min(x3, na.rm = TRUE))
-      x3
-    })
-    x <- t(x)
-  }
-  
-  if (is.null(compare))
-    return(NULL)
+    compare <- matrix(compare, nrow = 1)    
+  if (fillNA) x <- fillNA(x)  
+  if (is.null(compare)) return(NULL)
 
   tl <- lapply(unique(compare[, 1]), function(x) {
     x <- compare[x == compare[, 1], -1, drop = FALSE]
@@ -132,21 +119,28 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
     colnames(pp) <- paste0(prefix, "|", colnames(pp), "(", var, "%", ")")
     list(samples = xx, features = pp)
   }
-  if (fillNA) {
-    halfValue <- function(x) x - log10(2)
-    if (fillNA) {
-      x <- apply(x, 1, function(xx) {
-        x3 <- xx
-        x3[is.na(x3)] <- halfValue(min(x3, na.rm = TRUE))
-        x3
-      })
-      x <- t(x)
-    }
-  } else {
-    x <- na.omit(x)
-  }
-  
+  if (fillNA) 
+    x <- fillNA(x) else
+      x <- na.omit(x)      
   pc <- prcomp(t(x))
   writePC(pc, n = n)
+}
+
+#' Filling NA using a constant or half lowest detected value (for each protein) method
+#' @param x matrix with NA values
+#' @param fillingFun function to calculate half value
+#'   e.g.
+#'   function(x) x - log10(2) # default, when x is in log10 scale
+#'   function(x) x - 1 # half lowest detected value when x is in log2 scale
+#'   function(x) 0 # replace NA by 0
+#' @export
+
+fillNA <- function(x, fillingFun = function(x) x - log10(2)) {
+  x <- apply(x, 1, function(xx) {
+    x3 <- xx
+    x3[is.na(x3)] <- fillingFun(min(x3, na.rm = TRUE))
+    x3
+  })
+  t(x)
 }
 

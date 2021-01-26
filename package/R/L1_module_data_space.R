@@ -79,6 +79,11 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
     reactive_y1 = reactive(y1_f), reactive_y2 = reactive(y2_f), reactive_y3 = reactive(y3_f)
   )
 
+  observe({
+    print(x3_f)
+    print(y3_f)
+    })
+
   ## tables
   tab_pd <- callModule(
     dataTable_module, id = "tab_pheno",  reactive_data = pdata,

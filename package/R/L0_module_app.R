@@ -95,12 +95,11 @@ app_module <- function(
     fDataGetter(reactive_eset())
   })
   
-  ########################
-  
+  ########################  
   ps <- reactive({
     req(eset <- reactive_eset())
     l <- list()
-    if (!is.null(t0 <- defaultAxisGetter(eset, "sx"))){
+    if (!is.null(t0 <- defaultAxisGetter(eset, "sx"))) {
       t0 <- strsplit(t0, "\\|")[[1]]
       l$x1_s <- t0[1]
       l$x2_s <- t0[2]
@@ -112,13 +111,13 @@ app_module <- function(
       l$y2_s <- t0[2]
       l$y3_s <- t0[3]
     }
-    if (!is.null(t0 <- defaultAxisGetter(eset, "fx"))){ 
+    if (!is.null(t0 <- defaultAxisGetter(eset, "fx"))) { 
       t0 <- strsplit(t0, "\\|")[[1]]
       l$x1_f <- t0[1]
       l$x2_f <- t0[2]
       l$x3_f <- t0[3]
     }
-    if (!is.null(t0 <- defaultAxisGetter(eset, "fy"))){ 
+    if (!is.null(t0 <- defaultAxisGetter(eset, "fy"))) { 
       t0 <- strsplit(t0, "\\|")[[1]]
       l$y1_f <- t0[1]
       l$y2_f <- t0[2]
@@ -126,6 +125,8 @@ app_module <- function(
     }
     l
   })
+
+  # observe(print(ps()))
   #####################
   
   output$download <- downloadHandler(

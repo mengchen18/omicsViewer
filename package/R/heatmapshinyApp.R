@@ -175,8 +175,15 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   
   ns <- session$ns
   
+  matr <- reactive({
+    if (any(is.na(mat())))
+      r <- fillNA(mat()) else
+        r <- mat()
+    r
+    })
+
   clsRow <- reactive({
-    if (nrow(mat()) > 750)
+    if (nrow(matr()) > 750)
       return("none")
     "hierarchical cluster"
   })
@@ -192,13 +199,13 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   mm <- reactive({
     req(input$scale)
     if (input$scale == "row") {
-      mm <- t(scale(t(mat()))) 
+      mm <- t(scale(t(matr()))) 
       brk <- c(min(mm, na.rm = TRUE), seq(-2, 2, length.out = 99), max(mm, na.rm = TRUE))
     } else if (input$scale == "column") {
-      mm <- scale(mat())
+      mm <- scale(matr())
       brk <- c(min(mm, na.rm = TRUE), seq(-2, 2, length.out = 99), max(mm, na.rm = TRUE))
     } else {
-      mm <- mat()
+      mm <- matr()
       brk <- seq(min(mm, na.rm = TRUE), max(mm, na.rm = TRUE), length.out = 101)
     }
     

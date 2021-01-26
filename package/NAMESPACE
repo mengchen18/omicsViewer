@@ -2,6 +2,7 @@
 
 export(ExpressionSetViewer)
 export(exprspca)
+export(fillNA)
 export(multi.t.test)
 export(prepEsetViewer)
 export(triselector_module)
