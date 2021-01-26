@@ -6,13 +6,14 @@
 L1_data_space_ui <- function(id) {
   ns <- NS(id)
   
-  tagList(
-    # tabsetPanel(
+  tagList(    
     navbarPage(
       "Eset",
       theme = shinytheme("spacelab"), 
-      tabPanel('Features', meta_scatter_ui(ns('feature_space'))),
-      tabPanel("Samples", meta_scatter_ui(ns("sample_space"))),
+      tabPanel('Feature', meta_scatter_ui(ns('feature_space'))),
+      tabPanel("Feature-tab", dataTable_ui(ns("tab_feature"))),
+      tabPanel("Sample", meta_scatter_ui(ns("sample_space"))),
+      tabPanel("Sample-tab", dataTable_ui(ns("tab_pheno"))),
       tabPanel(
         "Heatmap",
         dropdownButton(
@@ -29,8 +30,6 @@ L1_data_space_ui <- function(id) {
         ),
         iheatmapOutput(id = ns("heatmapViewer"))
       ),
-      tabPanel("Sample-tab", dataTable_ui(ns("tab_pheno"))),
-      tabPanel("Feature-tab", dataTable_ui(ns("tab_feature"))),
       tabPanel("Exprs", dataTable_ui(ns("tab_expr")))
     )
   )
