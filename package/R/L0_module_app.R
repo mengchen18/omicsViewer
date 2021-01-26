@@ -96,37 +96,22 @@ app_module <- function(
   })
   
   ########################  
-  ps <- reactive({
+  d_s_x <- reactive( {
     req(eset <- reactive_eset())
-    l <- list()
-    if (!is.null(t0 <- defaultAxisGetter(eset, "sx"))) {
-      t0 <- strsplit(t0, "\\|")[[1]]
-      l$x1_s <- t0[1]
-      l$x2_s <- t0[2]
-      l$x3_s <- t0[3]
-    }
-    if (!is.null(t0 <- defaultAxisGetter(eset, "sy"))) {
-      t0 <- strsplit(t0, "\\|")[[1]]
-      l$y1_s <- t0[1]
-      l$y2_s <- t0[2]
-      l$y3_s <- t0[3]
-    }
-    if (!is.null(t0 <- defaultAxisGetter(eset, "fx"))) { 
-      t0 <- strsplit(t0, "\\|")[[1]]
-      l$x1_f <- t0[1]
-      l$x2_f <- t0[2]
-      l$x3_f <- t0[3]
-    }
-    if (!is.null(t0 <- defaultAxisGetter(eset, "fy"))) { 
-      t0 <- strsplit(t0, "\\|")[[1]]
-      l$y1_f <- t0[1]
-      l$y2_f <- t0[2]
-      l$y3_f <- t0[3]
-    }
-    l
-  })
-
-  # observe(print(ps()))
+    defaultAxisGetter(eset, "sx") 
+    })
+  d_s_y <- reactive( {
+    req(eset <- reactive_eset())
+    defaultAxisGetter(eset, "sy") 
+    })
+  d_f_x <- reactive( {
+    req(eset <- reactive_eset())
+    defaultAxisGetter(eset, "fx") 
+    })
+  d_f_y <- reactive( {
+    req(eset <- reactive_eset())
+    defaultAxisGetter(eset, "fy") 
+    })
   #####################
   
   output$download <- downloadHandler(
@@ -173,10 +158,7 @@ app_module <- function(
   })
   
   v1 <- callModule(L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
-                   x1_s = ps()$x1_s, x2_s = ps()$x2_s, x3_s = ps()$x3_s,
-                   y1_s = ps()$y1_s, y2_s = ps()$y2_s, y3_s = ps()$y3_s,
-                   x1_f = ps()$x1_f, x2_f = ps()$x2_f, x3_f = ps()$x3_f,
-                   y1_f = ps()$y1_f, y2_f = ps()$y2_f, y3_f = ps()$y3_f
+                    reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y
                    )
   
   callModule(L1_result_space_module, id = "resultspace",
