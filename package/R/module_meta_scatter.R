@@ -100,8 +100,10 @@ meta_scatter_module <- function(
     l <- list(source = source)
     # x-axis
     l$x <- varSelector(v1(), reactive_expr(), reactive_meta())
+    req(l$x)
     # y-axis
     l$y <- varSelector(v2(), reactive_expr(), reactive_meta())
+    req(l$y)
     # xlab
     l$xlab <- attr(l$x, "label")
     # ylab

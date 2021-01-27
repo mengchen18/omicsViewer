@@ -47,12 +47,28 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
     return(alternative)
   }
   lab <- paste(x, collapse = "|")
+
+  selectIfCan <- function(x, i, dim) {
+    if (dim == 1) {
+      if (!all(i %in% rownames(x)))
+        return(NULL)
+      r <- x[i, ]
+    } else if (dim == 2) {
+      if (!all(i %in% colnames(x))) 
+        return(NULL)
+      r <- x[, i]
+    } else
+      stop("dim should be either 1 or 2!")
+    r
+  }
+
   if (x$analysis == "Feature" && x$subset == "Auto") {
-    x <- expr[x$variable, ]
+    x <- selectIfCan(expr, x$variable, dim = 1)
   } else if (x$analysis == "Sample" && x$subset == "Auto") {
-    x <- expr[, x$variable]
-  } else
-    x <- meta[, lab]
-  attr(x, "label") <- lab
+    x <- selectIfCan(expr, x$variable, dim = 2)
+  } else {
+    x <- selectIfCan(meta, lab, dim = 2)
+  }
+  if (!is.null(x)) attr(x, "label") <- lab
   x
 }
