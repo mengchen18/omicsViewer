@@ -689,8 +689,6 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   })
 
   reactive({
-    print(selVal$clicked)
-    print(selVal$selected)
     list(clicked = selVal$clicked, #clickedName(),
          brushed = selVal$selected) # brushedValues())
   })
