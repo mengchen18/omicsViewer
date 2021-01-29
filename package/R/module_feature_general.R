@@ -86,8 +86,9 @@ feature_general_module <- function(input, output, session,
   pheno_num <- reactive({ is.numeric(pheno()) })
   single_i <- reactive({ length(reactive_i()) == 1 })
   
-  showBoxplot <- reactive(length(pheno()) == 0 || (pheno_num() && !single_i()) || length(reactive_i()) == 0)
-  showBeeswarm <- reactive(pheno_cat() && length(reactive_i()) > 0)
+  showBoxplot <- reactive(length(pheno()) == 0 || (pheno_num() && !single_i()) || 
+    length(reactive_i()) == 0 || length(reactive_i()) >= 10)
+  showBeeswarm <- reactive(pheno_cat() && length(reactive_i()) > 0 && length(reactive_i()) < 10)
   showScatter <- reactive( single_i () && pheno_num() )
   
   output$feature_general_plot <- renderUI({
@@ -185,8 +186,4 @@ feature_general_module <- function(input, output, session,
   callModule(
     dataTableDownload_module, id = "mtab", reactive_table = metatab, prefix = "FeatureTable_"
   )
-  
-  # output$mtab <- DT::renderDataTable(
-  #   DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  # )
 }

@@ -10,7 +10,8 @@ meta_scatter_ui <- function(id) {
              triselector_ui(ns("tris_main_scatter1")),
              triselector_ui(ns("tris_main_scatter2")))
     ),
-    plotly_scatter_ui(ns("main_scatterOutput"), height = "666px")
+    plotly_scatter_ui(ns("main_scatterOutput"), height = "666px"),
+    actionButton(ns("clear"), "Clear selection")
   )
 }
 
@@ -125,18 +126,27 @@ meta_scatter_module <- function(
                           reactive_param_plotly_scatter = scatter_vars,
                           reactive_regLine = reactive( showRegLine()))
   observe(showRegLine(v_scatter()$regline))
-  
-  reactive({
+
+  selVal <- reactiveValues(
+      clicked = character(0),
+      selected = character(0)
+    )
+  observeEvent(input$clear, {
+      selVal$clicked = character(0)
+      selVal$selected = character(0)
+    })
+  observe({
     if (combine == "pheno") 
       l <- colnames(reactive_expr()) else
         l <- rownames(reactive_expr())
-      
-      i1 <- v_scatter()$selected
-      i2 <- v_scatter()$clicked
-      list(
-        clicked = l[i2],
-        selected = l[i1]
-      )
+    selVal$clicked = l[v_scatter()$clicked]
+    selVal$selected = l[v_scatter()$selected]
   })
+  reactive(
+    list(
+      clicked = selVal$clicked,
+      selected = selVal$selected
+      )
+    )
 }
 

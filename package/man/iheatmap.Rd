@@ -5,6 +5,7 @@
 \alias{iheatmapInput}
 \alias{iheatmapOutput}
 \alias{iheatmapLegend}
+\alias{iheatmapClear}
 \alias{iheatmapModule}
 \title{interactive heatmap}
 \usage{
@@ -15,6 +16,8 @@ iheatmapInput(id)
 iheatmapOutput(id)
 
 iheatmapLegend(id)
+
+iheatmapClear(id)
 
 iheatmapModule(input, output, session, mat, pd, fd)
 }
@@ -50,6 +53,8 @@ iheatmap Output
 
 iheatmap legend
 
+iheatmap clear function
+
 iheatmap module
 }
 \section{Functions}{
@@ -59,5 +64,7 @@ iheatmap module
 \item \code{iheatmapOutput}: 
 
 \item \code{iheatmapLegend}: 
+
+\item \code{iheatmapClear}: iheatmap clear
 }}
 

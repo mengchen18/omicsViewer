@@ -16,17 +16,26 @@ L1_data_space_ui <- function(id) {
       tabPanel("Sample-tab", dataTable_ui(ns("tab_pheno"))),
       tabPanel(
         "Heatmap",
-        dropdownButton(
-          inputId = "mydropdown",
-          label = "Controls",
-          circle = FALSE, status = "default", icon = icon("gear"),
-          width = 700,
-          tooltip = tooltipOptions(title = "Click to update heatmap and check legend!"),
-          margin = "10px",
-          tabsetPanel(
-            tabPanel("Parameters", iheatmapInput(id = ns("heatmapViewer"))),
-            tabPanel("Legend", iheatmapLegend(id = ns("heatmapViewer")))
-          )
+        fluidRow(
+          column(
+            6,             
+            dropdownButton(
+              inputId = "mydropdown",
+              label = "Controls",
+              circle = FALSE, status = "default", icon = icon("gear"),
+              width = 700,
+              tooltip = tooltipOptions(title = "Click to update heatmap and check legend!"),
+              margin = "10px",
+              tabsetPanel(
+                tabPanel("Parameters", iheatmapInput(id = ns("heatmapViewer"))),
+                tabPanel("Legend", iheatmapLegend(id = ns("heatmapViewer")))
+                )
+              )
+            ),
+          column(
+            6, align = "right",
+            iheatmapClear(id = ns("heatmapViewer"))
+            )
         ),
         iheatmapOutput(id = ns("heatmapViewer"))
       ),
@@ -52,22 +61,19 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
                                  reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL)
                                  ) {
   
+  # heatmap
   s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata )
   
   # sample space
   s_sample_fig <- callModule(
     meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
     reactive_x = reactive_x_s, reactive_y = reactive_y_s
-    # reactive_x1 = reactive(x1_s), reactive_x2 = reactive(x2_s), reactive_x3 = reactive(x3_s),
-    # reactive_y1 = reactive(y1_s), reactive_y2 = reactive(y2_s), reactive_y3 = reactive(y3_s)
   )
 
   # feature space
   s_feature_fig <- callModule(
     meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, combine = "feature", source = "scatter_meta_feature",
     reactive_x = reactive_x_f, reactive_y = reactive_y_f
-    # reactive_x1 = reactive(x1_f), reactive_x2 = reactive(x2_f), reactive_x3 = reactive(x3_f),
-    # reactive_y1 = reactive(y1_f), reactive_y2 = reactive(y2_f), reactive_y3 = reactive(y3_f)
   )
 
   ## tables
@@ -93,12 +99,14 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
     if (!is.null(s_heatmap()$brushed$row)) {
       selectedFeatures(s_heatmap()$brushed$row)
     } else if (!is.null(s_heatmap()$clicked))
-      selectedFeatures(s_heatmap()$clicked["row"])
+      selectedFeatures(s_heatmap()$clicked["row"]) else
+        selectedFeatures(character(0))
 
     if (!is.null(s_heatmap()$brushed$col)) {
       selectedSamples(s_heatmap()$brushed$col)
     } else if (!is.null(s_heatmap()$clicked))
-      selectedSamples(s_heatmap()$clicked["col"])
+      selectedSamples(s_heatmap()$clicked["col"]) else
+        selectedSamples(character(0))
   }
   )
   # 

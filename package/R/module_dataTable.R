@@ -6,7 +6,10 @@ dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(8, shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")),
+      column(4, actionButton(ns("clear"), "Show all")),
+      column(4, align = "center", 
+        shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")
+        ),
       column(4, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
     ),
     uiOutput(ns("selector")),    
@@ -111,6 +114,7 @@ dataTable_module <- function(
   }
 
   observeEvent( reactive_data(), selectedRowOrCol(TRUE) )
+  observeEvent( input$clear, selectedRowOrCol(TRUE) )
 
   rdd <- reactive({
     if (is.matrix(reactive_data())) {
@@ -183,12 +187,20 @@ dataTable_module <- function(
     formatTab(tab, sel = input$multisel)
   })
   
-  eventReactive(list(
-    input$table_rows_selected
-  ), {
-    req(notNullAndPosLength(input$table_rows_selected))
-    rownames(rdd())[input$table_rows_selected]
-  })
+  # selVal <- reactiveVal(character(0))
+  # observeEvent(input$clear, {
+  #   selVal(character(0))
+  #   })
+  # observeEvent(list(input$table_rows_selected, input$clear), {
+  #   if (notNullAndPosLength(input$table_rows_selected))
+  #     selVal( rownames(rdd())[input$table_rows_selected] ) else
+  #      selVal( character(0) )
+  #   })
+  # reactive( selVal() )
+  eventReactive( input$table_rows_selected, {
+    req (notNullAndPosLength(input$table_rows_selected))
+    rownames(rdd())[input$table_rows_selected] 
+    } )
 }
 
 

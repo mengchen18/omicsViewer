@@ -161,6 +161,15 @@ iheatmapLegend <- function(id) {
   )
 }
 
+#' iheatmap clear function
+#' @describeIn iheatmap iheatmap clear
+#'
+iheatmapClear <- function(id) {
+  ns <- NS(id)
+  actionButton(ns("clear"), "Clear selection")
+}
+
+
 #' iheatmap module
 #' @param input input
 #' @param output output
@@ -666,9 +675,24 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     l
   })
 
+  selVal <- reactiveValues(
+    clicked = NULL,
+    selected = list(col = NULL, row = NULL)
+  )
+  observeEvent(input$clear, {
+    selVal$clicked = NULL#
+    selVal$selected = list(col = NULL, row = NULL)
+  })
+  observeEvent(list(clickedName(), brushedValues()), {
+    selVal$clicked = clickedName()# l[v_scatter()$clicked]
+    selVal$selected = brushedValues()#l[v_scatter()$selected]
+  })
+
   reactive({
-    list(clicked = clickedName(),
-         brushed = brushedValues())
+    print(selVal$clicked)
+    print(selVal$selected)
+    list(clicked = selVal$clicked, #clickedName(),
+         brushed = selVal$selected) # brushedValues())
   })
 }
 
