@@ -110,12 +110,12 @@ plotly_scatter <- function(
   ## prepare data.frame differently
   if (i1) {
     names(y) <- paste0("Y", 1:length(y))
-    df <- beeswarm(y ~ x, corral = "wrap", do.plot = FALSE)
+    df <- beeswarm(y ~ x, corral = "wrap", do.plot = FALSE, corralWidth = 1)
     df$index <- fmatch(rownames(df), paste(x, names(y), sep = "."))
     tlp <- sprintf("<b>%s: </b>%s<br><b>%s: </b>%s", xlab, df$x.orig, ylab, signif(df$y, digits = 3))
   } else if (i2) {
     names(x) <- paste0("X", 1:length(x))
-    df0 <- beeswarm(x ~ y, corral = "wrap", do.plot = FALSE)
+    df0 <- beeswarm(x ~ y, corral = "wrap", do.plot = FALSE, corralWidth = 1)
     df <- df0
     df$x <- df0$y
     df$y <- df0$x
