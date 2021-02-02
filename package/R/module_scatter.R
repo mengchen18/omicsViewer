@@ -152,6 +152,8 @@ plotly_scatter <- function(
   df <- df[!(is.na(df$x) | is.na(df$y)), ]
   df <- df[order(df$x, decreasing = FALSE), ] ## DF reordered, should be carefully with returned values
   df$xyid <- paste(df$x, df$y)
+  if (nrow(df) == 0)
+    return(NULL)
   cc <- distinctColorPalette(k = length(unique(df$color)))
   
   ############ plot #################

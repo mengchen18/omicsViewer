@@ -105,6 +105,7 @@ meta_scatter_module <- function(
     # y-axis
     l$y <- varSelector(v2(), reactive_expr(), reactive_meta())
     req(l$y)
+    req(length(l$x) == length(l$y))
     # xlab
     l$xlab <- attr(l$x, "label")
     # ylab
