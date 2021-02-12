@@ -11,11 +11,11 @@ geneshot_ui <- function(id) {
       column(
         width = 2, align = "right", 
         actionButton(ns("submit"), label = "Submit!")
-      ),
-      plotly::plotlyOutput(ns("plt")),
-      tags$br(),
-      dataTableDownload_ui(ns("autorif"))
-    )
+      )
+    ),
+    plotly::plotlyOutput(ns("plt")),
+    tags$br(),
+    dataTableDownload_ui(ns("autorif"))
   )
 }
 
