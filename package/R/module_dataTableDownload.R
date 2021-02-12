@@ -23,6 +23,7 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #' @param reactive_table table to show
 #' @param reactive_cols columns to be shown
 #' @param prefix file name prefix
+#' @param pageLength how many row per page
 #' @importFrom utils write.table
 #' @examples 
 #' # source("R/module_triselector.R")
@@ -40,7 +41,8 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #' # }
 #' # shinyApp(ui, server)
 #' 
-dataTableDownload_module <- function(input, output, session, reactive_table, reactive_cols=reactive(NULL), prefix = "") {
+dataTableDownload_module <- function(input, output, session, reactive_table, 
+  reactive_cols=reactive(NULL), prefix = "", pageLength = 10) {
   
   ns <- session$ns
   
@@ -65,6 +67,18 @@ dataTableDownload_module <- function(input, output, session, reactive_table, rea
     downloadButton(ns("downloadData"), "Save table")
   })
   
+  formatTab <- function(tab, sel = 0, pageLength = 10) {    
+    dt <- DT::datatable( 
+      tab,
+      selection =  c("single", "multiple")[as.integer(sel)+1],
+      rownames = FALSE,
+      filter = "top",
+      class="table-bordered compact",
+      options = list(scrollX = TRUE, pageLength = pageLength, dom = 'tip')
+    )
+    DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
+  }
+
   output$table <- DT::renderDataTable({
     req(tab <- reactive_table())
     if (!is.null( reactive_cols() ))
@@ -72,7 +86,8 @@ dataTableDownload_module <- function(input, output, session, reactive_table, rea
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))
     if ( length(ic) > 0 )
       tab[, ic] <- lapply(tab[, ic], signif, digits = 3)
-    DT::datatable(tab, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
+    formatTab(tab, pageLength = pageLength)
+    # DT::datatable(tab, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
   })
   
   reactive(input$table_rows_selected)

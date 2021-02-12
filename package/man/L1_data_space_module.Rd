@@ -6,7 +6,8 @@
 \usage{
 L1_data_space_module(input, output, session, expr, pdata, fdata,
   reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
-  reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL))
+  reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
+  rowDendrogram = reactive(NULL))
 }
 \arguments{
 \item{input}{input}
@@ -28,6 +29,8 @@ L1_data_space_module(input, output, session, expr, pdata, fdata,
 \item{reactive_x_f}{pre-selected x axis for feature space}
 
 \item{reactive_y_f}{pre-selected y axis for feature space}
+
+\item{rowDendrogram}{row dendrogram list}
 }
 \description{
 Application level 1 module - data space

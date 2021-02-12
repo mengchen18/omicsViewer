@@ -7,8 +7,8 @@
 app_module(input, output, session, dir, filePattern = ".RDS$",
   additionalTabs = NULL, esetLoader = readRDS, exprsGetter = exprs,
   pDataGetter = pData, fDataGetter = fData,
-  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy")[1])
-  attr(x, what), appName = "ExpressionSetViewer",
+  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy",
+  "dendrogram")[1]) attr(x, what), appName = "ExpressionSetViewer",
   appVersion = packageVersion("ExpressionSetViewer"))
 }
 \arguments{

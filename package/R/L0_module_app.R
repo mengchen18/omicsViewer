@@ -62,7 +62,7 @@ app_ui <- function(id) {
 app_module <- function(
   input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, 
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
-  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what),
+  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
 ) {
   
@@ -112,6 +112,10 @@ app_module <- function(
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "fy") 
     })
+  reactive_rdg <- reactive({
+    req(eset <- reactive_eset())
+    defaultAxisGetter(eset, "dendrogram")
+    })
   #####################
   
   output$download <- downloadHandler(
@@ -158,7 +162,8 @@ app_module <- function(
   })
   
   v1 <- callModule(L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
-                    reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y
+                    reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
+                    rowDendrogram = reactive_rdg
                    )
   
   callModule(L1_result_space_module, id = "resultspace",

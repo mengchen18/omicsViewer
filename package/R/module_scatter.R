@@ -324,8 +324,7 @@ plotly_scatter_module <- function(
     } else {
       v <- y
       num <- x
-    }
-    
+    }    
     list(group = sort(unique(v)), x = num, f = v)
   })
   
@@ -385,6 +384,7 @@ plotly_scatter_module <- function(
   })
   plotter <- reactive({
     req(reactive_checkpoint())
+    req(!is.null(input$showRegLine))
     do.call(plotly_scatter, args = c(
       reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine
     ))

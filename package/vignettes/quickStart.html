@@ -266,7 +266,7 @@ div.tocify {
 <h1 class="title toc-ignore">Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer</h1>
 <h4 class="author">Chen Meng</h4>
 <address class="author_afil">
-BayBioMS, TU Munich<br><h4 class="date">26 December, 2020</h4>
+BayBioMS, TU Munich<br><h4 class="date">12 February, 2021</h4>
 
 </div>
 
@@ -428,6 +428,30 @@ attr(d, &quot;sx&quot;) &lt;- &quot;PCA|All|PC1(&quot;
 # sample space - default y axis
 attr(d, &quot;sy&quot;) &lt;- &quot;PCA|All|PC2(&quot;
 
+# saveRDS(d, file = &quot;dtest.RDS&quot;)
+##  to open the viewer
+# ExpressionSetViewer(&quot;./&quot;)</code></pre>
+<p>When the expression matrix has thousands of rows, calculating the dendrogram of rows will be slow, we can also calculate the dendrograms in advance and store them as the &quot;dendrogram&quot; attribute of ExpressionSet. The &quot;dendrogram&quot; should be a named list, the suggested name is in the format like:</p>
+<p>[distance measure]_[linkage method]_[imputed/noImpute]</p>
+<p>Every element should a list of length two:</p>
+<ul>
+<li>ord: the order of variables</li>
+<li>hcl: the dendrogram</li>
+</ul>
+<p>An example:</p>
+<pre class="r"><code>library(Biobase)
+expr &lt;- exprs(d)
+hcl &lt;- hclust(dist(expr))
+dend &lt;- as.dendrogram(hcl)
+
+hcl2 &lt;- hclust(as.dist(1-cor(t(expr), use= &quot;pair&quot;)), method = &quot;ward.D&quot;)
+dend2 &lt;- as.dendrogram(hcl2)
+
+dl &lt;- list(
+  euclidean_complete_imputed = list(ord = hcl$order, hcl = dend),
+  pearson_ward.D_imputed = list(ord = hcl2$order, hcl = dend2)
+  )
+attr(d, &quot;dendrogram&quot;) &lt;- dl
 # saveRDS(d, file = &quot;dtest.RDS&quot;)
 ##  to open the viewer
 # ExpressionSetViewer(&quot;./&quot;)</code></pre>
@@ -665,7 +689,7 @@ ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)<
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ExpressionSetViewer_0.2.2
+## [1] ExpressionSetViewer_0.3.3
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] matrixStats_0.54.0  RColorBrewer_1.1-2  httr_1.4.1         
@@ -677,7 +701,7 @@ ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)<
 ## [19] stringr_1.4.0       digest_0.6.20       foreign_0.8-71     
 ## [22] rmarkdown_2.5       rio_0.5.16          pkgconfig_2.0.2    
 ## [25] htmltools_0.4.0     fastmap_1.0.1       htmlwidgets_1.5.1  
-## [28] rlang_0.4.6         readxl_1.3.1        shiny_1.4.0.2      
+## [28] rlang_0.4.10        readxl_1.3.1        shiny_1.4.0.2      
 ## [31] generics_0.0.2      zoo_1.8-6           jsonlite_1.6       
 ## [34] BiocParallel_1.18.1 dplyr_1.0.0         zip_2.0.4          
 ## [37] car_3.0-6           magrittr_1.5        Matrix_1.2-15      

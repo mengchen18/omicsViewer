@@ -59,6 +59,13 @@ L1_result_space_module <- function(
     reactive_phenoData = reactive_phenoData, 
     reactive_j = reactive_highlight
   )
+
+  v6 <- callModule(
+    geneshot_module, id = "geneshotTab", 
+    fdata = reactive_featureData, 
+    feature_selected = reactive_i
+    )
+  
   # 
   if (length(additionalTabs) > 0) {
     for (lo in additionalTabs){
@@ -81,6 +88,11 @@ L1_result_space_module <- function(
       tabPanel("Sample general", sample_general_ui(ns("sample_general")))
       )
     
+    ### geneshot
+    geneshot <- list(
+      tabPanel("Geneshot", geneshot_ui(ns("geneshotTab")))
+      )
+    ### end
     
     optionalTabs <- list()
     
@@ -100,6 +112,6 @@ L1_result_space_module <- function(
     }
     ######
     
-    do.call(navbarPage, c(titleTabs, optionalTabs, sampleAnalyst))
+    do.call(navbarPage, c(titleTabs, optionalTabs, geneshot, sampleAnalyst))
   })
 }

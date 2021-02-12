@@ -97,7 +97,7 @@ meta_scatter_module <- function(
   scatter_vars <- reactive({
     req(!v1()$variable %in% c("Select a variable!", ""))
     req(!v2()$variable %in% c("Select a variable!", ""))
-    
+
     l <- list(source = source)
     # x-axis
     l$x <- varSelector(v1(), reactive_expr(), reactive_meta())

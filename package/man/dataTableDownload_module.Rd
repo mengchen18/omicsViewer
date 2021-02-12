@@ -5,7 +5,7 @@
 \title{utility - dataTable for download shiny module}
 \usage{
 dataTableDownload_module(input, output, session, reactive_table,
-  reactive_cols = reactive(NULL), prefix = "")
+  reactive_cols = reactive(NULL), prefix = "", pageLength = 10)
 }
 \arguments{
 \item{input}{input}
@@ -19,6 +19,8 @@ dataTableDownload_module(input, output, session, reactive_table,
 \item{reactive_cols}{columns to be shown}
 
 \item{prefix}{file name prefix}
+
+\item{pageLength}{how many row per page}
 }
 \description{
 A subset of columns can be shown, specified by reactive_cols. 

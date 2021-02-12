@@ -19,7 +19,8 @@ iheatmapLegend(id)
 
 iheatmapClear(id)
 
-iheatmapModule(input, output, session, mat, pd, fd)
+iheatmapModule(input, output, session, mat, pd, fd,
+  rowDendrogram = reactive(NULL))
 }
 \arguments{
 \item{x}{a matrix object or ExpressionSet}
@@ -43,6 +44,8 @@ iheatmapModule(input, output, session, mat, pd, fd)
 \item{pd}{phenotype data}
 
 \item{fd}{feature data}
+
+\item{rowDendrogram}{row dendrogram list}
 }
 \description{
 interactive heatmap

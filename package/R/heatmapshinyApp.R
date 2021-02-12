@@ -177,10 +177,11 @@ iheatmapClear <- function(id) {
 #' @param mat expression matrix
 #' @param pd phenotype data
 #' @param fd feature data
+#' @param rowDendrogram row dendrogram list
 #' @importFrom RColorBrewer brewer.pal
 #' @name iheatmap
 #' 
-iheatmapModule <- function(input, output, session, mat, pd, fd) {
+iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = reactive(NULL)) {
   
   ns <- session$ns
   
@@ -196,11 +197,19 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
       return("none")
     "hierarchical cluster"
   })
+
+  rdg <- reactive({
+    if (is.null(rowDendrogram()) || is.null(names(rowDendrogram())))
+      return(NULL)
+    x <- rowDendrogram()
+    names(x) <- paste("HCL", names(x))
+    x
+    })
   ######## update selectize input ########
   observe( updateSelectInput(session, "annotCol", choices = colnames(pd())) )
   observe( updateSelectInput(session, "annotRow", choices = colnames(fd())) )
   observe( updateSelectInput(session, "colSortBy", choices = c("hierarchical cluster", "none", colnames(pd()))) )
-  observe( updateSelectInput(session, "rowSortBy", choices = c("none", "hierarchical cluster", colnames(fd())), selected = clsRow()) )
+  observe( updateSelectInput(session, "rowSortBy", choices = c(names(rdg()), "none", "hierarchical cluster", colnames(fd())), selected = clsRow()) )
   observe( updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) )
   
   
@@ -225,7 +234,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
     req(input$rowSortBy)
     hcl_r <- NULL
     ord_r <- 1:nrow(mm()$mat)
-    if (!input$rowSortBy %in% c("", "none", "hierarchical cluster")) {
+    if (input$rowSortBy %in% names(rdg())) {
+      return(rdg()[[input$rowSortBy]])
+    } else if (!input$rowSortBy %in% c("", "none", "hierarchical cluster")) {
       ord_r <- order(fd()[, input$rowSortBy])
     } else if (input$rowSortBy == "hierarchical cluster") { #clusterRow
       dd <- tolower(strsplit(input$clusterRowDist, " ")[[1]][1])
@@ -455,7 +466,10 @@ iheatmapModule <- function(input, output, session, mat, pd, fd) {
   observe( show_col_sideColor(length(input$annotCol) != 0) )
 
   show_row_dend <- reactiveVal(TRUE)
-  observe( show_row_dend(input$rowSortBy == "hierarchical cluster") ) #clusterRow
+  observe( 
+    show_row_dend(
+      input$rowSortBy == "hierarchical cluster" || grepl("^HCL ", input$rowSortBy)
+  ) ) #clusterRow
 
   show_row_sideColor <- reactiveVal(FALSE)
   observe( show_row_sideColor(length(input$annotRow) != 0) )

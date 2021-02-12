@@ -51,18 +51,20 @@ L1_data_space_ui <- function(id) {
 #' @param expr reactive value; expression matrix
 #' @param pdata reactive value; phenotype data
 #' @param fdata reactive value; feature data
+#' @param rowDendrogram row dendrogram list
 #' @param reactive_x_s pre-selected x axis for sample space
 #' @param reactive_y_s pre-selected y axis for sample space
 #' @param reactive_x_f pre-selected x axis for feature space
 #' @param reactive_y_f pre-selected y axis for feature space
 #' 
-L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
+L1_data_space_module <- function(input, output, session, expr, pdata, fdata, 
                                  reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
-                                 reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL)
+                                 reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
+                                 rowDendrogram = reactive(NULL)
                                  ) {
   
   # heatmap
-  s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata )
+  s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, rowDendrogram = rowDendrogram )
   
   # sample space
   s_sample_fig <- callModule(

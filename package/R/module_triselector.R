@@ -121,9 +121,11 @@ triselector_module <- function(input, output, session,
     updateSelectInput(session, inputId = "variable", choices = cc, selected = preselected)
   })
   
-  eventReactive(eventExpr = input$variable,
+  # eventReactive(eventExpr = input$variable,
+  reactive({
+    req(input$variable)
     list(analysis = input$analysis, subset = input$subset, variable = input$variable)
-  )
+  })
 }
 
 
