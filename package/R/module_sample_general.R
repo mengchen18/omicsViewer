@@ -92,7 +92,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   ## beeswarm
-  showRegLine <- reactiveVal(FALSE)
+  # showRegLine <- reactiveVal(FALSE)
   vs_scatter <- callModule(
     plotly_scatter_module, id = "sample_general_beeswarm", 
     reactive_param_plotly_scatter = reactive({
@@ -116,12 +116,12 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
       l$highlightName <- attr4select$highlightName
       l
     }), 
-    reactive_regLine = showRegLine,
+    reactive_regLine = reactive(FALSE), # showRegLine,
     reactive_checkpoint = reactive(pheno()$type == "beeswarm"))
-  observe({
-    req(pheno()$type == "beeswarm")
-    showRegLine(vs_scatter()$regline)
-  })
+  # observe({
+  #   req(pheno()$type == "beeswarm")
+  #   showRegLine(vs_scatter()$regline)
+  # })
   
   # cont table stats
   callModule(factorIndependency_module, id = "sample_general_contab", 

@@ -384,6 +384,14 @@ plotly_scatter_module <- function(
   })
   plotter <- reactive({
     req(reactive_checkpoint())
+    # if beeswarm, return the object without need of input$showRegLine 
+    if (!hm()$scatter) {
+      return(
+        do.call(plotly_scatter, args = c(
+          reactive_param_plotly_scatter_src(), regressionLine = FALSE
+          ))
+        )
+    }    
     req(!is.null(input$showRegLine))
     do.call(plotly_scatter, args = c(
       reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine
