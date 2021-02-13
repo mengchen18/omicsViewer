@@ -8,8 +8,9 @@ enrichment_analysis_ui <- function(id) {
     uiOutput(ns("error")),
     # DT::dataTableOutput(ns("stab")),
     dataTableDownload_ui(ns("stab")),
+    dataTableDownload_ui(ns("overlapTab"))
     # plotly barplot
-    plotlyOutput(ns("bplot"))
+    # plotlyOutput(ns("bplot"))
   )
 }
 
@@ -19,6 +20,7 @@ enrichment_analysis_ui <- function(id) {
 #' @param session session
 #' @param reactive_pathway_mat reactive value of a (binary) gene set matrix
 #' @param reactive_i reactive index of rows to be selected (for ORA)
+#' @param reactive_featureData reactive feature data
 #' @importFrom fastmatch fmatch
 #' @examples 
 #' #' # source("Git/R/auxi_fgsea.R")
@@ -43,22 +45,26 @@ enrichment_analysis_ui <- function(id) {
 #' # shinyApp(ui, server)
 
 enrichment_analysis_module <- function(
-  input, output, session, reactive_pathway_mat, reactive_i
+  input, output, session, reactive_pathway_mat, reactive_i, reactive_featureData
 ) {
   
   ns <- session$ns
   
   rii <- reactive({
-    req(length(reactive_i()) > 3)
+    if (length(reactive_i()) <=  3)
+      return("notest")
     if (is.integer(reactive_i() ))
       return(reactive_i())
     fmatch(reactive_i(), rownames(reactive_pathway_mat()))
     })
   
   oraTab <- reactive({
+    notest <- "No geneset has been tested, please try to include more input feature IDs!" 
+    if (rii() == "notest")
+      return(notest)
     tab <- vectORA(reactive_pathway_mat(), i = rii())
     if (is.null(tab))
-      return("No geneset has been tested, please try to include more input feature IDs!")
+      return(notest)
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))
     tab[, ic] <- lapply(tab[, ic], signif, digits = 3)
     tab
@@ -80,33 +86,61 @@ enrichment_analysis_module <- function(
       oraTab()
     }), 
     reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
-    prefix = "ORA_"
+    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE
   )
-  # output$stab <- DT::renderDataTable({
-  #   req(is.data.frame(oraTab()))
-  #   DT::datatable(oraTab()[, setdiff(colnames(oraTab()), "overlap_ids")],
-  #                 options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  # })
 
   hd <- reactive({
+    req(is.data.frame(oraTab()))
     req( i <- vi() )
+
+    ii <- grep("^General", colnames(reactive_featureData()), ignore.case = TRUE)
+    if (length(ii) == 0)
+      ii <- 1:min(3, ncol(reactive_featureData()))
+
     i <- oraTab()[i, ]
-    pathway_name <- as.character(i$pathway)
-    aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
-    stats <- rep(-1, nrow(reactive_pathway_mat()))
-    stats[aid] <- 1
     positive_ids <- i$overlap_ids[[1]]
     hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
-    bid <- setdiff(rii(), hid)    
-    list(hid = hid, bid = bid, stats = stats, names = rownames(reactive_pathway_mat()))
-  })
+    req(hid)
+    df1 <- reactive_featureData()[hid, ii, drop = FALSE]
+    df1 <- cbind(Overlap = "+", df1)
 
-  output$bplot <- renderPlotly(
-    plotly_barplot(
-      x = hd()$stats, names = hd()$names,
-      highlight = hd()$hid, highlight_color = "red", highlight_width = 1, highlight_legend = "highlighted",
-      background = hd()$bid, background_color = "gray", background_width = 1, background_legend = "background",
-      ylab = "Background <- -> GS members", xlab = '', sort = "dec", source = "plotlybarchart"
-    )
+    pathway_name <- as.character(i$pathway)
+    aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
+    aid <- setdiff(aid, hid)
+    if (length(aid) > 0) {
+      df2 <- reactive_featureData()[aid, ii, drop = FALSE]
+      df2 <- cbind(Overlap = "", df2)
+      df1 <- rbind(df1, df2)
+    }    
+    df1
+    })
+
+  vi2 <- callModule(
+    dataTableDownload_module, id = "overlapTab", 
+    reactive_table = hd,
+    # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
+    prefix = "ORA_overlapGenes_"
   )
+
+  # hd <- reactive({
+  #   req( i <- vi() )
+  #   i <- oraTab()[i, ]
+  #   pathway_name <- as.character(i$pathway)
+  #   aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
+  #   stats <- rep(-1, nrow(reactive_pathway_mat()))
+  #   stats[aid] <- 1
+  #   positive_ids <- i$overlap_ids[[1]]
+  #   hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
+  #   bid <- setdiff(rii(), hid)    
+  #   list(hid = hid, bid = bid, stats = stats, names = rownames(reactive_pathway_mat()))
+  # })
+
+  # output$bplot <- renderPlotly(
+  #   plotly_barplot(
+  #     x = hd()$stats, names = hd()$names,
+  #     highlight = hd()$hid, highlight_color = "red", highlight_width = 1, highlight_legend = "highlighted",
+  #     background = hd()$bid, background_color = "gray", background_width = 1, background_legend = "background",
+  #     ylab = "Background <- -> GS members", xlab = '', sort = "dec", source = "plotlybarchart"
+  #   )
+  # )
 }

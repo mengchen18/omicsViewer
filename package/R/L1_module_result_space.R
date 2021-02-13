@@ -46,7 +46,9 @@ L1_result_space_module <- function(
                    reactive_pathway_mat = reactive({
                      fd <- reactive_featureData()
                      fd[, grep("^GS\\|", colnames(fd))]
-                   }), reactive_i = reactive_i)
+                   }), reactive_i = reactive_i,
+                   reactive_featureData = reactive_featureData
+                   )
   
   v4 <- callModule(
     string_module, id = "stringdb", reactive_ids = reactive({

@@ -5,7 +5,8 @@
 \title{utility - dataTable for download shiny module}
 \usage{
 dataTableDownload_module(input, output, session, reactive_table,
-  reactive_cols = reactive(NULL), prefix = "", pageLength = 10)
+  reactive_cols = reactive(NULL), prefix = "", pageLength = 10,
+  sortBy = NULL, decreasing = TRUE)
 }
 \arguments{
 \item{input}{input}
@@ -21,6 +22,10 @@ dataTableDownload_module(input, output, session, reactive_table,
 \item{prefix}{file name prefix}
 
 \item{pageLength}{how many row per page}
+
+\item{sortBy}{sort by column (name)}
+
+\item{decreasing}{logical; sort by decreasing or not}
 }
 \description{
 A subset of columns can be shown, specified by reactive_cols. 

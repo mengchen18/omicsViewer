@@ -5,7 +5,7 @@
 \title{Utility enrichment analysis shiny module}
 \usage{
 enrichment_analysis_module(input, output, session, reactive_pathway_mat,
-  reactive_i)
+  reactive_i, reactive_featureData)
 }
 \arguments{
 \item{input}{input}
@@ -17,6 +17,8 @@ enrichment_analysis_module(input, output, session, reactive_pathway_mat,
 \item{reactive_pathway_mat}{reactive value of a (binary) gene set matrix}
 
 \item{reactive_i}{reactive index of rows to be selected (for ORA)}
+
+\item{reactive_featureData}{reactive feature data}
 }
 \description{
 Utility enrichment analysis shiny module
