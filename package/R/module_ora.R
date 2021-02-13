@@ -97,7 +97,7 @@ enrichment_analysis_module <- function(
     if (length(ii) == 0)
       ii <- 1:min(3, ncol(reactive_featureData()))
 
-    i <- oraTab()[i, ]
+    i <- oraTab()[i, ]        
     positive_ids <- i$overlap_ids[[1]]
     hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
     req(hid)
@@ -121,26 +121,4 @@ enrichment_analysis_module <- function(
     # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
     prefix = "ORA_overlapGenes_"
   )
-
-  # hd <- reactive({
-  #   req( i <- vi() )
-  #   i <- oraTab()[i, ]
-  #   pathway_name <- as.character(i$pathway)
-  #   aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
-  #   stats <- rep(-1, nrow(reactive_pathway_mat()))
-  #   stats[aid] <- 1
-  #   positive_ids <- i$overlap_ids[[1]]
-  #   hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
-  #   bid <- setdiff(rii(), hid)    
-  #   list(hid = hid, bid = bid, stats = stats, names = rownames(reactive_pathway_mat()))
-  # })
-
-  # output$bplot <- renderPlotly(
-  #   plotly_barplot(
-  #     x = hd()$stats, names = hd()$names,
-  #     highlight = hd()$hid, highlight_color = "red", highlight_width = 1, highlight_legend = "highlighted",
-  #     background = hd()$bid, background_color = "gray", background_width = 1, background_legend = "background",
-  #     ylab = "Background <- -> GS members", xlab = '', sort = "dec", source = "plotlybarchart"
-  #   )
-  # )
 }

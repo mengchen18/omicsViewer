@@ -69,13 +69,7 @@ dataTableDownload_module <- function(input, output, session, reactive_table,
     downloadButton(ns("downloadData"), "Save table")
   })
   
-  formatTab <- function(tab, sel = 0, pageLength = 10, sortBy = NULL, decreasing = TRUE) {    
-    if (!is.null(sortBy)) {
-      if (sortBy %in% colnames(tab)) {
-        o <- order(tab[, sortBy], decreasing = decreasing)
-        tab <- tab[o, ]
-      }
-    }
+  formatTab <- function(tab, sel = 0, pageLength = 10) {
     dt <- DT::datatable( 
       tab,
       selection =  c("single", "multiple")[as.integer(sel)+1],
@@ -87,16 +81,29 @@ dataTableDownload_module <- function(input, output, session, reactive_table,
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
   }
 
-  output$table <- DT::renderDataTable({
+  tabsort <- reactive({
     req(tab <- reactive_table())
+    index <- 1:nrow(tab)
+    if (!is.null(sortBy)) {
+      if (sortBy %in% colnames(tab)) {
+        o <- order(tab[, sortBy], decreasing = decreasing)
+        tab <- tab[o, ]
+        index <- index[o]
+      }
+    }
     if (!is.null( reactive_cols() ))
       tab <- tab[, reactive_cols()]
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))
     if ( length(ic) > 0 )
       tab[, ic] <- lapply(tab[, ic, drop = FALSE], signif, digits = 3)
-    formatTab(tab, pageLength = pageLength, sortBy = sortBy, decreasing = decreasing)
+    list(tab = tab, index = index)
+  })
+    
+
+  output$table <- DT::renderDataTable({
+    formatTab(tabsort()$tab, pageLength = pageLength)
     # DT::datatable(tab, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
   })
   
-  reactive(input$table_rows_selected)
+  reactive(tabsort()$index[input$table_rows_selected])
 }
