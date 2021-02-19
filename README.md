@@ -28,9 +28,31 @@ with a manuscript.
 
 ## Install package
 
+### Quick installation:
 ```
 devtools::install_github("mengchen18/ExpressionSetViewer/package")
 ```
+
+### Installation from scratch
+First, installing dependencies may encounter problems:
+```
+install.packages("V8")
+install.packages("SparseM")
+```
+If you see an error message, please solve then first. 
+Then install the packages to manager other dependencies:
+```
+install.packages(c("devtools", "BiocManager"))
+```
+Next, installing the Bioconductor dependencies
+```
+BiocManager::install(c("Biobase", "fgsea"))
+```
+Last:
+```
+devtools::install_github("mengchen18/ExpressionSetViewer/package")
+```
+
 
 ## Start the viewer
 
