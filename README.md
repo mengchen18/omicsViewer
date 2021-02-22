@@ -73,6 +73,3 @@ docker pull mengchen18/expression_set_viewer
 
 [link to dockerhub](https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer)
 
-## Compatibility:
-
-Currently ExpressionSetViwer works on R3.6. 
