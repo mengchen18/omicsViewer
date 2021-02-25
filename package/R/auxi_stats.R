@@ -111,6 +111,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
 #' head(pc$features)
 #'  
 exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALSE) {
+  
   writePC <- function(x, n) {
     var <- round(x$sdev[1:n]^2/(sum(x$sdev^2))*100, digits = 1)
     xx <- x$x[, 1:min(n, ncol(x$x))]
@@ -119,10 +120,22 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
     colnames(pp) <- paste0(prefix, "|", colnames(pp), "(", var, "%", ")")
     list(samples = xx, features = pp)
   }
-  if (fillNA) 
-    x <- fillNA(x) else
-      x <- na.omit(x)      
-  pc <- prcomp(t(x))
+  
+  if (fillNA) {
+    x <- fillNA(x)
+    pc <- prcomp(t(x))
+  } else {
+    nr <- nrow(x)
+    
+    x <- na.omit(x)
+    pc <- prcomp(t(x))
+    pos <- setdiff(1:nr, attr(x, "na.action"))
+    rotation <- matrix(NA, nrow = nr, ncol = ncol(pc$rotation))
+    rotation[pos, ] <- pc$rotation
+    colnames(rotation) <- colnames(pc$rotation)
+    pc$rotation <- rotation
+  }
+  
   writePC(pc, n = n)
 }
 
