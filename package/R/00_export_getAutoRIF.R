@@ -1,5 +1,6 @@
 #' Get genes associated with search terms and AutoRIF annotations
 #' @param term a character vector of terms want to search
+#' @param rif either autorif or generif, see "https://maayanlab.cloud/geneshot/"
 #' @param filter whether the result should be filtered. The least frequently 
 #' mentioned genes (most like 1 or 2 times) will be removed.
 #' @note https://amp.pharm.mssm.edu/geneshot/
@@ -9,15 +10,17 @@
 #'   Research, Volume 47, Issue W1, 02 July 2019, Pages W571–W577, 
 #'   https://doi.org/10.1093/nar/gkz393
 #' @export
-#' @importFrom jsonlite read_json
+#' @importFrom httr POST content
 #' @examples 
 #' a <- getAutoRIF("mtor signaling")
 
-getAutoRIF <- function(term, filter = TRUE) {  
+getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {  
   term <- gsub(" ", "%20", term)
   term <- paste(term, collapse = ",")
-  qry <- sprintf("http://amp.pharm.mssm.edu/geneshot/api/search/auto/%s", term)
-  r <- jsonlite::read_json(qry)
+  GENESHOT_URL = 'https://maayanlab.cloud/geneshot/api/search'
+  payload = list("rif" = rif, "term" = term)
+  r <- httr::POST(GENESHOT_URL, body = payload , encode = "json")
+  r <- httr::content(r)
   v <- sapply(r$gene_count, unlist)
   df <- data.frame(
     gene = colnames(v),

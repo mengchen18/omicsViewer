@@ -4,10 +4,12 @@
 \alias{getAutoRIF}
 \title{Get genes associated with search terms and AutoRIF annotations}
 \usage{
-getAutoRIF(term, filter = TRUE)
+getAutoRIF(term, rif = c("generif", "autorif")[1], filter = TRUE)
 }
 \arguments{
 \item{term}{a character vector of terms want to search}
+
+\item{rif}{either autorif or generif, see "https://maayanlab.cloud/geneshot/"}
 
 \item{filter}{whether the result should be filtered. The least frequently 
 mentioned genes (most like 1 or 2 times) will be removed.}

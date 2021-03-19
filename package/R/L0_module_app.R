@@ -94,7 +94,28 @@ app_module <- function(
     req(reactive_eset())
     fDataGetter(reactive_eset())
   })
-  
+
+  validEset <- function(expr, pd, fd) {
+    i1 <- identical(rownames(expr), rownames(fd))
+    i2 <- identical(colnames(expr), rownames(pd))
+    if (!(i1 && i2))
+      return(
+        list(
+          FALSE, "The rownames/colnames of exprs not matched to row names of feature data/phenotype data!"
+          )
+        )
+    TRUE
+  }
+
+  observe({
+    x <- validEset(expr = expr(), pd = pdata(), fd = fdata())
+    if (!x[[1]]) {
+      showModal(modalDialog(
+        title = "Problem in data!",
+        x[[2]]
+      ))
+    }
+  })  
   ########################  
   d_s_x <- reactive( {
     req(eset <- reactive_eset())

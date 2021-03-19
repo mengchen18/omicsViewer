@@ -180,3 +180,83 @@ prepEsetViewer <- function(
                 phenoData = AnnotatedDataFrame(pData), 
                 featureData = AnnotatedDataFrame(fData))
 }
+
+
+#' Correlating a expression matrix with phenotypical variables
+#' @param expr expression matrix, rows are the features (e.g. proteins), colnames are the samples
+#' @param pheno  a matrix stores the phenotypical variable to be correlated with expr. The rows 
+#'   should be samples, columns are phenotypical variables.
+#' @param min.value the minimum number of samples required in the correlation analysis
+#' @param prefix prefix used for columns headers
+#' @importFrom psych corr.test
+#' @export
+#' 
+correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
+  
+  if (is.null(colnames(pheno)))
+    colnames(pheno) <- make.names(1:ncol(pheno))
+  
+  if (ncol(expr) != nrow(pheno))
+    stop("ncol expr != nrow pheno")
+  
+  r <- psych::corr.test(t(expr), pheno, use = "pair", adjust = "none", ci = FALSE)
+  
+  rs <- lapply(1:ncol(pheno), function(i) {
+    df <- data.frame(
+      R = r$r[, i],
+      N = r$n[, i],
+      P = r$p[, i],
+      logP = -log10(r$p[, i])
+    )
+    ii <- which(df$N < min.value)
+    df[c("R", "P", "logP")] <- lapply(df[c("R", "P", "logP")], function(x) {
+      x[ii] <- NA
+      x
+    })
+    
+    if (all(is.na(df$R)))
+      return(df[, character(0)])
+    
+    colnames(df) <- paste(colnames(pheno)[i], colnames(df), sep = "|")
+    df
+  })
+  rs <- do.call(cbind, rs)
+  colnames(rs) <- paste(prefix, colnames(rs), sep = "|")
+  rs
+}
+
+#' Gene set anntoation function
+#' @param idList list of protein IDs, e.g. list(c("ID1", "ID2"), c("ID13"), c("ID4", "ID8", "ID10"))
+#' @param gsIdMap a data frame for geneset to id map, it has two columns
+#'   - id: the ID column
+#'   - term: annotation terms
+#'   e.g. 
+#'   gsIdMap <- data.frame(
+#'     id = c("ID1", "ID2", "ID1", "ID2", "ID8", "ID10"),
+#'     term = c("T1", ""T1", "T2", "T2", "T2", "T2"),
+#'     stringsAsFactors = FALSE
+#'     )
+#' @param minSize minimum size of gene sets
+#' @param maxSize maximum size of gene sets
+#' @importFrom matrixStats colSums2
+#' @export
+
+gsAnnotIdList <- function(idList, gsIdMap, minSize = 5, maxSize = 500) {
+  pid <- data.frame(
+    id = unlist(idList),
+    index = rep(1:length(idList), times = sapply(idList, length)),
+    stringsAsFactors = FALSE
+  )
+  
+  gsIdMap <- gsIdMap[gsIdMap$id %in% pid$id, ]
+  gsIdMap <- split(gsIdMap$id, gsIdMap$term)
+  v <- sapply(gsIdMap, function(x, s) {
+    s[unique(pid$index[fastmatch::"%fin%"(pid$id, x)])] <- 1
+    s
+  }, s = rep(0, length(idList)))
+  colnames(v) <- names(gsIdMap)
+  
+  nm <- matrixStats::colSums2(v)
+  v <- v[, which(nm >= minSize & nm <= maxSize)]
+  v
+}
