@@ -186,13 +186,22 @@ app_module <- function(
                     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
                     rowDendrogram = reactive_rdg
                    )
+
+
+  ri <- reactiveVal()
+  observeEvent( v1(), ri(v1()$feature) )
+  observeEvent( expr(), ri(NULL) )
+
+  rh <- reactiveVal()
+  observeEvent( v1(), rh(v1()$sample) )
+  observeEvent( expr(), rh(NULL) )
   
   callModule(L1_result_space_module, id = "resultspace",
              reactive_expr = expr,
              reactive_phenoData = pdata,
              reactive_featureData = fdata,
-             reactive_i = reactive(v1()$feature),
-             reactive_highlight = reactive(v1()$sample),
+             reactive_i = reactive(ri()), # reactive(v1()$feature),
+             reactive_highlight = reactive(rh()), # reactive(v1()$sample),
              additionalTabs = additionalTabs,
              object = reactive_eset
   )
