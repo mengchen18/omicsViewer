@@ -107,7 +107,7 @@ factorIndependency_module <- function(
   output$count.table.output <- DT::renderDataTable({
     req(stats())
     DT::datatable(stats()$cont.table,
-                  options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), 
+                  options = list(searching = FALSE, lengthChange = FALSE, dom = 't', scrollX = TRUE), 
                   rownames = TRUE, class = "compact",
                   caption = "Contingency table")
   })
@@ -115,7 +115,7 @@ factorIndependency_module <- function(
   output$residual.ratio.output <- DT::renderDataTable({
     req(stats())
     DT::datatable(stats()$residual.ratio, 
-                  options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), 
+                  options = list(searching = FALSE, lengthChange = FALSE, dom = 't', scrollX = TRUE), 
                   rownames = TRUE, class = "compact",
                   caption = "Contingency table fold change (observed/expect)"
     )
