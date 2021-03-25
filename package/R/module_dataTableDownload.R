@@ -75,7 +75,7 @@ dataTableDownload_module <- function(input, output, session, reactive_table,
       selection =  c("single", "multiple")[as.integer(sel)+1],
       rownames = FALSE,
       filter = "top",
-      class="table-bordered compact",
+      class="table-bordered compact nowrap",
       options = list(scrollX = TRUE, pageLength = pageLength, dom = 'tip')
     )
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
