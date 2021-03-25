@@ -101,6 +101,7 @@ prepEsetViewer <- function(
   }
   rownames(expr) <- expr_rn
   colnames(expr) <- expr_cn
+  pData <- cbind(pData, numberOfFeatures = colSums(!is.na(expr)))
   
   colnames(pData) <- paste('General|All|', trimws(colnames(pData)))
   colnames(fData) <- paste('General|All|', trimws(colnames(fData)))
