@@ -49,10 +49,12 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     cn <- colnames(fd)[sapply(fd, is.numeric) & !grepl("^GS\\|", colnames(fd))]
     str_split_fixed(cn, "\\|", n = 3)
   })
-  v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value")
+  v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value", reactive_selector3 = reactive("Select a variable!"))
   
   # run fgsea
   tab <- reactive({
+    req(v1()$analysis)
+    req(v1()$subset)
     req( ! v1()$variable %in% c("Select a variable!", ""))
     fdgs <- reactive_featureData()[, grepl("^GS\\|", colnames(reactive_featureData()))]
     stats <- reactive_featureData()[, paste(v1(), collapse = "|")]

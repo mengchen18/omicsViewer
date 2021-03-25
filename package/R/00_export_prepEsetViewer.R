@@ -103,8 +103,8 @@ prepEsetViewer <- function(
   colnames(expr) <- expr_cn
   pData <- cbind(pData, numberOfFeatures = colSums(!is.na(expr)))
   
-  colnames(pData) <- paste('General|All|', trimws(colnames(pData)))
-  colnames(fData) <- paste('General|All|', trimws(colnames(fData)))
+  colnames(pData) <- paste0('General|All|', trimws(colnames(pData)))
+  colnames(fData) <- paste0('General|All|', trimws(colnames(fData)))
   
   
   ## ======================= PCA ============================
@@ -121,6 +121,10 @@ prepEsetViewer <- function(
     fData <- cbind(fData, tres)
   }
   
+  ## ======================= ranking ==========================
+  rk <- data.frame(apply(expr, 2, rank), stringsAsFactors = FALSE)
+  colnames(rk) <- paste0("Rank|All|", colnames(rk))
+  fData <- cbind(fData, rk)
   
   ##  ================== make headers for others =========================
   # gs
