@@ -91,6 +91,8 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
       i <- tab()$table[i, ]
       hid <- fmatch(i$leadingEdge[[1]], tab()$statsNames)
       bid <- setdiff(which(tab()$pathway_mat[, i$pathway] != 0), hid)
+      if (length(bid) == 0)
+        bid <- NULL
     }
     
     plotly_barplot(
