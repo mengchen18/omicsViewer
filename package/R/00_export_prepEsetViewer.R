@@ -207,9 +207,12 @@ correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
   r <- psych::corr.test(t(expr), pheno, use = "pair", adjust = "none", ci = FALSE)
   
   rs <- lapply(1:ncol(pheno), function(i) {
+    if (length(r$n) == 1)
+      nv <- r$n else
+        nv <- r$n[, i]
     df <- data.frame(
       R = r$r[, i],
-      N = r$n[, i],
+      N = nv,
       P = r$p[, i],
       logP = -log10(r$p[, i])
     )
@@ -226,7 +229,8 @@ correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
     df
   })
   rs <- do.call(cbind, rs)
-  colnames(rs) <- paste(prefix, colnames(rs), sep = "|")
+  if (ncol(rs) > 0)
+    colnames(rs) <- paste(prefix, colnames(rs), sep = "|")
   rs
 }
 
