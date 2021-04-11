@@ -5,7 +5,7 @@ meta_scatter_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(1, style = "margin-top: 20px;", attr4selector_ui(ns("a4selector"))),
+      column(1, attr4selector_ui(ns("a4selector"))), # style = "margin-top: 20px;", 
       column(11, 
              triselector_ui(ns("tris_main_scatter1")),
              triselector_ui(ns("tris_main_scatter2")))

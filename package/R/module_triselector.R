@@ -6,23 +6,27 @@ triselector_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(1, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px', 
+      column(2, offset = 0, align = "right", 
+             style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px', 
              uiOutput(ns("groupLabel"))
       ),
-      column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-             div(style="display: inline-block;vertical-align:top;", h5("Analysis:")),
-             div(style="display: inline-block;vertical-align:top; width:65%;", 
-                 uiOutput(ns("analysis.output")))),
-      
-      column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-             div(style="display: inline-block;vertical-align:top;", h5("Subset:")),
-             div(style="display: inline-block;vertical-align:top; width:78%;", 
-                 uiOutput(ns("subset.output")))),
-      
-      column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-             div(style="display: inline-block;vertical-align:top;", h5("Variable:")),
-             div(style="display: inline-block;vertical-align:top; width:74%;", 
-                 uiOutput(ns("variable.output"))))
+      # column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+      #        div(style="display: inline-block;vertical-align:top;", h5("Analysis:")),
+      #        div(style="display: inline-block;vertical-align:top; width:65%;", 
+      #            uiOutput(ns("analysis.output")))),
+      # 
+      # column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+      #        div(style="display: inline-block;vertical-align:top;", h5("Subset:")),
+      #        div(style="display: inline-block;vertical-align:top; width:78%;", 
+      #            uiOutput(ns("subset.output")))),
+      # 
+      # column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+      #        div(style="display: inline-block;vertical-align:top;", h5("Variable:")),
+      #        div(style="display: inline-block;vertical-align:top; width:74%;", 
+      #            uiOutput(ns("variable.output"))))
+      column(3, offset = 0, style='padding:2px;', uiOutput(ns("analysis.output"))),
+      column(4, offset = 0, style='padding:2px;', uiOutput(ns("subset.output"))),
+      column(3, offset = 0, style='padding:2px;', uiOutput(ns("variable.output")))
     )
   )
 }
@@ -87,6 +91,7 @@ triselector_module <- function(input, output, session,
   # init empty selectize input
   output$analysis.output <- renderUI({    
     cc <- unique(reactive_x()[, 1])
+    # cc <- c("Select analysis", cc) ## placeholder
     selectInput(inputId = ns("analysis"), label = NULL, choices = cc, selectize = TRUE, selected = reactive_selector1())    
   })
   output$subset.output <- renderUI(
@@ -103,6 +108,7 @@ triselector_module <- function(input, output, session,
   observe({
     req(input$analysis)
     cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
+    # cc <- c("Select subset", cc) # placeholder
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
   })
     
@@ -118,6 +124,7 @@ triselector_module <- function(input, output, session,
     preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
       if (inherits(preselected, "try-error"))
         preselected <- NULL
+    
     updateSelectInput(session, inputId = "variable", choices = cc, selected = preselected)
   })
   

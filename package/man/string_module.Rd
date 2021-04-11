@@ -21,7 +21,6 @@ Utility string module
 \examples{
 #' # # # ####################
 # library(shiny)
-# library(shinycssloaders)
 # source("Git/R/auxi_queryStringdb.R")
 # dat <- readRDS("Dat/exampleEset.RDS")
 # fd <- Biobase::fData(dat)

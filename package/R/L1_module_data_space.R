@@ -1,7 +1,7 @@
 #' Application level 1 ui - data space
 #' @param id id
 #' @importFrom shinythemes shinytheme
-#' @importFrom shinyWidgets tooltipOptions
+#' @importFrom shinyWidgets tooltipOptions dropdown
 #' 
 L1_data_space_ui <- function(id) {
   ns <- NS(id)
@@ -19,7 +19,7 @@ L1_data_space_ui <- function(id) {
         fluidRow(
           column(
             6,             
-            dropdownButton(
+            dropdown(
               inputId = "mydropdown",
               label = "Controls",
               circle = FALSE, status = "default", icon = icon("gear"),

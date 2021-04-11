@@ -6,11 +6,11 @@ dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(4, actionButton(ns("clear"), "Show all")),
-      column(4, align = "center", 
+      column(3, actionButton(ns("clear"), "Show all")),
+      column(6, align = "center", 
         shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")
         ),
-      column(4, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
+      column(3, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
     ),
     uiOutput(ns("selector")),    
     DT::dataTableOutput(ns("table"))

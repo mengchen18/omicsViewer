@@ -1,3 +1,4 @@
+#' @importFrom shinybusy show_modal_spinner remove_modal_spinner
 geneshot_ui <- function(id) {
   ns <- NS(id)
   tagList(
@@ -34,6 +35,7 @@ geneshot_module <- function(
   )
   
   rif <- eventReactive(input$submit, {
+    show_modal_spinner(text = "Querying database ...")
     res <- getAutoRIF(trimws(strsplit(input$term, ";")[[1]]), filter = TRUE)    
     req(nrow(res) > 0)
     res$selected <- ""
@@ -49,6 +51,7 @@ geneshot_module <- function(
       ax = 10,
       ay = -20
     )
+    remove_modal_spinner()
     list(
       tab = res,
       outliers = outliers

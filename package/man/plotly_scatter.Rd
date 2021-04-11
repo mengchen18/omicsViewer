@@ -4,9 +4,8 @@
 \alias{plotly_scatter}
 \title{Utility plotly scater}
 \usage{
-plotly_scatter(x, y, xlab = "", ylab = "ylab",
-  color = "defaultColor", shape = "circle", size = 10,
-  tooltips = NULL, regressionLine = FALSE,
+plotly_scatter(x, y, xlab = "", ylab = "ylab", color = "",
+  shape = "", size = 10, tooltips = NULL, regressionLine = FALSE,
   source = "scatterplotlysource", sizeRange = c(5, 15),
   highlight = NULL, highlightName = "Highlighted")
 }

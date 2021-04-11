@@ -83,7 +83,7 @@
 #' @import plotly
 # function def
 plotly_scatter <- function(
-  x, y, xlab = "", ylab = "ylab", color = "defaultColor", shape = "circle", size = 10, tooltips=NULL, 
+  x, y, xlab = "", ylab = "ylab", color = "", shape = "", size = 10, tooltips=NULL, # shape = "circle", color = "defaultColor",
   regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
   highlight = NULL, highlightName = "Highlighted"
 ) {
@@ -104,8 +104,8 @@ plotly_scatter <- function(
     v
   }
 
-  if (length(unique(color)) > 60) color <- cutnumorchar(color, alt = "defaultColor")
-  if (length(unique(shape)) > 60) shape <- cutnumorchar(shape, alt = "circle")
+  if (length(unique(color)) > 60) color <- cutnumorchar(color, alt = "") # alt = "defaultColor"
+  if (length(unique(shape)) > 60) shape <- cutnumorchar(shape, alt = "") # alt = "circle"
   
   ## prepare data.frame differently
   if (i1) {
@@ -125,8 +125,10 @@ plotly_scatter <- function(
     df <- data.frame(x = x, y = y)
     df$index <- 1:nrow(df)
     tlp <- sprintf("<b>%s: </b>%s<br><b>%s: </b>%s", xlab, signif(x, digits = 3), ylab, signif(y, digits = 3))
-  } else
-    stop('plotly_scatter: Unknown type x and/or y!')
+  } else {    
+    message('plotly_scatter: Unknown type x and/or y!')
+    return(NULL)
+  }
   
   f0 <- function(x, i) {
     if (length(x) == 1)
@@ -210,7 +212,7 @@ plotly_scatter <- function(
       showlegend = FALSE
     )
   }
-  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab))
+  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), legend = list(orientation = 'h'))
   set.seed(100)
   return(list(fig = fig, data = df))
 }
@@ -398,6 +400,7 @@ plotly_scatter_module <- function(
     ))
   })
   output$plotly.scatter.output <- renderPlotly({
+    req( plotter()$fig )
     suppressWarnings( plotter()$fig )
   })
   

@@ -1,12 +1,13 @@
 #' Utility - extended figure control shiny ui
 #' @param id id
 #' @param circle circle icon for dropdown manu
-#' @importFrom shinyWidgets dropdownButton
+#' @importFrom shinyWidgets dropdown
 #' 
 attr4selector_ui <- function(id, circle = TRUE) {
   ns <- NS(id)
   tagList(
-    dropdownButton(
+    dropdown(
+      margin = "25px",
       circle = circle, status = "default", icon = icon("gear"), width = "950px",
       tooltip = tooltipOptions(title = "Click to modify figure!"),
       br(),
@@ -24,8 +25,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
                    ),
         column(2, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
                actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right")
-      ),
-      hr()
+      )
     )
   )
 }

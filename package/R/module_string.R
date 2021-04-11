@@ -1,5 +1,6 @@
 #' Utility string ui
 #' @param id id
+#' @importFrom shinybusy show_modal_spinner remove_modal_spinner
 #' 
 string_ui <- function(id) {
   ns <- NS(id)
@@ -16,14 +17,9 @@ string_ui <- function(id) {
                align = "right", uiOutput(ns("showButton")) )
     ),
     uiOutput(ns("noresRet")),
-    shinycssloaders::withSpinner(
-      color="#0dc5c1",
-      DT::dataTableOutput(ns("strtab"))
-    ),
-    
-      checkboxInput(ns("showLabel"), label = "Show labels", value = FALSE),
-      forceNetworkOutput(ns("network")),
-    
+    DT::dataTableOutput(ns("strtab")),    
+    checkboxInput(ns("showLabel"), label = "Show labels", value = FALSE),
+    forceNetworkOutput(ns("network"))    
   )
 }
 
@@ -36,7 +32,6 @@ string_ui <- function(id) {
 #' @examples
 #' #' # # # ####################
 #' # library(shiny)
-#' # library(shinycssloaders)
 #' # source("Git/R/auxi_queryStringdb.R")
 #' # dat <- readRDS("Dat/exampleEset.RDS")
 #' # fd <- Biobase::fData(dat)
@@ -75,8 +70,7 @@ string_module <- function(
     sprintf("%s features selected, allow max 300 input features!", length(reactive_ids()))
   })
   
-  nk <- eventReactive(
-    input$run, {
+  nk <- eventReactive( input$run, {
       r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid()) 
       if (is.data.frame(r)) {
         if (nrow(r) > 999) {
@@ -87,8 +81,10 @@ string_module <- function(
       r
     })
   gs <- eventReactive(input$run, {
+    show_modal_spinner(text = "Querying database ...")
     tab <- stringGSA(genes = reactive_ids(), taxid = input$tax) 
     colnames(tab) <- c("category", "term", "gene number", "background number", "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
+    remove_modal_spinner()
     tab
   })
   

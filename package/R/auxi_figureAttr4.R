@@ -43,7 +43,7 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
       return(NULL)
     if (alternative %in% c("", "Select a variable!"))
       return(NULL)
-    alternative <- gsub(" ", "<br>", alternative)
+    # alternative <- gsub(" ", "<br>", alternative)
     return(alternative)
   }
   lab <- paste(x, collapse = "|")
