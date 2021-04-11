@@ -134,6 +134,8 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
   if (!is.null(background)) {
     if (!backgroundStringId) {
       g <- getStringId(genes, taxid = taxid)
+      if (inherits(g, "character"))
+        return(g)
       sg <- g$stringId
       genes <- intersect(genes, g$queryItem)
     } else {

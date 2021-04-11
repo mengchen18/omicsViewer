@@ -77,7 +77,13 @@ app_module <- function(
   reactive_eset <- reactive({
     req(input$selectFile)
     flink <- file.path(dir(), input$selectFile)
-    esetLoader(flink)
+    sss <- file.size(flink)
+    if (sss > 1e7)
+      show_modal_spinner(text = "Loading data ...")
+    v <- esetLoader(flink)
+    if (sss > 1e7)
+      remove_modal_spinner()
+    v
   })
   
   expr <- reactive({

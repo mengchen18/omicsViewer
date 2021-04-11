@@ -83,8 +83,10 @@ string_module <- function(
   gs <- eventReactive(input$run, {
     show_modal_spinner(text = "Querying database ...")
     tab <- stringGSA(genes = reactive_ids(), taxid = input$tax) 
-    colnames(tab) <- c("category", "term", "gene number", "background number", "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
     remove_modal_spinner()
+    if (inherits(tab, "character")) 
+      return(tab)
+    colnames(tab) <- c("category", "term", "gene number", "background number", "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
     tab
   })
   

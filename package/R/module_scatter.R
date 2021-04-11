@@ -212,7 +212,8 @@ plotly_scatter <- function(
       showlegend = FALSE
     )
   }
-  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), legend = list(orientation = 'h'))
+  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), 
+                        legend = list(orientation = 'h', xanchor = "left",  y = max(df$y, na.rm = TRUE)))
   set.seed(100)
   return(list(fig = fig, data = df))
 }
