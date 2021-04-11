@@ -156,7 +156,7 @@ plotly_scatter <- function(
   df$xyid <- paste(df$x, df$y)
   if (nrow(df) == 0)
     return(NULL)
-  cc <- distinctColorPalette(k = length(unique(df$color)))
+  cc <- sort(distinctColorPalette(k = length(unique(df$color))))
   
   ############ plot #################
   fig <- plot_ly(data = df, source = source)
@@ -213,7 +213,7 @@ plotly_scatter <- function(
     )
   }
   fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), 
-                        legend = list(orientation = 'h', xanchor = "left",  y = max(df$y, na.rm = TRUE)))
+                        legend = list(orientation = 'h', xanchor = "left", y = max(df$y, na.rm = TRUE)))
   set.seed(100)
   return(list(fig = fig, data = df))
 }
@@ -367,7 +367,6 @@ plotly_scatter_module <- function(
     )
     DT::datatable( df , options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), rownames = FALSE, class = "compact")
   })
-  
   
   ################## dynamic UI for tickbox ###################
   output$regTickBox <- renderUI({

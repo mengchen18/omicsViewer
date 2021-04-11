@@ -16,11 +16,11 @@ value2color <- function(x, n=10) {
     nl <- unique(x)
     if (length(nl) > 60) {
       set.seed(8610)
-      cp <- distinctColorPalette(k = 60)
+      cp <- sort(distinctColorPalette(k = 60))
       cp <- rep(cp, ceiling(length(nl)/60))[1:length(nl)]
     } else {
       set.seed(8610)
-      cp <- distinctColorPalette(k = length(nl))
+      cp <- sort(distinctColorPalette(k = length(nl)))
     }
     names(cp) <- nl
     cp <- cp[sort(names(cp))]
