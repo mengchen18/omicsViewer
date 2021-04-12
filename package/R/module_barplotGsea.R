@@ -54,7 +54,7 @@ plotly_barplot <- function(
   highlight <- na.omit(highlight)
   data <- data.frame(x = x, names = names, stringsAsFactors = FALSE)
   sort <- match.arg(sort, choices = c("none", "increasing", "decreasing"))
-  set.seed(100)
+  set.seed(8610)
   if (sort == "increasing") {
     data$xpos <- rank(data$x, ties.method = "random")
   } else if (sort == "decreasing") {

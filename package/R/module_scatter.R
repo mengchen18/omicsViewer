@@ -156,12 +156,13 @@ plotly_scatter <- function(
   df$xyid <- paste(df$x, df$y)
   if (nrow(df) == 0)
     return(NULL)
+  set.seed(8610)
   cc <- sort(distinctColorPalette(k = length(unique(df$color))))
   
   ############ plot #################
   fig <- plot_ly(data = df, source = source)
   if (i1 || i2) {
-    set.seed(100)
+    set.seed(8610)
     fig <- add_trace(fig, x = ~ x, y = ~ y, color = ~ color, colors = cc, symbol = ~ shape, size = ~ size, 
                      sizes = sizeRange, marker = list(sizemode = 'diameter'), type = "scatter", mode = "markers",
                      text = ~ tlp, hoverinfo = 'text', showlegend = FALSE)
@@ -174,7 +175,7 @@ plotly_scatter <- function(
         fig, xaxis = list(title = xlab), yaxis = list( title = ylab, tickvals = unique(round(df$y)), ticktext = unique(df$x.orig) )
       )
   } else {
-    set.seed(100)
+    set.seed(8610)
     fig <- add_trace(
       fig, x = ~ x, y = ~ y, color = ~ color, colors = cc, symbol = ~ shape, size = ~ size, sizes = sizeRange,
       marker = list(sizemode = 'diameter'), text = ~ tlp, hoverinfo = "text", type = "scatter", mode = "markers"
@@ -185,7 +186,7 @@ plotly_scatter <- function(
       mod <- lm(df$y ~ df$x)
       prd <- predict(mod, newdata = data.frame(x), interval = 'confidence')
       df <- cbind(df, prd)
-      set.seed(100)
+      set.seed(8610)
       fig <- add_trace(
         fig, data = df, type = "scatter", mode = "lines", x = ~ x, y = ~ fit, line = list(color = "rgb(150, 150, 150)", width = 1), 
         hoverinfo='skip', showlegend = FALSE, name = "regression<br>line"
@@ -213,8 +214,8 @@ plotly_scatter <- function(
     )
   }
   fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), 
-                        legend = list(orientation = 'h', xanchor = "left", y = max(df$y, na.rm = TRUE)))
-  set.seed(100)
+                        legend = list(orientation = 'h', xanchor = "left", x = 0, y = 1, yanchor='bottom'))
+  set.seed(8610)
   return(list(fig = fig, data = df))
 }
 
