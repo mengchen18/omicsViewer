@@ -51,9 +51,6 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
   })
   v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value")
   
-  observe(print(v1()))
-  
-  
   # run fgsea
   tab <- reactive({
     req( ! v1()$variable %in% c("Select a variable!", ""))

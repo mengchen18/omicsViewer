@@ -117,10 +117,8 @@ triselector_module <- function(input, output, session,
     req(input$analysis)
     req(input$subset)
     
-    cc <- reactive_x()[, 3][reactive_x()[, 1] == input$analysis & reactive_x()[, 2] == input$subset]    
-    
-    if (length(cc) > 1)
-      cc <- c("Select a variable!", cc)
+    cc <- reactive_x()[, 3][reactive_x()[, 1] == input$analysis & reactive_x()[, 2] == input$subset]
+    cc <- c("Select a variable!", cc)
     preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
       if (inherits(preselected, "try-error"))
         preselected <- NULL
