@@ -8,7 +8,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
   tagList(
     dropdown(
       margin = "25px",
-      circle = circle, status = "default", icon = icon("gear"), width = "950px",
+      circle = circle, status = "default", icon = icon("gear"), width = "700px",
       tooltip = tooltipOptions(title = "Click to modify figure!"),
       br(),
       triselector_ui(ns("selectColorUI")),
@@ -17,11 +17,10 @@ attr4selector_ui <- function(id, circle = TRUE) {
       triselector_ui(ns("selectTooltipUI")),
       triselector_ui(ns("selectSearchCol")),
       fluidRow(
-        column(1),
-        column(9,  offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+        column(9,  offset = 0, style='padding-left:65px; padding-right:5px; padding-top:0px; padding-bottom:0px',
                div(style="display: inline-block;vertical-align:top;", h5("Find and highlight:")),
                div(style="display: inline-block;vertical-align:top; width:70%;", 
-                   selectInput(ns("searchon"), label = NULL, choices = NULL, multiple = TRUE, width = "800px"))
+                   selectInput(ns("searchon"), label = NULL, choices = NULL, multiple = TRUE, width = "550px"))
                    ),
         column(2, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
                actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right")
