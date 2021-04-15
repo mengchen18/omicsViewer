@@ -6,12 +6,14 @@
 #' 
 value2color <- function(x, n=10) {
   if (is.numeric(x)) {
-    nl <- cut(x,n)
+    nl <- as.factor(x)
+    if (length(unique(x)) > n)
+      nl <- cut(x,n)
     set.seed(8610)
     cp <- colorRampPalette(brewer.pal(n = 7, name = "Blues"))(n)
     names(cp) <- levels(nl)
     cc <- cp[nl]
-  } else if (is.factor(x) || is.character(x)) {
+  } else if (is.factor(x) || is.character(x) || is.logical(x)) {
     x <- as.character(x)
     nl <- unique(x)
     if (length(nl) > 60) {
@@ -26,8 +28,11 @@ value2color <- function(x, n=10) {
     cp <- cp[sort(names(cp))]
     cc <- cp[x]
   } else 
-    stop("x is not one of: 1) numeric vectoer 2) char vector 3) factor!")
+    stop("x is not one of: 1) numeric vectoer 2) char vector 3) factor 4) logical!")
   
+  print(cc)
+
+
   cc[is.na(cc)] <- "white"
   list(color = cc, key = cp)
 }
@@ -107,7 +112,7 @@ addHeatmapAnnotation <- function(x, column = TRUE, var.name="") {
   if (is.numeric(x) && is.vector(x) && !is.matrix(x)) {
     object$type <- 1
     object$x <- x
-  } else if ((is.character(x) && is.vector(x)) || is.factor(x)) {
+  } else if ((is.character(x) && is.vector(x)) || is.factor(x) || is.logical(x)) {
     ll <- value2color(x)
     object$key <- ll
     object$type <- 2
