@@ -12,14 +12,17 @@
 #' @param sizeRange size range of points 
 #' @param highlight whic value to highlight
 #' @param highlightName legend for highlighted values
+#' @param vline vertical line, not implemented 
+#' @param hline horizontal line, not implmented
+#' @param rect rectangle coordinate in the form c(x0, x1, y0, y1)
 #' @examples 
 #' #' # scatter plot
 #' # x <- rnorm(30)
 #' # y <- x + rnorm(30, sd = 0.5)
 #' # plotly_scatter(x , y)
 #' # plotly_scatter(x, y, tooltips = paste("A", 1:30))
-#' # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE)
-# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, color = rep(c("a", "b"), #' time = c(10, 20)))
+#' # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, rect = c(x0 = -1, x1 = 1, y0 = -1, y1 = 1), vline = 1, hline = -1)
+#' # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, color = rep(c("a", "b"), #' time = c(10, 20)))
 #' # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE,
 #                color = rep(c("a", "b"), time = c(10, 20)), shape = rep(c("A", "B"), time = c(20, #' 10)))
 # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, size = sample(1:3, #' replace = TRUE, size = 30),
@@ -85,7 +88,8 @@
 plotly_scatter <- function(
   x, y, xlab = "", ylab = "ylab", color = "", shape = "", size = 10, tooltips=NULL, # shape = "circle", color = "defaultColor",
   regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
-  highlight = NULL, highlightName = "Highlighted"
+  highlight = NULL, highlightName = "Highlighted",
+  vline = NULL, hline = NULL, rect = NULL
 ) {
   options(stringsAsFactors = FALSE)
   
@@ -213,7 +217,16 @@ plotly_scatter <- function(
       showlegend = FALSE
     )
   }
-  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), 
+  
+  if (!is.null(rect) && names(rect) %in% c("x0", "y0", "x1", "y1")) {
+    rect <- list(
+      list(type = "rect",
+           fillcolor = "blue", line = list(color = "blue"), opacity = 0.1,
+           x0 = rect["x0"], x1 = rect["x1"], xref = "x",
+           y0 = rect["y0"], y1 = rect["y1"], yref = "y")
+      )  
+  }
+  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), shapes = rect,
                         legend = list(orientation = 'h', xanchor = "left", x = 0, y = 1, yanchor='bottom'))
   set.seed(8610)
   return(list(fig = fig, data = df))

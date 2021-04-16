@@ -1,7 +1,7 @@
 #' Utility - extended figure control shiny ui
 #' @param id id
 #' @param circle circle icon for dropdown manu
-#' @importFrom shinyWidgets dropdown
+#' @importFrom shinyWidgets dropdown textInputAddon
 #' 
 attr4selector_ui <- function(id, circle = TRUE) {
   ns <- NS(id)
@@ -21,9 +21,18 @@ attr4selector_ui <- function(id, circle = TRUE) {
                div(style="display: inline-block;vertical-align:top;", h5("Find and highlight:")),
                div(style="display: inline-block;vertical-align:top; width:70%;", 
                    selectInput(ns("searchon"), label = NULL, choices = NULL, multiple = TRUE, width = "550px"))
-                   ),
+        ),
         column(2, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
-               actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right")
+               actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right"),
+        column(
+          4, offset = 0, style='padding:2px;', 
+          textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")), 
+        column(
+          4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
+          textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
+        column(
+          4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:29px; padding-bottom:2px;', 
+          selectInput(inputId = ns("scorner"), label = NULL, choices = "Select corner", selectize = TRUE))
       )
     )
   )
@@ -76,7 +85,36 @@ attr4selector_module <- function(
     updateSelectInput(session, "searchon", choices = vv())
   )
   
-  params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL)
+  val_xcut <- reactiveVal(NULL)
+  observe({
+    if (is.null(input$xcut))
+      return()
+    if (nchar(input$xcut) > 0)
+      val_xcut( text2num(input$xcut) ) else
+        val_xcut( NULL )
+  })
+  val_ycut <- reactiveVal(NULL)
+  observe({
+    if (is.null(input$ycut))
+      return()
+    if (nchar( input$ycut ) > 0)
+      val_ycut( text2num(input$ycut) ) else
+        val_ycut( NULL )
+  })
+  observe({
+    if (is.numeric(val_xcut()) && !is.numeric(val_ycut())) {
+      updateSelectInput(session, inputId = "scorner", choices = c("Select corner", "left", "right"))
+    } else if (!is.numeric(val_xcut()) && is.numeric(val_ycut())) {
+      updateSelectInput(session, inputId = "scorner", choices = c("Select corner", "top", "bottom"))
+    } else if (is.numeric(val_xcut()) && is.numeric(val_ycut())) {
+      updateSelectInput(session, inputId = "scorner", choices = c(
+        "Select corner", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
+      ))
+    } else
+      updateSelectInput(session, inputId = "scorner", choices = c("Select corner"))
+  })
+  
+  params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)
   observeEvent(input$goSearch, {
     params$highlight <- which(vv() %in% input$searchon)
     params$highlightName <- searchOnCol()$variable
@@ -93,6 +131,11 @@ attr4selector_module <- function(
   observe(
     params$tooltips <- varSelector(selectTooltip(), reactive_expr(), reactive_meta())
   )
+  observeEvent(input$scorner, {
+    req( input$scorner )
+    req( input$scorner != "Select corner" )
+    params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = input$scorner)
+  })
   
   params
 }

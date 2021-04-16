@@ -29,10 +29,6 @@ value2color <- function(x, n=10) {
     cc <- cp[x]
   } else 
     stop("x is not one of: 1) numeric vectoer 2) char vector 3) factor 4) logical!")
-  
-  print(cc)
-
-
   cc[is.na(cc)] <- "white"
   list(color = cc, key = cp)
 }

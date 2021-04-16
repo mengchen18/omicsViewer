@@ -105,6 +105,7 @@ feature_general_module <- function(input, output, session,
   #  - multi feature selected - numerical phenoData selected - boxplot with external
   callModule(plotly_boxplot_module, id = "feature_general_boxplotly",
              reactive_param_plotly_boxplot = reactive({
+               req(reactive_expr())
                ylab <- rownames(reactive_expr())[reactive_i()]
                if (length(ylab) > 1)
                  ylab <- "Abundance of selected features"

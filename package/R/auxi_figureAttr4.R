@@ -72,3 +72,64 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
   if (!is.null(x)) attr(x, "label") <- lab
   x
 }
+
+#' convert text to number
+#' @param x a number or a string can be calculated
+#' 
+text2num <- function(x) {
+  x0 <- suppressWarnings(as.numeric(x))
+  if (is.na(x0))
+    x0 <-  eval(parse(text = x))
+  if (!is.numeric(x0)) {
+    warning("text2num: cannot convert x to num!")
+    return(NULL)
+  }
+  x0
+}
+
+###
+line_rect <- function(l, coord) {
+  
+  x <- l$x
+  y <- l$y
+  if (is.null(x) && is.null(y))
+    return(NULL)
+  
+  minx <- min(coord$x, na.rm = TRUE)
+  maxx <- max(coord$x, na.rm = TRUE)
+  miny <- min(coord$y, na.rm = TRUE)
+  maxy <- max(coord$y, na.rm = TRUE)
+  x.exp <- (maxx-minx)*0.05
+  y.exp <- (maxy-miny)*0.05
+  if (x.exp == 0 || y.exp == 0)
+    return(NULL)
+  
+  if (grepl("top", l$corner)) {
+    y0 <- max(l$y, miny - y.exp)
+    y1 <- maxy + y.exp
+  } else if (grepl("bottom", l$corner)) {
+    y0 <- miny - y.exp
+    y1 <- min(l$y, maxy + y.exp)
+  } else {
+    y0 <- miny - y.exp
+    y1 <- maxy + y.exp
+  }
+  
+  if (grepl("left", l$corner)) {
+    x0 <- minx - x.exp
+    x1 <- min(l$x, maxx + x.exp)
+  } else if (grepl("right", l$corner)) {
+    x0 <- max(l$x, minx - x.exp)
+    x1 <- maxx + x.exp
+  } else {
+    x0 <- minx - x.exp
+    x1 <- maxx + x.exp
+  }
+  if ((x0 > x1) || (y0 > y1))
+    x <- y <- x0 <- x1 <- y0 <- y1 <- NULL
+  
+  list(
+    x = x, y = y, rect = c(x0 = x0, x1 = x1, y0 = y0, y1 = y1)
+  )
+}
+
