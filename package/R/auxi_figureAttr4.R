@@ -79,7 +79,7 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
 text2num <- function(x) {
   x0 <- suppressWarnings(as.numeric(x))
   if (is.na(x0))
-    x0 <-  eval(parse(text = x))
+    x0 <-  try(eval(parse(text = x)), silent = TRUE)
   if (!is.numeric(x0)) {
     warning("text2num: cannot convert x to num!")
     return(NULL)
