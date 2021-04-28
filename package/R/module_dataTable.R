@@ -6,13 +6,17 @@ dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
+      # column(2, dropdown( 
+      #   margin = "25px", status = "default", icon = icon("gear"), width = "700px",
+      #   tooltip = tooltipOptions(title = "Add more columns to the table!"),
+      #    )),
       column(3, actionButton(ns("clear"), "Show all")),
       column(6, align = "center", 
-        shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")
-        ),
+             shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")
+      ),
       column(3, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
     ),
-    uiOutput(ns("selector")),    
+    uiOutput(ns("selector")),
     DT::dataTableOutput(ns("table"))
   )
 }
@@ -149,7 +153,7 @@ dataTable_module <- function(
   addcols <- callModule(triselector_module, id = "select", reactive_x = reactive({
     req(nrow(cols()$opt) > 0)
     cols()$opt
-  }), label = "Add")
+  }), label = "Add column")
   
   scn <- reactiveVal(NULL)
   observe(
@@ -159,6 +163,8 @@ dataTable_module <- function(
     req(!addcols()$variable %in% c("", "Select a variable!"))
     oc <- scn()
     nc <- unique(c(oc, paste(addcols(), collapse = "|")))
+    nc <- intersect(nc, colnames(rdd()))
+    req(nc)
     scn(nc)
   })
 
@@ -174,11 +180,20 @@ dataTable_module <- function(
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
-      options = list(scrollX = TRUE, pageLength = 25, dom = 'tip')
+      options = list(
+        scrollX = TRUE, pageLength = 25, dom = 'tip',
+        columnDefs = list(list(
+          targets = unname(which(sapply(tab, inherits, c('factor', "character"))))-1,
+          render = DT::JS(
+            "function(data, type, row, meta) {",
+            "return type === 'display' && data.length > 50 ?",
+            "'<span title=\"' + data + '\">' + data.substr(0, 50) + '...</span>' : data;",
+            "}")
+        )))
     )
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
   }
-
+  
   output$table <- DT::renderDataTable({
     tab <- rdd()[, scn()]    
     i <- which(sapply(tab, function(x) is.numeric(x) && !is.integer(x)))

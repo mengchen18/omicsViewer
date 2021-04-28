@@ -65,6 +65,11 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
 
     res <- fgsea0(fdgs, stats = stats, nperm = 1000, minSize = 5, 
                   maxSize = 500, gs_desc = sub("GS\\|All\\|", "", colnames(fdgs)))
+    cn <- colnames(res)
+    cn[cn == "ES"] <- "enrichment score (ES)"
+    cn[cn == "NES"] <- "normalized ES"
+    cn[cn == "desc"] <- "description"
+    colnames(res) <- cn
     list(
       pathway_mat = fdgs,
       table = res,

@@ -56,9 +56,7 @@ ptmotif_module <- function(
   foregroundSeqs <- reactive({
     req(ic <- grep("^PTMSeq\\|", colnames(fdata())))
     fg.seq <- fdata()[feature_selected(), ic]
-    fg.seq <- unique(unlist(strsplit(fg.seq, ";")))
-    midpos <- (nchar(fg.seq[1])+1)/2
-    fg.seq[substr(fg.seq, midpos, midpos) %in% strsplit(input$cent.res, split = "|")[[1]]]
+    unique(unlist(strsplit(fg.seq, ";")))
   })
   
   logo <- reactive({
@@ -68,12 +66,16 @@ ptmotif_module <- function(
   })
   
   mot <- eventReactive(input$submit, {
-    req(foregroundSeqs() >= input$min.seqs )
+    fg.seq <- foregroundSeqs()
+    midpos <- (nchar(fg.seq[1])+1)/2
+    fg.seq <- fg.seq[substr(fg.seq, midpos, midpos) %in% strsplit(input$cent.res, split = "|")[[1]]]
+    print(length(fg.seq))
+    req( length(fg.seq) >= input$min.seqs )
     pc <- try(as.numeric(input$pval.cut))
     req(is.numeric(pc))
     show_modal_spinner(text = "Calculating ...")
     tab <- rmotifx::motifx(
-      fg.seqs = foregroundSeqs(), bg.seqs = bg.seqs(), central.res = input$cent.res, min.seqs = input$min.seqs, pval.cutoff = pc
+      fg.seqs = fg.seq, bg.seqs = bg.seqs(), central.res = input$cent.res, min.seqs = input$min.seqs, pval.cutoff = pc
       )
     if (is.null(tab))
       tab <- data.frame(
