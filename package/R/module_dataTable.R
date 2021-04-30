@@ -79,7 +79,6 @@ dataTable_module <- function(
   reactiveSelectorMeta = reactive(NULL), reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col", "none")[1]) {
   
   ns <- session$ns
-  
   # 
   selectedRowOrCol <- reactiveVal(TRUE)
   
@@ -126,7 +125,7 @@ dataTable_module <- function(
     } else if (is.data.frame(reactive_data()))
       x <- reactive_data() else
         stop('reactive_data shold be either a matrix or data.frame')
-    x <- x[selectedRowOrCol(), ]
+    x[selectedRowOrCol(), ]
   })
   
   callModule(
@@ -174,6 +173,12 @@ dataTable_module <- function(
     })
   
   formatTab <- function(tab, sel) {    
+    ci <- unname(which(sapply(tab, inherits, c('factor', "character"))))
+    if (length(ci) > 0)
+    tab[ci] <- lapply(tab[ci], function(x) {
+      x[is.na(x)] <- ""
+      x
+    })
     dt <- DT::datatable( 
       tab,
       selection =  c("single", "multiple")[as.integer(sel)+1],
@@ -183,7 +188,7 @@ dataTable_module <- function(
       options = list(
         scrollX = TRUE, pageLength = 25, dom = 'tip',
         columnDefs = list(list(
-          targets = unname(which(sapply(tab, inherits, c('factor', "character"))))-1,
+          targets = ci-1,
           render = DT::JS(
             "function(data, type, row, meta) {",
             "return type === 'display' && data.length > 50 ?",
@@ -195,7 +200,7 @@ dataTable_module <- function(
   }
   
   output$table <- DT::renderDataTable({
-    tab <- rdd()[, scn()]    
+    tab <- rdd()[, scn()]
     i <- which(sapply(tab, function(x) is.numeric(x) && !is.integer(x)))
     if (any(i))
       tab[i] <- lapply(tab[i], round, digits = 4)
