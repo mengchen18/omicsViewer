@@ -172,7 +172,6 @@ feature_general_module <- function(input, output, session,
                            reactive_param_plotly_scatter = scatter_vars, 
                            reactive_checkpoint = showBeeswarm )
   
-  
   metatab <- reactive({
     req(reactive_i())
     tab <- reactive_featureData()

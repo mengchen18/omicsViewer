@@ -60,7 +60,7 @@ meta_scatter_module <- function(
     ts <- trisetter(expr = reactive_expr(), meta = reactive_meta(), combine = combine[1])
     ts[ts[, 1] != "Surv", ]
   } )
-
+  
   xax <- reactive({    
     r <- list()
     if (!is.null(reactive_x())) {
@@ -68,7 +68,7 @@ meta_scatter_module <- function(
       r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
     }
     r
-    })
+  })
   
   yax <- reactive({
     r <- list()
@@ -77,8 +77,8 @@ meta_scatter_module <- function(
       r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
     } 
     r
-    })
-
+  })
+  
   v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis", 
                    reactive_selector1 = reactive(xax()$v1), 
                    reactive_selector2 = reactive(xax()$v2), 
@@ -88,8 +88,21 @@ meta_scatter_module <- function(
                    reactive_selector2 = reactive(yax()$v2), 
                    reactive_selector3 = reactive(yax()$v3))
   
+  pre_vol <- reactive({
+    v <- FALSE
+    vv <- c("v1", "v2", "v3")
+    if (all(vv %in% names(xax())) && all(vv %in% names(yax()))) {
+      if (xax()$v1 == "ttest" && 
+          yax()$v1 == "ttest" && 
+          xax()$v3 == "mean.diff" && 
+          yax()$v3 %in% c("log.fdr", "log.pvalue"))
+        v <- TRUE
+    }
+    v
+  })
+  
   attr4select <- callModule(
-    attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, reactive_triset = triset
+    attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, reactive_triset = triset, pre_volcano = pre_vol
   )
   
   xycoord <- reactive({
@@ -133,8 +146,9 @@ meta_scatter_module <- function(
   v_scatter <- callModule(
     plotly_scatter_module, id = "main_scatterOutput",
     reactive_param_plotly_scatter = scatter_vars,
-    reactive_regLine = reactive( showRegLine()))
-  observe(showRegLine(v_scatter()$regline))
+    reactive_regLine = reactive( showRegLine())
+  )
+  observe( showRegLine(v_scatter()$regline) )
   
   selVal <- reactiveVal(
     list(
@@ -148,32 +162,34 @@ meta_scatter_module <- function(
       clicked = character(0),
       selected = character(0)
     ) )
-    })
+  })
   
   clientSideSelection <- reactiveVal(character(0))
   observeEvent( v_scatter(), {
     if (combine == "pheno") 
       l <- colnames(reactive_expr()) else
         l <- rownames(reactive_expr())
-    u_c <- l[v_scatter()$clicked]
-    u_s <- l[v_scatter()$selected]
-    req( !identical( tmp <- c(u_c, u_s),  clientSideSelection() ) )
-    clientSideSelection(tmp)
-    selVal( list(
-      clicked = u_c,
-      selected = u_s
-    ) )
+      u_c <- l[v_scatter()$clicked]
+      u_s <- l[v_scatter()$selected]
+      req( !identical( tmp <- c(u_c, u_s),  clientSideSelection() ) )
+      clientSideSelection(tmp)
+      selVal( list(
+        clicked = u_c,
+        selected = u_s
+      ) )
   })
   
   observeEvent( rectval(), {
-    req( rectval() )
-    req( xycoord() )
-    if (combine == "pheno") 
+    req( rec <- rectval() )
+    req( cc <- xycoord() )
+    if (combine == "pheno")
       l <- colnames(reactive_expr()) else
         l <- rownames(reactive_expr())
-    i <- which(
-      xycoord()$x > rectval()["x0"] & xycoord()$x < rectval()["x1"] & 
-        xycoord()$y > rectval()["y0"] & xycoord()$y < rectval()["y1"])
+    
+    i <- lapply(rec, function(r1) {
+      which( cc$x > r1["x0"] & cc$x < r1["x1"] & cc$y > r1["y0"] & cc$y < r1["y1"] )
+    })
+    i <- sort(unique(unlist(i)))
     req(i)
     selVal( list(
       clicked = character(0),

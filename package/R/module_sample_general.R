@@ -83,6 +83,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   output$sample_general_plot <- renderUI({
+    req(pheno()$type)
     if (pheno()$type == "beeswarm")
       return( plotly_scatter_ui(ns("sample_general_beeswarm")) )
     if (pheno()$type == "table")
@@ -150,7 +151,4 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   callModule(
     dataTableDownload_module, id = "msatab", reactive_table = metatab, prefix = "SampleTable_"
   )
-  # output$mtab <- DT::renderDataTable(
-  #   DT::datatable(metatab(), options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  # )
 }

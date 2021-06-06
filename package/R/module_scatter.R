@@ -15,6 +15,7 @@
 #' @param vline vertical line, not implemented 
 #' @param hline horizontal line, not implmented
 #' @param rect rectangle coordinate in the form c(x0, x1, y0, y1)
+#' @param drawButtonId not used currently
 #' @examples 
 #' #' # scatter plot
 #' # x <- rnorm(30)
@@ -43,33 +44,38 @@
 #' # 
 #' 
 #' ### beeswarm vertical
-#' # x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
-#' # y <- rnorm(30)
-#' # plotly_scatter(x , y)
-#' # plotly_scatter(x, y, tooltips = paste("A", 1:30))
-#' # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, highlight = c(5, 8, 10))
-# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, color = rep(c("a", "b"), #' time = c(10, 20)))
-#' # plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE,
-#                color = rep(c("a", "b"), time = c(10, 20)), shape = rep(c("A", "B"), time = c(20, #' 10)))
-# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, size = sample(1:3, #' replace = TRUE, size = 30),
-#                color = rep(c("a", "b"), time = c(10, 20)), shape = rep(c("A", "B"), time = c(20, #' 10)), 
-#' #                highlight = c(5, 8, 10))
-#' # 
-# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, size = sample(1:3, #' replace = TRUE, size = 30),
-#                color = rep(c("a", "b"), time = c(10, 20)), shape = rep(c("A", "B"), time = c(20, #' 10)), 
-#' #                highlight = c(5, 8, 10))
-#' # 
-#' # 
-#' # dat <- readRDS("Dat/exampleEset.RDS")
-#' # library(beeswarm)
-#' # library(plotly)
-#' # pd <- pData(dat)
-#' # 
-#' # dt <- plotly_scatter(x = pd$`General|All|MDR`,
-#' #                      y = pd$`General|All|Doubleing Time`,
-#' #                      color = pd$`General|All|Origin`, 
-#' #                      highlight = c(5, 8, 10))
-#' # dt
+# x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+# y <- rnorm(30)
+# plotly_scatter(x , y)
+# plotly_scatter(x, y, tooltips = paste("A", 1:30))
+# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, highlight = c(5, 8, 10))
+# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, 10)
+# dat <- readRDS("../../Dat/exampleEset.RDS")
+# library(beeswarm)
+# library(plotly)
+# pd <- pData(dat)
+# dt <- plotly_scatter(
+#   x = pd$`General|All|MDR`,
+#   y = pd$`General|All|Doubleing Time`,
+#   color = pd$`General|All|Origin`,
+#   highlight = c(5, 8, 10), 
+#   rect = list(c(x0 = 50, x1 = 500, y0 = 30, y1 = 100)))
+# dt <- plotly_scatter(
+#   x = pd$`General|All|MDR`,
+#   y = pd$`General|All|Doubleing Time`,
+#   color = pd$`General|All|Origin`,
+#   highlight = c(5, 8, 10),
+#   rect = list(c(x0 = 50, x1 = 500, y0 = 30, y1 = 100), c(x0=-120, x1 = -30, y0 = 30, y1 = 100)))
+# 
+# dt <- plotly_scatter(
+#   x = pd$`General|All|MDR`,
+#   y = pd$`General|All|Doubleing Time`,
+#   color = pd$`General|All|Origin`,
+#   highlight = c(5, 8, 10), 
+#   rect = list(c(x0 = 50, x1 = 500, y0 = 30, y1 = 100)))
+# 
+# 
+# dt
 #' # 
 #' # dt <- plotly_scatter(x = pd$`General|All|Origin`,
 #' #                      y = pd$`General|All|Doubleing Time`,
@@ -89,14 +95,14 @@ plotly_scatter <- function(
   x, y, xlab = "", ylab = "ylab", color = "", shape = "", size = 10, tooltips=NULL, # shape = "circle", color = "defaultColor",
   regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
   highlight = NULL, highlightName = "Highlighted",
-  vline = NULL, hline = NULL, rect = NULL
+  vline = NULL, hline = NULL, rect = NULL, drawButtonId = NULL
 ) {
   options(stringsAsFactors = FALSE)
   
   i1 <- (is.factor(x) || is.character(x) || is.logical(x)) && is.numeric(y) # beeswarm vertical
   i2 <- (is.factor(y) || is.character(y) || is.logical(y)) && is.numeric(x) # beeswarm horizontal
   i3 <- is.numeric(y) && is.numeric(x) # scatter
-    
+  
   cutnumorchar <- function(x, n = 60, alt = "") {
     if (is.character(x) || is.factor(x)) {
       message ("too many distinct values, not suitable for color mapping!")
@@ -107,7 +113,7 @@ plotly_scatter <- function(
       stop("cutnumorchar: x needs to be one of objects: numeric, character, factor")
     v
   }
-
+  
   if (length(unique(color)) > 60) color <- cutnumorchar(color, alt = "") # alt = "defaultColor"
   if (length(unique(shape)) > 60) shape <- cutnumorchar(shape, alt = "") # alt = "circle"
   
@@ -218,16 +224,37 @@ plotly_scatter <- function(
     )
   }
   
-  if (!is.null(rect) && names(rect) %in% c("x0", "y0", "x1", "y1")) {
-    rect <- list(
+  if (is.list(rect) ) {
+    rect <- lapply(rect, function(r1) {
+      if ( any( !c("x0", "y0", "x1", "y1") %in% names(r1) ))
+        return(NULL)
       list(type = "rect",
            fillcolor = "blue", line = list(color = "blue"), opacity = 0.1,
-           x0 = rect["x0"], x1 = rect["x1"], xref = "x",
-           y0 = rect["y0"], y1 = rect["y1"], yref = "y")
-      )  
+           x0 = r1["x0"], x1 = r1["x1"], xref = "x",
+           y0 = r1["y0"], y1 = r1["y1"], yref = "y")
+    })
   }
-  fig <- plotly::layout(fig, xaxis = list(title = xlab), yaxis = list(title = ylab), shapes = rect,
-                        legend = list(orientation = 'h', xanchor = "left", x = 0, y = 1, yanchor='bottom'))
+  fig <- plotly::layout(
+    fig, xaxis = list(title = xlab), yaxis = list(title = ylab), shapes = rect,
+    legend = list(orientation = 'h', xanchor = "left", x = 0, y = 1, yanchor='bottom'))
+  
+  if (is.null(drawButtonId))
+    modeBarAdd <- NULL else
+      modeBarAdd <- list( drawButton(drawButtonId) )
+  
+  if (FALSE) {
+    fig <- plotly::config(
+      fig,
+      toImageButtonOptions = list(
+        format = "svg",
+        filename = "ExpressionSetViewerPlot",
+        width = 700,
+        height = 700
+      ),
+      modeBarButtonsToAdd = modeBarAdd
+    )
+  }
+  
   set.seed(8610)
   return(list(fig = fig, data = df))
 }
@@ -389,7 +416,6 @@ plotly_scatter_module <- function(
     checkboxInput(ns("showRegLine"), "Regression line", reactive_regLine())
   })
   
-  
   ################## render plot ###################
   # update source
   reactive_param_plotly_scatter_src <- reactive({
@@ -398,25 +424,77 @@ plotly_scatter_module <- function(
     x$source <- src
     x
   })
+  
   plotter <- reactive({
+    
     req(reactive_checkpoint())
+    
     # if beeswarm, return the object without need of input$showRegLine 
     if (!hm()$scatter) {
       return(
         do.call(plotly_scatter, args = c(
-          reactive_param_plotly_scatter_src(), regressionLine = FALSE
-          ))
-        )
-    }    
+          reactive_param_plotly_scatter_src(), regressionLine = FALSE, drawButtonId = ns("testComp")
+        ))
+      )
+    }
     req(!is.null(input$showRegLine))
     do.call(plotly_scatter, args = c(
-      reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine
+      reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine, drawButtonId = ns("testComp")
     ))
   })
   output$plotly.scatter.output <- renderPlotly({
     req( plotter()$fig )
     suppressWarnings( plotter()$fig )
   })
+  
+  #################### add plot data ####################
+  figureId <- eventReactive(input$testComp, {
+    avl <- ls(envir = .GlobalEnv, pattern = "^.__plotData__", all.names = TRUE)
+    if (length(avl) == 0) {
+      nplot <- 1
+    } else {
+      dup <- sapply(avl, function(name) {
+        ob <- get(name, envir = .GlobalEnv)
+        identical(ob, plotter()$data)
+      })
+      if (any(dup)) return("duplicated")
+      plotcum <- as.integer(sub("^.__plotData__", "0", avl))
+      nplot <- max(plotcum)+1
+    }
+    paste0(".__plotData__", nplot)
+  })
+
+  observeEvent(figureId(), {
+    print(figureId())
+    if (figureId() == "duplicated") {
+      showModal(modalDialog(
+        "Figure data has been added!", footer = modalButton("Dismiss")
+      ))
+    } else {
+      print("a")
+      showModal( modalDialog(
+          "Figure name",
+          textInput(inputId = ns("fname"), label = "Figure name", placeholder = "Give figure name"),
+          actionButton(inputId = ns("savefname"), label = "Save for later editting!"),
+          easyClose = TRUE,
+          footer = NULL
+        )
+      )
+    }
+  })
+
+  observeEvent(input$savefname, {
+    req(figureId())
+    fid <- ifelse(nchar(input$fname) == 0, "Unnamed figure", input$fname)
+    fata <- plotter()$data
+    attr(fata, "name") <- fid
+    attr(fata, "type") <- "scatter"
+    assign(figureId(), fata, envir = .GlobalEnv)
+    showModal(modalDialog(
+      "Figure data has been added!", footer = modalButton("Dismiss"), easyClose = TRUE
+    ))
+  })
+  
   
   ################## return selected ###################
   reactive({

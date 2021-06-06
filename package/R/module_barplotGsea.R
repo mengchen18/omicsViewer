@@ -91,9 +91,18 @@ plotly_barplot <- function(
                     text = txt[background], hoverinfo = 'text')
   }
   
-  plotly::layout(fig, yaxis = list(title = ylab), xaxis = list(title = xlab), legend = list(
+  fig <- plotly::layout(fig, yaxis = list(title = ylab), xaxis = list(title = xlab), legend = list(
     orientation = 'h', xanchor = "center", x = 0.5, yancher = "center", y = 1.1)
     )
+  fig <- plotly::config(
+    fig,
+    toImageButtonOptions = list(
+      format = "svg",
+      filename = "ExpressionSetViewerPlot",
+      width = 700,
+      height = 700
+    )
+  )
 }
 
 

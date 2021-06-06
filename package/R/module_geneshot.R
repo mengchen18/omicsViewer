@@ -77,6 +77,15 @@ geneshot_module <- function(
       x = df$n, y = df$perc, xlab = "# of publication", ylab = "Publications with Search Term(s) / Total Publications", 
       color = df$selected, size = 10, tooltips=df$gene, shape = "select"
     )
-    plotly::layout(fig$fig, annotations = rif()$outliers)
+    fig <- plotly::layout(fig$fig, annotations = rif()$outliers)
+    plotly::config(
+      fig,
+      toImageButtonOptions = list(
+        format = "svg",
+        filename = "ExpressionSetViewerPlot",
+        width = 700,
+        height = 700
+        )
+      )
   })
 }

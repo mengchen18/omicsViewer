@@ -112,12 +112,18 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
   }
   )
   # 
+  # drawData <- reactiveVal()
+  
   observeEvent(s_feature_fig(), {
     if (!is.null(s_feature_fig()$selected) && length(s_feature_fig()$selected) > 0) {
       selectedFeatures( s_feature_fig()$selected )
     } else if ( !is.null(s_feature_fig()$clicked) )
       selectedFeatures( s_feature_fig()$clicked )
   })
+  # observe({
+  #   # print(head(s_feature_fig$data()))
+  #   drawData(s_feature_fig$data())
+  # })
 
   observeEvent(s_sample_fig(), {
     if (!is.null(s_sample_fig()$selected) && length(s_sample_fig()$selected) > 0) {
@@ -125,6 +131,14 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
     } else if ( !is.null(s_sample_fig()$clicked) )
       selectedSamples( s_sample_fig()$clicked )
   })
+  # observe({
+  #   # print(head(s_sample_fig$data() ))
+  #   drawData( s_sample_fig$data() )
+  # })
+  
+  # observe(
+  #   print(head(drawData()))
+  # )
 
   observe( selectedSamples(tab_pd()) )
   observe( selectedFeatures(tab_fd()) )
@@ -134,6 +148,8 @@ L1_data_space_module <- function(input, output, session, expr, pdata, fdata,
     list(
       feature = selectedFeatures(),
       sample = selectedSamples()
+      #,
+      # data = drawData()
     )
   })
 }

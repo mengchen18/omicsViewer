@@ -8,7 +8,7 @@ plotly_scatter(x, y, xlab = "", ylab = "ylab", color = "",
   shape = "", size = 10, tooltips = NULL, regressionLine = FALSE,
   source = "scatterplotlysource", sizeRange = c(5, 15),
   highlight = NULL, highlightName = "Highlighted", vline = NULL,
-  hline = NULL, rect = NULL)
+  hline = NULL, rect = NULL, drawButtonId = NULL)
 }
 \arguments{
 \item{x}{x values}
@@ -42,6 +42,8 @@ plotly_scatter(x, y, xlab = "", ylab = "ylab", color = "",
 \item{hline}{horizontal line, not implmented}
 
 \item{rect}{rectangle coordinate in the form c(x0, x1, y0, y1)}
+
+\item{drawButtonId}{not used currently}
 }
 \description{
 Utility plotly scater
@@ -67,27 +69,6 @@ Utility plotly scater
 # 
 
 ### beeswarm vertical
-# x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
-# y <- rnorm(30)
-# plotly_scatter(x , y)
-# plotly_scatter(x, y, tooltips = paste("A", 1:30))
-# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE, highlight = c(5, 8, 10))
-# plotly_scatter(x, y, tooltips = paste("A", 1:30), regressionLine = TRUE,
-#                highlight = c(5, 8, 10))
-# 
-#                highlight = c(5, 8, 10))
-# 
-# 
-# dat <- readRDS("Dat/exampleEset.RDS")
-# library(beeswarm)
-# library(plotly)
-# pd <- pData(dat)
-# 
-# dt <- plotly_scatter(x = pd$`General|All|MDR`,
-#                      y = pd$`General|All|Doubleing Time`,
-#                      color = pd$`General|All|Origin`, 
-#                      highlight = c(5, 8, 10))
-# dt
 # 
 # dt <- plotly_scatter(x = pd$`General|All|Origin`,
 #                      y = pd$`General|All|Doubleing Time`,

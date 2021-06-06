@@ -6,7 +6,7 @@
 \usage{
 attr4selector_module(input, output, session,
   reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
-  reactive_triset = reactive(NULL))
+  reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE))
 }
 \arguments{
 \item{input}{input}
@@ -20,6 +20,8 @@ attr4selector_module(input, output, session,
 \item{reactive_expr}{expression matrix}
 
 \item{reactive_triset}{reactive value, a matrix of nx3 use for triselector}
+
+\item{pre_volcano}{logical; whether select areas using volcano cutoff}
 }
 \description{
 Utility - extended figure control shiny module

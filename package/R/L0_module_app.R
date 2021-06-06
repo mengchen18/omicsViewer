@@ -188,12 +188,12 @@ app_module <- function(
     HTML(txt)
   })
   
-  v1 <- callModule(L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
-                    reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
-                    rowDendrogram = reactive_rdg
-                   )
-
-
+  v1 <- callModule(
+    L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
+    reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
+    rowDendrogram = reactive_rdg
+  )
+  
   ri <- reactiveVal()
   observeEvent( v1(), ri(v1()$feature) )
   observeEvent( expr(), ri(NULL) )
@@ -202,7 +202,7 @@ app_module <- function(
   observeEvent( v1(), rh(v1()$sample) )
   observeEvent( expr(), rh(NULL) )
   
-  callModule(L1_result_space_module, id = "resultspace",
+  v2 <- callModule(L1_result_space_module, id = "resultspace",
              reactive_expr = expr,
              reactive_phenoData = pdata,
              reactive_featureData = fdata,
@@ -211,6 +211,11 @@ app_module <- function(
              additionalTabs = additionalTabs,
              object = reactive_eset
   )
+  
+  # returnData <- reactiveVal()
+  # observe( returnData( v1()$data ) )
+  # # observe( returnData( v2()$data ) )
+  # observe(print(returnData()))
 }
 
 

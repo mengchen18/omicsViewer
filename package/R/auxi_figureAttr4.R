@@ -103,33 +103,46 @@ line_rect <- function(l, coord) {
   y.exp <- (maxy-miny)*0.05
   if (x.exp == 0 || y.exp == 0)
     return(NULL)
-  
-  if (grepl("top", l$corner)) {
+  rect <- NULL
+  if (l$corner == "volcano") {
+    ax <- abs(l$x)
     y0 <- max(l$y, miny - y.exp)
     y1 <- maxy + y.exp
-  } else if (grepl("bottom", l$corner)) {
-    y0 <- miny - y.exp
-    y1 <- min(l$y, maxy + y.exp)
+    l_x0 <- minx - x.exp
+    l_x1 <- min(-ax, maxx + x.exp)
+    r_x0 <- max(ax, minx - x.exp)
+    r_x1 <- maxx + x.exp    
+    rect <- list(
+      c(x0 = l_x0, x1 = l_x1, y0 = y0, y1 = y1),
+      c(x0 = r_x0, x1 = r_x1, y0 = y0, y1 = y1)
+      )
   } else {
-    y0 <- miny - y.exp
-    y1 <- maxy + y.exp
-  }
+    if (grepl("top", l$corner)) {
+      y0 <- max(l$y, miny - y.exp)
+      y1 <- maxy + y.exp
+    } else if (grepl("bottom", l$corner)) {
+      y0 <- miny - y.exp
+      y1 <- min(l$y, maxy + y.exp)
+    } else {
+      y0 <- miny - y.exp
+      y1 <- maxy + y.exp
+    }
+    
+    if (grepl("left", l$corner)) {
+      x0 <- minx - x.exp
+      x1 <- min(l$x, maxx + x.exp)
+    } else if (grepl("right", l$corner)) {
+      x0 <- max(l$x, minx - x.exp)
+      x1 <- maxx + x.exp
+    } else {
+      x0 <- minx - x.exp
+      x1 <- maxx + x.exp
+    }
+    if ((x0 > x1) || (y0 > y1))
+      x <- y <- x0 <- x1 <- y0 <- y1 <- NULL
+    rect <- list(c(x0 = x0, x1 = x1, y0 = y0, y1 = y1))
+  }  
   
-  if (grepl("left", l$corner)) {
-    x0 <- minx - x.exp
-    x1 <- min(l$x, maxx + x.exp)
-  } else if (grepl("right", l$corner)) {
-    x0 <- max(l$x, minx - x.exp)
-    x1 <- maxx + x.exp
-  } else {
-    x0 <- minx - x.exp
-    x1 <- maxx + x.exp
-  }
-  if ((x0 > x1) || (y0 > y1))
-    x <- y <- x0 <- x1 <- y0 <- y1 <- NULL
-  
-  list(
-    x = x, y = y, rect = c(x0 = x0, x1 = x1, y0 = y0, y1 = y1)
-  )
+  list( x = x, y = y, rect = rect )
 }
 

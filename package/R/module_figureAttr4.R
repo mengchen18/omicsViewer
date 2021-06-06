@@ -26,10 +26,12 @@ attr4selector_ui <- function(id, circle = TRUE) {
                actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right"),
         column(
           4, offset = 0, style='padding:2px;', 
-          textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")), 
+          # textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
+          textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", value = "log10(2)", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
         column(
           4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
-          textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
+          # textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
+          textInputAddon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
         column(
           4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:29px; padding-bottom:2px;', 
           selectInput(inputId = ns("scorner"), label = NULL, choices = "Select corner", selectize = TRUE))
@@ -45,6 +47,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
 #' @param reactive_meta reactive meta info, usually phenotype data or feature data of ExpressoinSet
 #' @param reactive_expr expression matrix
 #' @param reactive_triset reactive value, a matrix of nx3 use for triselector
+#' @param pre_volcano logical; whether select areas using volcano cutoff
 #' @examples 
 #' #' # library(shiny)
 #' # library(shinyjs)
@@ -71,7 +74,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
 #' # shinyApp(ui, server)
 #' 
 attr4selector_module <- function(
-  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), reactive_triset = reactive(NULL)
+  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE)
 ) {
   
   selectColor <- callModule(triselector_module, id = "selectColorUI", reactive_x = reactive_triset, label = "Color", suspendWhenHidden = FALSE)
@@ -102,16 +105,22 @@ attr4selector_module <- function(
         val_ycut( NULL )
   })
   observe({
+    
+    selected <- NULL
+    if (pre_volcano())
+      selected <- "volcano"
+    
     if (is.numeric(val_xcut()) && !is.numeric(val_ycut())) {
       updateSelectInput(session, inputId = "scorner", choices = c("Select corner", "left", "right"))
     } else if (!is.numeric(val_xcut()) && is.numeric(val_ycut())) {
       updateSelectInput(session, inputId = "scorner", choices = c("Select corner", "top", "bottom"))
     } else if (is.numeric(val_xcut()) && is.numeric(val_ycut())) {
       updateSelectInput(session, inputId = "scorner", choices = c(
-        "Select corner", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
-      ))
+        "Select corner", "volcano", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
+      ), selected = selected)
     } else
       updateSelectInput(session, inputId = "scorner", choices = c("Select corner"))
+    
   })
   
   params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)

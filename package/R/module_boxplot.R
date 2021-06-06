@@ -88,14 +88,34 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
       tickvals = as.list(1:ncol(x) - 1), 
       title = ""))
   
-  if (is.null(extvar))
-    return( plotly::layout(fig, yaxis = list(title = ylab)) )
+  if (is.null(extvar)) {
+    fig <- plotly::layout(fig, yaxis = list(title = ylab))
+    fig <- plotly::config(
+        fig,
+        toImageButtonOptions = list(
+          format = "svg",
+          filename = "ExpressionSetViewerPlot",
+          width = 700,
+          height = 700
+        )
+      )
+    return( fig )
+  }    
   
-    figext <- plot_ly(
-      x = colnames(x), y = extvar, type = "bar", showlegend = FALSE
-    )
+  figext <- plot_ly(
+    x = colnames(x), y = extvar, type = "bar", showlegend = FALSE
+  )
   ff <- subplot(figext, fig, shareX = TRUE, nrows = 2, heights = c(0.2, 0.8), margin = 0, titleY = TRUE)
-  plotly::layout(ff, yaxis = list(title = ylab.extvar), yaxis2 = list(title = ylab))
+  ff <- plotly::layout(ff, yaxis = list(title = ylab.extvar), yaxis2 = list(title = ylab))
+  plotly::config(
+    ff,
+    toImageButtonOptions = list(
+      format = "svg",
+      filename = "ExpressionSetViewerPlot",
+      width = 700,
+      height = 700
+    )
+  )
   
 }
 
