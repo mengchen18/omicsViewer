@@ -19,3 +19,11 @@ should be samples, columns are phenotypical variables.}
 \description{
 Correlating a expression matrix with phenotypical variables
 }
+\examples{
+e1 <- matrix(rnorm(500), 50, 10)
+rownames(e1) <- paste0("FT", 1:50)
+p1 <- matrix(rnorm(50), 10, 5)
+colnames(p1) <- paste0("PH", 1:5)
+colnames(e1) <- rownames(p1) <- paste0("S", 1:10)
+correlationAnalysis(expr = e1, pheno = p1, min.value = 8)
+}

@@ -202,8 +202,15 @@ prepEsetViewer <- function(
 #' @param min.value the minimum number of samples required in the correlation analysis
 #' @param prefix prefix used for columns headers
 #' @importFrom psych corr.test
+#' @importFrom matrixStats rowMaxs rowMins
 #' @export
-#' 
+#' @examples 
+#' e1 <- matrix(rnorm(500), 50, 10)
+#' rownames(e1) <- paste0("FT", 1:50)
+#' p1 <- matrix(rnorm(50), 10, 5)
+#' colnames(p1) <- paste0("PH", 1:5)
+#' colnames(e1) <- rownames(p1) <- paste0("S", 1:10)
+#' correlationAnalysis(expr = e1, pheno = p1, min.value = 8)
 correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
   
   if (is.null(colnames(pheno)))
@@ -224,6 +231,9 @@ correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
       P = r$p[, i],
       logP = -log10(r$p[, i])
     )
+    texp <- expr[, !is.na(pheno[, i])]
+    df$range <- rowMaxs(texp, na.rm = TRUE) - rowMins(texp, na.rm = TRUE)
+    
     ii <- which(df$N < min.value)
     df[c("R", "P", "logP")] <- lapply(df[c("R", "P", "logP")], function(x) {
       x[ii] <- NA
