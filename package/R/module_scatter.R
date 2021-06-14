@@ -242,7 +242,6 @@ plotly_scatter <- function(
     modeBarAdd <- NULL else
       modeBarAdd <- list( drawButton(drawButtonId) )
   
-  if (FALSE) {
     fig <- plotly::config(
       fig,
       toImageButtonOptions = list(
@@ -253,7 +252,6 @@ plotly_scatter <- function(
       ),
       modeBarButtonsToAdd = modeBarAdd
     )
-  }
   
   set.seed(8610)
   return(list(fig = fig, data = df))
@@ -433,13 +431,13 @@ plotly_scatter_module <- function(
     if (!hm()$scatter) {
       return(
         do.call(plotly_scatter, args = c(
-          reactive_param_plotly_scatter_src(), regressionLine = FALSE, drawButtonId = ns("testComp")
+          reactive_param_plotly_scatter_src(), regressionLine = FALSE #, drawButtonId = ns("testComp")
         ))
       )
     }
     req(!is.null(input$showRegLine))
     do.call(plotly_scatter, args = c(
-      reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine, drawButtonId = ns("testComp")
+      reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine #, drawButtonId = ns("testComp")
     ))
   })
   output$plotly.scatter.output <- renderPlotly({
