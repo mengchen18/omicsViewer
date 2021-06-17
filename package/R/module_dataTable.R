@@ -12,7 +12,7 @@ dataTable_ui <- function(id) {
       #    )),
       column(3, actionButton(ns("clear"), "Show all")),
       column(6, align = "center", 
-             shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple selection" , labelWidth = "120px")
+             shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px")
       ),
       column(3, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
     ),

@@ -95,10 +95,13 @@ line_rect <- function(l, coord) {
   if (is.null(x) && is.null(y))
     return(NULL)
   
+  if (l$corner == "Select corner")
+    return(NULL)
+  
   minx <- min(coord$x, na.rm = TRUE)
   maxx <- max(coord$x, na.rm = TRUE)
   miny <- min(coord$y, na.rm = TRUE)
-  maxy <- max(coord$y, na.rm = TRUE)
+  maxy <- max(max(coord$y, na.rm = TRUE), y)
   x.exp <- (maxx-minx)*0.05
   y.exp <- (maxy-miny)*0.05
   if (x.exp == 0 || y.exp == 0)

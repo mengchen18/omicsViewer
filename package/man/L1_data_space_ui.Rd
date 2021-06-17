@@ -4,10 +4,12 @@
 \alias{L1_data_space_ui}
 \title{Application level 1 ui - data space}
 \usage{
-L1_data_space_ui(id)
+L1_data_space_ui(id, activeTab = "Feature")
 }
 \arguments{
 \item{id}{id}
+
+\item{activeTab}{one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"}
 }
 \description{
 Application level 1 ui - data space

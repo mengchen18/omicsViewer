@@ -124,6 +124,11 @@ meta_scatter_module <- function(
   observeEvent(input$clear, {
     rectval( NULL )
   })
+  observeEvent(list(v1(), v2()), {
+    if (attr4select$cutoff$corner == "volcano")
+      if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest")
+        rectval(NULL)
+  })
   
   scatter_vars <- reactive({
     req(l <- xycoord())

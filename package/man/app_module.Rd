@@ -5,8 +5,8 @@
 \title{Application level 0 module}
 \usage{
 app_module(input, output, session, dir, filePattern = ".RDS$",
-  additionalTabs = NULL, esetLoader = readRDS, exprsGetter = exprs,
-  pDataGetter = pData, fDataGetter = fData,
+  additionalTabs = NULL, ESVGlobalObj = NULL, esetLoader = readRDS,
+  exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
   defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy",
   "dendrogram")[1]) attr(x, what), appName = "ExpressionSetViewer",
   appVersion = packageVersion("ExpressionSetViewer"))
@@ -23,6 +23,9 @@ app_module(input, output, session, dir, filePattern = ".RDS$",
 \item{filePattern}{file pattern to be displayed.}
 
 \item{additionalTabs}{additional tabs added to "Analyst" panel}
+
+\item{ESVGlobalObj}{the object name exist in the .Global env that can be visualzied using esv, if this is 
+given, the drop down list should be disable in the "ui" component.}
 
 \item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}
 

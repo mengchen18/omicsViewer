@@ -120,7 +120,6 @@ attr4selector_module <- function(
       ), selected = selected)
     } else
       updateSelectInput(session, inputId = "scorner", choices = c("Select corner"))
-    
   })
   
   params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)
@@ -142,7 +141,6 @@ attr4selector_module <- function(
   )
   observeEvent(input$scorner, {
     req( input$scorner )
-    req( input$scorner != "Select corner" )
     params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = input$scorner)
   })
   

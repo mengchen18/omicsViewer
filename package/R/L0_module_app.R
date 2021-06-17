@@ -1,25 +1,31 @@
 #' application level 0 UI
 #' @param id id
+#' @param showDropList logical; whether to show the dropdown list to select RDS file, if the 
+#'   ESVGlobalObj is given, this should be set to "FALSE"
+#' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
 #' 
-app_ui <- function(id) {
+app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
-  
-  tagList(
-    uiOutput(ns("summary")),
-    br(),
-    absolutePanel(
-      top = 8, right = 120, style = "z-index: 9999;",
-      selectizeInput(inputId = ns("selectFile"), label = NULL, choices = NULL, width = "550px", options = list(placeholder = "Select a dataset here") )
-    ),
-    absolutePanel(
-      top = 5, right = 20, style = "z-index: 9999;",
-      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL)
-    ),
-    fluidRow(
-      column(6, L1_data_space_ui(ns('dataspace'))),
-      column(6, L1_result_space_ui(ns("resultspace")))
-    )
+  comp <- list(
+    column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
+    column(6, L1_result_space_ui(ns("resultspace")))
   )
+  if (showDropList) {
+    comp <- list(
+      uiOutput(ns("summary")),
+      br(),
+      absolutePanel(
+        top = 8, right = 120, style = "z-index: 9999;",
+        selectizeInput(inputId = ns("selectFile"), label = NULL, choices = NULL, width = "550px", options = list(placeholder = "Select a dataset here") )
+      ),
+      absolutePanel(
+        top = 5, right = 20, style = "z-index: 9999;",
+        downloadButton(outputId = ns("download"), label = "xlsx", class = NULL)
+      ),
+      column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
+      column(6, L1_result_space_ui(ns("resultspace"))))
+  }
+  do.call(fluidRow, comp)
 }
 
 #' Application level 0 module
@@ -38,6 +44,8 @@ app_ui <- function(id) {
 #'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively. 
 #' @param appName name of the application
 #' @param appVersion version of the application
+#' @param ESVGlobalObj the object name exist in the .Global env that can be visualzied using esv, if this is 
+#'   given, the drop down list should be disable in the "ui" component.
 #' @importFrom Biobase exprs pData fData
 #' @importFrom utils packageVersion
 #' @importFrom grDevices colorRampPalette
@@ -60,7 +68,7 @@ app_ui <- function(id) {
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 #' 
 app_module <- function(
-  input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, 
+  input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, ESVGlobalObj = NULL,
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
@@ -68,23 +76,26 @@ app_module <- function(
   
   ns <- session$ns
   
-  observe({
-    req(dir())
-    ll <- list.files(dir(), pattern = filePattern, ignore.case = TRUE)
-    updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
-  })
-  
-  reactive_eset <- reactive({
-    req(input$selectFile)
-    flink <- file.path(dir(), input$selectFile)
-    sss <- file.size(flink)
-    if (sss > 1e7)
-      show_modal_spinner(text = "Loading data ...")
-    v <- esetLoader(flink)
-    if (sss > 1e7)
-      remove_modal_spinner()
-    v
-  })
+  if (is.null(ESVGlobalObj)) {
+    observe({
+      req(dir())
+      ll <- list.files(dir(), pattern = filePattern, ignore.case = TRUE)
+      updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
+    })
+    
+    reactive_eset <- reactive({
+      req(input$selectFile)
+      flink <- file.path(dir(), input$selectFile)
+      sss <- file.size(flink)
+      if (sss > 1e7)
+        show_modal_spinner(text = "Loading data ...")
+      v <- esetLoader(flink)
+      if (sss > 1e7)
+        remove_modal_spinner()
+      v
+    }) } else {
+      reactive_eset <- reactive({ get(ESVGlobalObj, envir = .GlobalEnv) })
+    }
   
   expr <- reactive({
     req(reactive_eset())
@@ -100,7 +111,7 @@ app_module <- function(
     req(reactive_eset())
     fDataGetter(reactive_eset())
   })
-
+  
   validEset <- function(expr, pd, fd) {
     i1 <- identical(rownames(expr), rownames(fd))
     i2 <- identical(colnames(expr), rownames(pd))
@@ -108,11 +119,11 @@ app_module <- function(
       return(
         list(
           FALSE, "The rownames/colnames of exprs not matched to row names of feature data/phenotype data!"
-          )
         )
+      )
     TRUE
   }
-
+  
   observe({
     x <- validEset(expr = expr(), pd = pdata(), fd = fdata())
     if (!x[[1]]) {
@@ -126,23 +137,23 @@ app_module <- function(
   d_s_x <- reactive( {
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "sx") 
-    })
+  })
   d_s_y <- reactive( {
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "sy") 
-    })
+  })
   d_f_x <- reactive( {
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "fx") 
-    })
+  })
   d_f_y <- reactive( {
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "fy") 
-    })
+  })
   reactive_rdg <- reactive({
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "dendrogram")
-    })
+  })
   #####################
   
   output$download <- downloadHandler(
@@ -179,7 +190,8 @@ app_module <- function(
   )
   
   output$summary <- renderUI({
-    if (is.null(input$selectFile) || input$selectFile == "")
+    req(is.null(ESVGlobalObj))
+    if (is.null(input$selectFile) || input$selectFile == "" || !is.numeric(nrow(expr())))
       return(HTML(sprintf('<h1 style="display:inline;">%s</h1>', appName)))
     txt <- sprintf(
       '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>', 
@@ -197,19 +209,19 @@ app_module <- function(
   ri <- reactiveVal()
   observeEvent( v1(), ri(v1()$feature) )
   observeEvent( expr(), ri(NULL) )
-
+  
   rh <- reactiveVal()
   observeEvent( v1(), rh(v1()$sample) )
   observeEvent( expr(), rh(NULL) )
   
   v2 <- callModule(L1_result_space_module, id = "resultspace",
-             reactive_expr = expr,
-             reactive_phenoData = pdata,
-             reactive_featureData = fdata,
-             reactive_i = reactive(ri()), # reactive(v1()$feature),
-             reactive_highlight = reactive(rh()), # reactive(v1()$sample),
-             additionalTabs = additionalTabs,
-             object = reactive_eset
+                   reactive_expr = expr,
+                   reactive_phenoData = pdata,
+                   reactive_featureData = fdata,
+                   reactive_i = reactive(ri()), # reactive(v1()$feature),
+                   reactive_highlight = reactive(rh()), # reactive(v1()$sample),
+                   additionalTabs = additionalTabs,
+                   object = reactive_eset
   )
   
   # returnData <- reactiveVal()
