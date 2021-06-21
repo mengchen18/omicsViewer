@@ -22,7 +22,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
                div(style="display: inline-block;vertical-align:top; width:70%;", 
                    selectInput(ns("searchon"), label = NULL, choices = NULL, multiple = TRUE, width = "550px"))
         ),
-        column(2, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
+        column(3, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
                actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right"),
         column(
           4, offset = 0, style='padding:2px;', 
@@ -33,8 +33,12 @@ attr4selector_ui <- function(id, circle = TRUE) {
           # textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
           textInputAddon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
         column(
-          4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:29px; padding-bottom:2px;', 
-          selectInput(inputId = ns("scorner"), label = NULL, choices = "Select corner", selectize = TRUE))
+          2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
+          selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE)),
+        column(
+          2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
+          actionButton(inputId = ns("actSelect"), label = "Select")
+        )
       )
     )
   )
@@ -74,6 +78,8 @@ attr4selector_ui <- function(id, circle = TRUE) {
 attr4selector_module <- function(
   input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE)
 ) {
+  ns <- session$ns
+  params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)
   
   selectColor <- callModule(triselector_module, id = "selectColorUI", reactive_x = reactive_triset, label = "Color", suspendWhenHidden = FALSE)
   selectShape <- callModule(triselector_module, id = "selectShapeUI", reactive_x = reactive_triset, label = "Shape", suspendWhenHidden = FALSE)
@@ -103,24 +109,28 @@ attr4selector_module <- function(
         val_ycut( NULL )
   })
   observe({
-    
-    selected <- NULL
-    if (pre_volcano())
-      selected <- "volcano"
-    
     if (is.numeric(val_xcut()) && !is.numeric(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c("Select corner", "left", "right"))
+      updateSelectInput(session, inputId = "scorner", choices = c("None", "left", "right"), selected = input$scorner)
     } else if (!is.numeric(val_xcut()) && is.numeric(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c("Select corner", "top", "bottom"))
+      updateSelectInput(session, inputId = "scorner", choices = c("None", "top", "bottom"), selected = input$scorner)
     } else if (is.numeric(val_xcut()) && is.numeric(val_ycut())) {
       updateSelectInput(session, inputId = "scorner", choices = c(
-        "Select corner", "volcano", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
-      ), selected = selected)
+        "None", "volcano", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
+      ), selected = input$scorner)
     } else
-      updateSelectInput(session, inputId = "scorner", choices = c("Select corner"))
+      updateSelectInput(session, inputId = "scorner", choices = c("None"))
   })
   
-  params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)
+  observe({
+    if (pre_volcano()) {
+      if (input$actSelect == 0) {
+        selected <- "volcano"
+        params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
+        updateSelectInput(session, inputId = "scorner", selected = "volcano")
+      } 
+    }
+  })
+  
   observeEvent(input$goSearch, {
     params$highlight <- which(vv() %in% input$searchon)
     params$highlightName <- searchOnCol()$variable
@@ -137,7 +147,7 @@ attr4selector_module <- function(
   observe(
     params$tooltips <- varSelector(selectTooltip(), reactive_expr(), reactive_meta())
   )
-  observeEvent(input$scorner, {
+  observeEvent(input$actSelect, {
     req( input$scorner )
     params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = input$scorner)
   })

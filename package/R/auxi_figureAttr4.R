@@ -109,7 +109,7 @@ line_rect <- function(l, coord) {
   if (is.null(x) && is.null(y))
     return(NULL)
   
-  if (l$corner == "Select corner")
+  if (l$corner == "None")
     return(NULL)
   
   minx <- min(coord$x, na.rm = TRUE)

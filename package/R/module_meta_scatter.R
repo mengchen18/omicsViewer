@@ -125,6 +125,10 @@ meta_scatter_module <- function(
     rectval( NULL )
   })
   observeEvent(list(v1(), v2()), {
+    if (is.null(attr4select$cutoff)) {
+      rectval(NULL)
+      return(NULL)
+    }
     if (attr4select$cutoff$corner == "volcano")
       if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest")
         rectval(NULL)
@@ -195,7 +199,6 @@ meta_scatter_module <- function(
       which( cc$x > r1["x0"] & cc$x < r1["x1"] & cc$y > r1["y0"] & cc$y < r1["y1"] )
     })
     i <- sort(unique(unlist(i)))
-    req(i)
     selVal( list(
       clicked = character(0),
       selected = l[ i ]
