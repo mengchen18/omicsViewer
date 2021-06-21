@@ -10,20 +10,6 @@ triselector_ui <- function(id) {
              style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px', 
              uiOutput(ns("groupLabel"))
       ),
-      # column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-      #        div(style="display: inline-block;vertical-align:top;", h5("Analysis:")),
-      #        div(style="display: inline-block;vertical-align:top; width:65%;", 
-      #            uiOutput(ns("analysis.output")))),
-      # 
-      # column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-      #        div(style="display: inline-block;vertical-align:top;", h5("Subset:")),
-      #        div(style="display: inline-block;vertical-align:top; width:78%;", 
-      #            uiOutput(ns("subset.output")))),
-      # 
-      # column(4, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-      #        div(style="display: inline-block;vertical-align:top;", h5("Variable:")),
-      #        div(style="display: inline-block;vertical-align:top; width:74%;", 
-      #            uiOutput(ns("variable.output"))))
       column(3, offset = 0, style='padding:2px;', uiOutput(ns("analysis.output"))),
       column(4, offset = 0, style='padding:2px;', uiOutput(ns("subset.output"))),
       column(3, offset = 0, style='padding:2px;', uiOutput(ns("variable.output")))
@@ -89,7 +75,7 @@ triselector_module <- function(input, output, session,
   })
   
   # init empty selectize input
-  output$analysis.output <- renderUI({    
+  output$analysis.output <- renderUI({
     cc <- unique(reactive_x()[, 1])
     # cc <- c("Select analysis", cc) ## placeholder
     selectInput(inputId = ns("analysis"), label = NULL, choices = cc, selectize = TRUE, selected = reactive_selector1())    

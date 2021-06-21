@@ -39,3 +39,16 @@ fgsea0 <- function(gs, stats, nperm = 100, gs_desc = NULL, ...) {
   as.data.frame(res)
 }
 
+
+#  c("featureId", "gsId", "weight")
+fgsea1 <- function(gs, stats, nperm = 100, gs_desc = NULL, ...) {
+  
+  pw <- split(gs$featureId, gs$gsId)
+  
+  params <- list(pathways = pw, stats = stats, nperm = nperm, ...)
+  res <- do.call(fgsea, params)
+  if (!is.null(gs_desc)) {
+    res$desc <- as.character(gs_desc[res$pathway])
+  }
+  as.data.frame(res)
+}

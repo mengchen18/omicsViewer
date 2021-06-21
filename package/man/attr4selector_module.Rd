@@ -38,11 +38,9 @@ Utility - extended figure control shiny module
 # expr <- exprs(dat)
 # ts <- trisetter(meta = pd, expr = expr, combine = "pheno")
 # # ts <- stringr::str_split_fixed(colnames(pd), pattern = "\\\\|", n = 3)
-
 # ui <- fluidPage(
 #   attr4selector_ui("a4test")
-# )
-
+# ) 
 # server <- function(input, output, session) {
 #   # observe(
 #   #   print(k())

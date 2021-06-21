@@ -11,6 +11,9 @@
 trisetter <- function(meta, expr=NULL, combine) {
   req(meta)
   nm <- colnames(meta)
+  cgs <- attr(meta, "GS")
+  if (!is.null(cgs))
+    cgs <- paste("GS", "All", unique(cgs$gsId), sep = "|")
   if (!is.null(expr)) {
     combine <- combine[1]
     combine <- match.arg(combine, choices = c("pheno", "feature", "none"))
@@ -25,7 +28,7 @@ trisetter <- function(meta, expr=NULL, combine) {
     } else {
       rt <- NULL
     }
-    nm <- c(nm, rt)
+    nm <- c(nm, cgs, rt)
   }
   str_split_fixed(nm, "\\|", n = 3)
 }
@@ -43,10 +46,21 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
       return(NULL)
     if (alternative %in% c("", "Select a variable!"))
       return(NULL)
-    # alternative <- gsub(" ", "<br>", alternative)
     return(alternative)
   }
   lab <- paste(x, collapse = "|")
+  
+  if (x$analysis == "GS") {
+    gs <- attr(meta, "GS")
+    if (is.null(gs))
+      return(NULL)
+    id1 <- gs[which(gs$gsId == x$variable), ]
+    if (nrow(id1) == 0)
+      return(NULL)
+    vec <- rep(0, nrow(meta))
+    vec[fmatch(id1$featureId, rownames(meta))] <- id1$weight
+    return(vec)
+  }
 
   selectIfCan <- function(x, i, dim) {
     if (dim == 1) {

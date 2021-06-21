@@ -24,16 +24,5 @@ Utility - fgsea shiny module
 # source("Git/R/auxi_fgsea.R")
 # source("Git/R/module_barplotGsea.R")
 # 
-# dat <- readRDS("Dat/exampleEset.RDS")
-# fd <- Biobase::fData(dat)
-# 
-# ui <- fluidPage(
-#   enrichment_fgsea_ui("fgsea")
-# )
-# 
-# server <- function(input, output, session) {
-#   callModule(enrichment_fgsea_module, id = "fgsea", reactive_featureData = reactive(fd) )
-# }
-# 
-# shinyApp(ui, server)
+
 }

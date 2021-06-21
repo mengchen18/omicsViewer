@@ -8,7 +8,6 @@ enrichment_fgsea_ui <- function(id) {
     # plotly barplot
     plotlyOutput(ns("bplot")),
     # table
-    # DT::dataTableOutput(ns("stab"))
     dataTableDownload_ui(ns("stab"))
   )
 }
@@ -27,18 +26,19 @@ enrichment_fgsea_ui <- function(id) {
 #' # source("Git/R/auxi_fgsea.R")
 #' # source("Git/R/module_barplotGsea.R")
 #' # 
-#' # dat <- readRDS("Dat/exampleEset.RDS")
-#' # fd <- Biobase::fData(dat)
-#' # 
-#' # ui <- fluidPage(
-#' #   enrichment_fgsea_ui("fgsea")
-#' # )
-#' # 
-#' # server <- function(input, output, session) {
-#' #   callModule(enrichment_fgsea_module, id = "fgsea", reactive_featureData = reactive(fd) )
-#' # }
-#' # 
-#' # shinyApp(ui, server)
+#' 
+# dat <- readRDS("inst/extdata/demo.RDS")
+# obj <- tallGS(dat)
+# fd <- fData(obj)
+# 
+# ui <- fluidPage(
+#   enrichment_fgsea_ui("fgsea")
+# )
+# server <- function(input, output, session) {
+#   callModule(enrichment_fgsea_module, id = "fgsea", reactive_featureData = reactive(fd) )
+# }
+# shinyApp(ui, server)
+
 enrichment_fgsea_module <- function(input, output, session, reactive_featureData) {
   
   ns <- session$ns
@@ -51,20 +51,31 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
   })
   v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value")
   
+  gsInfo <- reactive({
+    fdgs <- attr(reactive_featureData(), "GS")
+    uniqueGs <- unique(fdgs$gsId)
+    names(uniqueGs) <- uniqueGs
+    list(gs = fdgs, desc = uniqueGs)
+    })
+  
   # run fgsea
   tab <- reactive({
     req( ! v1()$variable %in% c("Select a variable!", ""))
     scc <- paste(v1(), collapse = "|")
     req(scc %in% colnames(reactive_featureData()))
-    fdgs <- reactive_featureData()[, grepl("^GS\\|", colnames(reactive_featureData()))]
     stats <- reactive_featureData()[, scc]
-
-    ii <- !is.na(stats)
-    stats <- stats[ii]
-    fdgs <- fdgs[ii, ]
-
-    res <- fgsea0(fdgs, stats = stats, nperm = 1000, minSize = 5, 
-                  maxSize = 500, gs_desc = sub("GS\\|All\\|", "", colnames(fdgs)))
+    names(stats) <- rownames(reactive_featureData())
+    stats <- na.omit(stats)
+    fdgs <- gsInfo()$gs[gsInfo()$gs$featureId %fin% names(stats), ]
+    if (nrow(fdgs) < 3) {
+      message("Perhaps a problem ... enrichment_fgsea_module")
+      return(NULL)
+    }
+    
+    res <- fgsea1(
+      fdgs, stats = stats, nperm = 1000, minSize = 3, maxSize = 500, 
+      gs_desc = gsInfo()$desc)
+    
     cn <- colnames(res)
     cn[cn == "ES"] <- "enrichment score (ES)"
     cn[cn == "NES"] <- "normalized ES"
@@ -74,7 +85,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
       pathway_mat = fdgs,
       table = res,
       stats = stats,
-      statsNames = rownames(fdgs)
+      statsNames = names(stats)
     )
   })
   
@@ -83,7 +94,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     reactive_table = reactive(tab()$table), 
     reactive_cols = reactive(setdiff(colnames(tab()$table), "leadingEdge")), 
     prefix = "fgsea_"
-    )
+  )
   
   output$bplot <- renderPlotly({
     
@@ -91,10 +102,13 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     
     if (!is.null(i <- vi() ) && length(vi()) > 0) {
       i <- tab()$table[i, ]
-      hid <- fmatch(i$leadingEdge[[1]], tab()$statsNames)
-      bid <- setdiff(which(tab()$pathway_mat[, i$pathway] != 0), hid)
+      # hid <- fmatch(i$leadingEdge[[1]], tab()$statsNames)
+      hid <- i$leadingEdge[[1]]
+      bid <- setdiff(tab()$pathway_mat$featureId[tab()$pathway_mat$gsId == i$pathway], hid)
       if (length(bid) == 0)
         bid <- NULL
+      hid <- fmatch(hid, tab()$statsNames)
+      bid <- fmatch(bid, tab()$statsNames)
     }
     
     plotly_barplot(

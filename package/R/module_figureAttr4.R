@@ -60,11 +60,9 @@ attr4selector_ui <- function(id, circle = TRUE) {
 #' # expr <- exprs(dat)
 #' # ts <- trisetter(meta = pd, expr = expr, combine = "pheno")
 #' # # ts <- stringr::str_split_fixed(colnames(pd), pattern = "\\|", n = 3)
-#' 
 #' # ui <- fluidPage(
 #' #   attr4selector_ui("a4test")
-#' # )
-#' 
+#' # ) 
 #' # server <- function(input, output, session) {
 #   k <- callModule(attr4selector_module, id = "a4test", reactive_meta=reactive(pd), #' reactive_expr=reactive(expr), reactive_triset = reactive(ts))
 #' #   # observe(

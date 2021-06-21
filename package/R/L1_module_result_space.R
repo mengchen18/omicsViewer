@@ -43,11 +43,7 @@ L1_result_space_module <- function(
                    reactive_featureData = reactive_featureData)
   
   v3 <- callModule(enrichment_analysis_module, id = "ora", 
-                   reactive_pathway_mat = reactive({
-                     fd <- reactive_featureData()
-                     fd[, grep("^GS\\|", colnames(fd))]
-                   }), reactive_i = reactive_i,
-                   reactive_featureData = reactive_featureData
+                   reactive_i = reactive_i, reactive_featureData = reactive_featureData
                    )
   
   v4 <- callModule(
@@ -104,7 +100,8 @@ L1_result_space_module <- function(
     
     optionalTabs <- list()
     
-    if (any(grepl("^GS\\|", colnames(reactive_featureData())))) {
+    # if (any(grepl("^GS\\|", colnames(reactive_featureData())))) {
+    if (!is.null(attr(reactive_featureData(), "GS"))) {
       optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
       optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))
     }
