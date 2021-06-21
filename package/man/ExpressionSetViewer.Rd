@@ -5,7 +5,7 @@
 \title{Start ExpressionSetViewer}
 \usage{
 ExpressionSetViewer(dir, additionalTabs = NULL, filePattern = ".RDS$",
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
+  esetLoader = readESVObj, exprsGetter = exprs, pDataGetter = pData,
   fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
   "sy", "fx", "fy")[1]) attr(x, what), appName = "ExpressionSetViewer",
   appVersion = packageVersion("ExpressionSetViewer"))

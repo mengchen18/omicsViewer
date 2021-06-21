@@ -23,7 +23,10 @@ tallGS <- function(obj) {
   obj
 }
 
-
+readESVObj <- function(x) {
+  x <- readRDS(x) 
+  tallGS(x)
+}
 
 vectORATall <- function(
   gs, i, background, minOverlap = 2, minSize=2, maxSize=Inf, gs_desc = NULL, feature_desc = NULL,

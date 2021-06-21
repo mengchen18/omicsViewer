@@ -24,10 +24,7 @@
 #' 
 ExpressionSetViewer <- function(
   dir, additionalTabs = NULL, filePattern = ".RDS$",
-  esetLoader = function(x) {
-  x <- readRDS(x) 
-  tallGS(x)
-  }, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
+  esetLoader = readESVObj, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
   ) {
