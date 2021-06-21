@@ -35,9 +35,11 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
         column(
           6, align = "right",
           iheatmapClear(id = ns("heatmapViewer"))
+        ),
+        column(
+          12, iheatmapOutput(id = ns("heatmapViewer"))
         )
-      ),
-      iheatmapOutput(id = ns("heatmapViewer"))
+      )
     ),
     tabPanel("Expression", dataTable_ui(ns("tab_expr")))
   )

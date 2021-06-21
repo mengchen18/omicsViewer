@@ -205,11 +205,21 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     names(x) <- paste("HCL", names(x))
     x
     })
+  
+  gsdf <- reactive({
+    attr(fd(), "GS")
+  })
+  
+  fdColWithGS <- reactive({
+    c(colnames(fd()), paste0("GS|", levels(gsdf()$gsId)))
+  })
   ######## update selectize input ########
   observe( updateSelectInput(session, "annotCol", choices = colnames(pd())) )
-  observe( updateSelectInput(session, "annotRow", choices = colnames(fd())) )
+  observe( updateSelectInput(session, "annotRow", choices = fdColWithGS()) ) 
   observe( updateSelectInput(session, "colSortBy", choices = c("hierarchical cluster", "none", colnames(pd()))) )
-  observe( updateSelectInput(session, "rowSortBy", choices = c(names(rdg()), "none", "hierarchical cluster", colnames(fd())), selected = clsRow()) )
+  observe( updateSelectInput(
+    session, "rowSortBy", choices = c(names(rdg()), "none", "hierarchical cluster", fdColWithGS()), selected = clsRow()
+    ))
   observe( updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) )
   
   
@@ -236,6 +246,10 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     ord_r <- 1:nrow(mm()$mat)
     if (input$rowSortBy %in% names(rdg())) {
       return(rdg()[[input$rowSortBy]])
+    } else if (!is.null(gsdf()) && grepl("GS\\|", input$rowSortBy)[1]) {
+      d <- gsdf()$featureId[gsdf()$gsId == sub("^GS\\|", "", input$rowSortBy)]
+      d <- as.numeric( rownames(fd()) %fin% as.character(d) )
+      ord_r <- order(d)
     } else if (!input$rowSortBy %in% c("", "none", "hierarchical cluster")) {
       ord_r <- order(fd()[, input$rowSortBy])
     } else if (input$rowSortBy == "hierarchical cluster") { #clusterRow
@@ -285,7 +299,23 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   
   dat_rowSideCol <- reactive({
     req(input$annotRow)
-    addHeatmapAnnotation(fd()[hm()$ord_r, input$annotRow], column = FALSE, var.name = input$annotRow)
+    ic <- grepl("GS\\|", input$annotRow)
+    am <- NULL
+    if (any(ic)) {
+      am <- cbind(am, sapply(input$annotRow[ic], function(i) {
+        d <- gsdf()$featureId[gsdf()$gsId == sub("^GS\\|", "", i)]
+        rownames(fd()) %fin% as.character(d)
+      }))
+      colnames(am) <- input$annotRow[ic]
+    }
+    if (any(!ic)) {
+      am2 <- fd()[, input$annotRow[!ic], drop = FALSE]
+      if (is.null(am))
+        am <- am2 else
+          am <- cbind(am, am2)
+    }
+    am <- as.data.frame(am[, input$annotRow, drop = FALSE])
+    addHeatmapAnnotation(am[hm()$ord_r, , drop = FALSE], column = FALSE, var.name = input$annotRow)
   })
   output$rowSideCol <- renderPlot({
     par(mar= c(input$marginBottom, 0, 0, 0))
