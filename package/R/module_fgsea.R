@@ -83,7 +83,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     colnames(res) <- cn
     list(
       pathway_mat = fdgs,
-      table = res,
+      table = res[order(abs(res$"normalized ES"), decreasing = TRUE), , drop = FALSE],
       stats = stats,
       statsNames = names(stats)
     )
