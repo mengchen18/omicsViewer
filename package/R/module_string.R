@@ -5,19 +5,19 @@
 string_ui <- function(id) {
   ns <- NS(id)
   tagList(
-      fluidRow(
-        column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-               div(style="display: inline-block;vertical-align:top;", h5("Tax ID: ")),
-               div(style="display: inline-block;vertical-align:top; width:50%", 
-                   textInput(ns("tax"), label = NULL, value = "9606"))),
-        column(6, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-               div(style="display: inline-block;vertical-align:top;", 
-                   uiOutput(ns("errorOrRun")))),
-        column(3, offset = 0, style='padding-left:15px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-               align = "right", uiOutput(ns("showButton")) )
+    fluidRow(
+      column(
+        4, offset = 0, style='padding-left:15px; padding-right:2px; padding-top:0px; padding-bottom:0px',
+        textInputAddon(inputId = ns("tax"), label = NULL, value = "9606", addon = "Taxomony Code")),
+      column(
+        6, offset = 0, style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px',
+        verbatimTextOutput(ns("error.msg"))),
+      column(
+        2, offset = 0, style='padding-left:15px; padding-right:2px; padding-top:0px; padding-bottom:0px',
+        actionButton(ns("run"), "Run!"))
     ),
     uiOutput(ns("noresRet")),
-    DT::dataTableOutput(ns("strtab")),    
+    dataTableDownload_ui(ns("strtab")),
     checkboxInput(ns("showLabel"), label = "Show labels", value = FALSE),
     forceNetworkOutput(ns("network"))    
   )
@@ -53,40 +53,35 @@ string_module <- function(
   
   ns <- session$ns
   
-  output$errorOrRun <- renderUI({
-    tagList(
-      verbatimTextOutput(ns("error.msg")),
-      if (!overflow())
-        actionButton(ns("run"), "Run!")
-    )
-  })
-  
   overflow <- reactive({
     length(reactive_ids()) > 300
   })
   
   output$error.msg <- renderText({
-    req(overflow())
-    sprintf("%s features selected, allow max 300 input features!", length(reactive_ids()))
+    sprintf("%s features selected [MAX 300 FEATURES ALLOWED!]", length(reactive_ids()))
   })
   
   nk <- eventReactive( input$run, {
-      r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid()) 
-      if (is.data.frame(r)) {
-        if (nrow(r) > 999) {
-          r <- r[order(r$score, decreasing = TRUE), ]
-          r <- r[1:999, ]
-        }
+    r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid()) 
+    if (is.data.frame(r)) {
+      if (nrow(r) > 999) {
+        r <- r[order(r$score, decreasing = TRUE), ]
+        r <- r[1:999, ]
       }
-      r
-    })
+    }
+    r
+  })
+  
   gs <- eventReactive(input$run, {
+    req(!overflow())
     show_modal_spinner(text = "Querying database ...")
     tab <- stringGSA(genes = reactive_ids(), taxid = input$tax) 
     remove_modal_spinner()
     if (inherits(tab, "character")) 
       return(tab)
-    colnames(tab) <- c("category", "term", "gene number", "background number", "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
+    colnames(tab) <- c(
+      "category", "term", "gene number", "background number", 
+      "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
     tab
   })
   
@@ -104,49 +99,26 @@ string_module <- function(
     verbatimTextOutput(ns("nores.msg"))
   })
   
-  
   highlight <- reactiveVal(1)
   
   output$network <- renderForceNetwork({
     req(!nores())
     req(nrow(nk()) > 0)
-    req(!overflow())
     stringD3Net(ntwk = nk(), gsa = gs(), i = highlight(), label = input$showLabel)
   })
   
-  output$strtab <- DT::renderDataTable({
-    req(!nores())
-    req(!overflow())
-    req(nrow(gs()) > 0)
-    tab <- gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
-    DT::datatable(data = tab, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  })
-  
-  output$showButton <- renderUI({
-    # print( nrow(gs()) > 0 )
-    # req(nrow(gs()) > 0)
-    downloadButton(ns("downloadData"), ".tsv")
-  })
-  
-  output$downloadData <- downloadHandler(
-    filename = function() {
-      paste0("StringORA_", Sys.time(), ".tsv")
-    },
-    content = function(file) {
-      tab <- gs()
-      ic <- which(sapply(tab, is.list))
-      if (length(ic) > 0) {
-        for (ii in ic) {
-          tab[, ii] <- sapply(tab[, ii], paste, collapse = ";")
-        }
-      }
-      write.table(tab, file, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
-    }
+  tt <- callModule(
+    dataTableDownload_module, id = "strtab", reactive_table = eventReactive(gs(), {
+      req(!nores())
+      req(!overflow())
+      req(nrow(gs()) > 0)
+      gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
+    }), prefix = "FeatureTable_"
   )
   
   observe({
-    req(input$strtab_rows_selected)
-    highlight(input$strtab_rows_selected)
+    req(tt())
+    highlight(tt())
   })
 }
 

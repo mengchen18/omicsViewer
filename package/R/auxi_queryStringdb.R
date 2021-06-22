@@ -42,6 +42,9 @@ stringNetwork <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
   string_api_url <- "https://string-db.org/api"
   output_format <- "tsv"
   method <- "network"
+  if (inherits(genes, "list"))
+    genes <- na.omit(unlist(genes))
+  genes <- gsub("#|%", "", genes)
   
   request_url <- paste(string_api_url, output_format, method, sep = "/")
   
