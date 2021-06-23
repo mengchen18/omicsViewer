@@ -5,10 +5,11 @@
 \title{Application level 0 module}
 \usage{
 app_module(input, output, session, dir, filePattern = ".RDS$",
-  additionalTabs = NULL, ESVGlobalObj = NULL, esetLoader = readRDS,
-  exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
-  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy",
-  "dendrogram")[1]) attr(x, what), appName = "ExpressionSetViewer",
+  additionalTabs = NULL, ESVGlobalObj = reactive(NULL),
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
+  fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
+  "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
+  appName = "ExpressionSetViewer",
   appVersion = packageVersion("ExpressionSetViewer"))
 }
 \arguments{

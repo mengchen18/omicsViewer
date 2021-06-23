@@ -108,6 +108,12 @@ line_rect <- function(l, coord) {
   y <- l$y
   if (is.null(x) && is.null(y))
     return(NULL)
+
+  if (!is.numeric(coord$x) && is.numeric(coord$y) && !l$corner %in% c("top", "bottom"))
+    return(NULL)
+
+  if (is.numeric(coord$x) && !is.numeric(coord$y) && !l$corner %in% c("left", "right"))
+    return(NULL)
   
   if (l$corner == "None")
     return(NULL)
