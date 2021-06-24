@@ -1,7 +1,7 @@
 #' application level 0 UI
 #' @param id id
 #' @param showDropList logical; whether to show the dropdown list to select RDS file, if the 
-#'   ESVGlobalObj is given, this should be set to "FALSE"
+#'   ESVObj is given, this should be set to "FALSE"
 #' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
 #' 
 app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
@@ -44,7 +44,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively. 
 #' @param appName name of the application
 #' @param appVersion version of the application
-#' @param ESVGlobalObj the object name exist in the .Global env that can be visualzied using esv, if this is 
+#' @param ESVObj the ESV object
 #'   given, the drop down list should be disable in the "ui" component.
 #' @importFrom Biobase exprs pData fData
 #' @importFrom utils packageVersion
@@ -68,7 +68,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 #' 
 app_module <- function(
-  input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, ESVGlobalObj = reactive(NULL),
+  input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
@@ -84,9 +84,11 @@ app_module <- function(
   
   reactive_eset <- reactive({
     # try to get global object first
-    if (!is.null(ESVGlobalObj()))
-      if (exists(ESVGlobalObj(), envir = .GlobalEnv))
-        return( get(ESVGlobalObj(), envir = .GlobalEnv) )
+    if (!is.null(ESVObj())) {
+        print(object.size(ESVObj()))
+        return( tallGS(ESVObj()) )
+      }
+        
     # otherwise load from disk
     req(input$selectFile)
     flink <- file.path(dir(), input$selectFile)
@@ -98,27 +100,6 @@ app_module <- function(
       remove_modal_spinner()
     v
   })
-  
-  # if (is.null(ESVGlobalObj)) {
-  #   observe({
-  #     req(dir())
-  #     ll <- list.files(dir(), pattern = filePattern, ignore.case = TRUE)
-  #     updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
-  #   })
-  #   
-  #   reactive_eset <- reactive({
-  #     req(input$selectFile)
-  #     flink <- file.path(dir(), input$selectFile)
-  #     sss <- file.size(flink)
-  #     if (sss > 1e7)
-  #       show_modal_spinner(text = "Loading data ...")
-  #     v <- esetLoader(flink)
-  #     if (sss > 1e7)
-  #       remove_modal_spinner()
-  #     v
-  #   }) } else {
-  #     reactive_eset <- reactive({ get(ESVGlobalObj, envir = .GlobalEnv) })
-  #   }
   
   expr <- reactive({
     req(reactive_eset())
@@ -213,7 +194,7 @@ app_module <- function(
   )
   
   output$summary <- renderUI({
-    req(is.null(ESVGlobalObj()))
+    req(is.null(ESVObj()))
     if (is.null(input$selectFile) || input$selectFile == "" || !is.numeric(nrow(expr())))
       return(HTML(sprintf('<h1 style="display:inline;">%s</h1>', appName)))
     txt <- sprintf(

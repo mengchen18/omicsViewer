@@ -10,9 +10,13 @@ triselector_ui <- function(id) {
              style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px', 
              uiOutput(ns("groupLabel"))
       ),
-      column(3, offset = 0, style='padding:2px;', uiOutput(ns("analysis.output"))),
-      column(4, offset = 0, style='padding:2px;', uiOutput(ns("subset.output"))),
-      column(3, offset = 0, style='padding:2px;', uiOutput(ns("variable.output")))
+      # column(3, offset = 0, style='padding:2px;', uiOutput(ns("analysis.output"))),
+      # column(4, offset = 0, style='padding:2px;', uiOutput(ns("subset.output"))),
+      # column(3, offset = 0, style='padding:2px;', uiOutput(ns("variable.output")))
+      
+      column(3, offset = 0, style='padding:2px;', selectInput(inputId = ns("analysis"), label = NULL, choices = NULL, selectize = TRUE)),
+      column(4, offset = 0, style='padding:2px;', selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE)),
+      column(3, offset = 0, style='padding:2px;', selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE))
     )
   )
 }
@@ -75,31 +79,42 @@ triselector_module <- function(input, output, session,
   })
   
   # init empty selectize input
-  output$analysis.output <- renderUI({
+  # output$analysis.output <- renderUI({
+  #   cc <- unique(reactive_x()[, 1])
+  #   selectInput(inputId = ns("analysis"), label = NULL, choices = cc, selectize = TRUE, selected = reactive_selector1())    
+  # })
+  # output$subset.output <- renderUI(
+  #   selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE)
+  # )
+  # output$variable.output <- renderUI(
+  #   selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE)
+  # )
+  
+  observe({
+    req(names(input))
     cc <- unique(reactive_x()[, 1])
-    # cc <- c("Select analysis", cc) ## placeholder
-    selectInput(inputId = ns("analysis"), label = NULL, choices = cc, selectize = TRUE, selected = reactive_selector1())    
+    if (is.null(reactive_selector1()))
+      ss <- cc[1] else
+        ss <- reactive_selector1()
+    updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
-  output$subset.output <- renderUI(
-    selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE)
-  )
-  output$variable.output <- renderUI(
-    selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE)
-  )
-  outputOptions(output, "analysis.output", suspendWhenHidden = suspendWhenHidden )
-  outputOptions(output, "subset.output", suspendWhenHidden = suspendWhenHidden )
-  outputOptions(output, "variable.output", suspendWhenHidden = suspendWhenHidden )
+  
+  # outputOptions(output, "analysis.output", suspendWhenHidden = suspendWhenHidden )
+  # outputOptions(output, "subset.output", suspendWhenHidden = suspendWhenHidden )
+  # outputOptions(output, "variable.output", suspendWhenHidden = suspendWhenHidden )
   
   # updat selectize input when reactive_x is given
   observe({
+    input$analysis
     req(input$analysis)
     cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
-    # cc <- c("Select subset", cc) # placeholder
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
   })
     
   # observeEvent(list(input$subset, input$analysis), {    
   observe({    
+    input$analysis
+    input$subset
     req(input$analysis)
     req(input$subset)
     

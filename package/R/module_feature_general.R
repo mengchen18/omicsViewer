@@ -9,9 +9,7 @@ feature_general_ui <- function(id) {
       column(1, style = "margin-top: 0px;", attr4selector_ui(ns("a4_gf"), circle = FALSE)),
       column(11, triselector_ui(ns("tris_feature_general")))
     ),
-    uiOutput(ns("a4s_output")),
     uiOutput(ns("feature_general_plot")),
-    # DT::dataTableOutput(ns('mtab'))
     dataTableDownload_ui(ns("mtab"))
   )
 }
@@ -70,6 +68,7 @@ feature_general_module <- function(input, output, session,
     ts <- trisetter(expr = reactive_expr(), meta = reactive_phenoData(), combine = "none")
     ts[ts[, 1] != "Surv", ]
   })
+  
   v1 <- callModule(triselector_module, id = "tris_feature_general", reactive_x = triset, label = 'Value')
   attr4select <- callModule(
     attr4selector_module, id = "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr, reactive_triset = triset

@@ -121,13 +121,16 @@ attr4selector_module <- function(
       updateSelectInput(session, inputId = "scorner", choices = c("None"))
   })
   
-  observe({
+  
+  observeEvent(pre_volcano(), {
     if (pre_volcano()) {
       if (input$actSelect == 0) {
         selected <- "volcano"
         params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
         updateSelectInput(session, inputId = "scorner", selected = "volcano")
       } 
+    } else {
+      updateSelectInput(session, inputId = "scorner", selected = "None")
     }
   })
   
@@ -147,7 +150,7 @@ attr4selector_module <- function(
   observe(
     params$tooltips <- varSelector(selectTooltip(), reactive_expr(), reactive_meta())
   )
-  observeEvent(input$actSelect, {
+  observeEvent(list(input$actSelect), {
     req( input$scorner )
     params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = input$scorner)
   })

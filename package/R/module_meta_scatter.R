@@ -101,9 +101,18 @@ meta_scatter_module <- function(
     v
   })
   
+  observeEvent(pre_vol(), {
+    print(pre_vol())
+  })
+  
   attr4select <- callModule(
-    attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, reactive_triset = triset, pre_volcano = pre_vol
+    attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, 
+    reactive_triset = triset, pre_volcano = pre_vol
   )
+  
+  observe({
+    print(attr4select$cutoff)
+  })
   
   xycoord <- reactive({
     req(!v1()$variable %in% c("Select a variable!", ""))
