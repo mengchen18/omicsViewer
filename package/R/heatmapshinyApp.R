@@ -240,7 +240,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     list(mat = mm, breaks = brk)
   })
   
-  rowSB <- eventReactive(list(input$rowSortBy, mm()$mat), {
+  rowSB <- eventReactive(list(
+    input$rowSortBy, mm()$mat, input$clusterRowDist, input$clusterRowLink
+    ), {
     req(input$rowSortBy)
     hcl_r <- NULL
     ord_r <- 1:nrow(mm()$mat)
@@ -261,7 +263,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     list(ord = ord_r, hcl = hcl_r)
   })
   
-  colSB <- eventReactive(list(input$colSortBy, mm()$mat), {
+  colSB <- eventReactive(list(
+    input$colSortBy, mm()$mat, input$clusterColDist, input$clusterColLink 
+    ), {
     req(input$colSortBy)
     hcl_c <- NULL
     ord_c <- 1:ncol(mm()$mat)
