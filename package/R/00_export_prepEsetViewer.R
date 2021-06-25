@@ -93,6 +93,7 @@ prepEsetViewer <- function(
   if (is.null(expr_cn))
     expr_cn <- str_pad(1:ncol(expr), width = nchar(ncol(expr)), pad = "0")
   expr_cn <- make.names(expr_cn, unique = TRUE)
+  
   pData_rn <- rownames(pData)
   fData_rn <- rownames(fData)
   

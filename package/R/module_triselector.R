@@ -92,6 +92,8 @@ triselector_module <- function(input, output, session,
   
   observe({
     req(names(input))
+    if (nchar(input$analysis) > 0)
+      return(NULL)
     cc <- unique(reactive_x()[, 1])
     if (is.null(reactive_selector1()))
       ss <- cc[1] else
