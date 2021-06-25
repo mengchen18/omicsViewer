@@ -4,13 +4,23 @@
 \alias{app_module}
 \title{Application level 0 module}
 \usage{
-app_module(input, output, session, dir, filePattern = ".RDS$",
-  additionalTabs = NULL, ESVGlobalObj = reactive(NULL),
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
-  fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
-  "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
+app_module(
+  input,
+  output,
+  session,
+  dir,
+  filePattern = ".RDS$",
+  additionalTabs = NULL,
+  ESVObj = reactive(NULL),
+  esetLoader = readRDS,
+  exprsGetter = exprs,
+  pDataGetter = pData,
+  fDataGetter = fData,
+  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy", "dendrogram")[1])
+    attr(x, what),
   appName = "ExpressionSetViewer",
-  appVersion = packageVersion("ExpressionSetViewer"))
+  appVersion = packageVersion("ExpressionSetViewer")
+)
 }
 \arguments{
 \item{input}{input}
@@ -25,7 +35,7 @@ app_module(input, output, session, dir, filePattern = ".RDS$",
 
 \item{additionalTabs}{additional tabs added to "Analyst" panel}
 
-\item{ESVGlobalObj}{the object name exist in the .Global env that can be visualzied using esv, if this is 
+\item{ESVObj}{the ESV object
 given, the drop down list should be disable in the "ui" component.}
 
 \item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}

@@ -123,6 +123,8 @@ attr4selector_module <- function(
   
   
   observeEvent(pre_volcano(), {
+    print(pre_volcano())
+    print(input$actSelect)
     if (pre_volcano()) {
       if (input$actSelect == 0) {
         selected <- "volcano"
@@ -130,6 +132,7 @@ attr4selector_module <- function(
         updateSelectInput(session, inputId = "scorner", selected = "volcano")
       } 
     } else {
+      params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "None")
       updateSelectInput(session, inputId = "scorner", selected = "None")
     }
   })

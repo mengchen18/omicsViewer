@@ -4,9 +4,16 @@
 \alias{feature_general_module}
 \title{utility - feature general ui}
 \usage{
-feature_general_module(input, output, session, reactive_expr,
-  reactive_i = reactive(NULL), reactive_highlight = reactive(NULL),
-  reactive_phenoData, reactive_featureData)
+feature_general_module(
+  input,
+  output,
+  session,
+  reactive_expr,
+  reactive_i = reactive(NULL),
+  reactive_highlight = reactive(NULL),
+  reactive_phenoData,
+  reactive_featureData
+)
 }
 \arguments{
 \item{input}{input}

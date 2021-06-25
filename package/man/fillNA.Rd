@@ -4,10 +4,16 @@
 \alias{fillNA}
 \title{Filling NA using a constant or half lowest detected value (for each protein) method}
 \usage{
-fillNA(x, fillingFun = function(x) x - log10(2))
+fillNA(
+  x,
+  maxfill = quantile(x, probs = 0.15, na.rm = TRUE),
+  fillingFun = function(x) x - log10(2)
+)
 }
 \arguments{
 \item{x}{matrix with NA values}
+
+\item{maxfill}{the maximum of filled value}
 
 \item{fillingFun}{function to calculate half value
 e.g.

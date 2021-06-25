@@ -4,10 +4,17 @@
 \alias{dataTable_module}
 \title{utility - dataTable shiny module}
 \usage{
-dataTable_module(input, output, session, reactive_data, selector = TRUE,
-  columns = NULL, reactiveSelectorMeta = reactive(NULL),
-  reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col",
-  "none")[1])
+dataTable_module(
+  input,
+  output,
+  session,
+  reactive_data,
+  selector = TRUE,
+  columns = NULL,
+  reactiveSelectorMeta = reactive(NULL),
+  reactiveSelectorHeatmap = reactive(NULL),
+  subset = c("row", "col", "none")[1]
+)
 }
 \arguments{
 \item{input}{input}

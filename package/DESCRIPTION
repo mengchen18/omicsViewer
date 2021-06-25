@@ -11,4 +11,4 @@ Suggests: BiocStyle, knitr, rmarkdown
 VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1

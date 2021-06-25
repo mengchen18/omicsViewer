@@ -10,7 +10,7 @@ app_ui(id, showDropList = TRUE, activeTab = "Feature")
 \item{id}{id}
 
 \item{showDropList}{logical; whether to show the dropdown list to select RDS file, if the 
-ESVGlobalObj is given, this should be set to "FALSE"}
+ESVObj is given, this should be set to "FALSE"}
 
 \item{activeTab}{one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"}
 }

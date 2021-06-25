@@ -4,8 +4,14 @@
 \alias{plotly_boxplot}
 \title{plotly boxplot wrapper}
 \usage{
-plotly_boxplot(x, i = NULL, highlight = NULL, ylab = "ylab",
-  extvar = NULL, ylab.extvar = "ylab.extvar")
+plotly_boxplot(
+  x,
+  i = NULL,
+  highlight = NULL,
+  ylab = "ylab",
+  extvar = NULL,
+  ylab.extvar = "ylab.extvar"
+)
 }
 \arguments{
 \item{x}{a matrix object}

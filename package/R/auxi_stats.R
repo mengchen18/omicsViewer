@@ -141,6 +141,7 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
 
 #' Filling NA using a constant or half lowest detected value (for each protein) method
 #' @param x matrix with NA values
+#' @param maxfill the maximum of filled value
 #' @param fillingFun function to calculate half value
 #'   e.g.
 #'   function(x) x - log10(2) # default, when x is in log10 scale
@@ -148,10 +149,10 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
 #'   function(x) 0 # replace NA by 0
 #' @export
 
-fillNA <- function(x, fillingFun = function(x) x - log10(2)) {
+fillNA <- function(x, maxfill = quantile(x, probs = 0.15, na.rm = TRUE), fillingFun = function(x) x - log10(2)) {
   x <- apply(x, 1, function(xx) {
     x3 <- xx
-    x3[is.na(x3)] <- fillingFun(min(x3, na.rm = TRUE))
+    x3[is.na(x3)] <- min(maxfill, fillingFun(min(x3, na.rm = TRUE)))
     x3
   })
   t(x)

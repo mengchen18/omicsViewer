@@ -4,8 +4,14 @@
 \alias{factorIndependency_module}
 \title{utility - factorIndependency shiny module}
 \usage{
-factorIndependency_module(input, output, session, x, y,
-  reactive_checkpoint = reactive(TRUE))
+factorIndependency_module(
+  input,
+  output,
+  session,
+  x,
+  y,
+  reactive_checkpoint = reactive(TRUE)
+)
 }
 \arguments{
 \item{input}{input}

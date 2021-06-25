@@ -4,8 +4,13 @@
 \alias{plotly_boxplot_module}
 \title{utility - boxplot shiny module}
 \usage{
-plotly_boxplot_module(input, output, session,
-  reactive_param_plotly_boxplot, reactive_checkpoint = reactive(TRUE))
+plotly_boxplot_module(
+  input,
+  output,
+  session,
+  reactive_param_plotly_boxplot,
+  reactive_checkpoint = reactive(TRUE)
+)
 }
 \arguments{
 \item{input}{input}
