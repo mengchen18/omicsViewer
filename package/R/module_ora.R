@@ -72,6 +72,7 @@ enrichment_analysis_module <- function(
       return(notest)
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))
     tab[, ic] <- lapply(tab[, ic], signif, digits = 3)
+    tab <- tab[which(tab$p.adjusted < 0.1 | tab$p.value < 0.05 | tab$OR >= 3), ]
     tab
   })
   
