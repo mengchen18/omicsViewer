@@ -4,23 +4,12 @@
 \alias{plotly_barplot}
 \title{plotly barplot}
 \usage{
-plotly_barplot(
-  x,
-  names,
-  highlight = NULL,
-  highlight_color = "red",
-  highlight_width = 1,
-  highlight_legend = "highlighted",
-  background = NULL,
-  background_color = "gray",
-  background_width = 1,
-  background_legend = "background",
-  ylab = "ylab",
-  xlab = "xlab",
-  sort = c("none", "increasing", "decreasing")[1],
-  tooltips = NULL,
-  source = "plotlybarchart"
-)
+plotly_barplot(x, names, highlight = NULL, highlight_color = "red",
+  highlight_width = 1, highlight_legend = "highlighted",
+  background = NULL, background_color = "gray", background_width = 1,
+  background_legend = "background", ylab = "ylab", xlab = "xlab",
+  sort = c("none", "increasing", "decreasing")[1], tooltips = NULL,
+  source = "plotlybarchart")
 }
 \arguments{
 \item{x}{a numeric vector}

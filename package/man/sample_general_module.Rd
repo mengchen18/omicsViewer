@@ -4,13 +4,8 @@
 \alias{sample_general_module}
 \title{Utility sample general module}
 \usage{
-sample_general_module(
-  input,
-  output,
-  session,
-  reactive_phenoData,
-  reactive_j = reactive(NULL)
-)
+sample_general_module(input, output, session, reactive_phenoData,
+  reactive_j = reactive(NULL))
 }
 \arguments{
 \item{input}{input}

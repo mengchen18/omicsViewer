@@ -4,18 +4,11 @@
 \alias{ExpressionSetViewer}
 \title{Start ExpressionSetViewer}
 \usage{
-ExpressionSetViewer(
-  dir,
-  additionalTabs = NULL,
-  filePattern = ".RDS$",
-  esetLoader = readESVObj,
-  exprsGetter = exprs,
-  pDataGetter = pData,
-  fDataGetter = fData,
-  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy")[1]) attr(x, what),
-  appName = "ExpressionSetViewer",
-  appVersion = packageVersion("ExpressionSetViewer")
-)
+ExpressionSetViewer(dir, additionalTabs = NULL, filePattern = ".RDS$",
+  esetLoader = readESVObj, exprsGetter = exprs, pDataGetter = pData,
+  fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
+  "sy", "fx", "fy")[1]) attr(x, what), appName = "ExpressionSetViewer",
+  appVersion = packageVersion("ExpressionSetViewer"))
 }
 \arguments{
 \item{dir}{directory to the ExpressionSet object. Only give the directoy

@@ -463,13 +463,12 @@ plotly_scatter_module <- function(
   })
 
   observeEvent(figureId(), {
-    print(figureId())
+    # print(figureId())
     if (figureId() == "duplicated") {
       showModal(modalDialog(
         "Figure data has been added!", footer = modalButton("Dismiss")
       ))
-    } else {
-      print("a")
+    } else {      
       showModal( modalDialog(
           "Figure name",
           textInput(inputId = ns("fname"), label = "Figure name", placeholder = "Give figure name"),

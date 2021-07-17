@@ -92,7 +92,7 @@ app_module <- function(
     # try to get global object first
     if (!is.null(ESVObj())) 
       return( tallGS(ESVObj()) )
-    
+
     # otherwise load from disk
     req(input$selectFile)
     flink <- file.path(dir(), input$selectFile)
@@ -116,8 +116,8 @@ app_module <- function(
   })
   
   fdata <-reactive({
-    req(reactive_eset())
-    fDataGetter(reactive_eset())
+    req(reactive_eset())    
+    fDataGetter(reactive_eset())    
   })
   
   validEset <- function(expr, pd, fd) {
@@ -198,7 +198,6 @@ app_module <- function(
         incProgress(1/5, detail = "Saving table")
         saveWorkbook(wb, file = file, overwrite = TRUE)
       })
-      
     }
   )
   

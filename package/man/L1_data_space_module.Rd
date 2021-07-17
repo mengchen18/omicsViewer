@@ -4,19 +4,10 @@
 \alias{L1_data_space_module}
 \title{Application level 1 module - data space}
 \usage{
-L1_data_space_module(
-  input,
-  output,
-  session,
-  expr,
-  pdata,
-  fdata,
-  reactive_x_s = reactive(NULL),
-  reactive_y_s = reactive(NULL),
-  reactive_x_f = reactive(NULL),
-  reactive_y_f = reactive(NULL),
-  rowDendrogram = reactive(NULL)
-)
+L1_data_space_module(input, output, session, expr, pdata, fdata,
+  reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
+  reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
+  rowDendrogram = reactive(NULL))
 }
 \arguments{
 \item{input}{input}

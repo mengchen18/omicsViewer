@@ -4,25 +4,11 @@
 \alias{plotly_scatter}
 \title{Utility plotly scater}
 \usage{
-plotly_scatter(
-  x,
-  y,
-  xlab = "",
-  ylab = "ylab",
-  color = "",
-  shape = "",
-  size = 10,
-  tooltips = NULL,
-  regressionLine = FALSE,
-  source = "scatterplotlysource",
-  sizeRange = c(5, 15),
-  highlight = NULL,
-  highlightName = "Highlighted",
-  vline = NULL,
-  hline = NULL,
-  rect = NULL,
-  drawButtonId = NULL
-)
+plotly_scatter(x, y, xlab = "", ylab = "ylab", color = "",
+  shape = "", size = 10, tooltips = NULL, regressionLine = FALSE,
+  source = "scatterplotlysource", sizeRange = c(5, 15),
+  highlight = NULL, highlightName = "Highlighted", vline = NULL,
+  hline = NULL, rect = NULL, drawButtonId = NULL)
 }
 \arguments{
 \item{x}{x values}

@@ -4,14 +4,8 @@
 \alias{survival_module}
 \title{Utility survival KM module}
 \usage{
-survival_module(
-  input,
-  output,
-  session,
-  reactive_resp,
-  reactive_strata,
-  reactive_checkpoint = reactive(TRUE)
-)
+survival_module(input, output, session, reactive_resp, reactive_strata,
+  reactive_checkpoint = reactive(TRUE))
 }
 \arguments{
 \item{input}{input}

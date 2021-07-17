@@ -4,14 +4,8 @@
 \alias{vectORA.core}
 \title{Internal function used by vectORA}
 \usage{
-vectORA.core(
-  n.overlap,
-  n.de,
-  n.gs,
-  n.bkg,
-  unconditional.or = TRUE,
-  mtc.method = "fdr"
-)
+vectORA.core(n.overlap, n.de, n.gs, n.bkg, unconditional.or = TRUE,
+  mtc.method = "fdr")
 }
 \arguments{
 \item{n.overlap}{the number of overlap between de and gs. The number of white balls drawn 

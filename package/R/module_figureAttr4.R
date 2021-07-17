@@ -123,8 +123,6 @@ attr4selector_module <- function(
   
   
   observeEvent(pre_volcano(), {
-    print(pre_volcano())
-    print(input$actSelect)
     if (pre_volcano()) {
       if (input$actSelect == 0) {
         selected <- "volcano"

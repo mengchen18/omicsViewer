@@ -90,15 +90,15 @@ triselector_module <- function(input, output, session,
   #   selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE)
   # )
   
-  observe({
-    req(names(input))
-    if (nchar(input$analysis) > 0)
-      return(NULL)
+  observe({    
+    req(names(input))    
+    # if (nchar(input$analysis) > 0)
+    #   return(NULL)    
     cc <- unique(reactive_x()[, 1])
     if (is.null(reactive_selector1()))
       ss <- cc[1] else
-        ss <- reactive_selector1()
-    updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
+        ss <- reactive_selector1()    
+    updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)    
   })
   
   # outputOptions(output, "analysis.output", suspendWhenHidden = suspendWhenHidden )

@@ -4,17 +4,10 @@
 \alias{meta_scatter_module}
 \title{Utility - scatter plot for meta shiny module}
 \usage{
-meta_scatter_module(
-  input,
-  output,
-  session,
-  reactive_meta = reactive(NULL),
-  reactive_expr = reactive(NULL),
-  combine = c("pheno", "feature"),
-  source = "plotlyscattersource",
-  reactive_x = reactive(NULL),
-  reactive_y = reactive(NULL)
-)
+meta_scatter_module(input, output, session,
+  reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
+  combine = c("pheno", "feature"), source = "plotlyscattersource",
+  reactive_x = reactive(NULL), reactive_y = reactive(NULL))
 }
 \arguments{
 \item{input}{input}

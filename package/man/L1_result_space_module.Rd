@@ -4,18 +4,10 @@
 \alias{L1_result_space_module}
 \title{Utility L1 result space ui}
 \usage{
-L1_result_space_module(
-  input,
-  output,
-  session,
-  reactive_expr,
-  reactive_phenoData,
-  reactive_featureData,
-  reactive_i = reactive(NULL),
-  reactive_highlight = reactive(NULL),
-  additionalTabs = NULL,
-  object = NULL
-)
+L1_result_space_module(input, output, session, reactive_expr,
+  reactive_phenoData, reactive_featureData, reactive_i = reactive(NULL),
+  reactive_highlight = reactive(NULL), additionalTabs = NULL,
+  object = NULL)
 }
 \arguments{
 \item{input}{input}

@@ -4,7 +4,8 @@
 \alias{exprspca}
 \title{perform PCA and prepare for ExpressionSetViewer}
 \usage{
-exprspca(x, n = min(8, ncol(x) - 1), prefix = "PCA|All", fillNA = FALSE)
+exprspca(x, n = min(8, ncol(x) - 1), prefix = "PCA|All",
+  fillNA = FALSE)
 }
 \arguments{
 \item{x}{expression matrix, where rows are feature and samples are columns. Don't need to 

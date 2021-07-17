@@ -3,7 +3,8 @@ ptmotif_ui <- function(id) {
   
   ns <- NS(id)
   tagList(
-    plotOutput(ns("plt")),
+    # plotOutput(ns("plt")),
+    uiOutput(ns("msg_ui")),
     fluidRow(
       column(
         width = 3, textInput(ns("cent.res"), label = "Center residue", width = "100%", value = "STY")
@@ -29,19 +30,34 @@ ptmotif_module <- function(
   ns <- session$ns
   
   bg.seqs <- reactiveVal(NULL)
+  errText <- reactiveVal(NULL)
   observe({
     req(ic <- grep("^PTMSeq\\|", colnames(fdata())))
     l <- unique(unlist(strsplit(fdata()[, ic], ";")))
-    if (length(unique(nchar(l))) > 1) {
-      showModal(modalDialog(
-        title = "Oops!",
-        "The length of sequences is different. The input of PTM motif analysis requires the sequences 
-        have the same length, the middle of the sequence should be the modified AA."
-      ))
-      return()
-    }
-    bg.seqs(l)
+    err <- length(unique(nchar(l))) > 1    
+    if (!err) { 
+      errText(NULL)
+      bg.seqs(l)
+    } else {      
+      errText(
+        "The length of sequences is different. The input of PTM motif analysis requires the sequences have the same length, the middle of the sequence should be the modified AA."
+        )
+      bg.seqs(NULL)
+    }     
   })
+
+  output$errorMsg <- renderText({
+    if (is.null(errText()))
+      return(NULL)
+    errText() 
+    })
+
+  output$msg_ui <- renderUI({
+    if (!is.null( errText() ))
+      verbatimTextOutput(ns("errorMsg")) else
+        plotOutput(ns("plt"))
+    })
+
   observeEvent(fdata(), {
     if (exists("__pfm.bg__", envir = .GlobalEnv))
       rm(list = "__pfm.bg__", envir = .GlobalEnv)
@@ -69,7 +85,6 @@ ptmotif_module <- function(
     fg.seq <- foregroundSeqs()
     midpos <- (nchar(fg.seq[1])+1)/2
     fg.seq <- fg.seq[substr(fg.seq, midpos, midpos) %in% strsplit(input$cent.res, split = "|")[[1]]]
-    print(length(fg.seq))
     req( length(fg.seq) >= input$min.seqs )
     pc <- try(as.numeric(input$pval.cut))
     req(is.numeric(pc))

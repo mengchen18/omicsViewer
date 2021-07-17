@@ -4,19 +4,10 @@
 \alias{vectORA}
 \title{Vectorized over-representation analysis using fisher's exact test}
 \usage{
-vectORA(
-  gs,
-  i,
-  background = NA,
-  minOverlap = 3,
-  minSize = 5,
-  maxSize = Inf,
-  gs_desc = NULL,
-  feature_desc = NULL,
-  unconditional.or = TRUE,
-  mtc.method = "fdr",
-  sort = c("none", "p.value", "OR")[1]
-)
+vectORA(gs, i, background = NA, minOverlap = 3, minSize = 5,
+  maxSize = Inf, gs_desc = NULL, feature_desc = NULL,
+  unconditional.or = TRUE, mtc.method = "fdr", sort = c("none",
+  "p.value", "OR")[1])
 }
 \arguments{
 \item{gs}{a matrix where rows are features and columns are gene sets. The zeros in the matrix 
@@ -53,7 +44,7 @@ Vectorized over-representation analysis using fisher's exact test
 # library(Biobase)
 # dat <- readRDS("Dat/exampleEset.RDS")
 # fd <- fData(dat)
-# fdgs <- fd[, grep("^GS\\|", colnames(fd))]
+# fdgs <- fd[, grep("^GS\\\\|", colnames(fd))]
 # ir <- which(fd$`t-test|OV_BR|pval` < 0.05)
 # res <- vectORA(gs = fdgs, i = ir, unconditional.or = FALSE)
 # res2 <- vectORA(gs = fdgs, i = ir, unconditional.or = TRUE)
