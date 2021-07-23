@@ -31,7 +31,7 @@ trisetter <- function(meta, expr=NULL, combine) {
     nm <- c(nm, cgs, rt)
   }
   v <- str_split_fixed(nm, "\\|", n = 3)
-  attr(v, "seed") <- rnorm(3)
+  attr(v, "seed") <- Sys.time()
   v
 }
 
