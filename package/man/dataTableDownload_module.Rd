@@ -4,9 +4,17 @@
 \alias{dataTableDownload_module}
 \title{utility - dataTable for download shiny module}
 \usage{
-dataTableDownload_module(input, output, session, reactive_table,
-  reactive_cols = reactive(NULL), prefix = "", pageLength = 10,
-  sortBy = NULL, decreasing = TRUE)
+dataTableDownload_module(
+  input,
+  output,
+  session,
+  reactive_table,
+  reactive_cols = reactive(NULL),
+  prefix = "",
+  pageLength = 10,
+  sortBy = NULL,
+  decreasing = TRUE
+)
 }
 \arguments{
 \item{input}{input}

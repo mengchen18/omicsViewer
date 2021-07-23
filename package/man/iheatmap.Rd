@@ -19,8 +19,15 @@ iheatmapLegend(id)
 
 iheatmapClear(id)
 
-iheatmapModule(input, output, session, mat, pd, fd,
-  rowDendrogram = reactive(NULL))
+iheatmapModule(
+  input,
+  output,
+  session,
+  mat,
+  pd,
+  fd,
+  rowDendrogram = reactive(NULL)
+)
 }
 \arguments{
 \item{x}{a matrix object or ExpressionSet}

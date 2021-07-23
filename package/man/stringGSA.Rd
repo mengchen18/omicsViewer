@@ -4,8 +4,13 @@
 \alias{stringGSA}
 \title{Performing gene set analysis using string-db}
 \usage{
-stringGSA(genes, taxid = 9606, background = NULL,
-  backgroundStringId = FALSE, caller = "ExpressionSetViewer")
+stringGSA(
+  genes,
+  taxid = 9606,
+  background = NULL,
+  backgroundStringId = FALSE,
+  caller = "ExpressionSetViewer"
+)
 }
 \arguments{
 \item{genes}{a character vector of gene ids}

@@ -4,11 +4,16 @@
 \alias{triselector_module}
 \title{The three-step selector - the module function}
 \usage{
-triselector_module(input, output, session, reactive_x,
+triselector_module(
+  input,
+  output,
+  session,
+  reactive_x,
   reactive_selector1 = reactive(NULL),
   reactive_selector2 = reactive(NULL),
-  reactive_selector3 = reactive(NULL), label = "Group Label:",
-  suspendWhenHidden = TRUE)
+  reactive_selector3 = reactive(NULL),
+  label = "Group Label:"
+)
 }
 \arguments{
 \item{input}{input}
@@ -26,8 +31,6 @@ triselector_module(input, output, session, reactive_x,
 \item{reactive_selector3}{default value for selector 3}
 
 \item{label}{of the triselector}
-
-\item{suspendWhenHidden}{seuspend when hidden}
 }
 \description{
 The selector is used to select columns of phenotype and feature data. It maybe useful when
@@ -38,7 +41,7 @@ The selector is used to select columns of phenotype and feature data. It maybe u
 # library(shiny)
 # library(Biobase)
 # fData <- fData(dat)
-# triset <- stringr::str_split_fixed(colnames(fData), '\\\\|', n= 3)
+# triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)
 # source("R/module_triselector.R")
 # 
 # ui <- fluidPage(

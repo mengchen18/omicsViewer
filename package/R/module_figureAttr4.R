@@ -81,11 +81,11 @@ attr4selector_module <- function(
   ns <- session$ns
   params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)
   
-  selectColor <- callModule(triselector_module, id = "selectColorUI", reactive_x = reactive_triset, label = "Color", suspendWhenHidden = FALSE)
-  selectShape <- callModule(triselector_module, id = "selectShapeUI", reactive_x = reactive_triset, label = "Shape", suspendWhenHidden = FALSE)
-  selectSize <- callModule(triselector_module, id = "selectSizeUI", reactive_x = reactive_triset, label = "Size", suspendWhenHidden = FALSE)
-  selectTooltip <- callModule(triselector_module, id = "selectTooltipUI", reactive_x = reactive_triset, label = "Tooltips", suspendWhenHidden = FALSE)
-  searchOnCol <- callModule(triselector_module, id = "selectSearchCol", reactive_x = reactive_triset, label = "Search", suspendWhenHidden = FALSE)
+  selectColor <- callModule(triselector_module, id = "selectColorUI", reactive_x = reactive_triset, label = "Color")#, suspendWhenHidden = FALSE)
+  selectShape <- callModule(triselector_module, id = "selectShapeUI", reactive_x = reactive_triset, label = "Shape")#, suspendWhenHidden = FALSE)
+  selectSize <- callModule(triselector_module, id = "selectSizeUI", reactive_x = reactive_triset, label = "Size")#, suspendWhenHidden = FALSE)
+  selectTooltip <- callModule(triselector_module, id = "selectTooltipUI", reactive_x = reactive_triset, label = "Tooltips")#, suspendWhenHidden = FALSE)
+  searchOnCol <- callModule(triselector_module, id = "selectSearchCol", reactive_x = reactive_triset, label = "Search")#, suspendWhenHidden = FALSE)
   
   vv <- reactive( varSelector(searchOnCol(), expr = reactive_expr(), meta = reactive_meta()) )
   observe(

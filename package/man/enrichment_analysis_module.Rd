@@ -4,8 +4,13 @@
 \alias{enrichment_analysis_module}
 \title{Utility enrichment analysis shiny module}
 \usage{
-enrichment_analysis_module(input, output, session, reactive_featureData,
-  reactive_i)
+enrichment_analysis_module(
+  input,
+  output,
+  session,
+  reactive_featureData,
+  reactive_i
+)
 }
 \arguments{
 \item{input}{input}

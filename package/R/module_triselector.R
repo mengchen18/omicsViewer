@@ -28,7 +28,6 @@ triselector_ui <- function(id) {
 #' @param reactive_selector2 default value for selector 2
 #' @param reactive_selector3 default value for selector 3
 #' @param label of the triselector
-#' @param suspendWhenHidden seuspend when hidden
 #' @export
 #' @examples 
 #' # dat <- readRDS("inst/extdata/demo.RDS")
@@ -65,8 +64,7 @@ triselector_module <- function(input, output, session,
                                reactive_selector1 = reactive(NULL), 
                                reactive_selector2 = reactive(NULL), 
                                reactive_selector3 = reactive(NULL),
-                               label = "Group Label:",
-                               suspendWhenHidden = TRUE) {
+                               label = "Group Label:") {
   
   ns <- session$ns
                 
@@ -79,13 +77,24 @@ triselector_module <- function(input, output, session,
     length(aa) > 0 && aa
   })
   
-  observe({
+  observeEvent(list(reactive_selector1()), {
     if (length(names(input)) == 0)
       return(NULL)
     cc <- unique(reactive_x()[, 1])
-    if (is.null(reactive_selector1()))
-      ss <- cc[1] else
-        ss <- reactive_selector1()    
+    if (!is.null(reactive_selector1()))
+      ss <- reactive_selector1() else
+        ss <- cc[1]
+    updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
+  })
+  
+  observeEvent(list(names(input), reactive_x()), {
+    if (length(names(input)) == 0)
+      return(NULL)
+    cc <- unique(reactive_x()[, 1])
+    if (input$analysis %in% cc)
+      ss <- input$analysis else if (!is.null(reactive_selector1()))
+        ss <- reactive_selector1() else
+          ss <- cc[1]
     updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
   
@@ -107,7 +116,7 @@ triselector_module <- function(input, output, session,
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
   })
   
-  observe({    
+  observe({
     input$analysis
     input$subset
     req(input$analysis)
