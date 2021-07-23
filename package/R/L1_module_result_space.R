@@ -67,7 +67,8 @@ L1_result_space_module <- function(
   v7 <- callModule(
     ptmotif_module, id = "ptm", 
     fdata = reactive_featureData, 
-    feature_selected = reactive_i
+    feature_selected = reactive_i, 
+    background = reactive( attr(object(), "ptm.seq.window") )
   )
   
   # 
@@ -100,7 +101,6 @@ L1_result_space_module <- function(
     
     optionalTabs <- list()
     
-    # if (any(grepl("^GS\\|", colnames(reactive_featureData())))) {
     if (!is.null(attr(reactive_featureData(), "GS"))) {
       optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
       optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))

@@ -30,7 +30,9 @@ trisetter <- function(meta, expr=NULL, combine) {
     }
     nm <- c(nm, cgs, rt)
   }
-  str_split_fixed(nm, "\\|", n = 3)
+  v <- str_split_fixed(nm, "\\|", n = 3)
+  attr(v, "seed") <- rnorm(3)
+  v
 }
 
 #' variable selector 

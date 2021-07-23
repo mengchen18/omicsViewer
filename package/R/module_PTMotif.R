@@ -3,7 +3,6 @@ ptmotif_ui <- function(id) {
   
   ns <- NS(id)
   tagList(
-    # plotOutput(ns("plt")),
     uiOutput(ns("msg_ui")),
     fluidRow(
       column(
@@ -25,7 +24,7 @@ ptmotif_ui <- function(id) {
 }
 
 ptmotif_module <- function(
-  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, background
 ) {
   ns <- session$ns
   
@@ -33,17 +32,17 @@ ptmotif_module <- function(
   errText <- reactiveVal(NULL)
   observe({
     req(ic <- grep("^PTMSeq\\|", colnames(fdata())))
-    l <- unique(unlist(strsplit(fdata()[, ic], ";")))
-    err <- length(unique(nchar(l))) > 1    
-    if (!err) { 
+    x <- background()
+    if (!is.null(x)) {
       errText(NULL)
-      bg.seqs(l)
-    } else {      
+      bg.seqs(x)
+    } else {
       errText(
-        "The length of sequences is different. The input of PTM motif analysis requires the sequences have the same length, the middle of the sequence should be the modified AA."
-        )
+        "The length of sequences is different. The input of PTM motif analysis requires 
+the sequences have the same length, the middle of the sequence should be the modified AA."
+      )
       bg.seqs(NULL)
-    }     
+    }
   })
 
   output$errorMsg <- renderText({
@@ -57,17 +56,6 @@ ptmotif_module <- function(
       verbatimTextOutput(ns("errorMsg")) else
         plotOutput(ns("plt"))
     })
-
-  observeEvent(fdata(), {
-    if (exists("__pfm.bg__", envir = .GlobalEnv))
-      rm(list = "__pfm.bg__", envir = .GlobalEnv)
-  })
-  observe({
-    req(bg.seqs())
-    if (exists("__pfm.bg__", envir = .GlobalEnv))
-      return()
-    assign("__pfm.bg__", aaFreq( bg.seqs() ), envir = .GlobalEnv)
-  })
   
   foregroundSeqs <- reactive({
     req(ic <- grep("^PTMSeq\\|", colnames(fdata())))
@@ -77,7 +65,7 @@ ptmotif_module <- function(
   
   logo <- reactive({
     req(foregroundSeqs() >= input$min.seqs )
-    req(r0 <- get("__pfm.bg__", envir = .GlobalEnv))
+    req(r0 <- bg.seqs())
     motifRF(foregroundSeqs(), bg.pfm = r0)
   })
   

@@ -122,17 +122,18 @@ meta_scatter_module <- function(
     req(xycoord())
     rectval( line_rect(l = attr4select$cutoff, xycoord())$rect )
   })
+  
   observeEvent(input$clear, {
     rectval( NULL )
   })
   observeEvent(list(v1(), v2()), {
-    if (is.null(attr4select$cutoff)) {
+    if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") {
       rectval(NULL)
       return(NULL)
-    }
-    if (attr4select$cutoff$corner == "volcano")
-      if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest")
+    } else if (attr4select$cutoff$corner == "volcano")
+      if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest") {
         rectval(NULL)
+      }
   })
   
   scatter_vars <- reactive({
@@ -189,8 +190,15 @@ meta_scatter_module <- function(
       ) )
   })
   
-  observeEvent( rectval(), {
-    req( rec <- rectval() )
+  observeEvent( list(rectval(), attr4select$cutoff), {
+    rec <- rectval()
+    if (is.null(rec)) {
+      selVal(list(
+        clicked = character(0),
+        selected = character(0)
+      )) 
+      return(NULL)
+    }
     req( cc <- xycoord() )
     if (combine == "pheno")
       l <- colnames(reactive_expr()) else
