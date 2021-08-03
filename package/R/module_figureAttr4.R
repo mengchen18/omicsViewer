@@ -5,40 +5,38 @@
 #' 
 attr4selector_ui <- function(id, circle = TRUE) {
   ns <- NS(id)
-  tagList(
-    dropdown(
-      margin = "25px",
-      circle = circle, status = "default", icon = icon("gear"), width = "700px",
-      tooltip = tooltipOptions(title = "Click to modify figure!"),
-      br(),
-      triselector_ui(ns("selectColorUI")),
-      triselector_ui(ns("selectShapeUI")),
-      triselector_ui(ns("selectSizeUI")),
-      triselector_ui(ns("selectTooltipUI")),
-      triselector_ui(ns("selectSearchCol")),
-      fluidRow(
-        column(9,  offset = 0, style='padding-left:65px; padding-right:5px; padding-top:0px; padding-bottom:0px',
-               div(style="display: inline-block;vertical-align:top;", h5("Find and highlight:")),
-               div(style="display: inline-block;vertical-align:top; width:70%;", 
-                   selectInput(ns("searchon"), label = NULL, choices = NULL, multiple = TRUE, width = "550px"))
-        ),
-        column(3, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
-               actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right"),
-        column(
-          4, offset = 0, style='padding:2px;', 
-          # textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
-          textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", value = "log10(2)", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
-        column(
-          4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
-          # textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
-          textInputAddon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
-        column(
-          2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
-          selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE)),
-        column(
-          2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
-          actionButton(inputId = ns("actSelect"), label = "Select")
-        )
+  dropdown(
+    margin = "25px",
+    circle = circle, status = "default", icon = icon("gear"), width = "700px",
+    tooltip = tooltipOptions(title = "Click to modify figure!"),
+    br(),
+    triselector_ui(ns("selectColorUI")),
+    triselector_ui(ns("selectShapeUI")),
+    triselector_ui(ns("selectSizeUI")),
+    triselector_ui(ns("selectTooltipUI")),
+    triselector_ui(ns("selectSearchCol")),
+    fluidRow(
+      column(9,  offset = 0, style='padding-left:65px; padding-right:5px; padding-top:0px; padding-bottom:0px',
+             div(style="display: inline-block;vertical-align:top;", h5("Find and highlight:")),
+             div(style="display: inline-block;vertical-align:top; width:70%;", 
+                 selectInput(ns("searchon"), label = NULL, choices = NULL, multiple = TRUE, width = "550px"))
+      ),
+      column(3, offset = 0, style='padding-right:21px; padding-top:0px; padding-bottom:0px',
+             actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right"),
+      column(
+        4, offset = 0, style='padding:2px;', 
+        # textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
+        textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", value = "log10(2)", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
+      column(
+        4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
+        # textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
+        textInputAddon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
+      column(
+        2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
+        selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE)),
+      column(
+        2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
+        actionButton(inputId = ns("actSelect"), label = "Select")
       )
     )
   )
