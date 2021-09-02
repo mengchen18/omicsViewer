@@ -50,7 +50,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
   df <- data.frame(row.names = rownames(x))
   for ( i in names(tl) ) {
     for ( j in tl[[i]] ) {
-      m <- x[, which(pheno[[i]] == j)]
+      m <- x[, which(pheno[[i]] == j), drop = FALSE]
       rv <- rowSums(!is.na(m))
       rm <- rowMeans(m, na.rm = TRUE)
       rq <- rank(rm, na.last = TRUE)/sum(!is.na(rm))
@@ -69,7 +69,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
       stop(paste("Didn't find var:", paste(v, collapse = "-")))
     
     tv <- apply(x, 1, function(xx) {
-      t <- try(t.test(xx[i1], xx[i2], ...), silent = TRUE) # 
+      t <- try(t.test(xx[i1], xx[i2], var.equal = TRUE, ...), silent = TRUE) # 
       if (class(t) != "htest")
         return(c(pvalue = NA, mean.diff = NA))
       if (length(t$estimate) == 1)
