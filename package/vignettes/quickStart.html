@@ -266,7 +266,7 @@ div.tocify {
 <h1 class="title toc-ignore">Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer</h1>
 <h4 class="author">Chen Meng</h4>
 <address class="author_afil">
-BayBioMS, TU Munich<br><h4 class="date">12 February, 2021</h4>
+BayBioMS, TU Munich<br><h4 class="date">10 September, 2021</h4>
 
 </div>
 
@@ -282,7 +282,7 @@ BayBioMS, TU Munich<br><h4 class="date">12 February, 2021</h4>
 <h2><span class="header-section-number">2.1</span> Start the shinyapp inside R</h2>
 <p>First, we assume the data for ExpressionSetViewer has been prepared, and the task now is to visualize the object using ExpressionSetViewer. Inside R, this can be done using：</p>
 <pre class="r"><code>library(ExpressionSetViewer)
-path2data &lt;- system.file(&quot;extdata&quot;, package = &quot;ExpressionSetViewer&quot;)
+path2data &lt;- system.file(&quot;extdata&quot;, package = &quot;ExpressionSetViewerData&quot;)
 ExpressionSetViewer(path2data)</code></pre>
 <p>Here <em>path2data</em> is the folder containing the <em>.RDS</em> files (not the <em>.RDS</em> files) to be visualized by ExpressionSetViewer. All the <em>.RDS</em> files will be listed in the text box on the top right corner. Select one of the datasets to loaded it into the viewer. A video introduction on how to use the viewer is <a href="https://www.youtube.com/watch?v=0nirB-exquY&amp;list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk">here</a>.</p>
 <p>The example data is an object of <em>ExpressionSet</em>, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 7000 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively.</p>
@@ -381,7 +381,7 @@ ExpressionSetViewer(path2data)</code></pre>
 <p>The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to performs the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer.</p>
 <p>A simple example:</p>
 <pre class="r"><code>library(ExpressionSetViewer)
-packdir &lt;- system.file(&quot;extdata&quot;, package = &quot;ExpressionSetViewer&quot;)
+packdir &lt;- system.file(&quot;extdata&quot;, package = &quot;ExpressionSetViewerData&quot;)
 # reading expression
 expr &lt;- read.delim(file.path(packdir, &quot;expressionMatrix.tsv&quot;), stringsAsFactors = FALSE)
 colnames(expr) &lt;- make.names(colnames(expr))
@@ -669,9 +669,9 @@ ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)<
 <div id="sessioninfo" class="section level1">
 <h1><span class="header-section-number">4</span> SessionInfo</h1>
 <pre class="r"><code>sessionInfo()</code></pre>
-<pre><code>## R version 3.6.1 (2019-07-05)
+<pre><code>## R version 3.6.3 (2020-02-29)
 ## Platform: x86_64-pc-linux-gnu (64-bit)
-## Running under: Ubuntu 16.04.6 LTS
+## Running under: Ubuntu 16.04.7 LTS
 ## 
 ## Matrix products: default
 ## BLAS:   /usr/lib/libblas/libblas.so.3.6.0
@@ -689,41 +689,43 @@ ExpressionSetViewer(&quot;Git/package/inst/extdata/&quot;, additionalTabs = ll)<
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ExpressionSetViewer_0.3.3
+## [1] ExpressionSetViewer_0.5.12
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] matrixStats_0.54.0  RColorBrewer_1.1-2  httr_1.4.1         
-##  [4] tools_3.6.1         backports_1.1.4     R6_2.4.0           
-##  [7] DT_0.8              lazyeval_0.2.2      BiocGenerics_0.30.0
-## [10] colorspace_1.4-1    tidyselect_1.1.0    gridExtra_2.3      
-## [13] curl_4.0            compiler_3.6.1      Biobase_2.44.0     
-## [16] plotly_4.9.2.1      scales_1.0.0        survMisc_0.5.5     
-## [19] stringr_1.4.0       digest_0.6.20       foreign_0.8-71     
-## [22] rmarkdown_2.5       rio_0.5.16          pkgconfig_2.0.2    
-## [25] htmltools_0.4.0     fastmap_1.0.1       htmlwidgets_1.5.1  
-## [28] rlang_0.4.10        readxl_1.3.1        shiny_1.4.0.2      
-## [31] generics_0.0.2      zoo_1.8-6           jsonlite_1.6       
-## [34] BiocParallel_1.18.1 dplyr_1.0.0         zip_2.0.4          
-## [37] car_3.0-6           magrittr_1.5        Matrix_1.2-15      
-## [40] Rcpp_1.0.2          munsell_0.5.0       abind_1.4-5        
-## [43] lifecycle_0.2.0     stringi_1.4.3       yaml_2.2.0         
-## [46] carData_3.0-3       Rtsne_0.15          plyr_1.8.4         
-## [49] grid_3.6.1          parallel_3.6.1      randomcoloR_1.1.0  
-## [52] promises_1.0.1      forcats_0.4.0       crayon_1.3.4       
-## [55] survminer_0.4.8     lattice_0.20-38     haven_2.1.1        
-## [58] splines_3.6.1       hms_0.5.1           knitr_1.30         
-## [61] pillar_1.4.4        fgsea_1.10.1        igraph_1.2.4.1     
-## [64] ggpubr_0.4.0        ggsignif_0.6.0      reshape2_1.4.3     
-## [67] fastmatch_1.1-0     glue_1.4.1          evaluate_0.14      
-## [70] V8_2.3              data.table_1.12.2   vctrs_0.3.0        
-## [73] httpuv_1.5.2        networkD3_0.4       cellranger_1.1.0   
-## [76] gtable_0.3.0        purrr_0.3.4         tidyr_1.1.2        
-## [79] km.ci_0.5-2         ggplot2_3.3.2       xfun_0.19          
-## [82] openxlsx_4.1.0.1    mime_0.7            xtable_1.8-4       
-## [85] broom_0.7.0         rstatix_0.6.0       later_0.8.0        
-## [88] survival_2.43-3     viridisLite_0.3.0   tibble_3.0.1       
-## [91] shinythemes_1.1.2   beeswarm_0.2.3      KMsurv_0.1-5       
-## [94] cluster_2.0.7-1     shinyWidgets_0.5.0  ellipsis_0.3.1</code></pre>
+##   [1] nlme_3.1-149        matrixStats_0.54.0  shinybusy_0.2.2    
+##   [4] RColorBrewer_1.1-2  httr_1.4.1          tools_3.6.3        
+##   [7] backports_1.1.4     R6_2.4.0            DT_0.8             
+##  [10] lazyeval_0.2.2      BiocGenerics_0.30.0 colorspace_1.4-1   
+##  [13] tidyselect_1.1.0    gridExtra_2.3       mnormt_1.5-5       
+##  [16] curl_4.0            compiler_3.6.3      Biobase_2.44.0     
+##  [19] plotly_4.9.2.1      scales_1.0.0        survMisc_0.5.5     
+##  [22] psych_1.8.12        stringr_1.4.0       digest_0.6.27      
+##  [25] foreign_0.8-71      rmarkdown_2.5       rio_0.5.16         
+##  [28] pkgconfig_2.0.2     htmltools_0.5.1.1   fastmap_1.0.1      
+##  [31] readxl_1.3.1        htmlwidgets_1.5.1   rlang_0.4.10       
+##  [34] shiny_1.6.0         generics_0.0.2      zoo_1.8-6          
+##  [37] jsonlite_1.6        BiocParallel_1.18.1 dplyr_1.0.0        
+##  [40] zip_2.0.4           car_3.0-6           magrittr_1.5       
+##  [43] Matrix_1.2-15       Rcpp_1.0.2          munsell_0.5.0      
+##  [46] abind_1.4-5         rmotifx_1.0         lifecycle_0.2.0    
+##  [49] stringi_1.4.3       yaml_2.2.0          carData_3.0-3      
+##  [52] Rtsne_0.15          plyr_1.8.4          grid_3.6.3         
+##  [55] ggseqlogo_0.1       parallel_3.6.3      randomcoloR_1.1.0  
+##  [58] promises_1.1.0      forcats_0.4.0       crayon_1.3.4       
+##  [61] survminer_0.4.8     lattice_0.20-38     haven_2.3.1        
+##  [64] splines_3.6.3       hms_0.5.3           knitr_1.30         
+##  [67] pillar_1.4.4        fgsea_1.10.1        igraph_1.2.4.1     
+##  [70] ggpubr_0.4.0        ggsignif_0.6.0      reshape2_1.4.3     
+##  [73] fastmatch_1.1-0     glue_1.4.1          evaluate_0.14      
+##  [76] V8_2.3              data.table_1.12.2   vctrs_0.3.0        
+##  [79] httpuv_1.5.2        cellranger_1.1.0    networkD3_0.4      
+##  [82] gtable_0.3.0        purrr_0.3.4         tidyr_1.1.2        
+##  [85] km.ci_0.5-2         ggplot2_3.3.2       xfun_0.19          
+##  [88] openxlsx_4.1.0.1    mime_0.7            xtable_1.8-4       
+##  [91] broom_0.7.0         rstatix_0.6.0       later_1.1.0.1      
+##  [94] survival_2.43-3     viridisLite_0.3.0   tibble_3.0.1       
+##  [97] shinythemes_1.1.2   KMsurv_0.1-5        beeswarm_0.2.3     
+## [100] cluster_2.0.7-1     shinyWidgets_0.5.0  ellipsis_0.3.1</code></pre>
 </div>
 
 

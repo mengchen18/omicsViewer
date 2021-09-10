@@ -105,10 +105,12 @@ A simple example:
 ```{r simple_pipeline}
 library(ExpressionSetViewer)
 packdir <- system.file("extdata", package = "ExpressionSetViewer")
+
 # reading expression
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 colnames(expr) <- make.names(colnames(expr))
 rownames(expr) <- make.names(rownames(expr))
+
 # reading feature data
 fd <- read.delim(file.path(packdir, "featureGeneral.tsv"), stringsAsFactors = FALSE)
 # reading phenotype data

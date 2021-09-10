@@ -120,9 +120,14 @@ plotly_scatter <- function(
   ## prepare data.frame differently
   if (i1) {
     names(y) <- paste0("Y", 1:length(y))
-    df <- beeswarm(y ~ x, corral = "wrap", do.plot = FALSE, corralWidth = 0.9)
+    df <- beeswarm(y ~ x, corral = "wrap", do.plot = FALSE, corralWidth = 0.75)
     df$index <- fmatch(rownames(df), paste(x, names(y), sep = "."))
     tlp <- sprintf("<b>%s: </b>%s<br><b>%s: </b>%s", xlab, df$x.orig, ylab, signif(df$y, digits = 3))
+
+    ixlab <- table(df$x.orig)
+    ixlab <- structure(paste0(names(ixlab), " (n=", ixlab, ")"), names = names(ixlab))
+    df$x.orig <- ixlab[df$x.orig]
+
   } else if (i2) {
     names(x) <- paste0("X", 1:length(x))
     df0 <- beeswarm(x ~ y, corral = "wrap", do.plot = FALSE, corralWidth = 0.9)
@@ -142,9 +147,11 @@ plotly_scatter <- function(
   
   f0 <- function(x, i) {
     if (length(x) == 1)
-      x <- rep(x, max(i))
+      x <- rep(x, max(i, na.rm = TRUE))
+    # x[is.na(x)] <- "_NA_"
     x[i]
   } 
+
   df$color <- f0(color, i = df$index)
   df$shape <- f0(shape, i = df$index)
   df$size <- f0(size, i = df$index)

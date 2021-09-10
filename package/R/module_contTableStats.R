@@ -14,7 +14,9 @@ factorIndependency <- function(x, y) {
   
   tab <- table(x, y)
   suppressWarnings( r1 <- chisq.test(tab) )
-  r2 <- fisher.test(tab)
+  r2 <- try(fisher.test(tab), silent = TRUE)
+  if (class(r2) == "try-error") 
+    r2 <- fisher.test(tab, simulate.p.value = TRUE, B = 1e5)
   
   df <- data.frame(
     method = c(r1$method, r2$method),
