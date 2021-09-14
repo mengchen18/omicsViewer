@@ -12,7 +12,6 @@
 #' @export
 #' @examples 
 #' # reading expression
-#' library(ExpressionSetViewer)
 #' packdir <- system.file("extdata", package = "ExpressionSetViewer")
 #' expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 #' # reading phenotype data
@@ -36,6 +35,7 @@
 #' 
 multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
   
+  x0 <- x
   if( is.vector(compare) || length(compare) == 3)
     compare <- matrix(compare, nrow = 1)    
   if (fillNA) x <- fillNA(x)  
@@ -51,7 +51,8 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
   for ( i in names(tl) ) {
     for ( j in tl[[i]] ) {
       m <- x[, which(pheno[[i]] == j), drop = FALSE]
-      rv <- rowSums(!is.na(m))
+      m0 <- x0[, which(pheno[[i]] == j), drop = FALSE]
+      rv <- rowSums(!is.na(m0))
       rm <- rowMeans(m, na.rm = TRUE)
       rq <- rank(rm, na.last = TRUE)/sum(!is.na(rm))
       rq[is.na(rm)] <- NA
@@ -70,7 +71,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
     
     tv <- apply(x, 1, function(xx) {
       t <- try(t.test(xx[i1], xx[i2], var.equal = TRUE, ...), silent = TRUE) # 
-      if (class(t) != "htest")
+      if (!is(t, "htest"))
         return(c(pvalue = NA, mean.diff = NA))
       if (length(t$estimate) == 1)
         md <- t$estimate[[1]] else
@@ -101,7 +102,6 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
 #' @export
 #' @importFrom stats prcomp
 #' @examples 
-#' library(ExpressionSetViewer)
 #' # reading expression
 #' packdir <- system.file("extdata", package = "ExpressionSetViewer")
 #' expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
