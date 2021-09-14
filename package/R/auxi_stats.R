@@ -9,6 +9,7 @@
 #' @param fillNA Whether NA should be filled. If TRUE, the missing value will
 #'   be replaced by a constant a slightly lower than the min detected value (-log10(2))
 #' @param ... other parameters passed to t.test
+#' @importFrom methods is
 #' @export
 #' @examples 
 #' # reading expression
@@ -113,6 +114,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
 exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALSE) {
   
   writePC <- function(x, n) {
+    n <- min(n, length(x$sdev))
     var <- round(x$sdev[1:n]^2/(sum(x$sdev^2))*100, digits = 1)
     xx <- x$x[, 1:min(n, ncol(x$x))]
     colnames(xx) <- paste0(prefix, "|", colnames(xx), "(", var, "%", ")")
