@@ -1,4 +1,4 @@
-#' Application level 1 ui - data space
+#' @description Application level 1 ui - data space
 #' @param id id
 #' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
 #' @importFrom shinythemes shinytheme
@@ -45,7 +45,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
   )
 }
 
-#' Application level 1 module - data space
+#' @description Application level 1 module - data space
 #' @param input input
 #' @param output output
 #' @param session session

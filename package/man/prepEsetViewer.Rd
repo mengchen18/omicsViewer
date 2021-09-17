@@ -48,6 +48,10 @@ to be done, the orders of samples should be mapped.}
 
 \item{surv}{survival data}
 }
+\value{
+an object of \code{ExpressionSet} that can be visualized using
+\code{ExpressionSetViewer}
+}
 \description{
 Prepare data that can be viewer by ExpressionSetViewer
 }
@@ -59,8 +63,6 @@ expr should be a matrix with unique rownames and colnames.
   nx3 matrix, the i
 }
 \examples{
-
-library(ExpressionSetViewer)
 packdir <- system.file("extdata", package = "ExpressionSetViewer")
 # reading expression
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
@@ -100,5 +102,4 @@ gs = genesets, stringDB = strid, surv = surv)
 saveRDS(d, file = "dtest.RDS")
 ##  to open the viewer
 # ExpressionSetViewer("./")
-
 }

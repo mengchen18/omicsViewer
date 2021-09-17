@@ -1,4 +1,4 @@
-#' utility - feature general ui
+#' @description utility - feature general ui
 #' @param id id
 #' @importFrom DT dataTableOutput
 
@@ -14,7 +14,7 @@ feature_general_ui <- function(id) {
   )
 }
 
-#' utility - feature general ui
+#' @description utility - feature general ui
 #' @param input input
 #' @param output output
 #' @param session session

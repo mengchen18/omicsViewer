@@ -21,6 +21,14 @@ function(x) x - log10(2) # default, when x is in log10 scale
 function(x) x - 1 # half lowest detected value when x is in log2 scale
 function(x) 0 # replace NA by 0}
 }
+\value{
+a matrix without NAs
+}
 \description{
 Filling NA using a constant or half lowest detected value (for each protein) method
+}
+\examples{
+m <- matrix(rnorm(200), 20, 10)
+m[sample(1:200, size = 20)] <- NA
+mf <- fillNA(m)
 }

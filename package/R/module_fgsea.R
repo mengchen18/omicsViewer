@@ -1,4 +1,4 @@
-#' Utility - fgsea shiny ui
+#' @description Utility - fgsea shiny ui
 #' @param id id
 enrichment_fgsea_ui <- function(id) {
   ns <- NS(id)
@@ -12,7 +12,7 @@ enrichment_fgsea_ui <- function(id) {
   )
 }
 
-#' Utility - fgsea shiny module
+#' @description Utility - fgsea shiny module
 #' @param input input
 #' @param output output
 #' @param session session

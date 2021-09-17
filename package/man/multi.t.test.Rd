@@ -22,12 +22,14 @@ be replaced by a constant a slightly lower than the min detected value (-log10(2
 
 \item{...}{other parameters passed to t.test}
 }
+\value{
+a \code{data.frame} stores the t-test results
+}
 \description{
 Function to perform pairwse t-test
 }
 \examples{
 # reading expression
-library(ExpressionSetViewer)
 packdir <- system.file("extdata", package = "ExpressionSetViewer")
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 # reading phenotype data
@@ -48,5 +50,4 @@ c("Origin", "RE", "LE"),
 c('TP53.Status', "MT", "WT")
 )
 tres <- multi.t.test(x = expr, pheno = pd, compare = tests)
-
 }

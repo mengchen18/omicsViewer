@@ -1,4 +1,4 @@
-#' utility - dataTable shiny UI
+#' @description utility - dataTable shiny UI
 #' @param id id
 #' @importFrom shinyWidgets switchInput
 #' 
@@ -21,7 +21,7 @@ dataTable_ui <- function(id) {
   )
 }
 
-#' utility - dataTable shiny module
+#' @description utility - dataTable shiny module
 #' @param input input
 #' @param output output
 #' @param session session

@@ -54,6 +54,21 @@ sample space x-axis, sample space y-axis, feature space x-axis and feature space
 
 \item{appVersion}{version of the application}
 }
+\value{
+do not return any values
+}
 \description{
 Application level 0 module
+}
+\examples{
+if (interactive()) {
+  dir <- system.file("extdata", package = "ExpressionSetViewer")
+  server <- function(input, output, session) {
+    callModule(app_module, id = "app", dir = reactive(dir))
+  }
+  ui <- fluidPage(
+    app_ui("app")
+  )
+  shinyApp(ui = ui, server = server)
+}
 }

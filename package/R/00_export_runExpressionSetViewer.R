@@ -21,7 +21,7 @@
 #' # ExpressionSetViewer(
 #' # 	system.file("extdata", package = "ExpressionSetViewer")
 #' # )
-#' 
+#' @return do not return values
 ExpressionSetViewer <- function(
   dir, additionalTabs = NULL, filePattern = ".RDS$",
   esetLoader = readESVObj, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,

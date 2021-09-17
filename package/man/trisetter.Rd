@@ -16,6 +16,8 @@ trisetter(meta, expr = NULL, combine)
 }
 \value{
 a nx3 matrix
+
+a \code{data.frame} with 3 columns
 }
 \description{
 only used inside reactive

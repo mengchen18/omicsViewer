@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_scatter.R
 \name{plotly_scatter_module}
 \alias{plotly_scatter_module}
-\title{Utility plotly scatter module}
+\title{Shiny module for scatter plot using plotly - Module}
 \usage{
 plotly_scatter_module(
   input,
@@ -26,65 +26,71 @@ plotly_scatter_module(
 
 \item{reactive_checkpoint}{checkpoint}
 }
+\value{
+a list containing the information about the selected data points
+
+an reactive object containing the information of selected, brushed points.
+}
 \description{
-Utility plotly scatter module
+Shiny module for scatter plot using plotly - Module
 }
 \examples{
-#' # library(shiny)
-
-################ example scatter ##################
-# x <- rnorm(30)
-# y <- x + rnorm(30, sd = 0.5)
-
-# # ################ example beeswarm horizontal ##################
-# x <- rnorm(30)
-# y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
-
-# ################ example beeswarm vertical ##################
-# x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
-# y <- rnorm(30)
-#
-# cc <- sample(letters[1:4], replace = TRUE, size = 30)
-# shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
-# sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
-#
-
-############ UI and Server ############
-# ui <- fluidPage(
-#   plotly_scatter_ui("test_scatter")
-# )
-# 
-# server <- function(input, output, session) {
-#   v <- callModule(plotly_scatter_module, id = "test_scatter",
-#                   # reactive_checkpoint = reactive(FALSE),
-#                   reactive_param_plotly_scatter = reactive(list(
-#                     x = x, y = y,
-#                     color = cc,
-#                     shape = shape,
-#                     size = sz,
-#                     tooltips = paste("A", 1:30)
-#                   )))
-#   observe(print(v()))
-# }
-# 
-# shinyApp(ui, server)
-# 
-# # ################### check returned value ########################
-# x <- c(5, 6, 3, 4, 1, 2)
-# y <- c(5, 6, 3, 4, 1, 2)
-# # y <- c("a", "a", "b", "b", "c", "c")
-# 
-# ui <- fluidPage(
-#   plotly_scatter_ui("test_scatter")
-# )
-# server <- function(input, output, session) {
-#   v <- callModule(plotly_scatter_module, id = "test_scatter",
-#                   reactive_param_plotly_scatter = reactive(list(
-#                     x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
-#                   )))
-# 
-#   observe(print(v()))
-# }
-# shinyApp(ui, server)
-
+if (interactive()) {
+  library(shiny)
+  
+  # two random variables
+  x <- rnorm(30)
+  y <- x + rnorm(30, sd = 0.5)
+  
+  # variables mapped to color, shape and size
+  cc <- sample(letters[1:4], replace = TRUE, size = 30) 
+  shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
+  sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
+  
+  ui <- fluidPage(
+    plotly_scatter_ui("test_scatter")
+  )
+  
+  server <- function(input, output, session) {
+    v <- callModule(plotly_scatter_module, id = "test_scatter",
+                    # reactive_checkpoint = reactive(FALSE),
+                    reactive_param_plotly_scatter = reactive(list(
+                      x = x, y = y,
+                      color = cc,
+                      shape = shape,
+                      size = sz,
+                      tooltips = paste("A", 1:30)
+                    )))
+    observe(print(v()))
+  }
+  shinyApp(ui, server)
+  
+  
+  
+  # example beeswarm horizontal
+  x <- rnorm(30)
+  y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+  shinyApp(ui, server)
+  
+  # example beeswarm vertical
+  x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+  y <- rnorm(30)
+  shinyApp(ui, server)
+  
+  # return values 
+  x <- c(5, 6, 3, 4, 1, 2)
+  y <- c(5, 6, 3, 4, 1, 2)
+  ui <- fluidPage(
+    plotly_scatter_ui("test_scatter")
+  )
+  server <- function(input, output, session) {
+    v <- callModule(plotly_scatter_module, id = "test_scatter",
+                    reactive_param_plotly_scatter = reactive(list(
+                      x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
+                    )))
+    
+    observe(print(v()))
+  }
+  shinyApp(ui, server)
+}
 }

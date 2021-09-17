@@ -23,8 +23,6 @@
 #'   nx3 matrix, the i
 #' @export
 #' @examples 
-#' 
-#' library(ExpressionSetViewer)
 #' packdir <- system.file("extdata", package = "ExpressionSetViewer")
 #' # reading expression
 #' expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
@@ -64,7 +62,9 @@
 #' saveRDS(d, file = "dtest.RDS")
 #' ##  to open the viewer
 #' # ExpressionSetViewer("./")
-#' 
+#' @return an object of \code{ExpressionSet} that can be visualized using
+#' \code{ExpressionSetViewer}
+
 prepEsetViewer <- function(
   expr, pData, fData, 
   PCA = TRUE, ncomp = min(8, ncol(expr)), pca.fillNA = TRUE,
@@ -212,6 +212,8 @@ prepEsetViewer <- function(
 #' colnames(p1) <- paste0("PH", 1:5)
 #' colnames(e1) <- rownames(p1) <- paste0("S", 1:10)
 #' correlationAnalysis(expr = e1, pheno = p1, min.value = 8)
+#' @return a object of \code{data.frame} containing the results of correlation analysis
+
 correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
   
   if (is.null(colnames(pheno)))
@@ -253,7 +255,7 @@ correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
   rs
 }
 
-#' Gene set anntoation function
+#' Annotation of gene/protein function using multiple IDs.
 #' @param idList list of protein IDs, e.g. list(c("ID1", "ID2"), c("ID13"), c("ID4", "ID8", "ID10"))
 #' @param gsIdMap a data frame for geneset to id map, it has two columns
 #'   - id: the ID column
@@ -261,13 +263,23 @@ correlationAnalysis <- function(expr, pheno, min.value = 12, prefix = "Cor") {
 #'   e.g. 
 #'   gsIdMap <- data.frame(
 #'     id = c("ID1", "ID2", "ID1", "ID2", "ID8", "ID10"),
-#'     term = c("T1", ""T1", "T2", "T2", "T2", "T2"),
+#'     term = c("T1", "T1", "T2", "T2", "T2", "T2"),
 #'     stringsAsFactors = FALSE
 #'     )
 #' @param minSize minimum size of gene sets
 #' @param maxSize maximum size of gene sets
 #' @importFrom matrixStats colSums2
 #' @export
+#' @examples
+#' terms <- data.frame(
+#'   id = c("ID1", "ID2", "ID1", "ID2", "ID8", "ID10"),
+#'  term = c("T1", "T1", "T2", "T2", "T2", "T2"),
+#'   stringsAsFactors = FALSE
+#' )
+#' features <- list(c("ID1", "ID2"), c("ID13"), c("ID4", "ID8", "ID10"))
+#' gsAnnotIdList(idList = features, gsIdMap = terms, minSize = 1, maxSize = 500)
+#' @return a binary matrix. The number of rows is the same with length of idList, the columns 
+#' are the annotated gene set. 
 
 gsAnnotIdList <- function(idList, gsIdMap, minSize = 5, maxSize = 500) {
   pid <- data.frame(

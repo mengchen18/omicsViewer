@@ -19,6 +19,9 @@ should be the same as colnames(gs)}
 
 \item{...}{other parameters passed to fgsea}
 }
+\value{
+a \code{data.frame} of fgsea results
+}
 \description{
 Wrapper of fgsea function to take binary gene set matrix as input
 }

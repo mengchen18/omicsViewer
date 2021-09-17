@@ -1,4 +1,4 @@
-#' Utility enrichment analysis shiny ui
+#' @description Utility enrichment analysis shiny ui
 #' @param id id
 #' @importFrom DT dataTableOutput
 enrichment_analysis_ui <- function(id) {
@@ -14,7 +14,7 @@ enrichment_analysis_ui <- function(id) {
   )
 }
 
-#' Utility enrichment analysis shiny module
+#' @description Utility enrichment analysis shiny module
 #' @param input input
 #' @param output output
 #' @param session session

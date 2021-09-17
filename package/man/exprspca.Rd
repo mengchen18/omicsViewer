@@ -18,11 +18,13 @@ transpose the matrix.}
 be replaced by a constant a slightly lower than the min detected value (-log10(2)).
 If set to false, na.omit will be called before pca}
 }
+\value{
+a \code{data.frame} storing the PCA results
+}
 \description{
 perform PCA and prepare for ExpressionSetViewer
 }
 \examples{
-library(ExpressionSetViewer)
 # reading expression
 packdir <- system.file("extdata", package = "ExpressionSetViewer")
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
@@ -30,5 +32,4 @@ expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors 
 pc <- exprspca(expr)
 head(pc$samples)
 head(pc$features)
- 
 }

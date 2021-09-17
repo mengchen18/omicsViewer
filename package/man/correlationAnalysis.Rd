@@ -16,6 +16,9 @@ should be samples, columns are phenotypical variables.}
 
 \item{prefix}{prefix used for columns headers}
 }
+\value{
+a object of \code{data.frame} containing the results of correlation analysis
+}
 \description{
 Correlating a expression matrix with phenotypical variables
 }

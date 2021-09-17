@@ -1,4 +1,4 @@
-#' plotly boxplot wrapper
+#' @description plotly boxplot wrapper
 #' @param x a matrix object
 #' @param i index of which row in x should be highlighted
 #' @param highlight index of which column in x to be highlighted
@@ -8,7 +8,6 @@
 #' @importFrom stringr str_pad
 #' @importFrom reshape2 melt
 #' @examples
-#' 1 # not for uesrs
 #' # ## examples
 #' # library(plotly)
 #' # x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
@@ -120,10 +119,36 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
 }
 
 
-###
-#' utility - boxplot shiny UI
+#' Shiny module for boxplot using plotly - UI
 #' @param id id
-#' 
+#' @return a tagList of UI components
+#' @export
+#' @examples
+#' if (interactive()) {
+#'   
+#'   library(shiny)
+#'   
+#'   ui <- fluidPage(
+#'     plotly_boxplot_ui("testplotly")
+#'   )
+#'   
+#'   server <- function(input, output, session) {
+#'     
+#'     x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
+#'     x[sample(1:length(x), size = 0.3*length(x))] <- NA
+#'     rownames(x) <- paste("R", 1:nrow(x), sep = "")
+#'     colnames(x) <- paste("C", 1:ncol(x), sep = "")
+#'     callModule(plotly_boxplot_module, id = "testplotly",
+#'                reactive_param_plotly_boxplot = reactive(list(
+#'                  x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
+#'                ))
+#'     )
+#'   }
+#'   
+#'   shinyApp(ui, server)
+#' }
+#' @return a tagList of UI components
+
 plotly_boxplot_ui <- function(id) {
   ns <- NS(id)
   tagList(
@@ -131,34 +156,39 @@ plotly_boxplot_ui <- function(id) {
   )
 }
 
-#' utility - boxplot shiny module
+#' Shiny module for boxplot using plotly - Module
 #' @param input input
 #' @param output output
 #' @param session session
 #' @param reactive_param_plotly_boxplot reactive value; argument passed to plotly_boxplot
 #' @param reactive_checkpoint reactive_value; check this value before render any plot/executing any calculation
+#' @export
 #' @examples 
-#' # # # ### examples
-#' # library(shiny)
-#' # 
-#' # ui <- fluidPage(
-#' #   plotly_boxplot_ui("testplotly")
-#' # )
-#' # 
-#' # server <- function(input, output, session) {
-#' # 
-#' #   x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
-#' #   x[sample(1:length(x), size = 0.3*length(x))] <- NA
-#' #   rownames(x) <- paste("R", 1:nrow(x), sep = "")
-#' #   colnames(x) <- paste("C", 1:ncol(x), sep = "")
-#' #   callModule(plotly_boxplot_module, id = "testplotly",
-#' #              reactive_param_plotly_boxplot = reactive(list(
-#' #                x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
-#' #                ))
-#' #              )
-#' # }
-#' # 
-#' # shinyApp(ui, server)
+#' if (interactive()) {
+#'   
+#'   library(shiny)
+#'   
+#'   ui <- fluidPage(
+#'     plotly_boxplot_ui("testplotly")
+#'   )
+#'   
+#'   server <- function(input, output, session) {
+#'     
+#'     x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
+#'     x[sample(1:length(x), size = 0.3*length(x))] <- NA
+#'     rownames(x) <- paste("R", 1:nrow(x), sep = "")
+#'     colnames(x) <- paste("C", 1:ncol(x), sep = "")
+#'     callModule(plotly_boxplot_module, id = "testplotly",
+#'                reactive_param_plotly_boxplot = reactive(list(
+#'                  x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
+#'                ))
+#'     )
+#'   }
+#'   
+#'   shinyApp(ui, server)
+#' }
+#' @return do not return any values
+
 plotly_boxplot_module <- function(input, output, session, reactive_param_plotly_boxplot, reactive_checkpoint = reactive(TRUE)) {
   
   output$boxplotly <- renderPlotly({

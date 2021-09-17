@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_boxplot.R
 \name{plotly_boxplot_module}
 \alias{plotly_boxplot_module}
-\title{utility - boxplot shiny module}
+\title{Shiny module for boxplot using plotly - Module}
 \usage{
 plotly_boxplot_module(
   input,
@@ -23,29 +23,34 @@ plotly_boxplot_module(
 
 \item{reactive_checkpoint}{reactive_value; check this value before render any plot/executing any calculation}
 }
+\value{
+do not return any values
+}
 \description{
-utility - boxplot shiny module
+Shiny module for boxplot using plotly - Module
 }
 \examples{
-# # # ### examples
-# library(shiny)
-# 
-# ui <- fluidPage(
-#   plotly_boxplot_ui("testplotly")
-# )
-# 
-# server <- function(input, output, session) {
-# 
-#   x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
-#   x[sample(1:length(x), size = 0.3*length(x))] <- NA
-#   rownames(x) <- paste("R", 1:nrow(x), sep = "")
-#   colnames(x) <- paste("C", 1:ncol(x), sep = "")
-#   callModule(plotly_boxplot_module, id = "testplotly",
-#              reactive_param_plotly_boxplot = reactive(list(
-#                x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
-#                ))
-#              )
-# }
-# 
-# shinyApp(ui, server)
+if (interactive()) {
+  
+  library(shiny)
+  
+  ui <- fluidPage(
+    plotly_boxplot_ui("testplotly")
+  )
+  
+  server <- function(input, output, session) {
+    
+    x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
+    x[sample(1:length(x), size = 0.3*length(x))] <- NA
+    rownames(x) <- paste("R", 1:nrow(x), sep = "")
+    colnames(x) <- paste("C", 1:ncol(x), sep = "")
+    callModule(plotly_boxplot_module, id = "testplotly",
+               reactive_param_plotly_boxplot = reactive(list(
+                 x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
+               ))
+    )
+  }
+  
+  shinyApp(ui, server)
+}
 }

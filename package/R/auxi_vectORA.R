@@ -1,4 +1,4 @@
-#' Vectorized over-representation analysis using fisher's exact test
+#' @description Vectorized over-representation analysis using fisher's exact test
 #' @param gs a matrix where rows are features and columns are gene sets. The zeros in the matrix 
 #'   indicate a gene is not a memeber of the gene sets in the column. 
 #' @param i the row number selected from the gs
@@ -83,7 +83,7 @@ vectORA <- function(
   rs
 }
 
-#' Internal function used by vectORA 
+#' @description Internal function used by vectORA 
 #' @param n.overlap the number of overlap between de and gs. The number of white balls drawn 
 #'  without replacement from an urn which contains both black and white balls (compared to hyper).
 #' @param n.de the number of DE gene. The number of balls drawn from the urn (compared to hyper).

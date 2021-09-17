@@ -3,7 +3,20 @@
 #' @param showDropList logical; whether to show the dropdown list to select RDS file, if the 
 #'   ESVObj is given, this should be set to "FALSE"
 #' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
-#' 
+#' @export
+#' @examples
+#' if (interactive()) {
+#'   dir <- system.file("extdata", package = "ExpressionSetViewer")
+#'   server <- function(input, output, session) {
+#'     callModule(app_module, id = "app", dir = reactive(dir))
+#'   }
+#'   ui <- fluidPage(
+#'     app_ui("app")
+#'   )
+#'   shinyApp(ui = ui, server = server)
+#' }
+#' @return a list of UI components
+
 app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
   if (!showDropList) { 
@@ -72,7 +85,20 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'  uniroot
 #'  wilcox.test
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
-#' 
+#' @export
+#' @examples
+#' if (interactive()) {
+#'   dir <- system.file("extdata", package = "ExpressionSetViewer")
+#'   server <- function(input, output, session) {
+#'     callModule(app_module, id = "app", dir = reactive(dir))
+#'   }
+#'   ui <- fluidPage(
+#'     app_ui("app")
+#'   )
+#'   shinyApp(ui = ui, server = server)
+#' }
+#' @return do not return any values
+
 app_module <- function(
   input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 

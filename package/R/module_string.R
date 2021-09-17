@@ -1,4 +1,4 @@
-#' Utility string ui
+#' @description Utility string ui
 #' @param id id
 #' @importFrom shinybusy show_modal_spinner remove_modal_spinner
 #' 
@@ -8,7 +8,7 @@ string_ui <- function(id) {
     fluidRow(
       column(
         4, offset = 0, style='padding-left:15px; padding-right:2px; padding-top:0px; padding-bottom:0px',
-        textInputAddon(inputId = ns("tax"), label = NULL, value = "9606", addon = "Taxomony Code")),
+        textInputIcon(inputId = ns("tax"), label = NULL, value = "9606", icon = list("Taxomony Code"))),
       column(
         6, offset = 0, style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px',
         verbatimTextOutput(ns("error.msg"))),
@@ -23,7 +23,7 @@ string_ui <- function(id) {
   )
 }
 
-#' Utility string module
+#' @description Utility string module
 #' @param input input
 #' @param output output
 #' @param session session

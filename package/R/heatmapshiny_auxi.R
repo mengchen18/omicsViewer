@@ -1,4 +1,4 @@
-#' convert value to colors
+#' @description convert value to colors
 #' @param x a vector of numeric, character or factor
 #' @param n number of distinct values, only used when x is a numeric vector
 #' @importFrom RColorBrewer brewer.pal
@@ -16,10 +16,10 @@ value2color <- function(x, n=10) {
   } else if (is.factor(x) || is.character(x) || is.logical(x)) {
     x <- as.character(x)
     nl <- unique(x)
-    if (length(nl) > 60) {
+    if (length(nl) > 40) {
       set.seed(8610)
-      cp <- sort(distinctColorPalette(k = 60))
-      cp <- rep(cp, ceiling(length(nl)/60))[1:length(nl)]
+      cp <- sort(distinctColorPalette(k = 40))
+      cp <- rep(cp, ceiling(length(nl)/40))[1:length(nl)]
     } else {
       set.seed(8610)
       cp <- sort(distinctColorPalette(k = length(nl)))
@@ -33,7 +33,7 @@ value2color <- function(x, n=10) {
   list(color = cc, key = cp)
 }
 
-#' plot heatmap annotations
+#' @description plot heatmap annotations
 #' @param object an object returned by \code{addHeatmapAnnotation}
 #' @param ... other parameters passed to plot, usually xlim or ylim
 
@@ -93,7 +93,7 @@ addHeatmapAnnotation_plot <- function( object, ... ) {
     stop("Unreal type!")
 }
 
-#' Prepare data for heatmap annotations
+#' @description Prepare data for heatmap annotations
 #' @param x a vector or matrix used for annotation. nrow of matrix should equal ncol/nrow of heatmap matrix
 #' @param column whether the annotations are for columns
 #' @param var.name variable name
@@ -128,7 +128,7 @@ addHeatmapAnnotation <- function(x, column = TRUE, var.name="") {
   object
 }
 
-#' Prepare data for heatmap annotations
+#' @description Prepare data for heatmap annotations
 #' @param x a matrix, the distance between rows are calculated
 #' @param method method used for distance calculation
 #' @importFrom stats dist cor
@@ -143,7 +143,7 @@ adist <- function(x, method="pearson") {
   dd
 }
 
-#' Plot heatmap key
+#' @description Plot heatmap key
 #' @param range range of values 
 #' @param colors colors 
 #' @importFrom grid grid.pretty
@@ -156,7 +156,7 @@ heatmapKey <- function(range, colors) {
   mtext(text = lab, side = 1, at = at)
 }
 
-#' Plot side color keys
+#' @description Plot side color keys
 #' @param x object
 #' @param label labels
 #' 
@@ -168,7 +168,7 @@ sideCorKey <- function(x, label) {
 }
 
 ############## tooltips ################
-#' shiny UI for tooltips
+#' @description shiny UI for tooltips
 #' @param id id
 #' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
 #' 
@@ -189,8 +189,8 @@ shinyPlotTooltipsUI <- function(id) {
     var element = $('#%s').parent();
     element.css({'top': mouseY + 'px', 'left' : mouseX + 'px'})
     });", 
-    ns("hover_info"),
-    ns("hover_info"),
+    # ns("hover_info"),
+    # ns("hover_info"),
     ns("hover_info")
   )
   
@@ -206,7 +206,7 @@ shinyPlotTooltipsUI <- function(id) {
   )
 }
 
-#' Tooltips for shiny plot, Module
+#' @description Tooltips for shiny plot, Module
 #' @param input input
 #' @param output output
 #' @param session session

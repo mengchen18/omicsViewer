@@ -1,4 +1,4 @@
-#' Utility plotly scater
+#' @description Utility plotly scater
 #' @param x x values
 #' @param y y values, same legnth as x
 #' @param xlab label x-axis
@@ -91,6 +91,7 @@
 #' @importFrom randomcoloR distinctColorPalette
 #' @import plotly
 # function def
+
 plotly_scatter <- function(
   x, y, xlab = "", ylab = "ylab", color = "", shape = "", size = 10, tooltips=NULL, # shape = "circle", color = "defaultColor",
   regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
@@ -266,10 +267,70 @@ plotly_scatter <- function(
 
 
 ####
-#' Utility plotly scatter ui
+#' Shiny module for scatter plot using plotly - UI
 #' @param id id
 #' @param height figure height
-#' 
+#' @return a tagList of UI components
+#' @export
+#' @examples
+#' if (interactive()) {
+#'   library(shiny)
+#'   
+#'   # two random variables
+#'   x <- rnorm(30)
+#'   y <- x + rnorm(30, sd = 0.5)
+#'   
+#'   # variables mapped to color, shape and size
+#'   cc <- sample(letters[1:4], replace = TRUE, size = 30) 
+#'   shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
+#'   sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
+#'   
+#'   ui <- fluidPage(
+#'     plotly_scatter_ui("test_scatter")
+#'   )
+#'   
+#'   server <- function(input, output, session) {
+#'     v <- callModule(plotly_scatter_module, id = "test_scatter",
+#'                     # reactive_checkpoint = reactive(FALSE),
+#'                     reactive_param_plotly_scatter = reactive(list(
+#'                       x = x, y = y,
+#'                       color = cc,
+#'                       shape = shape,
+#'                       size = sz,
+#'                       tooltips = paste("A", 1:30)
+#'                     )))
+#'     observe(print(v()))
+#'   }
+#'   shinyApp(ui, server)
+#'   
+#'   
+#'   
+#'   # example beeswarm horizontal
+#'   x <- rnorm(30)
+#'   y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+#'   shinyApp(ui, server)
+#'   
+#'   # example beeswarm vertical
+#'   x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+#'   y <- rnorm(30)
+#'   shinyApp(ui, server)
+#'   
+#'   # return values 
+#'   x <- c(5, 6, 3, 4, 1, 2)
+#'   y <- c(5, 6, 3, 4, 1, 2)
+#'   ui <- fluidPage(
+#'     plotly_scatter_ui("test_scatter")
+#'   )
+#'   server <- function(input, output, session) {
+#'     v <- callModule(plotly_scatter_module, id = "test_scatter",
+#'                     reactive_param_plotly_scatter = reactive(list(
+#'                       x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
+#'                     )))
+#'     
+#'     observe(print(v()))
+#'   }
+#'   shinyApp(ui, server)
+#' }
 plotly_scatter_ui <- function(id, height = "400px") {
   ns <- NS(id)
   tagList(
@@ -279,7 +340,7 @@ plotly_scatter_ui <- function(id, height = "400px") {
   )
 }
 
-#' Utility plotly scatter module
+#' Shiny module for scatter plot using plotly - Module
 #' @param input input
 #' @param output output
 #' @param session sesion
@@ -287,64 +348,69 @@ plotly_scatter_ui <- function(id, height = "400px") {
 #' @param reactive_regLine logical show or hide the regression line
 #' @param reactive_checkpoint checkpoint
 #' @importFrom fastmatch '%fin%'
+#' @return a list containing the information about the selected data points
+#' @export
 #' @examples
-#' #' # library(shiny)
-#' 
-#' ################ example scatter ##################
-#' # x <- rnorm(30)
-#' # y <- x + rnorm(30, sd = 0.5)
-#' 
-#' # # ################ example beeswarm horizontal ##################
-#' # x <- rnorm(30)
-#' # y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
-#' 
-#' # ################ example beeswarm vertical ##################
-#' # x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
-#' # y <- rnorm(30)
-#' #
-#' # cc <- sample(letters[1:4], replace = TRUE, size = 30)
-#' # shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
-#' # sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
-#' #
-#' 
-#' ############ UI and Server ############
-#' # ui <- fluidPage(
-#' #   plotly_scatter_ui("test_scatter")
-#' # )
-#' # 
-#' # server <- function(input, output, session) {
-#' #   v <- callModule(plotly_scatter_module, id = "test_scatter",
-#' #                   # reactive_checkpoint = reactive(FALSE),
-#' #                   reactive_param_plotly_scatter = reactive(list(
-#' #                     x = x, y = y,
-#' #                     color = cc,
-#' #                     shape = shape,
-#' #                     size = sz,
-#' #                     tooltips = paste("A", 1:30)
-#' #                   )))
-#' #   observe(print(v()))
-#' # }
-#' # 
-#' # shinyApp(ui, server)
-#' # 
-#' # # ################### check returned value ########################
-#' # x <- c(5, 6, 3, 4, 1, 2)
-#' # y <- c(5, 6, 3, 4, 1, 2)
-#' # # y <- c("a", "a", "b", "b", "c", "c")
-#' # 
-#' # ui <- fluidPage(
-#' #   plotly_scatter_ui("test_scatter")
-#' # )
-#' # server <- function(input, output, session) {
-#' #   v <- callModule(plotly_scatter_module, id = "test_scatter",
-#' #                   reactive_param_plotly_scatter = reactive(list(
-#' #                     x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
-#' #                   )))
-#' # 
-#' #   observe(print(v()))
-#' # }
-#' # shinyApp(ui, server)
-#' 
+#' if (interactive()) {
+#'   library(shiny)
+#'   
+#'   # two random variables
+#'   x <- rnorm(30)
+#'   y <- x + rnorm(30, sd = 0.5)
+#'   
+#'   # variables mapped to color, shape and size
+#'   cc <- sample(letters[1:4], replace = TRUE, size = 30) 
+#'   shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
+#'   sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
+#'   
+#'   ui <- fluidPage(
+#'     plotly_scatter_ui("test_scatter")
+#'   )
+#'   
+#'   server <- function(input, output, session) {
+#'     v <- callModule(plotly_scatter_module, id = "test_scatter",
+#'                     # reactive_checkpoint = reactive(FALSE),
+#'                     reactive_param_plotly_scatter = reactive(list(
+#'                       x = x, y = y,
+#'                       color = cc,
+#'                       shape = shape,
+#'                       size = sz,
+#'                       tooltips = paste("A", 1:30)
+#'                     )))
+#'     observe(print(v()))
+#'   }
+#'   shinyApp(ui, server)
+#'   
+#'   
+#'   
+#'   # example beeswarm horizontal
+#'   x <- rnorm(30)
+#'   y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+#'   shinyApp(ui, server)
+#'   
+#'   # example beeswarm vertical
+#'   x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
+#'   y <- rnorm(30)
+#'   shinyApp(ui, server)
+#'   
+#'   # return values 
+#'   x <- c(5, 6, 3, 4, 1, 2)
+#'   y <- c(5, 6, 3, 4, 1, 2)
+#'   ui <- fluidPage(
+#'     plotly_scatter_ui("test_scatter")
+#'   )
+#'   server <- function(input, output, session) {
+#'     v <- callModule(plotly_scatter_module, id = "test_scatter",
+#'                     reactive_param_plotly_scatter = reactive(list(
+#'                       x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
+#'                     )))
+#'     
+#'     observe(print(v()))
+#'   }
+#'   shinyApp(ui, server)
+#' }
+#' @return an reactive object containing the information of selected, brushed points.
+
 plotly_scatter_module <- function(
   input, output, session, reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
   reactive_checkpoint = reactive(TRUE)) {

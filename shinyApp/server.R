@@ -6,7 +6,7 @@ server <- function(input, output, session) {
 			list.files(v)
 			)
 		})
-  callModule(ExpressionSetViewer:::app_module, id = "app", dir = reactive(v))
+  callModule(ExpressionSetViewer::app_module, id = "app", dir = reactive(v))
 }
 
 

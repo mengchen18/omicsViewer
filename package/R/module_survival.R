@@ -8,7 +8,7 @@ survival_ui <- function(id) {
   
 }
 
-#' Utility survival KM module
+#' @description Utility survival KM module
 #' @param input input
 #' @param output output
 #' @param session session

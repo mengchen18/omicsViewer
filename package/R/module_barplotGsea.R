@@ -1,4 +1,4 @@
-#' plotly barplot
+#' @description plotly barplot
 #' @param x a numeric vector
 #' @param names the names of the vector
 #' @param highlight index for which value to be highlighted
@@ -106,8 +106,8 @@ plotly_barplot <- function(
 }
 
 
-###
-#' utility - barplot shiny UI
+
+#' @description utility - barplot shiny UI
 #' @param id id
 #' 
 plotly_barplot_ui <- function(id) {
@@ -115,7 +115,7 @@ plotly_barplot_ui <- function(id) {
   plotlyOutput(ns("plot"))
 }
 
-#' utility - barplot shiny module
+#' @description utility - barplot shiny module
 #' @param input input
 #' @param output output
 #' @param session session

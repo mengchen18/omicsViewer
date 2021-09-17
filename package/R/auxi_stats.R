@@ -33,7 +33,8 @@
 #' c('TP53.Status', "MT", "WT")
 #' )
 #' tres <- multi.t.test(x = expr, pheno = pd, compare = tests)
-#' 
+#' @return a \code{data.frame} stores the t-test results
+
 multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
   
   x0 <- x
@@ -110,7 +111,8 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
 #' pc <- exprspca(expr)
 #' head(pc$samples)
 #' head(pc$features)
-#'  
+#' @return a \code{data.frame} storing the PCA results
+
 exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALSE) {
   
   writePC <- function(x, n) {
@@ -150,7 +152,11 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
 #'   function(x) x - 1 # half lowest detected value when x is in log2 scale
 #'   function(x) 0 # replace NA by 0
 #' @export
-
+#' @examples
+#' m <- matrix(rnorm(200), 20, 10)
+#' m[sample(1:200, size = 20)] <- NA
+#' mf <- fillNA(m)
+#' @return a matrix without NAs
 fillNA <- function(x, maxfill = quantile(x, probs = 0.15, na.rm = TRUE), fillingFun = function(x) x - log10(2)) {
   x <- apply(x, 1, function(xx) {
     x3 <- xx

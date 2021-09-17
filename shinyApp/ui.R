@@ -1,5 +1,5 @@
 library(ExpressionSetViewer)
 ui <- fluidPage(
-  ExpressionSetViewer:::app_ui("app")
+  ExpressionSetViewer::app_ui("app")
 )
 

@@ -1,4 +1,4 @@
-#' Utility - scatter plot for meta shiny ui
+#' @description Utility - scatter plot for meta shiny ui
 #' @param id id
 #' 
 meta_scatter_ui <- function(id) {
@@ -15,7 +15,7 @@ meta_scatter_ui <- function(id) {
   )
 }
 
-#' Utility - scatter plot for meta shiny module
+#' @description Utility - scatter plot for meta shiny module
 #' @param input input
 #' @param output output
 #' @param session session

@@ -1,7 +1,7 @@
-#' Utility - extended figure control shiny ui
+#' @description Utility - extended figure control shiny ui
 #' @param id id
 #' @param circle circle icon for dropdown manu
-#' @importFrom shinyWidgets dropdown textInputAddon
+#' @importFrom shinyWidgets dropdown textInputIcon
 #' 
 attr4selector_ui <- function(id, circle = TRUE) {
   ns <- NS(id)
@@ -25,12 +25,10 @@ attr4selector_ui <- function(id, circle = TRUE) {
              actionButton(ns("goSearch"), label = "Find", width = "120px"), align="right"),
       column(
         4, offset = 0, style='padding:2px;', 
-        # textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
-        textInputAddon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", value = "log10(2)", placeholder = "e.g. -1 or -log10(2)", addon = "x-cut")),
+        textInputIcon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", value = "log10(2)", placeholder = "e.g. -1 or -log10(2)", icon = list("x-cut"))),
       column(
-        4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
-        # textInputAddon(inputId = ns("ycut"), label = NULL, placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
-        textInputAddon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", addon = "y-cut")),
+        4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;',         
+        textInputIcon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", icon = list("y-cut"))),
       column(
         2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
         selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE)),
@@ -42,7 +40,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
   )
 }
 
-#' Utility - extended figure control shiny module
+#' @description Utility - extended figure control shiny module
 #' @param input input
 #' @param output output
 #' @param session session

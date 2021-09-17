@@ -1,6 +1,39 @@
 #' The three-step selector - the ui function
 #' @param id id
 #' @export
+#' @examples
+#' if (interactive()) {
+#'   library(shiny)
+#'   library(Biobase)
+#'   
+#'   file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+#'   dat <- readRDS(file)
+#'   fData <- fData(dat)
+#'   triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)
+#'   
+#'   ui <- fluidPage(
+#'     triselector_ui("tres"),
+#'     triselector_ui("tres2")
+#'   )
+#'   server <- function(input, output, session) {
+#'     v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset),
+#'                      reactive_selector1 = reactive("ttest"),
+#'                      reactive_selector2 = reactive("RE_vs_ME"),
+#'                      reactive_selector3 = reactive("mean.diff")
+#'     )
+#'     v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
+#'                      reactive_selector1 = reactive("ttest"),
+#'                      reactive_selector2 = reactive("RE_vs_ME"),
+#'                      reactive_selector3 = reactive("log.fdr"))
+#'     observe({
+#'       print("/////////////////////////")
+#'       print(v1())
+#'     })
+#'   }
+#'   
+#'   shinyApp(ui, server)
+#' }
+#' @return a tagList of UI components
 
 triselector_ui <- function(id) {
   ns <- NS(id)
@@ -30,34 +63,38 @@ triselector_ui <- function(id) {
 #' @param label of the triselector
 #' @export
 #' @examples 
-#' # dat <- readRDS("inst/extdata/demo.RDS")
-#' # library(shiny)
-#' # library(Biobase)
-#' # fData <- fData(dat)
-#' # triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)
-#' # source("R/module_triselector.R")
-#' # 
-#' # ui <- fluidPage(
-#' #   triselector_ui("tres"),
-#' #   triselector_ui("tres2")
-#' # )
-#' # server <- function(input, output, session) {
-#' #   v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset), 
-#' #                    reactive_selector1 = reactive("ttest"),
-#' #                    reactive_selector2 = reactive("RE_vs_ME"),
-#' #                    reactive_selector3 = reactive("mean.diff")
-#' #                    )
-#' #   v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
-#' #                    reactive_selector1 = reactive("ttest"),
-#' #                    reactive_selector2 = reactive("RE_vs_ME"),
-#' #                    reactive_selector3 = reactive("log.fdr"))
-#' #   observe({
-#' #     print("/////////////////////////")
-#' #     print(v1())
-#' #     })
-#' # }
-#' # 
-#' # shinyApp(ui, server)
+#' if (interactive()) {
+#'   library(shiny)
+#'   library(Biobase)
+#'   
+#'   file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+#'   dat <- readRDS(file)
+#'   fData <- fData(dat)
+#'   triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)
+#'   
+#'   ui <- fluidPage(
+#'     triselector_ui("tres"),
+#'     triselector_ui("tres2")
+#'   )
+#'   server <- function(input, output, session) {
+#'     v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset),
+#'                      reactive_selector1 = reactive("ttest"),
+#'                      reactive_selector2 = reactive("RE_vs_ME"),
+#'                      reactive_selector3 = reactive("mean.diff")
+#'     )
+#'     v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
+#'                      reactive_selector1 = reactive("ttest"),
+#'                      reactive_selector2 = reactive("RE_vs_ME"),
+#'                      reactive_selector3 = reactive("log.fdr"))
+#'     observe({
+#'       print("/////////////////////////")
+#'       print(v1())
+#'     })
+#'   }
+#'   
+#'   shinyApp(ui, server)
+#' }
+#' @return an reactive object containing the selected values
 
 triselector_module <- function(input, output, session, 
                                reactive_x, 

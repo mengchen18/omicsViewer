@@ -7,7 +7,8 @@
 #' @return a nx3 matrix
 #' @importFrom shiny req
 #' @importFrom stringr str_split_fixed
-# 
+#' @return a \code{data.frame} with 3 columns
+
 trisetter <- function(meta, expr=NULL, combine) {
   req(meta)
   nm <- colnames(meta)
@@ -41,7 +42,8 @@ trisetter <- function(meta, expr=NULL, combine) {
 #' @param expr the expression matrix
 #' @param meta a meta matrix
 #' @param alternative alternative value to be returned when nothing to select
-#' 
+#' @return the selected values in input argument \code{x}
+
 varSelector <- function(x, expr, meta, alternative = NULL) {
   if (x$variable %in% c("Select a variable!", "")) {
     if (is.null(alternative))
@@ -89,7 +91,7 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
   x
 }
 
-#' convert text to number
+#' @description convert text to number
 #' @param x a number or a string can be calculated
 #' 
 text2num <- function(x) {

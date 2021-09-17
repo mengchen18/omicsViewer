@@ -14,6 +14,21 @@ ESVObj is given, this should be set to "FALSE"}
 
 \item{activeTab}{one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"}
 }
+\value{
+a list of UI components
+}
 \description{
 application level 0 UI
+}
+\examples{
+if (interactive()) {
+  dir <- system.file("extdata", package = "ExpressionSetViewer")
+  server <- function(input, output, session) {
+    callModule(app_module, id = "app", dir = reactive(dir))
+  }
+  ui <- fluidPage(
+    app_ui("app")
+  )
+  shinyApp(ui = ui, server = server)
+}
 }

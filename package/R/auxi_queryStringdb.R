@@ -1,11 +1,10 @@
-#' Drawing network given network and gene set result
+#' @description Drawing network given network and gene set result
 #' @param ntwk network result, often returned by "stringNetwork" function. 
 #' @param gsa gene set result, often returned by "stringGSA" function
 #' @param i row index of gsa, which should be highlighted in the network
 #' @param label whether the point should be labelled in the network
 #' @importFrom fastmatch fmatch
 #' @importFrom networkD3 forceNetwork JS
-#' 
 stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
   
   nd <- data.frame(name = unique(unlist(ntwk[, c('preferredName_A', 'preferredName_B')])), 
@@ -30,7 +29,7 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
 }
 
 
-#' Retrieve string network
+#' @description Retrieve string network
 #' @description get string network
 #' @param genes the gene ids
 #' @param taxid taxonomy ids
@@ -71,7 +70,7 @@ stringNetwork <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
 }
 
 
-#' Mapping ids to string ids
+#' @description Mapping ids to string ids
 #' @description the string ids can be used as background in the string enrichment analysis
 #' @param genes a character vector of gene ids
 #' @param taxid taxonomy ids
@@ -107,7 +106,7 @@ getStringId <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
   )
 }
 
-#' Performing gene set analysis using string-db
+#' @description Performing gene set analysis using string-db
 #' @param genes a character vector of gene ids
 #' @param taxid taxonomy ids (species NCBI identifier)
 #' @param background the background genes

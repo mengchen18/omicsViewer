@@ -23,6 +23,16 @@ tallGS <- function(obj) {
   obj
 }
 
+#' Read the object of ExpressetSet to be visualized using ExpressionSetViewer
+#' @description This function is similar to readRDS. The only difference is
+#' this function will convert gene set data to data.frame format, if they are 
+#' given in a matrix format. 
+#' @return An object of ExpressionSet
+#' @param x a name of the file to be read, passed to \link{readRDS}
+#' @export
+#' @examples 
+#' file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+#' obj <- readESVObj(file)
 readESVObj <- function(x) {
   x <- readRDS(x) 
   tallGS(x)

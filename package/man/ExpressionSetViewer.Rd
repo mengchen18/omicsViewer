@@ -41,6 +41,9 @@ sample space x-axis, sample space y-axis, feature space x-axis and feature space
 
 \item{appVersion}{version of the application}
 }
+\value{
+do not return values
+}
 \description{
 Start ExpressionSetViewer
 }
@@ -50,5 +53,4 @@ Start ExpressionSetViewer
 # ExpressionSetViewer(
 # 	system.file("extdata", package = "ExpressionSetViewer")
 # )
-
 }

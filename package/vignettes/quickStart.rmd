@@ -25,15 +25,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-ExpressionSet is an S4 object defined in _Biobase_ package storing high throughput omics data. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in data.frames called feature data and phenotype data, respectively. More detailed instruction of ExpressionSet could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf)
+ExpressionSet is an S4 object defined in _Biobase_ package storing high throughput omics data. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are store in *data.frames* called "feature data" and "phenotype data", respectively. More detailed instruction of ExpressionSet could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf).
 
-ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSetViewer has a separate back- and front-end. Coding in R is only required in the back-end, where users need to prepare an ExpressionSet that contains all the necessary information for the downstream data interpretation. The pure dependency on R/Bioconductor guarantees maximum flexibility in the statistical analysis in the back-end. Once the ExpressionSet is prepared, it can be visualized using the front-end, implemented using shiny and plotly. Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap). Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on-the-fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, ExpressionSetViewer will greatly facilitate data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
+ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSet to be visualized needs to be prepared in R, usually, it contains all the necessary information for the data interpretation, e.g. functional annotation of features, meta information of samples, and the statistical results (See [Prepare the ExpressionSet]). Once the ExpressionSet is prepared, it can be visualized using the ExpressionSetViewer interface, implemented using shiny and plotly. At this stage, coding in R is not required, therefore, it can be shared with anyone who does not have experience with R or other programming knowledge. At the same time, the dependency on R/Bioconductor in the data preparation stage guarantees maximum flexibility in the statistical analysis. 
+
+Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap) in the ExpressionSetViewer. Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on the fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, the immediate analyses and result visualization in ExpressionSetViewer greatly facilitates data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
 
 # For the shiny-app user
 
 ## Start the shinyapp inside R
 
-First, we assume the data for ExpressionSetViewer has been prepared, and the task now is to visualize the object using ExpressionSetViewer. Inside R, this can be done using：
+Let's assume the object of ExpressionSet has been prepared (See [Prepare the ExpressionSet]), and the task now is to visualize the object using ExpressionSetViewer. Inside R, this can be done using：
 
 ```{r eval=FALSE}
 library(ExpressionSetViewer)
@@ -41,16 +43,44 @@ path2data <- system.file("extdata", package = "ExpressionSetViewer")
 ExpressionSetViewer(path2data)
 ```
 
-Here *path2data* is the folder containing the *.RDS* files (not the *.RDS* files) to be visualized by ExpressionSetViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets to loaded it into the viewer. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
+Here *path2data* is the path to to the folder containing the *.RDS* files to be visualized by ExpressionSetViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets to loaded it into the viewer. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
 
 The example data is an object of *ExpressionSet*, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 7000 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively. 
+
+## Deploy ExpressionSetViewer via shiny server
+
+ExpressionSetViewer can also be deployed via shiny server. To do so, a *server.R* and *ui.R* file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of *server.R* and *ui.R* are
+
+```{r}
+# server.R
+library(ExpressionSetViewer)
+library(shiny)
+dir <- "/path/to/obj" # this should be changed 
+server <- function(input, output, session) {
+	observe({
+		print(
+			list.files(v)
+			)
+		})
+  callModule(ExpressionSetViewer:::app_module, id = "app", dir = reactive(dir))
+}
+```
+
+```{r}
+# ui.R
+library(ExpressionSetViewer)
+library(shiny)
+ui <- fluidPage(
+  ExpressionSetViewer:::app_ui("app")
+)
+```
 
 ## User interface
 The ExpressionViewer has a "Left and Right Halves Layout". The left side is the "Eset" panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the "Analyst" panel. In the "Analyst" panel, different statistical analyses will be performed depending on the features or samples selected. 
 
 ### Tabs in Eset
 
-The left side visualize the ExpressionSetViewer, it contains the following tabs:
+The left side visualize the ExpressionSet, it contains the following tabs:
 
 * **Feature** visualizes the feature data. It is usually a scatter plot or beeswarm plot, every point in the plot is a feature. The x- and y-axis could be selected by the user. A single or multiple features can be selected from the plot and passed to the "analyst" (right) panel. A video tutorial about how to work with the *feature space":  
 <iframe width="560" height="315" src="https://www.youtube.com/embed/aojpqnXCc_Y" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -94,7 +124,7 @@ The left side visualize the ExpressionSetViewer, it contains the following tabs:
 
 * **StringDB** This tab appears when there is a column in the feature data that can be used to query [string database](https://string-db.org/). When a subset of features is selected from the left panel, these features will be used to query Enrichment analysis and network analysis will be performed. 
 
-# For the back-end user
+# Prepare the ExpressionSet
 
 ## Quick start
 

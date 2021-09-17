@@ -2,7 +2,7 @@
 % Please edit documentation in R/00_export_prepEsetViewer.R
 \name{gsAnnotIdList}
 \alias{gsAnnotIdList}
-\title{Gene set anntoation function}
+\title{Annotation of gene/protein function using multiple IDs.}
 \usage{
 gsAnnotIdList(idList, gsIdMap, minSize = 5, maxSize = 500)
 }
@@ -15,7 +15,7 @@ gsAnnotIdList(idList, gsIdMap, minSize = 5, maxSize = 500)
 e.g. 
 gsIdMap <- data.frame(
   id = c("ID1", "ID2", "ID1", "ID2", "ID8", "ID10"),
-  term = c("T1", ""T1", "T2", "T2", "T2", "T2"),
+  term = c("T1", "T1", "T2", "T2", "T2", "T2"),
   stringsAsFactors = FALSE
   )}
 
@@ -23,6 +23,19 @@ gsIdMap <- data.frame(
 
 \item{maxSize}{maximum size of gene sets}
 }
+\value{
+a binary matrix. The number of rows is the same with length of idList, the columns 
+are the annotated gene set.
+}
 \description{
-Gene set anntoation function
+Annotation of gene/protein function using multiple IDs.
+}
+\examples{
+terms <- data.frame(
+  id = c("ID1", "ID2", "ID1", "ID2", "ID8", "ID10"),
+ term = c("T1", "T1", "T2", "T2", "T2", "T2"),
+  stringsAsFactors = FALSE
+)
+features <- list(c("ID1", "ID2"), c("ID13"), c("ID4", "ID8", "ID10"))
+gsAnnotIdList(idList = features, gsIdMap = terms, minSize = 1, maxSize = 500)
 }

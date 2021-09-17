@@ -13,6 +13,7 @@
 #' @importFrom httr POST content
 #' @examples 
 #' a <- getAutoRIF("mtor signaling")
+#' @return a \code{data.frame} of 4 columns: gene, n, perc, rank. 
 
 getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {  
   term <- gsub(" ", "%20", term)

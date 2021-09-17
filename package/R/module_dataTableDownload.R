@@ -1,4 +1,4 @@
-#' utility - dataTable for download shiny UI
+#' @description utility - dataTable for download shiny UI
 #' @param id id
 #' @param showTable logical, if the table should be shown
 #' 
@@ -14,7 +14,7 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
   r
 }
 
-#' utility - dataTable for download shiny module
+#' @description utility - dataTable for download shiny module
 #' @description A subset of columns can be shown, specified by reactive_cols. 
 #'   The entire table will be downloaded. 
 #' @param input input

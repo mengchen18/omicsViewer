@@ -1,4 +1,4 @@
-#' Utility sample general ui
+#' @description Utility sample general ui
 #' @param id id
 #' 
 sample_general_ui <- function(id) {
@@ -14,7 +14,7 @@ sample_general_ui <- function(id) {
   )
 }
 
-#' Utility sample general module
+#' @description Utility sample general module
 #' @param input input
 #' @param output output
 #' @param session session

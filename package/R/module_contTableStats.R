@@ -1,8 +1,7 @@
-#' Independency test for two categorical vectors
+#' @description Independency test for two categorical vectors
 #' @param x a vector of character values
 #' @param y the second vector of character values, the same length as x
 #' @examples 
-#' 1
 #' # # examples
 #' # t1 <- sample(c('A', "B"), size = 30, replace = TRUE)
 #' # t2 <- sample(c('a', "b"), size = 30, replace = TRUE)
@@ -15,7 +14,7 @@ factorIndependency <- function(x, y) {
   tab <- table(x, y)
   suppressWarnings( r1 <- chisq.test(tab) )
   r2 <- try(fisher.test(tab), silent = TRUE)
-  if (class(r2) == "try-error") 
+  if (is(r2, "try-error"))
     r2 <- fisher.test(tab, simulate.p.value = TRUE, B = 1e5)
   
   df <- data.frame(
@@ -38,7 +37,7 @@ factorIndependency <- function(x, y) {
   )
 }
 
-#' utility - factorIndependency shiny UI
+#' @description utility - factorIndependency shiny UI
 #' @param id id
 #' 
 factorIndependency_ui <- function(id) {
@@ -53,7 +52,7 @@ factorIndependency_ui <- function(id) {
   )
 }
 
-#' utility - factorIndependency shiny module
+#' @description utility - factorIndependency shiny module
 #' @param input input
 #' @param output output
 #' @param session session

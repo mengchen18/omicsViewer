@@ -16,6 +16,9 @@ varSelector(x, expr, meta, alternative = NULL)
 
 \item{alternative}{alternative value to be returned when nothing to select}
 }
+\value{
+the selected values in input argument \code{x}
+}
 \description{
 variable selector
 }

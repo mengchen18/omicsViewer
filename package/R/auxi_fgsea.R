@@ -16,6 +16,7 @@
 #' # fdgs <- fd[, grep("^GS\\|", colnames(fd))]
 #' # res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500)
 #' # res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500, gs_desc = colnames(fdgs))
+#' @return a \code{data.frame} of fgsea results
 
 fgsea0 <- function(gs, stats, nperm = 100, gs_desc = NULL, ...) {
   

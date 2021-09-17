@@ -1,4 +1,4 @@
-#' Utility L1 result space ui
+#' @description Utility L1 result space ui
 #' @param id id
 #' @importFrom shinythemes shinytheme
 L1_result_space_ui <- function(id) {
@@ -9,7 +9,7 @@ L1_result_space_ui <- function(id) {
   )
 }
 
-#' Utility L1 result space ui
+#' @description Utility L1 result space ui
 #' @param input input
 #' @param output output
 #' @param session session
@@ -20,7 +20,6 @@ L1_result_space_ui <- function(id) {
 #' @param reactive_highlight col ID/name of columns selected
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param object originally loaded object, mostly an ExpressionSet object
-
 
 L1_result_space_module <- function(
   input, output, session, 

@@ -1,4 +1,4 @@
-#' interactive heatmap
+#' @description interactive heatmap
 #' @param x a matrix object or ExpressionSet
 #' @param fData feature data, ignored if x is an ExpressionSet
 #' @param pData phenotype data, ignored if x is an ExpressionSet
@@ -58,7 +58,7 @@ iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
 
 
 
-#' iheatmap input
+#' @description iheatmap input
 #' @param id id
 #' @describeIn iheatmap
 #' 
@@ -127,7 +127,7 @@ iheatmapInput <- function(id) {
   )
 }
 
-#' iheatmap Output
+#' @description iheatmap Output
 #' @describeIn iheatmap
 #' 
 iheatmapOutput <- function(id) {
@@ -148,7 +148,7 @@ iheatmapOutput <- function(id) {
   )
 }
 
-#' iheatmap legend
+#' @description iheatmap legend
 #' @describeIn iheatmap
 #' 
 iheatmapLegend <- function(id) {
@@ -161,7 +161,7 @@ iheatmapLegend <- function(id) {
   )
 }
 
-#' iheatmap clear function
+#' @description iheatmap clear function
 #' @describeIn iheatmap iheatmap clear
 #'
 iheatmapClear <- function(id) {
@@ -170,7 +170,7 @@ iheatmapClear <- function(id) {
 }
 
 
-#' iheatmap module
+#' @description iheatmap module
 #' @param input input
 #' @param output output
 #' @param session session
