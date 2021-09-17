@@ -47,34 +47,6 @@ Here *path2data* is the path to to the folder containing the *.RDS* files to be 
 
 The example data is an object of *ExpressionSet*, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 7000 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively. 
 
-## Deploy ExpressionSetViewer via shiny server
-
-ExpressionSetViewer can also be deployed via shiny server. To do so, a *server.R* and *ui.R* file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of *server.R* and *ui.R* are
-
-```{r}
-# server.R
-library(ExpressionSetViewer)
-library(shiny)
-dir <- "/path/to/obj" # this should be changed 
-server <- function(input, output, session) {
-	observe({
-		print(
-			list.files(v)
-			)
-		})
-  callModule(ExpressionSetViewer:::app_module, id = "app", dir = reactive(dir))
-}
-```
-
-```{r}
-# ui.R
-library(ExpressionSetViewer)
-library(shiny)
-ui <- fluidPage(
-  ExpressionSetViewer:::app_ui("app")
-)
-```
-
 ## User interface
 The ExpressionViewer has a "Left and Right Halves Layout". The left side is the "Eset" panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the "Analyst" panel. In the "Analyst" panel, different statistical analyses will be performed depending on the features or samples selected. 
 
@@ -201,7 +173,7 @@ Every element should a list of length two:
  
 An example:
 
-```{r dend,eval=FALSE}
+```{r dend,eval=TRUE}
 library(Biobase)
 expr <- exprs(d)
 hcl <- hclust(dist(expr))
@@ -252,23 +224,23 @@ docker pull mengchen18/expression_set_viewer
 
 * **Portable R:** To share the ExpressionSetViewer and data with users don't use docker, you can install ExpressionSetViewer in the [r portable](https://sourceforge.net/projects/rportable/).
 
-* **Shiny server:** ExpressionSetViewer could be easily deployed using shiny server. For example, the ui file
+* **Shiny server:** ExpressionSetViewer can also be deployed via shiny server. To do so, a *server.R* and *ui.R* file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of *server.R* and *ui.R* are
 
-```{r deploy_shiny_ui,eval=FALSE}
+```{r}
+# server.R
 library(shiny)
-ui <- fluidPage(
-  ExpressionSetViewer:::app_ui("app")
-)
+dir <- "/path/to/obj" # this should be changed 
+server <- function(input, output, session) {
+  callModule(ExpressionSetViewer::app_module, id = "app", dir = reactive(dir))
+}
 ```
 
-The server file
-
-```{r deploy_shiny_server,eval=FALSE}
-# dir need to be changed
-dir <- "path/to/object"
-server <- function(input, output, session) {
-  callModule(ExpressionSetViewer:::app_module, id = "app", dir = reactive(dir))
-}
+```{r}
+# ui.R
+library(shiny)
+ui <- fluidPage(
+  ExpressionSetViewer::app_ui("app")
+)
 ```
 
 * **Inside R**
@@ -302,7 +274,7 @@ The users can also define their own analysis and plug it into the *Analyst* pane
   
 Then the four-element list should be wrapped by a parent list, which can store a single or multiple "four-element lists", each represent an additional analysis/tab. Here is an example include a single additional tab:
 
-```{r write extension_1,eval=FALSE}
+```{r write extension_1,eval=TRUE}
 library(ExpressionSetViewer)
 ctxt <- function(x) paste(
   x[1:min(10, length(x))], collapse = ";"
@@ -337,12 +309,13 @@ ll <- list(
   )
 )
 
-ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+if (interactive())
+  ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 When more tabs should be added, simply add more elements in to the list and pass it to the *additionalTabs* argument:
 
-```{r write extension_2,eval=FALSE}
+```{r write extension_2,eval=TRUE}
 ### continue from above : extra tab 2 -- sample selected ###
 exampleCustomeUI_2 <- function(id) {
   ns <- NS(id)
@@ -408,11 +381,12 @@ ll <- list(
   )
 )
 
-ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+if (interactive())
+  ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 Include a "three-step selector" in the module:
-```{r write extension_3,eval=FALSE}
+```{r write extension_3,eval=TRUE}
 selector_example_ui <- function(id) {
   ns <- NS(id)
   tagList(
@@ -444,7 +418,8 @@ ll <- list(
     moduleServer  = selector_example_module
   )
   )
-ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+if (interactive())
+  ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 # SessionInfo
