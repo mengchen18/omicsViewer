@@ -31,6 +31,7 @@ dataTable_ui <- function(id) {
 #' @param reactiveSelectorMeta object returned by pdata or fdata
 #' @param reactiveSelectorHeatmap object returned by heatmap
 #' @param subset subset row or column for heatmap
+#' @param tab_status table initial status
 #' @importFrom stringr str_split_fixed
 #' @examples 
 #' # library(shiny)
@@ -75,7 +76,7 @@ dataTable_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 dataTable_module <- function(
-  input, output, session, reactive_data, selector = TRUE, columns = NULL, 
+  input, output, session, reactive_data, selector = TRUE, columns = NULL, tab_status = NULL,
   reactiveSelectorMeta = reactive(NULL), reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col", "none")[1]) {
   
   ns <- session$ns
@@ -194,7 +195,10 @@ dataTable_module <- function(
             "return type === 'display' && data.length > 50 ?",
             "'<span title=\"' + data + '\">' + data.substr(0, 50) + '...</span>' : data;",
             "}")
-        )))
+        )),
+        stateSave = TRUE,  stateDuration = -1,
+        searchCols = getSearchCols(tab_status), order = getOrderCols(tab_status)
+        )
     )
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
   }
@@ -207,16 +211,6 @@ dataTable_module <- function(
     formatTab(tab, sel = input$multisel)
   })
   
-  # selVal <- reactiveVal(character(0))
-  # observeEvent(input$clear, {
-  #   selVal(character(0))
-  #   })
-  # observeEvent(list(input$table_rows_selected, input$clear), {
-  #   if (notNullAndPosLength(input$table_rows_selected))
-  #     selVal( rownames(rdd())[input$table_rows_selected] ) else
-  #      selVal( character(0) )
-  #   })
-  # reactive( selVal() )
   eventReactive( input$table_rows_selected, {
     req (notNullAndPosLength(input$table_rows_selected))
     rownames(rdd())[input$table_rows_selected] 

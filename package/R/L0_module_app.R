@@ -19,30 +19,28 @@
 
 app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
-  if (!showDropList) { 
-    comp <- list(
-      style = "background:white;",
+
+  comp <- list(
+    style = "background:white;",
+    absolutePanel(
+      top = 5, right = 20, style = "z-index: 9999;", width = 115, 
+      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL),
+      actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro"))
+    ),
+    column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
+    column(6, L1_result_space_ui(ns("resultspace"))))
+
+  if (showDropList) {
+    l2 <- list(
+      uiOutput(ns("summary")),
+      br(),
       absolutePanel(
-        top = 5, right = 20, style = "z-index: 9999;",
-        downloadButton(outputId = ns("download"), label = "xlsx", class = NULL)
-      ),
-      column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
-      column(6, L1_result_space_ui(ns("resultspace")))
-    ) } else {
-      comp <- list(
-        style = "background:white;",
-        uiOutput(ns("summary")),
-        br(),
-        absolutePanel(
-          top = 8, right = 120, style = "z-index: 9999;",
-          selectizeInput(inputId = ns("selectFile"), label = NULL, choices = NULL, width = "550px", options = list(placeholder = "Select a dataset here") )
-        ),
-        absolutePanel(
-          top = 5, right = 20, style = "z-index: 9999;",
-          downloadButton(outputId = ns("download"), label = "xlsx", class = NULL)
-        ),
-        column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
-        column(6, L1_result_space_ui(ns("resultspace"))))
+        top = 8, right = 140, style = "z-index: 9999;",
+        selectizeInput( inputId = ns("selectFile"), label = NULL, choices = NULL, 
+          width = "500px", options = list(placeholder = "Select a dataset here") )
+
+      ))
+    comp <- c(l2, comp)
     }
   do.call(fluidRow, comp)
 }
@@ -67,6 +65,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'   given, the drop down list should be disable in the "ui" component.
 #' @importFrom Biobase exprs pData fData
 #' @importFrom utils packageVersion
+#' @importFrom DT renderDT DTOutput
 #' @importFrom grDevices colorRampPalette
 #' @importFrom graphics abline axis barplot image mtext par plot text
 #' @importFrom stats 
@@ -241,7 +240,7 @@ app_module <- function(
   v1 <- callModule(
     L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
-    rowDendrogram = reactive_rdg
+    rowDendrogram = reactive_rdg, status = esv_status
   )
   
   ri <- reactiveVal()
@@ -259,9 +258,80 @@ app_module <- function(
                    reactive_i = reactive(ri()), # reactive(v1()$feature),
                    reactive_highlight = reactive(rh()), # reactive(v1()$sample),
                    additionalTabs = additionalTabs,
-                   object = reactive_eset
+                   object = reactive_eset,
+                   status = esv_status
   )
   
+  # ================= snapshot function ===================
+
+  savedSS <- reactiveVal()
+  observe({
+    fl <- paste0("ESVSnapshot_", input$selectFile, "_")
+    ff <- list.files(dir(), pattern = fl)
+    if (length(ff) == 0)
+      return(NULL)
+    r <- sub(fl, "", ff)
+    r <- sub(".ESS$", "", r)
+    df <- data.frame("name" = r, link = ff, stringsAsFactors = FALSE, check.names = FALSE)
+    savedSS(df)
+    })
+  output$tab_saveSS <- renderDT(
+    DT::datatable(
+      savedSS()[, 1, drop = FALSE], options = list(dom = "t", style="compact-hover"), 
+      rownames = FALSE, colnames = NULL, selection = list(mode = "single", target = "row"))
+    )
+
+  observeEvent(input$snapshot, {
+    showModal(
+      modalDialog(
+        title = NULL,
+        fluidRow(
+          column(9, textInput(ns("snapshot_name"), label = "Save new snapshot", placeholder = "snapshot name", width = "100%")),
+          column(3, style = "padding-top:25px", actionButton(ns("snapshot_save"), label = "Save")),
+          ),        
+        hr(),
+        strong("Load saved snapshots:"),
+        DTOutput(ns("tab_saveSS")),
+        footer = NULL,
+        easyClose = TRUE
+        )
+      )
+    })
+
+  observeEvent(input$snapshot_save, {
+    removeModal()
+    })
+
+  observeEvent(input$snapshot_save, {
+    req(input$selectFile)
+
+    obj <- c(attr(v1(), "status"), v2())
+    print(obj)
+    flink <- file.path(dir(), paste0("ESVSnapshot_", input$selectFile, "_", input$snapshot_name, ".ESS"))
+    saveRDS(obj, flink)
+    df <- savedSS()
+    df <- rbind(df, c(input$snapshot_name, basename(flink)))
+    savedSS(df)
+
+    })
+
+  esv_status <- reactiveVal()
+  observeEvent(input$tab_saveSS_rows_selected, {
+    req(nrow(savedSS()) > 0)
+    i <- input$tab_saveSS_rows_selected 
+    req(i)
+    removeModal()
+    esv_status( readRDS(file.path(dir(), savedSS()[i, 2])) )
+    })
+
+  # observe(
+  #   print(esv_status())
+  #   )
+
+  # 
+  # eset - active tab
+  # eset - feature - x, y, color, size, ...
+  # eset - sample - x, y, color, size, ...
   # returnData <- reactiveVal()
   # observe( returnData( v1()$data ) )
   # # observe( returnData( v2()$data ) )

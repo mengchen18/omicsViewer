@@ -7,7 +7,7 @@
 L1_data_space_ui <- function(id, activeTab = "Feature") {
   ns <- NS(id)
   navbarPage(
-    "Eset",
+    "Eset", id = ns("eset"),
     selected = activeTab,
     theme = shinytheme("spacelab"), 
     tabPanel('Feature', meta_scatter_ui(ns('feature_space'))),
@@ -57,14 +57,17 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 #' @param reactive_y_s pre-selected y axis for sample space
 #' @param reactive_x_f pre-selected x axis for feature space
 #' @param reactive_y_f pre-selected y axis for feature space
-#' 
+#' @param status intial status
+
 L1_data_space_module <- function(
   input, output, session, expr, pdata, fdata, 
   reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
   reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
-  rowDendrogram = reactive(NULL)
+  rowDendrogram = reactive(NULL), status = reactive(NULL)
 ) {
   
+  ns <- session$ns
+
   # heatmap
   s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, rowDendrogram = rowDendrogram )
   
@@ -145,14 +148,23 @@ L1_data_space_module <- function(
   observe( selectedSamples(tab_pd()) )
   observe( selectedFeatures(tab_fd()) )
   observe( selectedFeatures(tab_expr()) )
+
+  #### status for snapshot #####
+  observe({
+    if (!is.null(tb <- status()$eset_active_tab))
+      updateNavbarPage(session = session, inputId = "eset", selected = tb)
+    })
+  ####
   
   reactive({
-    list(
+    l <- list(
       feature = selectedFeatures(),
-      sample = selectedSamples()
-      #,
-      # data = drawData()
+      sample = selectedSamples()      
     )
+    attr(l, "status") <- list(
+      eset_active_tab=input$eset
+      )
+    l
   })
 }
 

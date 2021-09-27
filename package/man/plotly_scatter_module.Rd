@@ -4,14 +4,9 @@
 \alias{plotly_scatter_module}
 \title{Shiny module for scatter plot using plotly - Module}
 \usage{
-plotly_scatter_module(
-  input,
-  output,
-  session,
-  reactive_param_plotly_scatter,
-  reactive_regLine = reactive(FALSE),
-  reactive_checkpoint = reactive(TRUE)
-)
+plotly_scatter_module(input, output, session,
+  reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
+  reactive_checkpoint = reactive(TRUE))
 }
 \arguments{
 \item{input}{input}

@@ -26,6 +26,7 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #' @param pageLength how many row per page
 #' @param sortBy sort by column (name)
 #' @param decreasing logical; sort by decreasing or not
+#' @param tab_status table initial status
 #' @importFrom utils write.table
 #' @examples 
 #' # source("R/module_triselector.R")
@@ -43,7 +44,7 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #' # }
 #' # shinyApp(ui, server)
 #' 
-dataTableDownload_module <- function(input, output, session, reactive_table, 
+dataTableDownload_module <- function(input, output, session, reactive_table, tab_status = NULL,
   reactive_cols=reactive(NULL), prefix = "", pageLength = 10, sortBy = NULL, decreasing = TRUE) {
   
   ns <- session$ns
@@ -76,7 +77,8 @@ dataTableDownload_module <- function(input, output, session, reactive_table,
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
-      options = list(scrollX = TRUE, pageLength = pageLength, dom = 'tip')
+      options = list(scrollX = TRUE, pageLength = pageLength, dom = 'tip', stateSave = TRUE,  stateDuration = -1,
+        searchCols = getSearchCols(tab_status), order = getOrderCols(tab_status))
     )
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
   }
@@ -97,13 +99,16 @@ dataTableDownload_module <- function(input, output, session, reactive_table,
     if ( length(ic) > 0 )
       tab[, ic] <- lapply(tab[, ic, drop = FALSE], signif, digits = 3)
     list(tab = tab, index = index)
-  })
-    
+  })    
 
-  output$table <- DT::renderDataTable({
+  output$table <- DT::renderDataTable(
     formatTab(tabsort()$tab, pageLength = pageLength)
-    # DT::datatable(tab, options = list(scrollX = TRUE), rownames = FALSE, selection = "single")
-  })
+  )
   
-  reactive(tabsort()$index[input$table_rows_selected])
+  reactive({
+    ii <- tabsort()$index[input$table_rows_selected]
+    attr(ii, "status") <- input$table_state
+    ii
+    })
 }
+

@@ -20,6 +20,7 @@ L1_result_space_ui <- function(id) {
 #' @param reactive_highlight col ID/name of columns selected
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param object originally loaded object, mostly an ExpressionSet object
+#' @param status intial status
 
 L1_result_space_module <- function(
   input, output, session, 
@@ -27,7 +28,7 @@ L1_result_space_module <- function(
   reactive_i = reactive(NULL),  
   reactive_highlight = reactive(NULL),
   additionalTabs = NULL,
-  object  = NULL
+  object  = NULL, status = reactive(NULL)
 ) {
   ns <- session$ns
   
@@ -80,11 +81,18 @@ L1_result_space_module <- function(
       )
     }
   }
-  
+    
+  #### status for snapshot #####
+  observe({
+    if (!is.null(tb <- status()$analyst_active_tab))
+      updateNavbarPage(session = session, inputId = "analyst", selected = tb)
+    })
+  ####
+
   output$optTabs <- renderUI({
     
     titleTabs <- list(
-      title = "Analyst",
+      title = "Analyst", id = ns("analyst"),
       theme = shinytheme("spacelab"), 
       tabPanel("Feature general", feature_general_ui(ns("feature_general")))     
     )
@@ -116,9 +124,11 @@ L1_result_space_module <- function(
       for (lo in additionalTabs) {
         optionalTabs <- c( optionalTabs, list(tabPanel(lo$tabName, lo$moduleUi(ns(lo$moduleName)))) )
       }
-    }
-    ######
-    
+    }    
     do.call(navbarPage, c(titleTabs, optionalTabs, geneshot, sampleAnalyst))
   })
+
+  reactive({
+    list(analyst_active_tab = input$analyst)
+    })
 }
