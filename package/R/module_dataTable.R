@@ -31,7 +31,7 @@ dataTable_ui <- function(id) {
 #' @param reactiveSelectorMeta object returned by pdata or fdata
 #' @param reactiveSelectorHeatmap object returned by heatmap
 #' @param subset subset row or column for heatmap
-#' @param tab_status table initial status
+#' @param tab_status table initial status, reactive object
 #' @importFrom stringr str_split_fixed
 #' @examples 
 #' # library(shiny)
@@ -76,7 +76,7 @@ dataTable_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 dataTable_module <- function(
-  input, output, session, reactive_data, selector = TRUE, columns = NULL, tab_status = NULL,
+  input, output, session, reactive_data, selector = TRUE, columns = NULL, tab_status = reactive(NULL),
   reactiveSelectorMeta = reactive(NULL), reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col", "none")[1]) {
   
   ns <- session$ns
@@ -182,7 +182,7 @@ dataTable_module <- function(
     })
     dt <- DT::datatable( 
       tab,
-      selection =  c("single", "multiple")[as.integer(sel)+1],
+      selection =  list(mode = c("single", "multiple")[as.integer(sel)+1], selected = tab_status()$rows_selected, target = "row"),
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
@@ -197,11 +197,18 @@ dataTable_module <- function(
             "}")
         )),
         stateSave = TRUE,  stateDuration = -1,
-        searchCols = getSearchCols(tab_status), order = getOrderCols(tab_status)
+        searchCols = getSearchCols(tab_status()), order = getOrderCols(tab_status()),
+        displayStart = tab_status()$start
         )
     )
     DT::formatStyle(dt, columns = 1:ncol(tab), fontSize = '90%')
   }
+
+  observeEvent(tab_status(), {
+    if (!is.null( i <- tab_status()$showColumns ))
+      scn (i)
+    updateSwitchInput(session, "multisel", value = tab_status()$multiSelection)
+    })
   
   output$table <- DT::renderDataTable({
     tab <- rdd()[, scn()]
@@ -210,11 +217,21 @@ dataTable_module <- function(
       tab[i] <- lapply(tab[i], round, digits = 4)
     formatTab(tab, sel = input$multisel)
   })
+
+  tabproxy <- dataTableProxy(ns("table"))
   
-  eventReactive( input$table_rows_selected, {
-    req (notNullAndPosLength(input$table_rows_selected))
-    rownames(rdd())[input$table_rows_selected] 
-    } )
+  eventReactive( list(input$table_rows_selected, input$table_state), {    
+    r <- NA
+    if (notNullAndPosLength(input$table_rows_selected))
+      r <- rownames(rdd())[input$table_rows_selected]
+    sta <- input$table_state
+    t00 <<- sta
+    sta$showColumns <- scn()
+    sta$multiSelection <- input$multisel    
+    sta$rows_selected <- input$table_rows_selected
+    attr(r, "status") <- sta
+    r
+    })
 }
 
 

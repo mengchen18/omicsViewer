@@ -243,12 +243,27 @@ app_module <- function(
     rowDendrogram = reactive_rdg, status = esv_status
   )
   
+  sameValues <- function(a, b) {
+    if (is.null(a) || is.null(b)) 
+      return(FALSE)    
+    all(sort(a) == sort(b)) 
+    }
   ri <- reactiveVal()
-  observeEvent( v1(), ri(v1()$feature) )
+  observeEvent( v1(), { 
+    req(!is.na(f <- v1()$feature))
+    oldvalues <- ri()    
+    if (sameValues(oldvalues, f)) return(NULL)    
+    ri( f ) 
+    })
   observeEvent( expr(), ri(NULL) )
   
   rh <- reactiveVal()
-  observeEvent( v1(), rh(v1()$sample) )
+  observeEvent( v1(), {
+    req(!is.na(s <- v1()$sample))    
+    oldvalues <- rh()    
+    if (sameValues(oldvalues, s)) return(NULL)    
+    rh( s )
+    })
   observeEvent( expr(), rh(NULL) )
   
   v2 <- callModule(L1_result_space_module, id = "resultspace",
@@ -261,8 +276,12 @@ app_module <- function(
                    object = reactive_eset,
                    status = esv_status
   )
-  
+
+  # =======================================================
+  # =======================================================
   # ================= snapshot function ===================
+  # =======================================================
+  # =======================================================
 
   savedSS <- reactiveVal()
   observe({
@@ -272,14 +291,49 @@ app_module <- function(
       return(NULL)
     r <- sub(fl, "", ff)
     r <- sub(".ESS$", "", r)
-    df <- data.frame("name" = r, link = ff, stringsAsFactors = FALSE, check.names = FALSE)
+    df <- data.frame("name" = r, link = ff, stringsAsFactors = FALSE, check.names = FALSE)    
     savedSS(df)
     })
-  output$tab_saveSS <- renderDT(
+  
+  shinyInput <- function(FUN, len, id, ...) {
+    inputs <- c()
+    for (i in len) {
+      inputs <- c(inputs, as.character(FUN(paste0(id, i), ...)))
+    }
+    inputs
+  }
+
+  output$tab_saveSS <- renderDT({
+    req( nrow(dt <- savedSS()) > 0)    
+    dt$delete <- shinyInput(
+      actionButton, dt$name, 'deletess_', label = "Delete", onclick = sprintf('Shiny.setInputValue(\"%s\",  this.id)', ns("deletess_button")) 
+      )
     DT::datatable(
-      savedSS()[, 1, drop = FALSE], options = list(dom = "t", style="compact-hover"), 
-      rownames = FALSE, colnames = NULL, selection = list(mode = "single", target = "row"))
-    )
+      dt[, c(1, 3), drop = FALSE], rownames = FALSE, colnames = c(NULL, NULL, NULL), 
+      selection = list(mode = "single", target = "cell", selectable = 1), escape = FALSE,
+      options = list(
+        dom = "t", autoWidth = FALSE, style="compact-hover", scrollY = "450px", 
+        paging = FALSE, columns = list(list(width = "85%"), list(width = "15%"))
+        )
+      )
+    })
+
+  selectedSS <- reactiveVal()
+  observeEvent(input$tab_saveSS_cells_selected, {    
+    if (length(input$tab_saveSS_cells_selected) == 0)
+      return(NULL)
+    selectedSS( input$tab_saveSS_cells_selected[1])
+    })
+
+  observeEvent(list(v1(), v2()), {
+    selectedSS( NULL )
+    })
+
+  deleteSS <- reactiveVal()
+  observeEvent(input$deletess_button, {
+    selectedRow <- sub("deletess_", "", input$deletess_button)
+    deleteSS(selectedRow)
+  })
 
   observeEvent(input$snapshot, {
     showModal(
@@ -299,29 +353,42 @@ app_module <- function(
     })
 
   observeEvent(input$snapshot_save, {
-    removeModal()
-    })
-
-  observeEvent(input$snapshot_save, {
     req(input$selectFile)
-
-    obj <- c(attr(v1(), "status"), v2())
-    print(obj)
-    flink <- file.path(dir(), paste0("ESVSnapshot_", input$selectFile, "_", input$snapshot_name, ".ESS"))
-    saveRDS(obj, flink)
     df <- savedSS()
-    df <- rbind(df, c(input$snapshot_name, basename(flink)))
-    savedSS(df)
-
+    if (input$snapshot_name %in% df$name) {      
+      showModal(modalDialog(
+        title = "FAILED!",  
+        "Snapshot with this name already exists, please give a different name."
+        ))
+      return(NULL)
+    }
+    obj <- c(attr(v1(), "status"), v2())    
+    flink <- file.path(dir(), paste0("ESVSnapshot_", input$selectFile, "_", input$snapshot_name, ".ESS"))
+    saveRDS(obj, flink)    
+    df <- rbind(df, data.frame(name = input$snapshot_name, link = basename(flink)), stringsAsFactors = FALSE)
+    dt <- df[order(df$name), ]
+    savedSS(dt)
+    removeModal()
     })
 
   esv_status <- reactiveVal()
-  observeEvent(input$tab_saveSS_rows_selected, {
-    req(nrow(savedSS()) > 0)
-    i <- input$tab_saveSS_rows_selected 
-    req(i)
+  observeEvent(selectedSS(), {
+    print( selectedSS() )
+    req(nrow(df <- savedSS()) > 0)    
+    if (length(i <- selectedSS()) == 0)
+      return(NULL)
     removeModal()
-    esv_status( readRDS(file.path(dir(), savedSS()[i, 2])) )
+    esv_status(NULL)
+    esv_status( readRDS(file.path(dir(), savedSS()[i, 2])) )    
+    })
+
+  observeEvent(deleteSS(), {
+    req(nrow( df <- savedSS() ) > 0 )
+    req( i <- match( deleteSS(), df$name ))
+    df <- savedSS()
+    unlink(file.path(dir(), df[i, 2]))
+    df <- df[-i, , drop = FALSE]
+    savedSS(df)    
     })
 
   # observe(

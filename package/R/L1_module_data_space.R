@@ -85,17 +85,19 @@ L1_data_space_module <- function(
   
   ## tables
   tab_pd <- callModule(
-    dataTable_module, id = "tab_pheno",  reactive_data = pdata,
+    dataTable_module, id = "tab_pheno",  reactive_data = pdata, tab_status = reactive(status()$eset_pdata_status),
     reactiveSelectorMeta = s_sample_fig, reactiveSelectorHeatmap = s_heatmap, subset = "col"
   )
   tab_fd <- callModule(
-    dataTable_module, id = "tab_feature",  reactive_data = fdata,
+    dataTable_module, id = "tab_feature",  reactive_data = fdata, tab_status = reactive(status()$eset_fdata_status),
     reactiveSelectorMeta = s_feature_fig, reactiveSelectorHeatmap = s_heatmap, subset = "row"
   )
   tab_expr <- callModule(
     dataTable_module, id = "tab_expr",  reactive_data = reactive(
       cbind(data.frame(feature = rownames(expr()), expr()))
-    ), reactiveSelectorMeta = s_feature_fig, reactiveSelectorHeatmap = s_heatmap, subset = "row", selector = FALSE)
+    ), tab_status = reactive(status()$eset_exprs_status),
+    reactiveSelectorMeta = s_feature_fig, 
+    reactiveSelectorHeatmap = s_heatmap, subset = "row", selector = FALSE)
   
   ### return selected feature and samples
   selectedFeatures <- reactiveVal()
@@ -125,10 +127,6 @@ L1_data_space_module <- function(
     } else if ( !is.null(s_feature_fig()$clicked) )
       selectedFeatures( s_feature_fig()$clicked )
   })
-  # observe({
-  #   # print(head(s_feature_fig$data()))
-  #   drawData(s_feature_fig$data())
-  # })
   
   observeEvent(s_sample_fig(), {
     if (!is.null(s_sample_fig()$selected) && length(s_sample_fig()$selected) > 0) {
@@ -136,14 +134,6 @@ L1_data_space_module <- function(
     } else if ( !is.null(s_sample_fig()$clicked) )
       selectedSamples( s_sample_fig()$clicked )
   })
-  # observe({
-  #   # print(head(s_sample_fig$data() ))
-  #   drawData( s_sample_fig$data() )
-  # })
-  
-  # observe(
-  #   print(head(drawData()))
-  # )
   
   observe( selectedSamples(tab_pd()) )
   observe( selectedFeatures(tab_fd()) )
@@ -159,10 +149,13 @@ L1_data_space_module <- function(
   reactive({
     l <- list(
       feature = selectedFeatures(),
-      sample = selectedSamples()      
+      sample = selectedSamples()
     )
     attr(l, "status") <- list(
-      eset_active_tab=input$eset
+      eset_active_tab = input$eset,
+      eset_pdata_status = attr(tab_pd(), "status"),
+      eset_fdata_status = attr(tab_fd(), "status"),
+      eset_exprs_status = attr(tab_expr(), "status")
       )
     l
   })
