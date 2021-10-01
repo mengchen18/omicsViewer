@@ -25,6 +25,7 @@ meta_scatter_ui <- function(id) {
 #' @param source source id for plotly object
 #' @param reactive_x reactive value for pre-selected x-aixs
 #' @param reactive_y reactive value for pre-selected y-aixs
+#' @param reactive_status the status of scatter plot, e.g. x-, y-axis, color variable, shape variable, etc. 
 #' #' # library(shiny)
 #' # library(Biobase)
 #' # dat <- readRDS("Dat/exampleEset.RDS")
@@ -51,8 +52,10 @@ meta_scatter_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 meta_scatter_module <- function(
-  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), combine = c("pheno", "feature"), source = "plotlyscattersource",
-  reactive_x = reactive(NULL), reactive_y = reactive(NULL)
+  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), 
+  combine = c("pheno", "feature"), source = "plotlyscattersource",
+  reactive_x = reactive(NULL), reactive_y = reactive(NULL),
+  reactive_status = reactive(NULL)
 ) {
   ns <- session$ns
   
@@ -61,24 +64,26 @@ meta_scatter_module <- function(
     ts[ts[, 1] != "Surv", ]
   } )
   
-  xax <- reactive({    
+  xax <- reactiveVal()
+  observeEvent(reactive_x(), {    
     r <- list()
     if (!is.null(reactive_x())) {
       l <- strsplit(reactive_x(), "\\|")[[1]]
       r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
     }
-    r
+    xax(r)
   })
   
-  yax <- reactive({
+  yax <- reactiveVal()
+  observe({
     r <- list()
     if (!is.null(reactive_y())) {
       l <- strsplit(reactive_y(), "\\|")[[1]]
       r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
     } 
-    r
-  })
-  
+    yax(r)
+  })  
+
   v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis", 
                    reactive_selector1 = reactive(xax()$v1), 
                    reactive_selector2 = reactive(xax()$v2), 
@@ -101,9 +106,10 @@ meta_scatter_module <- function(
     v
   })
   
+  attr4select_status <- reactiveVal()
   attr4select <- callModule(
     attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, 
-    reactive_triset = triset, pre_volcano = pre_vol
+    reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status
   )
   
   xycoord <- reactive({
@@ -154,12 +160,17 @@ meta_scatter_module <- function(
   # scatter plot:
   #  - single feature selected - numerical phenoData selected
   showRegLine <- reactiveVal(FALSE)
+  htestV1 <- reactiveVal()
+  htestV2 <- reactiveVal()
   v_scatter <- callModule(
     plotly_scatter_module, id = "main_scatterOutput",
     reactive_param_plotly_scatter = scatter_vars,
-    reactive_regLine = reactive( showRegLine())
-  )
-  observe( showRegLine(v_scatter()$regline) )
+    reactive_regLine = showRegLine, htest_var1 = htestV1, htest_var2 = htestV2)
+  observe({    
+    if (!is.null(s <- reactive_status()))
+      showRegLine(s$showRegLine) else
+        showRegLine(v_scatter()$regline) 
+    })
   
   selVal <- reactiveVal(
     list(
@@ -213,6 +224,48 @@ meta_scatter_module <- function(
       selected = l[ i ]
     ) )
   })
-  
+
+  ############## status save ###############
+  observe({
+    sv <- selVal()
+    attr(sv, "status") <- list(
+      xax = v1(),
+      yax = v2(), 
+      showRegLine = showRegLine(),
+      attr4 = attr4select$status,
+      htestV1 = v_scatter()$htest_V1,
+      htestV2 = v_scatter()$htest_V2
+      )
+    selVal(sv)
+    })
+
+  ############## status restore ###############
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    })
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    yax(NULL)
+    yax(list(v1 = s$yax[[1]], v2 = s$yax[[2]], v3 = s$yax[[3]]))
+    })
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    attr4select_status(NULL)
+    attr4select_status(s$attr4)    
+    })  
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    htestV1( s$htestV1 )
+    htestV2( s$htestV2 )
+    })  
+
+  #############################################
+
   selVal
 }

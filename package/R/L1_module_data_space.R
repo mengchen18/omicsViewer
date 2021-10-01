@@ -71,17 +71,18 @@ L1_data_space_module <- function(
   # heatmap
   s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, rowDendrogram = rowDendrogram )
   
-  # sample space
-  s_sample_fig <- callModule(
-    meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
-    reactive_x = reactive_x_s, reactive_y = reactive_y_s
-  )
-  
   # feature space
   s_feature_fig <- callModule(
     meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, combine = "feature", source = "scatter_meta_feature",
-    reactive_x = reactive_x_f, reactive_y = reactive_y_f
+    reactive_x = reactive_x_f, reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_feature_fig)
   )
+
+  # sample space
+  # s_sample_fig <- reactiveVal()
+  s_sample_fig <- callModule(
+    meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
+    reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_sample_fig)
+  )  
   
   ## tables
   tab_pd <- callModule(
@@ -118,8 +119,6 @@ L1_data_space_module <- function(
         selectedSamples(character(0))
   }
   )
-  # 
-  # drawData <- reactiveVal()
   
   observeEvent(s_feature_fig(), {
     if (!is.null(s_feature_fig()$selected) && length(s_feature_fig()$selected) > 0) {
@@ -145,7 +144,7 @@ L1_data_space_module <- function(
       updateNavbarPage(session = session, inputId = "eset", selected = tb)
     })
   ####
-  
+
   reactive({
     l <- list(
       feature = selectedFeatures(),
@@ -155,7 +154,9 @@ L1_data_space_module <- function(
       eset_active_tab = input$eset,
       eset_pdata_status = attr(tab_pd(), "status"),
       eset_fdata_status = attr(tab_fd(), "status"),
-      eset_exprs_status = attr(tab_expr(), "status")
+      eset_exprs_status = attr(tab_expr(), "status"),
+      eset_feature_fig = attr(s_feature_fig(), "status"),
+      eset_sample_fig = attr(s_sample_fig(), "status")
       )
     l
   })

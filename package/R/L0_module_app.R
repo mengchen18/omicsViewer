@@ -21,6 +21,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
 
   comp <- list(
+    useShinyjs(),
     style = "background:white;",
     absolutePanel(
       top = 5, right = 20, style = "z-index: 9999;", width = 115, 
@@ -249,8 +250,8 @@ app_module <- function(
     all(sort(a) == sort(b)) 
     }
   ri <- reactiveVal()
-  observeEvent( v1(), { 
-    req(!is.na(f <- v1()$feature))
+  observeEvent( v1(), {     
+    req(!is.na(f <- v1()$feature))    
     oldvalues <- ri()    
     if (sameValues(oldvalues, f)) return(NULL)    
     ri( f ) 
@@ -265,13 +266,19 @@ app_module <- function(
     rh( s )
     })
   observeEvent( expr(), rh(NULL) )
+
+  # observe({
+  #   ri ( esv_status()$active_feature )
+  #   rh ( esv_status()$active_sample )
+  #   })
+  
   
   v2 <- callModule(L1_result_space_module, id = "resultspace",
                    reactive_expr = expr,
                    reactive_phenoData = pdata,
                    reactive_featureData = fdata,
-                   reactive_i = reactive(ri()), # reactive(v1()$feature),
-                   reactive_highlight = reactive(rh()), # reactive(v1()$sample),
+                   reactive_i = ri, # reactive(v1()$feature),
+                   reactive_highlight = rh, # reactive(v1()$sample),
                    additionalTabs = additionalTabs,
                    object = reactive_eset,
                    status = esv_status
@@ -319,10 +326,11 @@ app_module <- function(
     })
 
   selectedSS <- reactiveVal()
-  observeEvent(input$tab_saveSS_cells_selected, {    
-    if (length(input$tab_saveSS_cells_selected) == 0)
+  observe({    
+    ss <- input$tab_saveSS_cells_selected
+    if (length(ss) == 0 || ss[2] > 0)
       return(NULL)
-    selectedSS( input$tab_saveSS_cells_selected[1])
+    selectedSS( ss[1])
     })
 
   observeEvent(list(v1(), v2()), {
@@ -352,6 +360,11 @@ app_module <- function(
       )
     })
 
+  observe({
+    print(ri())
+    print(rh())
+    })
+
   observeEvent(input$snapshot_save, {
     req(input$selectFile)
     df <- savedSS()
@@ -362,9 +375,9 @@ app_module <- function(
         ))
       return(NULL)
     }
-    obj <- c(attr(v1(), "status"), v2())    
+    obj <- c(attr(v1(), "status"), v2(), active_feature = list(ri()), active_sample = list(rh()))
     flink <- file.path(dir(), paste0("ESVSnapshot_", input$selectFile, "_", input$snapshot_name, ".ESS"))
-    saveRDS(obj, flink)    
+    saveRDS(obj, flink)
     df <- rbind(df, data.frame(name = input$snapshot_name, link = basename(flink)), stringsAsFactors = FALSE)
     dt <- df[order(df$name), ]
     savedSS(dt)
@@ -373,14 +386,12 @@ app_module <- function(
 
   esv_status <- reactiveVal()
   observeEvent(selectedSS(), {
-    print( selectedSS() )
     req(nrow(df <- savedSS()) > 0)    
     if (length(i <- selectedSS()) == 0)
       return(NULL)
     removeModal()
-    esv_status(NULL)
-    esv_status( readRDS(file.path(dir(), savedSS()[i, 2])) )    
-    })
+    esv_status( readRDS(file.path(dir(), df[i, 2])) )    
+    })  
 
   observeEvent(deleteSS(), {
     req(nrow( df <- savedSS() ) > 0 )

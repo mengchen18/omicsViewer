@@ -347,6 +347,9 @@ plotly_scatter_ui <- function(id, height = "400px") {
 #' @param reactive_param_plotly_scatter reactive parammeters for plotly_scatter
 #' @param reactive_regLine logical show or hide the regression line
 #' @param reactive_checkpoint checkpoint
+#' @param htest_var1 when the plot is a beeswarmplot, two groups could be selected for two group comparison, this 
+#'   argument gives the default value. Mainly used for restoring the saved session.
+#' @param htest_var2 see above
 #' @importFrom fastmatch '%fin%'
 #' @return a list containing the information about the selected data points
 #' @export
@@ -413,7 +416,8 @@ plotly_scatter_ui <- function(id, height = "400px") {
 
 plotly_scatter_module <- function(
   input, output, session, reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
-  reactive_checkpoint = reactive(TRUE)) {
+  reactive_checkpoint = reactive(TRUE), htest_var1 = reactive(NULL), htest_var2 = reactive(NULL)
+  ) {
   
   options(warn = -1)
   ns <- session$ns
@@ -450,14 +454,27 @@ plotly_scatter_module <- function(
       column(6, DT::dataTableOutput(ns("testResult")) )
     )
   })
+
+
+  htv1 <- reactiveVal()
+  htv2 <- reactiveVal()
+  observe({
+    if (is.null(htest_var1()))
+      htv1(choices()$group[1]) else
+        htv1(htest_var1())
+
+    if (is.null(htest_var2()))
+      htv2(choices()$group[2]) else
+        htv2(htest_var2())
+    })  
   
   output$uiGroup1 <- renderUI({
     req(reactive_checkpoint())
-    selectInput(inputId = ns("group1"), "group 1", choices = choices()$group, selected = choices()$group[1], selectize = TRUE, width = "100%")
+    selectInput(inputId = ns("group1"), "group 1", choices = choices()$group, selected = htv1(), selectize = TRUE, width = "100%")
   })
   output$uiGroup2 <- renderUI({
     req(reactive_checkpoint())
-    selectInput(inputId = ns("group2"), "group 2", choices = choices()$group, selected = choices()$group[2], selectize = TRUE, width = "100%")
+    selectInput(inputId = ns("group2"), "group 2", choices = choices()$group, selected = htv2(), selectize = TRUE, width = "100%")
   })
   # output$testResult <- renderUI({
   output$testResult <- DT::renderDataTable({
@@ -579,7 +596,9 @@ plotly_scatter_module <- function(
     list(
       selected = selected,
       clicked = clicked,
-      regline = input$showRegLine
+      regline = input$showRegLine,
+      htest_V1 = input$group1,
+      htest_V2 = input$group2
     )
   })
 }

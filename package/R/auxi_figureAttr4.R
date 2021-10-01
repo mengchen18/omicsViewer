@@ -45,6 +45,9 @@ trisetter <- function(meta, expr=NULL, combine) {
 #' @return the selected values in input argument \code{x}
 
 varSelector <- function(x, expr, meta, alternative = NULL) {
+  if (is.null(x))
+    return(NULL)
+    
   if (x$variable %in% c("Select a variable!", "")) {
     if (is.null(alternative))
       return(NULL)

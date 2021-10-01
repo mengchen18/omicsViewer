@@ -225,7 +225,6 @@ dataTable_module <- function(
     if (notNullAndPosLength(input$table_rows_selected))
       r <- rownames(rdd())[input$table_rows_selected]
     sta <- input$table_state
-    t00 <<- sta
     sta$showColumns <- scn()
     sta$multiSelection <- input$multisel    
     sta$rows_selected <- input$table_rows_selected
