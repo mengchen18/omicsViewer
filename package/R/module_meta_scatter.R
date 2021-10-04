@@ -234,7 +234,9 @@ meta_scatter_module <- function(
       showRegLine = showRegLine(),
       attr4 = attr4select$status,
       htestV1 = v_scatter()$htest_V1,
-      htestV2 = v_scatter()$htest_V2
+      htestV2 = v_scatter()$htest_V2,
+      selection_clicked = sv$clicked,
+      selection_selected = sv$selected
       )
     selVal(sv)
     })

@@ -69,34 +69,48 @@ L1_data_space_module <- function(
   ns <- session$ns
 
   # heatmap
-  s_heatmap <- callModule( iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, rowDendrogram = rowDendrogram )
+  s_heatmap <- callModule( 
+    iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, 
+    rowDendrogram = rowDendrogram, status = reactive(status()$eset_heatmap)
+    )
   
-  # feature space
+  ### feature space
+  r_feature_fig <- reactiveVal()
   s_feature_fig <- callModule(
     meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, combine = "feature", source = "scatter_meta_feature",
-    reactive_x = reactive_x_f, reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_feature_fig)
+    reactive_x = reactive_x_f, reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig)
   )
+  observe({ r_feature_fig ( s_feature_fig() ) })
+  observeEvent(status(), { r_feature_fig ( list(
+    clicked = status()$eset_fdata_fig$selection_clicked,
+    selected = status()$eset_fdata_fig$selection_selected
+   )) })  
 
   # sample space
-  # s_sample_fig <- reactiveVal()
+  r_sample_fig <- reactiveVal()
   s_sample_fig <- callModule(
     meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
-    reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_sample_fig)
+    reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig)
   )  
+  observe({ r_sample_fig ( s_sample_fig() ) })
+  observeEvent(status(), { r_sample_fig ( list(
+    clicked = status()$eset_pdata_fig$selection_clicked,
+    selected = status()$eset_pdata_fig$selection_selected
+   )) })  
   
   ## tables
   tab_pd <- callModule(
-    dataTable_module, id = "tab_pheno",  reactive_data = pdata, tab_status = reactive(status()$eset_pdata_status),
+    dataTable_module, id = "tab_pheno",  reactive_data = pdata, tab_status = reactive(status()$eset_pdata_tab),
     reactiveSelectorMeta = s_sample_fig, reactiveSelectorHeatmap = s_heatmap, subset = "col"
   )
   tab_fd <- callModule(
-    dataTable_module, id = "tab_feature",  reactive_data = fdata, tab_status = reactive(status()$eset_fdata_status),
+    dataTable_module, id = "tab_feature",  reactive_data = fdata, tab_status = reactive(status()$eset_fdata_tab),
     reactiveSelectorMeta = s_feature_fig, reactiveSelectorHeatmap = s_heatmap, subset = "row"
   )
   tab_expr <- callModule(
     dataTable_module, id = "tab_expr",  reactive_data = reactive(
       cbind(data.frame(feature = rownames(expr()), expr()))
-    ), tab_status = reactive(status()$eset_exprs_status),
+    ), tab_status = reactive(status()$eset_exprs_tab),
     reactiveSelectorMeta = s_feature_fig, 
     reactiveSelectorHeatmap = s_heatmap, subset = "row", selector = FALSE)
   
@@ -117,8 +131,7 @@ L1_data_space_module <- function(
     } else if (!is.null(s_heatmap()$clicked))
       selectedSamples(s_heatmap()$clicked["col"]) else
         selectedSamples(character(0))
-  }
-  )
+  })
   
   observeEvent(s_feature_fig(), {
     if (!is.null(s_feature_fig()$selected) && length(s_feature_fig()$selected) > 0) {
@@ -152,11 +165,12 @@ L1_data_space_module <- function(
     )
     attr(l, "status") <- list(
       eset_active_tab = input$eset,
-      eset_pdata_status = attr(tab_pd(), "status"),
-      eset_fdata_status = attr(tab_fd(), "status"),
-      eset_exprs_status = attr(tab_expr(), "status"),
-      eset_feature_fig = attr(s_feature_fig(), "status"),
-      eset_sample_fig = attr(s_sample_fig(), "status")
+      eset_pdata_tab = attr(tab_pd(), "status"), # -> pdata_tab
+      eset_fdata_tab = attr(tab_fd(), "status"), # -> fdata_tab
+      eset_exprs_tab = attr(tab_expr(), "status"), # -> exprs_tab
+      eset_fdata_fig = attr(s_feature_fig(), "status"), # -> fdata_fig
+      eset_pdata_fig = attr(s_sample_fig(), "status"), # -> pdata_fig
+      eset_heatmap = attr(s_heatmap(), "status")
       )
     l
   })

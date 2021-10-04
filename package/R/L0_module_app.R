@@ -360,10 +360,10 @@ app_module <- function(
       )
     })
 
-  observe({
-    print(ri())
-    print(rh())
-    })
+  # observe({
+  #   print(ri())
+  #   print(rh())
+  #   })
 
   observeEvent(input$snapshot_save, {
     req(input$selectFile)

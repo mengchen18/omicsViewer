@@ -178,10 +178,11 @@ iheatmapClear <- function(id) {
 #' @param pd phenotype data
 #' @param fd feature data
 #' @param rowDendrogram row dendrogram list
+#' @param status heatmap states
 #' @importFrom RColorBrewer brewer.pal
 #' @name iheatmap
 #' 
-iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = reactive(NULL)) {
+iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = reactive(NULL), status = reactive(NULL)) {
   
   ns <- session$ns
   
@@ -222,7 +223,6 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     ))
   observe( updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) )
   
-  
   ######## prepare heatmap data ########
   mm <- reactive({
     req(input$scale)
@@ -235,14 +235,42 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     } else {
       mm <- matr()
       brk <- seq(min(mm, na.rm = TRUE), max(mm, na.rm = TRUE), length.out = 101)
-    }
-    
+    }    
     list(mat = mm, breaks = brk)
   })
   
+  pre_hcl <- reactiveVal()
+  pre_ord <- reactiveVal()
+  observeEvent(status(), {
+    if (is.null(status()))
+      return(NULL)
+    updateSelectInput(session, "annotCol", selected = status()$annotCol)
+    updateSelectInput(session, "annotRow", selected  = status()$annotRow)
+    updateSelectInput(session, "colSortBy", selected  = status()$colSortBy)
+    updateSelectInput(session, "rowSortBy", selected  = status()$rowSortBy)
+    updateSelectInput(session, "tooltipInfo", selected  = status()$tooltipInfo)
+    updateSelectInput(session, "heatmapColors", selected  = status()$heatmapColors)
+    updateSelectInput(session, "scale", selected  = status()$scale)
+    updateSelectInput(session, "clusterColDist", selected  = status()$clusterColDist)
+    updateSelectInput(session, "clusterColLink", selected  = status()$clusterColLink)
+    updateSelectInput(session, "clusterRowDist", selected  = status()$clusterRowDist)
+    updateSelectInput(session, "clusterRowLink", selected  = status()$clusterRowLink)
+    updateSliderInput(session, "marginRight", value = status()$marginRight)
+    updateSliderInput(session, "marginBottom", value = status()$marginBottom)
+    pre_hcl(status()$rowDendrogram)
+    pre_ord(status()$rowOrder)
+    })
+
   rowSB <- eventReactive(list(
-    input$rowSortBy, mm()$mat, input$clusterRowDist, input$clusterRowLink
+    input$rowSortBy, mm()$mat, input$clusterRowDist, input$clusterRowLink, status()
     ), {
+
+    if (!is.null(pre_hcl()) & !is.null(pre_ord())) {
+      return(list(
+        ord = pre_ord(), hcl = pre_hcl()
+        ))
+    }
+
     req(input$rowSortBy)
     hcl_r <- NULL
     ord_r <- 1:nrow(mm()$mat)
@@ -260,6 +288,8 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
       ord_r <- hcl_r$order 
       hcl_r <- as.dendrogram(hcl_r)
     }
+    pre_hcl(hcl_r)
+    pre_ord(ord_r)
     list(ord = ord_r, hcl = hcl_r)
   })
   
@@ -362,8 +392,12 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   ######## update range - heatmap ########
   ranges <- reactiveValues(x = NULL, y = NULL)
   observe({
-    ranges$x <- c(0, nrow(hm()$mat))+0.5
-    ranges$y <- c(0, ncol(hm()$mat))+0.5
+    if (!is.null(status()$ranges_x))
+      ranges$x <- status()$ranges_x else 
+        ranges$x <- c(0, nrow(hm()$mat))+0.5
+    if (!is.null(status()$ranges_y))
+      ranges$y <- status()$ranges_y else 
+        ranges$y <- c(0, ncol(hm()$mat))+0.5
   })
   # 
   .rg <- function(x, tx) {
@@ -737,8 +771,29 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   })
 
   reactive({
-    list(clicked = selVal$clicked, #clickedName(),
-         brushed = selVal$selected) # brushedValues())
+    r <- list(
+      clicked = selVal$clicked, #clickedName(),
+      brushed = selVal$selected) # brushedValues())
+    attr(r, "status") <- list(
+      annotCol = input$annotCol,
+      annotRow = input$annotRow,
+      colSortBy = input$colSortBy,
+      rowSortBy = input$rowSortBy,
+      tooltipInfo = input$tooltipInfo,
+      marginRight = input$marginRight,
+      marginBottom = input$marginBottom,
+      heatmapColors = input$heatmapColors,
+      scale = input$scale,
+      clusterColDist = input$clusterColDist,
+      clusterColLink = input$clusterColLink,
+      clusterRowDist = input$clusterRowDist,
+      clusterRowLink = input$clusterRowLink,
+      rowDendrogram = pre_hcl(),
+      rowOrder = pre_ord(),
+      ranges_x = ranges$x,
+      ranges_y = ranges$y
+      )
+    r
   })
 }
 

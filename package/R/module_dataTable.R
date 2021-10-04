@@ -208,6 +208,7 @@ dataTable_module <- function(
     if (!is.null( i <- tab_status()$showColumns ))
       scn (i)
     updateSwitchInput(session, "multisel", value = tab_status()$multiSelection)
+    selectedRowOrCol( tab_status()$activeEntries )
     })
   
   output$table <- DT::renderDataTable({
@@ -228,6 +229,7 @@ dataTable_module <- function(
     sta$showColumns <- scn()
     sta$multiSelection <- input$multisel    
     sta$rows_selected <- input$table_rows_selected
+    sta$activeEntries <- selectedRowOrCol()
     attr(r, "status") <- sta
     r
     })
