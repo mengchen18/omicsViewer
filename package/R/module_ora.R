@@ -52,14 +52,24 @@ enrichment_analysis_module <- function(
     attr(reactive_featureData(), "GS")
   })
   
-  rii <- reactive({
+  rii <- reactiveVal()
+
+  observe({    
+    if ( length(reactive_i()) <= 1)
+      return(NULL)
     if (length(reactive_i()) <=  3)
-      return("notest")
-    if (is.integer(reactive_i() ))
-      return(reactive_i())
-    # fmatch(reactive_i(), rownames(reactive_pathway_mat()))
-    reactive_i()
+      rii("notest") else 
+        rii(reactive_i())    
     })
+
+  # rii <- reactiveVal({
+  #   if (length(reactive_i()) <=  3)
+  #     return("notest")
+  #   if (is.integer(reactive_i() ))
+  #     return(reactive_i())
+  #   # fmatch(reactive_i(), rownames(reactive_pathway_mat()))
+  #   reactive_i()
+  #   })
   
   oraTab <- reactive({
     # print(rii()[1])

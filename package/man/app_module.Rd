@@ -4,13 +4,24 @@
 \alias{app_module}
 \title{Application level 0 module}
 \usage{
-app_module(input, output, session, dir, filePattern = ".RDS$",
-  additionalTabs = NULL, ESVObj = reactive(NULL),
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData,
-  fDataGetter = fData, defaultAxisGetter = function(x, what = c("sx",
-  "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
+app_module(
+  input,
+  output,
+  session,
+  dir,
+  filePattern = ".RDS$",
+  additionalTabs = NULL,
+  ESVObj = reactive(NULL),
+  esetLoader = readRDS,
+  exprsGetter = exprs,
+  pDataGetter = pData,
+  fDataGetter = fData,
+  imputeGetter = exprsImpute,
+  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy", "dendrogram")[1])
+    attr(x, what),
   appName = "ExpressionSetViewer",
-  appVersion = packageVersion("ExpressionSetViewer"))
+  appVersion = packageVersion("ExpressionSetViewer")
+)
 }
 \arguments{
 \item{input}{input}
@@ -35,6 +46,8 @@ given, the drop down list should be disable in the "ui" component.}
 \item{pDataGetter}{function to get the phenotype data from eset}
 
 \item{fDataGetter}{function to get the feature data from eset}
+
+\item{imputeGetter}{function to get the imputed expression matrix from eset, only used when exporting imputed data to excel}
 
 \item{defaultAxisGetter}{function to get the default axes to be visualized. It should be a function with two 
 arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 

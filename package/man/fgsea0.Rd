@@ -31,7 +31,7 @@ Wrapper of fgsea function to take binary gene set matrix as input
 # library(Biobase)
 # dat <- readRDS("Dat/exampleEset.RDS")
 # fd <- fData(dat)
-# fdgs <- fd[, grep("^GS\\\\|", colnames(fd))]
+# fdgs <- fd[, grep("^GS\\|", colnames(fd))]
 # res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500)
 # res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500, gs_desc = colnames(fdgs))
 }

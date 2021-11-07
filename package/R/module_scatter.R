@@ -16,6 +16,7 @@
 #' @param hline horizontal line, not implmented
 #' @param rect rectangle coordinate in the form c(x0, x1, y0, y1)
 #' @param drawButtonId not used currently
+#' @param inSelection the index which points is in selection, will be shown in higher opacity.
 #' @examples 
 #' #' # scatter plot
 #' # x <- rnorm(30)
@@ -95,7 +96,7 @@
 plotly_scatter <- function(
   x, y, xlab = "", ylab = "ylab", color = "", shape = "", size = 10, tooltips=NULL, # shape = "circle", color = "defaultColor",
   regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
-  highlight = NULL, highlightName = "Highlighted",
+  highlight = NULL, highlightName = "Highlighted", inSelection = NA,
   vline = NULL, hline = NULL, rect = NULL, drawButtonId = NULL
 ) {
   options(stringsAsFactors = FALSE)
@@ -178,11 +179,17 @@ plotly_scatter <- function(
   cc <- sort(distinctColorPalette(k = length(unique(df$color))))
   
   ############ plot #################
+  mop <- NA
+  if (!is.na(inSelection)) {
+    mop <- rep(0.2, nrow(df))
+    mop[inSelection] <- 0.75
+  }
+
   fig <- plot_ly(data = df, source = source)
   if (i1 || i2) {
     set.seed(8610)
     fig <- add_trace(fig, x = ~ x, y = ~ y, color = ~ color, colors = cc, symbol = ~ shape, size = ~ size, 
-                     sizes = sizeRange, marker = list(sizemode = 'diameter'), type = "scatter", mode = "markers",
+                     sizes = sizeRange, marker = list(sizemode = 'diameter', opacity = mop), type = "scatter", mode = "markers",
                      text = ~ tlp, hoverinfo = 'text', showlegend = FALSE)
     if (i1)
       fig <- plotly::layout(
@@ -196,7 +203,7 @@ plotly_scatter <- function(
     set.seed(8610)
     fig <- add_trace(
       fig, x = ~ x, y = ~ y, color = ~ color, colors = cc, symbol = ~ shape, size = ~ size, sizes = sizeRange,
-      marker = list(sizemode = 'diameter'), text = ~ tlp, hoverinfo = "text", type = "scatter", mode = "markers"
+      marker = list(sizemode = 'diameter', opacity = mop), text = ~ tlp, hoverinfo = "text", type = "scatter", mode = "markers"
     )
     # marker = list(size = ~ size, sizes = c(10, 50), sizemode = 'diameter') # this not warnings but doesn't work well
     if (regressionLine) {
@@ -553,7 +560,6 @@ plotly_scatter_module <- function(
   })
 
   observeEvent(figureId(), {
-    # print(figureId())
     if (figureId() == "duplicated") {
       showModal(modalDialog(
         "Figure data has been added!", footer = modalButton("Dismiss")
@@ -580,11 +586,11 @@ plotly_scatter_module <- function(
     showModal(modalDialog(
       "Figure data has been added!", footer = modalButton("Dismiss"), easyClose = TRUE
     ))
-  })
-  
+  })  
   
   ################## return selected ###################
-  reactive({
+
+  rr <- reactive({
     id <- plotter()$data$index
     
     selected <- event_data("plotly_selected", source = reactive_param_plotly_scatter_src()$source)
@@ -592,10 +598,13 @@ plotly_scatter_module <- function(
     
     clicked <- event_data("plotly_click", source = reactive_param_plotly_scatter_src()$source )
     clicked <- sort(id[fastmatch::'%fin%'(plotter()$data$xyid, paste(clicked$x, clicked$y))])
-    
+    list(selected = selected, clicked = clicked)
+    })
+
+  reactive({    
     list(
-      selected = selected,
-      clicked = clicked,
+      selected = rr()$selected,
+      clicked = rr()$clicked,
       regline = input$showRegLine,
       htest_V1 = input$group1,
       htest_V2 = input$group2

@@ -4,10 +4,16 @@
 \alias{triselector_module}
 \title{The three-step selector - the module function}
 \usage{
-triselector_module(input, output, session, reactive_x,
+triselector_module(
+  input,
+  output,
+  session,
+  reactive_x,
   reactive_selector1 = reactive(NULL),
   reactive_selector2 = reactive(NULL),
-  reactive_selector3 = reactive(NULL), label = "Group Label:")
+  reactive_selector3 = reactive(NULL),
+  label = "Group Label:"
+)
 }
 \arguments{
 \item{input}{input}

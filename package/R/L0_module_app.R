@@ -16,6 +16,7 @@
 #'   shinyApp(ui = ui, server = server)
 #' }
 #' @return a list of UI components
+#' @importFrom shinyjs useShinyjs
 
 app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
@@ -55,6 +56,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param esetLoader function to load the eset object, if an RDS file, should be "readRDS"
 #' @param exprsGetter function to get the expression matrix from eset
+#' @param imputeGetter function to get the imputed expression matrix from eset, only used when exporting imputed data to excel
 #' @param pDataGetter function to get the phenotype data from eset
 #' @param fDataGetter function to get the feature data from eset
 #' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
@@ -66,7 +68,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'   given, the drop down list should be disable in the "ui" component.
 #' @importFrom Biobase exprs pData fData
 #' @importFrom utils packageVersion
-#' @importFrom DT renderDT DTOutput
+#' @importFrom DT renderDT DTOutput dataTableProxy
 #' @importFrom grDevices colorRampPalette
 #' @importFrom graphics abline axis barplot image mtext par plot text
 #' @importFrom stats 
@@ -101,7 +103,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 
 app_module <- function(
   input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, 
+  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, imputeGetter = exprsImpute, 
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
 ) {
@@ -207,6 +209,8 @@ app_module <- function(
           id <- paste0("ID", 1:nrow(tab))
         data.frame(ID = id, tab)
       }
+      
+      ig <- imputeGetter(reactive_eset())
       withProgress(message = 'Writing table', value = 0, {
         wb <- createWorkbook(creator = "BayBioMS")
         addWorksheet(wb, sheetName = "Phenotype info")
@@ -215,6 +219,10 @@ app_module <- function(
         addWorksheet(wb, sheetName = "Geneset annot")
         incProgress(1/5, detail = "expression matrix")
         writeData(wb, sheet = "Expression", td(expr()))
+        if (!is.null(ig)) {
+          addWorksheet(wb, sheetName = "Expression_imputed")
+          writeData(wb, sheet = "Expression_imputed", td(ig))
+        }
         incProgress(1/5, detail = "feature table")
         writeData(wb, sheet = "Feature info", td(fdata()))
         incProgress(1/5, detail = "phenotype table")
@@ -250,39 +258,26 @@ app_module <- function(
     all(sort(a) == sort(b)) 
     }
   ri <- reactiveVal()
-  observeEvent( v1(), {     
-    req(!is.na(f <- v1()$feature))    
-    oldvalues <- ri()    
-    if (sameValues(oldvalues, f)) return(NULL)    
-    ri( f ) 
+  observeEvent( v1(), {
+    ri( c(v1()$feature) ) 
     })
   observeEvent( expr(), ri(NULL) )
   
   rh <- reactiveVal()
   observeEvent( v1(), {
-    req(!is.na(s <- v1()$sample))    
-    oldvalues <- rh()    
-    if (sameValues(oldvalues, s)) return(NULL)    
-    rh( s )
+    rh( c( v1()$sample ) )
     })
   observeEvent( expr(), rh(NULL) )
-
-  # observe({
-  #   ri ( esv_status()$active_feature )
-  #   rh ( esv_status()$active_sample )
-  #   })
-  
   
   v2 <- callModule(L1_result_space_module, id = "resultspace",
                    reactive_expr = expr,
                    reactive_phenoData = pdata,
                    reactive_featureData = fdata,
-                   reactive_i = ri, # reactive(v1()$feature),
-                   reactive_highlight = rh, # reactive(v1()$sample),
+                   reactive_i = ri, 
+                   reactive_highlight = rh, 
                    additionalTabs = additionalTabs,
                    object = reactive_eset,
-                   status = esv_status
-  )
+                   status = esv_status)
 
   # =======================================================
   # =======================================================
@@ -323,7 +318,7 @@ app_module <- function(
         paging = FALSE, columns = list(list(width = "85%"), list(width = "15%"))
         )
       )
-    })
+    })  
 
   selectedSS <- reactiveVal()
   observe({    
@@ -360,11 +355,6 @@ app_module <- function(
       )
     })
 
-  # observe({
-  #   print(ri())
-  #   print(rh())
-  #   })
-
   observeEvent(input$snapshot_save, {
     req(input$selectFile)
     df <- savedSS()
@@ -389,9 +379,10 @@ app_module <- function(
     req(nrow(df <- savedSS()) > 0)    
     if (length(i <- selectedSS()) == 0)
       return(NULL)
-    removeModal()
+    removeModal()  
+    esv_status(NULL)  
     esv_status( readRDS(file.path(dir(), df[i, 2])) )    
-    })  
+    })
 
   observeEvent(deleteSS(), {
     req(nrow( df <- savedSS() ) > 0 )
@@ -401,19 +392,6 @@ app_module <- function(
     df <- df[-i, , drop = FALSE]
     savedSS(df)    
     })
-
-  # observe(
-  #   print(esv_status())
-  #   )
-
-  # 
-  # eset - active tab
-  # eset - feature - x, y, color, size, ...
-  # eset - sample - x, y, color, size, ...
-  # returnData <- reactiveVal()
-  # observe( returnData( v1()$data ) )
-  # # observe( returnData( v2()$data ) )
-  # observe(print(returnData()))
 }
 
 

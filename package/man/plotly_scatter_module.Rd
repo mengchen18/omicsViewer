@@ -4,9 +4,16 @@
 \alias{plotly_scatter_module}
 \title{Shiny module for scatter plot using plotly - Module}
 \usage{
-plotly_scatter_module(input, output, session,
-  reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
-  reactive_checkpoint = reactive(TRUE))
+plotly_scatter_module(
+  input,
+  output,
+  session,
+  reactive_param_plotly_scatter,
+  reactive_regLine = reactive(FALSE),
+  reactive_checkpoint = reactive(TRUE),
+  htest_var1 = reactive(NULL),
+  htest_var2 = reactive(NULL)
+)
 }
 \arguments{
 \item{input}{input}
@@ -20,6 +27,11 @@ plotly_scatter_module(input, output, session,
 \item{reactive_regLine}{logical show or hide the regression line}
 
 \item{reactive_checkpoint}{checkpoint}
+
+\item{htest_var1}{when the plot is a beeswarmplot, two groups could be selected for two group comparison, this 
+argument gives the default value. Mainly used for restoring the saved session.}
+
+\item{htest_var2}{see above}
 }
 \value{
 a list containing the information about the selected data points

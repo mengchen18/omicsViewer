@@ -1,7 +1,7 @@
 #' @description Utility - extended figure control shiny ui
 #' @param id id
 #' @param circle circle icon for dropdown manu
-#' @importFrom shinyWidgets dropdown textInputIcon
+#' @importFrom shinyWidgets dropdown textInputIcon updateTextInputIcon updateSwitchInput
 #' 
 attr4selector_ui <- function(id, circle = TRUE) {
   ns <- NS(id)
@@ -36,11 +36,12 @@ attr4selector_ui <- function(id, circle = TRUE) {
         textInputIcon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", icon = list("y-cut"))),
       column(
         2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
-        selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE)),
-      column(
-        2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
-        actionButton(inputId = ns("actSelect"), label = "Select")
-      )
+        selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE))
+      # ,
+      # column(
+      #   2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
+      #   actionButton(inputId = ns("actSelect"), label = "Select")
+      # )
     )
   )
 }
@@ -126,44 +127,39 @@ attr4selector_module <- function(
     updateCheckboxInput(session, "showSearchBox", value = !is.null(vv()))
   )
   
-  val_xcut <- reactiveVal(NULL)
+  # val_xcut <- reactiveVal(NULL)
+  # observe({    
+  #   val_xcut( text2num(input$xcut) )
+  # })
+  # val_ycut <- reactiveVal(NULL)
+  # observe({
+  #   val_ycut( text2num(input$ycut) )
+  # })
+
+  val_xcut <- reactive({ text2num(input$xcut) })
+  val_ycut <- reactive({ text2num(input$ycut) })
+
+  observe(print(input$acorner))
+
   observe({
-    if (is.null(input$xcut))
-      return()
-    if (nchar(input$xcut) > 0)
-      val_xcut( text2num(input$xcut) ) else
-        val_xcut( NULL )
-  })
-  val_ycut <- reactiveVal(NULL)
-  observe({
-    if (is.null(input$ycut))
-      return()
-    if (nchar( input$ycut ) > 0)
-      val_ycut( text2num(input$ycut) ) else
-        val_ycut( NULL )
-  })
-  observe({
-    if (is.numeric(val_xcut()) && !is.numeric(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c("None", "left", "right"), selected = input$scorner)
-    } else if (!is.numeric(val_xcut()) && is.numeric(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c("None", "top", "bottom"), selected = input$scorner)
+    if (is.numeric(val_xcut()) && is.null(val_ycut())) {
+      updateSelectInput(session, inputId = "scorner", choices = c("None", "left", "right"), selected = "None")
+    } else if (is.null(val_xcut()) && is.numeric(val_ycut())) {
+      updateSelectInput(session, inputId = "scorner", choices = c("None", "top", "bottom"), selected = "None")
     } else if (is.numeric(val_xcut()) && is.numeric(val_ycut())) {
       updateSelectInput(session, inputId = "scorner", choices = c(
         "None", "volcano", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
-      ), selected = input$scorner)
-    } else {
+      ), selected = "None")
+    } else 
       updateSelectInput(session, inputId = "scorner", choices = c("None"))
-    }
-  })
-  
+  })  
+
   observeEvent(pre_volcano(), {
-    if (pre_volcano()) {
-      if (input$actSelect == 0) {
-        l <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
-        attr(l, "seed") <- Sys.time()
-        params$cutoff <- l
-        updateSelectInput(session, inputId = "scorner", selected = "volcano")
-      } 
+    if (pre_volcano()) {      
+      l <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
+      attr(l, "seed") <- Sys.time()
+      params$cutoff <- l
+      updateSelectInput(session, inputId = "scorner", selected = "volcano")
     } else {
       params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "None")
       updateSelectInput(session, inputId = "scorner", selected = "None")
@@ -187,10 +183,6 @@ attr4selector_module <- function(
     params$highlight <- which(vv() %in% searchValue())
     isolate( params$highlightName <- searchOnCol()$variable )
   })
-  # observe({    
-  #   printWithName(searchValue(), "searchVvalue")
-  #   })
-  # observe(printWithName(params$highlight, 'params highlight'))
 
   observe(
     params$color <- varSelector(selectColor(), reactive_expr(), reactive_meta(), alternative = selectShape()$variable)
@@ -208,9 +200,9 @@ attr4selector_module <- function(
   acorner <- reactiveVal()    
   i_xcut <- reactiveVal()    
   i_ycut <- reactiveVal()    
-  observeEvent(input$actSelect, {
-    if ( is.null(input$scorner) || nchar(input$scorner) == 0)
-      return(NULL)
+  # observeEvent(input$actSelect, {
+  observeEvent(input$scorner, {    
+    req( !is.null(input$scorner) && nchar(input$scorner) != 0 )      
     acorner( input$scorner )
     i_xcut( input$xcut )
     i_ycut( input$ycut )
@@ -230,6 +222,8 @@ attr4selector_module <- function(
       xcut = i_xcut(),
       ycut = i_ycut(),
       acorner = acorner()
+      # ,
+      # nClickCorner = input$actSelect
     )
   )
   ############### restore status ##############
@@ -273,31 +267,19 @@ attr4selector_module <- function(
     searchOnCol_s3( s$searchOnCol[[3]] )
   })
 
-  observe({
+  observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return(NULL)
     updateTextInputIcon(session, "xcut", value = s$xcut)
-    updateTextInputIcon(session, "ycut", value = s$ycut)    
-    if (!is.null(s$acorner)) {
-      updateSelectInput(session, "scorner", selected = s$acorner)      
-    }
+    updateTextInputIcon(session, "ycut", value = s$ycut) 
+    updateSelectInput(session, "scorner", selected = s$acorner)
   })
-  observeEvent( input$scorner, {
-    i <- input$scorner
-    if (!is.null(i) && nchar(i) > 1 && i != "None")
-      shinyjs::click("actSelect")
-    })
-
-  clickSearch <- reactiveVal()
+  
   observe({
     if (is.null(s <- reactive_status()))
       return(NULL)
-    pre_search(s$searchValue)      
-    if (!is.null(s$searchValue)) {
-      clickSearch(rnorm(3))
-      }
-  })
-  
+    pre_search(s$searchValue)     
+  })  
 
   params
 }

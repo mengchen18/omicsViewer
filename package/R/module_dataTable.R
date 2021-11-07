@@ -28,10 +28,8 @@ dataTable_ui <- function(id) {
 #' @param reactive_data the data to be shown, a tabular objet
 #' @param selector whether a selector should be added to the output
 #' @param columns columns to show
-#' @param reactiveSelectorMeta object returned by pdata or fdata
-#' @param reactiveSelectorHeatmap object returned by heatmap
-#' @param subset subset row or column for heatmap
 #' @param tab_status table initial status, reactive object
+#' @param tab_rows rows to be shown
 #' @importFrom stringr str_split_fixed
 #' @examples 
 #' # library(shiny)
@@ -76,49 +74,19 @@ dataTable_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 dataTable_module <- function(
-  input, output, session, reactive_data, selector = TRUE, columns = NULL, tab_status = reactive(NULL),
-  reactiveSelectorMeta = reactive(NULL), reactiveSelectorHeatmap = reactive(NULL), subset = c("row", "col", "none")[1]) {
+  input, output, session, reactive_data, selector = TRUE, columns = NULL, 
+  tab_status = reactive(NULL), tab_rows = reactive(NULL) 
+  ) {
   
   ns <- session$ns
   # 
   selectedRowOrCol <- reactiveVal(TRUE)
   
   notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
-  
-  if (subset %in% c('row', 'col')) {
-    observeEvent(reactiveSelectorHeatmap(), {
-      # req(reactiveSelectorHeatmap())
-      if (subset == "row") {
-        if (notNullAndPosLength(reactiveSelectorHeatmap()$brushed$row)) {
-          selectedRowOrCol(reactiveSelectorHeatmap()$brushed$row)
-        } else if (notNullAndPosLength(reactiveSelectorHeatmap()$clicked)) {
-          selectedRowOrCol(reactiveSelectorHeatmap()$clicked["row"])
-        } else
-          selectedRowOrCol(TRUE)
-      } else if (subset == "col") {
-        if (notNullAndPosLength(reactiveSelectorHeatmap()$brushed$col)) {
-          selectedRowOrCol(reactiveSelectorHeatmap()$brushed$col)
-        } else if (notNullAndPosLength(reactiveSelectorHeatmap()$clicked)) {
-          selectedRowOrCol(reactiveSelectorHeatmap()$clicked["col"])
-        } else
-          selectedRowOrCol(TRUE)
-      } else 
-        stop("Unknown subset, should be either 'row' or 'col'!")
-    })
-    
-    observeEvent(reactiveSelectorMeta(), {
-      # req(reactiveSelectorMeta())
-      if (notNullAndPosLength(reactiveSelectorMeta()$selected)) {
-        selectedRowOrCol( reactiveSelectorMeta()$selected )
-      } else if ( notNullAndPosLength(reactiveSelectorMeta()$clicked) ) {
-        selectedRowOrCol( reactiveSelectorMeta()$clicked )
-      } else
-        selectedRowOrCol(TRUE)
-    })
-  }
 
   observeEvent( reactive_data(), selectedRowOrCol(TRUE) )
   observeEvent( input$clear, selectedRowOrCol(TRUE) )
+  observe( selectedRowOrCol( tab_rows() ) )
 
   rdd <- reactive({
     if (is.matrix(reactive_data())) {
@@ -207,11 +175,11 @@ dataTable_module <- function(
   observeEvent(tab_status(), {
     if (!is.null( i <- tab_status()$showColumns ))
       scn (i)
-    updateSwitchInput(session, "multisel", value = tab_status()$multiSelection)
-    selectedRowOrCol( tab_status()$activeEntries )
-    })
+    updateSwitchInput(session, "multisel", value = tab_status()$multiSelection)    
+    }) 
   
   output$table <- DT::renderDataTable({
+    req(scn())
     tab <- rdd()[, scn()]
     i <- which(sapply(tab, function(x) is.numeric(x) && !is.integer(x)))
     if (any(i))
@@ -219,17 +187,19 @@ dataTable_module <- function(
     formatTab(tab, sel = input$multisel)
   })
 
+  # outputOptions(output, "table", suspendWhenHidden = FALSE)
   tabproxy <- dataTableProxy(ns("table"))
   
   eventReactive( list(input$table_rows_selected, input$table_state), {    
-    r <- NA
+    r <- character(0)
+    if (!is.null(tab_rows()))
+      r <- tab_rows()
     if (notNullAndPosLength(input$table_rows_selected))
       r <- rownames(rdd())[input$table_rows_selected]
     sta <- input$table_state
     sta$showColumns <- scn()
     sta$multiSelection <- input$multisel    
-    sta$rows_selected <- input$table_rows_selected
-    sta$activeEntries <- selectedRowOrCol()
+    sta$rows_selected <- input$table_rows_selected    
     attr(r, "status") <- sta
     r
     })

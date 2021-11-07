@@ -98,6 +98,8 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
 #' @param x a number or a string can be calculated
 #' 
 text2num <- function(x) {
+  if (is.null(x))
+    return(NULL)
   x0 <- suppressWarnings(as.numeric(x))
   if (is.na(x0))
     x0 <-  try(eval(parse(text = x)), silent = TRUE)
@@ -116,15 +118,19 @@ line_rect <- function(l, coord) {
   if (is.null(x) && is.null(y))
     return(NULL)
 
+  if (!is.numeric(x) && !is.numeric(y))
+    return(NULL)
+  
   if (!is.numeric(coord$x) && is.numeric(coord$y) && !l$corner %in% c("top", "bottom"))
     return(NULL)
-
+  
   if (is.numeric(coord$x) && !is.numeric(coord$y) && !l$corner %in% c("left", "right"))
     return(NULL)
   
   if (l$corner == "None")
     return(NULL)
   
+
   minx <- min(coord$x, na.rm = TRUE)
   maxx <- max(coord$x, na.rm = TRUE)
   miny <- min(coord$y, na.rm = TRUE)

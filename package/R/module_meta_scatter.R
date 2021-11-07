@@ -93,17 +93,17 @@ meta_scatter_module <- function(
                    reactive_selector2 = reactive(yax()$v2), 
                    reactive_selector3 = reactive(yax()$v3))
   
-  pre_vol <- reactive({
-    v <- FALSE
+  pre_vol <- reactiveVal(FALSE)
+  # pre_vol <- reactive({
+  observe({
     vv <- c("v1", "v2", "v3")
     if (all(vv %in% names(xax())) && all(vv %in% names(yax()))) {
       if (xax()$v1 == "ttest" && 
           yax()$v1 == "ttest" && 
           xax()$v3 == "mean.diff" && 
           yax()$v3 %in% c("log.fdr", "log.pvalue"))
-        v <- TRUE
-    }
-    v
+        pre_vol(TRUE)
+    }    
   })
   
   attr4select_status <- reactiveVal()
@@ -119,17 +119,19 @@ meta_scatter_module <- function(
     y <- varSelector(v2(), reactive_expr(), reactive_meta())
     req(x)
     req(y)
+    req(is.numeric(x) || is.numeric(y))
     req(length(x) == length(y))
     list( x = x, y = y )
   })
-  
+
   rectval <- reactiveVal(NULL)
-  observe({
+  observe({    
     req(xycoord())
     rectval( line_rect(l = attr4select$cutoff, xycoord())$rect )
   })
   
   observeEvent(input$clear, {
+    pre_vol(FALSE)
     rectval( NULL )
   })
   observeEvent(list(v1(), v2()), {
@@ -137,11 +139,14 @@ meta_scatter_module <- function(
       rectval(NULL)
       return(NULL)
     } else if (attr4select$cutoff$corner == "volcano")
-      if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest") {
+      if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest" || v1()[[2]] != v2()[[2]]) {
         rectval(NULL)
       }
   })
+
+
   
+  # ins <- reactiveVal(NA)
   scatter_vars <- reactive({
     req(l <- xycoord())
     l$source <- source
@@ -154,6 +159,7 @@ meta_scatter_module <- function(
     l$highlight <- attr4select$highlight
     l$highlightName <- attr4select$highlightName
     l$rect <- rectval()
+    l$inSelection <- NA
     l
   })
   
@@ -163,8 +169,7 @@ meta_scatter_module <- function(
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()
   v_scatter <- callModule(
-    plotly_scatter_module, id = "main_scatterOutput",
-    reactive_param_plotly_scatter = scatter_vars,
+    plotly_scatter_module, id = "main_scatterOutput", reactive_param_plotly_scatter = scatter_vars,
     reactive_regLine = showRegLine, htest_var1 = htestV1, htest_var2 = htestV2)
   observe({    
     if (!is.null(s <- reactive_status()))
@@ -178,16 +183,18 @@ meta_scatter_module <- function(
       selected = character(0)
     )
   )
+  sbc <- reactiveVal(FALSE)
   
   observeEvent(list(input$clear, reactive_expr()), {
     selVal( list(
       clicked = character(0),
       selected = character(0)
     ) )
+    sbc(FALSE)
   })
   
   clientSideSelection <- reactiveVal(character(0))
-  observeEvent( v_scatter(), {
+  observeEvent( v_scatter(), { 
     if (combine == "pheno") 
       l <- colnames(reactive_expr()) else
         l <- rownames(reactive_expr())
@@ -199,9 +206,21 @@ meta_scatter_module <- function(
         clicked = u_c,
         selected = u_s
       ) )
+      sbc(FALSE)
   })
   
-  observeEvent( list(rectval(), attr4select$cutoff), {
+  emptyValues <- function(...) {
+    l <- list(...)
+    j <- sapply(l, function(x) is.null(x) || length(x) == 0)
+    all(j)
+  }
+
+  returnCornerSelection <- reactiveVal(TRUE)    
+  observeEvent( rectval(), {          
+    
+    if (!returnCornerSelection())
+      return(NULL)   
+
     rec <- rectval()
     if (is.null(rec)) {
       selVal(list(
@@ -223,9 +242,12 @@ meta_scatter_module <- function(
       clicked = character(0),
       selected = l[ i ]
     ) )
-  })
+    sbc(TRUE)
+  } )
 
   ############## status save ###############
+  
+
   observe({
     sv <- selVal()
     attr(sv, "status") <- list(
@@ -236,7 +258,8 @@ meta_scatter_module <- function(
       htestV1 = v_scatter()$htest_V1,
       htestV2 = v_scatter()$htest_V2,
       selection_clicked = sv$clicked,
-      selection_selected = sv$selected
+      selection_selected = sv$selected,
+      selectByCorner = sbc()
       )
     selVal(sv)
     })
@@ -266,7 +289,15 @@ meta_scatter_module <- function(
     htestV1( s$htestV1 )
     htestV2( s$htestV2 )
     })  
-
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    returnCornerSelection( s$selectByCorner )
+    selVal( list(
+      clicked = s$selection_clicked,
+      selected = s$selection_selected
+      ))
+    })
   #############################################
 
   selVal

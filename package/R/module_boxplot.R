@@ -68,8 +68,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
     if (nrow(mat_i) <=3) { #  add line
       for (ii in 1:nrow(mat_i)) {
         fig <- add_lines(fig, x = colnames(mat_i), y = mat_i[ii, ], name = rownames(mat_i)[ii],
-                         line = list(color = "rgb(150, 150, 150)", width = 1), showlegend = FALSE)# TRUE
-        
+                         line = list(color = "rgb(150, 150, 150)", width = 1), showlegend = FALSE)
       }
     }
     dfi <- dfi <- convertDF(mat_i, c = highlight)
