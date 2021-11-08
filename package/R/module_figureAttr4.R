@@ -28,6 +28,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
         )
       ),
     fluidRow(      
+      column(2),
       column(
         4, offset = 0, style='padding:2px;', 
         textInputIcon(inputId = ns("xcut"), label = "Select points by x/y cutoffs", value = "log10(2)", placeholder = "e.g. -1 or -log10(2)", icon = list("x-cut"))),
@@ -37,11 +38,6 @@ attr4selector_ui <- function(id, circle = TRUE) {
       column(
         2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
         selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE))
-      # ,
-      # column(
-      #   2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;', 
-      #   actionButton(inputId = ns("actSelect"), label = "Select")
-      # )
     )
   )
 }
@@ -139,28 +135,28 @@ attr4selector_module <- function(
   val_xcut <- reactive({ text2num(input$xcut) })
   val_ycut <- reactive({ text2num(input$ycut) })
 
-  observe(print(input$acorner))
-
-  observe({
+  observeEvent(list(val_xcut(), val_ycut()), {    
     if (is.numeric(val_xcut()) && is.null(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c("None", "left", "right"), selected = "None")
+      ac <- c("None", "left", "right")
     } else if (is.null(val_xcut()) && is.numeric(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c("None", "top", "bottom"), selected = "None")
+      ac <- c("None", "top", "bottom")
     } else if (is.numeric(val_xcut()) && is.numeric(val_ycut())) {
-      updateSelectInput(session, inputId = "scorner", choices = c(
-        "None", "volcano", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright"
-      ), selected = "None")
+      ac <- c("None", "volcano", "left", "right", "top", "bottom", "topleft", "topright", "bottomleft", "bottomright")      
     } else 
-      updateSelectInput(session, inputId = "scorner", choices = c("None"))
+      ac <- "None"
+    ps <- ac[1]
+    if (!is.null(input$scorner) && input$scorner %in% ac) 
+      ps <- input$scorner
+    updateSelectInput(session, inputId = "scorner", choices = ac, selected = ps)
   })  
 
-  observeEvent(pre_volcano(), {
+  observeEvent(pre_volcano(), {    
     if (pre_volcano()) {      
       l <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
       attr(l, "seed") <- Sys.time()
       params$cutoff <- l
       updateSelectInput(session, inputId = "scorner", selected = "volcano")
-    } else {
+    } else {      
       params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "None")
       updateSelectInput(session, inputId = "scorner", selected = "None")
     }
@@ -201,7 +197,8 @@ attr4selector_module <- function(
   i_xcut <- reactiveVal()    
   i_ycut <- reactiveVal()    
   # observeEvent(input$actSelect, {
-  observeEvent(input$scorner, {    
+  # observeEvent(input$scorner, {    
+  observe({
     req( !is.null(input$scorner) && nchar(input$scorner) != 0 )      
     acorner( input$scorner )
     i_xcut( input$xcut )
@@ -279,7 +276,7 @@ attr4selector_module <- function(
     if (is.null(s <- reactive_status()))
       return(NULL)
     pre_search(s$searchValue)     
-  })  
+  })
 
   params
 }

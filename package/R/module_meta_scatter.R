@@ -126,7 +126,7 @@ meta_scatter_module <- function(
 
   rectval <- reactiveVal(NULL)
   observe({    
-    req(xycoord())
+    req(xycoord())    
     rectval( line_rect(l = attr4select$cutoff, xycoord())$rect )
   })
   
@@ -135,16 +135,9 @@ meta_scatter_module <- function(
     rectval( NULL )
   })
   observeEvent(list(v1(), v2()), {
-    if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") {
+    if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") 
       rectval(NULL)
-      return(NULL)
-    } else if (attr4select$cutoff$corner == "volcano")
-      if (v1()[[1]] != "ttest" || v2()[[1]] != "ttest" || v1()[[2]] != v2()[[2]]) {
-        rectval(NULL)
-      }
   })
-
-
   
   # ins <- reactiveVal(NA)
   scatter_vars <- reactive({
@@ -245,9 +238,7 @@ meta_scatter_module <- function(
     sbc(TRUE)
   } )
 
-  ############## status save ###############
-  
-
+  ############## status save ############### 
   observe({
     sv <- selVal()
     attr(sv, "status") <- list(
@@ -282,7 +273,21 @@ meta_scatter_module <- function(
       return()
     attr4select_status(NULL)
     attr4select_status(s$attr4)    
-    })  
+    })
+
+  # pure mimic - a bit strange
+  # observeEvent(reactive_status(), { 
+  #   req(xycoord())
+  #   req(s <- reactive_status())
+  #   l <- list(x = text2num(s$attr4$xcut), y =  text2num(s$attr4$ycut), corner = s$attr4$acorner)
+  #   try(r <- line_rect(l = l, xycoord())$rect, silent = TRUE)
+  #   if (inherits(r, "try-error")) return(NULL)
+  #   j <- sapply(r, function(x) length(x) == 4 && is.numeric(x))
+  #   if (any(!j)) return(NULL)
+  #   printWithName(r$rect, "r$rect")
+  #   rectval( r )
+  # })
+
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()

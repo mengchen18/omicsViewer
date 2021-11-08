@@ -118,7 +118,7 @@ L1_data_space_module <- function(
     })
     
     observeEvent(c(s_feature_fig()), {
-      printWithName(s_feature_fig()$selected, "s_feature_fig()$selected")
+      # printWithName(s_feature_fig()$selected, "s_feature_fig()$selected")
       # printWithName(s_feature_fig()$clicked, "s_feature_fig()$clicked")
       if (notNullAndPosLength(s_feature_fig()$selected)) {        
         tab_rows_fdata( s_feature_fig()$selected )
@@ -195,8 +195,8 @@ L1_data_space_module <- function(
       updateNavbarPage(session = session, inputId = "eset", selected = tb)
     })
 
-  na2null <- function(x) {
-    if (is.null(x) || is.na(x))
+  na2null <- function(x) {    
+    if (is.null(x) || is.na(x) || length(x) == 0)
       return(NULL)
     x
   }
@@ -206,8 +206,6 @@ L1_data_space_module <- function(
     selectedSamples( na2null( status()$eset_selected_samples ) )
     selectedFeatures( status()$eset_selected_features )
     })
-
-  # observe(printWithName(tab_rows_fdata(), "tab rows"))
 
   reactive({
     l <- list(
