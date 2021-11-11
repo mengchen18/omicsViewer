@@ -98,10 +98,11 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))
     if ( length(ic) > 0 )
       tab[, ic] <- lapply(tab[, ic, drop = FALSE], signif, digits = 3)
+
     list(tab = tab, index = index)
   })    
 
-  output$table <- DT::renderDataTable(
+  output$table <- DT::renderDataTable(    
     formatTab(tabsort()$tab, pageLength = pageLength)
   )
   

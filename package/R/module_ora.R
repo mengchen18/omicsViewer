@@ -61,23 +61,12 @@ enrichment_analysis_module <- function(
       rii("notest") else 
         rii(reactive_i())    
     })
-
-  # rii <- reactiveVal({
-  #   if (length(reactive_i()) <=  3)
-  #     return("notest")
-  #   if (is.integer(reactive_i() ))
-  #     return(reactive_i())
-  #   # fmatch(reactive_i(), rownames(reactive_pathway_mat()))
-  #   reactive_i()
-  #   })
   
-  oraTab <- reactive({
-    # print(rii()[1])
+  oraTab <- reactive({    
     notest <- "No geneset has been tested, please try to include more input feature IDs!" 
     if (rii()[1] == "notest")
       return(notest)
-    tab <- vectORATall(reactive_pathway(), i = rii(), background = nrow(reactive_featureData()))
-    # print(head(tab))
+    tab <- vectORATall(reactive_pathway(), i = rii(), background = nrow(reactive_featureData()))    
     if (is.null(tab))
       return(notest)
     ic <- which(sapply(tab, function(x) is.numeric(x) & !is.integer(x)))

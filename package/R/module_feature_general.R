@@ -23,6 +23,7 @@ feature_general_ui <- function(id) {
 #' @param reactive_highlight reactive col index to be highlighted
 #' @param reactive_phenoData reactive phenotype data
 #' @param reactive_featureData reactive feature data
+#' @param reactive_status saved status to restore
 #' @importFrom DT renderDataTable
 #' @importFrom reshape2 melt
 #' @examples
@@ -60,7 +61,8 @@ feature_general_module <- function(input, output, session,
                                    reactive_expr, reactive_i = reactive(NULL), 
                                    reactive_highlight = reactive(NULL),
                                    reactive_phenoData, 
-                                   reactive_featureData) {
+                                   reactive_featureData,
+                                   reactive_status = reactive(NULL)) {
   ns <- session$ns
   
   # selector
@@ -69,9 +71,17 @@ feature_general_module <- function(input, output, session,
     ts[ts[, 1] != "Surv", ]
   })
   
-  v1 <- callModule(triselector_module, id = "tris_feature_general", reactive_x = triset, label = 'Value')
+  xax <- reactiveVal()
+  v1 <- callModule(
+    triselector_module, id = "tris_feature_general", reactive_x = triset, label = 'Value', 
+    reactive_selector1 = reactive(xax()$v1), 
+    reactive_selector2 = reactive(xax()$v2), 
+    reactive_selector3 = reactive(xax()$v3))
+
+  attr4select_status <- reactiveVal()
   attr4select <- callModule(
-    attr4selector_module, id = "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr, reactive_triset = triset
+    attr4selector_module, id = "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr, 
+    reactive_triset = triset, reactive_status = attr4select_status
   )
   
   # what to do
@@ -157,19 +167,23 @@ feature_general_module <- function(input, output, session,
   })
   
   showRegLine <- reactiveVal(FALSE)
+  htestV1 <- reactiveVal()
+  htestV2 <- reactiveVal()
   v_scatter <- callModule(plotly_scatter_module, id = "feature_general_scatter",
                           reactive_param_plotly_scatter = scatter_vars,
                           reactive_checkpoint = showScatter,
-                          reactive_regLine = reactive( showRegLine()))
-  observe(showRegLine(v_scatter()$regline))
-  
+                          reactive_regLine = reactive( showRegLine()))    
+  observe({
+    showRegLine(v_scatter()$regline) 
+    })
   
   ## beeswarm:
   # - single feature selected - categorical phenoData selected
   # - multi feature selected - categorical phenoData selected
   v_beeswarm <- callModule(plotly_scatter_module, id = "feature_general_beeswarm",
                            reactive_param_plotly_scatter = scatter_vars, 
-                           reactive_checkpoint = showBeeswarm )
+                           reactive_checkpoint = showBeeswarm,
+                           htest_var1 = htestV1, htest_var2 = htestV2)
   
   metatab <- reactive({
     req(reactive_i())
@@ -185,4 +199,46 @@ feature_general_module <- function(input, output, session,
   callModule(
     dataTableDownload_module, id = "mtab", reactive_table = metatab, prefix = "FeatureTable_"
   )
+
+  ## save and restore status
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    })
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    attr4select_status(NULL)
+    attr4select_status(s$attr4)    
+    })
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    htestV1( s$htestV1 )
+    htestV2( s$htestV2 )
+    })  
+
+  observeEvent(reactive_status(), {    
+    if (!is.null(s <- reactive_status()))
+      showRegLine(s$showRegLine) 
+    })
+
+  ## return status ##
+  rv <- reactiveValues()
+  observe( rv$xax <- v1() )
+  observe( rv$showRegLine <- showRegLine() )
+  observe( rv$attr4 <- attr4select$status )
+  observe({
+    rv$htestV1 <- v_beeswarm()$htestV1
+    rv$htestV2 <- v_beeswarm()$htestV2
+    })
+
+  reactive({
+    reactiveValuesToList(rv)
+    })
+
 }

@@ -21,7 +21,8 @@ geneshot_ui <- function(id) {
 }
 
 geneshot_module <- function(
-  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object
+  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object,
+  reactive_status = reactive(NULL)
 ) {
   ns <- session$ns
   # select stats from feature data
@@ -30,54 +31,67 @@ geneshot_module <- function(
     cn <- colnames(fd)[!sapply(fd, is.numeric) & !grepl("^GS\\|", colnames(fd))]
     str_split_fixed(cn, "\\|", n = 3)
   })
+
+  xax <- reactiveVal()
   v1 <- callModule(
-    triselector_module, id = "geneNameCol", reactive_x = triset, label = "Gene name"
+    triselector_module, id = "geneNameCol", reactive_x = triset, label = "Gene name",
+    reactive_selector1 = reactive(xax()$v1), 
+    reactive_selector2 = reactive(xax()$v2), 
+    reactive_selector3 = reactive(xax()$v3)
   )
   
+
+  outliersLabs <- reactiveVal()
   rif <- eventReactive(input$submit, {
     show_modal_spinner(text = "Querying database ...")
     res <- getAutoRIF(trimws(strsplit(input$term, ";")[[1]]), filter = TRUE)    
-    req(nrow(res) > 0)
-    res$selected <- ""
-    res <- res[order(res$rank, decreasing = TRUE), ]
-    dft <- res[1:min(nrow(res), 20), ]
-    outliers <- list(
-      x = dft$n,
-      y = dft$perc,
-      text = dft$gene,
-      xref = "x",
-      yref = "y",
-      showarrow = TRUE,
-      ax = 10,
-      ay = -20
-    )
+    if (!is.null(res) && nrow(res) > 0) {
+      # req(nrow(res) > 0)
+      res$selected <- ""
+      res <- res[order(res$rank, decreasing = TRUE), ]
+      dft <- res[1:min(nrow(res), 20), ]
+      outliers <- list(
+        x = dft$n,
+        y = dft$perc,
+        text = dft$gene,
+        xref = "x",
+        yref = "y",
+        showarrow = TRUE,
+        ax = 10,
+        ay = -20
+      )
+    } 
     remove_modal_spinner()
+    req(!is.null(res) && nrow(res) > 0)
+    outliersLabs(outliers)    
     list(
       tab = res,
       outliers = outliers
     )
   })
   
-  gtab <- reactive({
+  gtab <- reactiveVal()
+  # gtab <- reactive({
+  observe({
     df <- rif()$tab
     cid <- paste(unlist(v1()), collapse = "|")
     if ( cid %in% colnames(fdata()) )
       df$selected[ df$gene %in% fdata()[feature_selected(), cid] ] <- "+"
-    df
-    })
+    gtab(df)
+    })  
 
   rifRow <- callModule(
     dataTableDownload_module,    
-    id = "autorif", reactive_table = gtab, prefix = "autoRIF", pageLength = 10)
+    id = "autorif", reactive_table = reactive({req(gtab()); gtab()}), prefix = "autoRIF", pageLength = 10)
   
   ##
   output$plt <- plotly::renderPlotly({
-    df <- gtab()
+    req(df <- gtab())
     fig <- plotly_scatter(
       x = df$n, y = df$perc, xlab = "# of publication", ylab = "Publications with Search Term(s) / Total Publications", 
       color = df$selected, size = 10, tooltips=df$gene, shape = "select"
     )
-    fig <- plotly::layout(fig$fig, annotations = rif()$outliers)
+    fig <- plotly::layout(fig$fig, annotations = outliersLabs()) #rif()$outliers)
     plotly::config(
       fig,
       toImageButtonOptions = list(
@@ -88,4 +102,28 @@ geneshot_module <- function(
         )
       )
   })
+
+  ### status save and restore
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    gtab(s$table)
+    outliersLabs(s$outliers)
+    updateTextInput(session, inputId = "term", value = s$term)
+    })
+
+  ##
+  rv <- reactiveValues()
+  observe( rv$xax <- v1() )
+  observe( rv$table <- gtab() )
+  observe( rv$outliers <- rif()$outliers )
+  observe( rv$term <- input$term )
+
+  reactive({
+    reactiveValuesToList(rv)
+    })
+
 }

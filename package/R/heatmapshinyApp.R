@@ -187,6 +187,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   ns <- session$ns
   
   matr <- reactive({
+    req(mat())
     if (any(is.na(mat())))
       r <- fillNA(mat()) else
         r <- mat()
@@ -212,20 +213,34 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   })
   
   fdColWithGS <- reactive({
+    req(fd())
     c(colnames(fd()), paste0("GS|", levels(gsdf()$gsId)))
   })
-  ######## update selectize input ########
-  observe( updateSelectInput(session, "annotCol", choices = colnames(pd())) )
-  observe( updateSelectInput(session, "annotRow", choices = fdColWithGS()) ) 
-  observe( updateSelectInput(session, "colSortBy", choices = c("hierarchical cluster", "none", colnames(pd()))) )
+  # ######## update selectize input ########
+  observe({ 
+    req(pd())
+    updateSelectInput(session, "annotCol", choices = colnames(pd())) 
+    })
+  observe({
+    req(pd())
+    updateSelectInput(session, "annotRow", choices = fdColWithGS())
+    }) 
+  observe({
+    req(pd())
+    updateSelectInput(session, "colSortBy", choices = c("hierarchical cluster", "none", colnames(pd()))) 
+    })
   observe( updateSelectInput(
     session, "rowSortBy", choices = c(names(rdg()), "none", "hierarchical cluster", fdColWithGS()), selected = clsRow()
     ))
-  observe( updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) )
+  observe({
+    req(pd())
+    updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) 
+    })
   
-  ######## prepare heatmap data ########
+  # ######## prepare heatmap data ########
   mm <- reactive({
     req(input$scale)
+    req(matr())
     if (input$scale == "row") {
       mm <- t(scale(t(matr()))) 
       brk <- c(min(mm, na.rm = TRUE), seq(-2, 2, length.out = 99), max(mm, na.rm = TRUE))
@@ -264,13 +279,11 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   rowSB <- eventReactive(list(
     input$rowSortBy, mm()$mat, input$clusterRowDist, input$clusterRowLink, status()
     ), {
-
     if (!is.null(pre_hcl()) & !is.null(pre_ord())) {
       return(list(
         ord = pre_ord(), hcl = pre_hcl()
         ))
     }
-
     req(input$rowSortBy)
     hcl_r <- NULL
     ord_r <- 1:nrow(mm()$mat)
@@ -293,9 +306,9 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     list(ord = ord_r, hcl = hcl_r)
   })
   
-  colSB <- eventReactive(list(
+  colSB <- eventReactive(list(    
     input$colSortBy, mm()$mat, input$clusterColDist, input$clusterColLink 
-    ), {
+    ), {    
     req(input$colSortBy)
     hcl_c <- NULL
     ord_c <- 1:ncol(mm()$mat)
@@ -323,7 +336,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   })
   ######## render plot ########
   dat_colSideCol <- reactive({
-    req(input$annotCol)
+    req(input$annotCol)    
     addHeatmapAnnotation(pd()[hm()$ord_c, input$annotCol],  var.name = input$annotCol)
   })
   output$colSideCol <- renderPlot({
@@ -371,8 +384,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
       rrn <- .rg(ranges$y, colnames(hm()$mat))
       abline(h = seq(ranges$y[1], ranges$y[2], by = 1), col = "white")
       mtext(side = 4, at = rrn$at, text = rrn$lab, las = 2, line = 0.5)
-    }
-    
+    }    
   })
   
   output$dendCol <- renderPlot({
@@ -392,6 +404,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   ######## update range - heatmap ########
   ranges <- reactiveValues(x = NULL, y = NULL)
   observe({
+    req(hm()$mat)
     if (!is.null(status()$ranges_x))
       ranges$x <- status()$ranges_x else 
         ranges$x <- c(0, nrow(hm()$mat))+0.5
@@ -399,7 +412,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
       ranges$y <- status()$ranges_y else 
         ranges$y <- c(0, ncol(hm()$mat))+0.5
   })
-  # 
+  
   .rg <- function(x, tx) {
     v1 <- ceiling(x[1])
     v2 <- floor(x[2])
@@ -508,7 +521,7 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
 
 
 
-  ######### place holder plots ##########
+  ######## place holder plots ##########
   output$empty1 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
     plot(0, axes = FALSE, col = NA)
@@ -644,9 +657,11 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
 
   })
 
-  ############### tooltips ################
+  ############## tooltips ################
 
   dat_tooltip <- reactive({
+    req(pd())
+    req(fd())
     list(
       pd = pd()[hm()$ord_c, colnames(pd()) %in% input$tooltipInfo, drop = FALSE],
       fd = fd()[hm()$ord_r, colnames(fd()) %in% input$tooltipInfo, drop = FALSE]

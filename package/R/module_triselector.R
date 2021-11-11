@@ -115,6 +115,7 @@ triselector_module <- function(input, output, session,
   })
   
   observeEvent(list(reactive_selector1()), {
+    req(reactive_x())
     if (length(names(input)) == 0)
       return(NULL)
     cc <- unique(reactive_x()[, 1])
@@ -125,6 +126,7 @@ triselector_module <- function(input, output, session,
   })
   
   observeEvent(list(names(input), reactive_x()), {
+    req(reactive_x())
     if (length(names(input)) == 0)
       return(NULL)
     cc <- unique(reactive_x()[, 1])
@@ -137,6 +139,7 @@ triselector_module <- function(input, output, session,
   
   # bug fix
   observeEvent(input$analysis, {
+    req(reactive_x())
     req (input$analysis == "")
     cc <- unique(reactive_x()[, 1])
     if (is.null(reactive_selector1()))
@@ -147,6 +150,7 @@ triselector_module <- function(input, output, session,
   
   # updat selectize input when reactive_x is given
   observe({
+    req(reactive_x())
     input$analysis
     req(input$analysis)
     cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
@@ -158,6 +162,7 @@ triselector_module <- function(input, output, session,
     input$subset
     req(input$analysis)
     req(input$subset)
+    req(reactive_x())
     
     cc <- reactive_x()[, 3][reactive_x()[, 1] == input$analysis & reactive_x()[, 2] == input$subset]
     cc <- c("Select a variable!", cc)

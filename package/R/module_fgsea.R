@@ -39,7 +39,7 @@ enrichment_fgsea_ui <- function(id) {
 # }
 # shinyApp(ui, server)
 
-enrichment_fgsea_module <- function(input, output, session, reactive_featureData) {
+enrichment_fgsea_module <- function(input, output, session, reactive_featureData, reactive_status = reactive(NULL)) {
   
   ns <- session$ns
   
@@ -49,7 +49,14 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     cn <- colnames(fd)[sapply(fd, is.numeric) & !grepl("^GS\\|", colnames(fd))]
     str_split_fixed(cn, "\\|", n = 3)
   })
-  v1 <- callModule(triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value")
+
+  xax <- reactiveVal()
+  v1 <- callModule(
+    triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value",
+    reactive_selector1 = reactive(xax()$v1), 
+    reactive_selector2 = reactive(xax()$v2), 
+    reactive_selector3 = reactive(xax()$v3)
+    )
   
   gsInfo <- reactive({
     fdgs <- attr(reactive_featureData(), "GS")
@@ -119,6 +126,16 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     )
     
   })
+
+  # save status and restore
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    })
+
+  reactive(list(xax = v1()))
 }
 
 # 

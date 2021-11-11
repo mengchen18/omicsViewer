@@ -89,6 +89,7 @@ dataTable_module <- function(
   observe( selectedRowOrCol( tab_rows() ) )
 
   rdd <- reactive({
+    req(reactive_data())
     if (is.matrix(reactive_data())) {
       x <- as.data.frame(reactive_data()) 
     } else if (is.data.frame(reactive_data()))
@@ -119,6 +120,7 @@ dataTable_module <- function(
   })
   
   addcols <- callModule(triselector_module, id = "select", reactive_x = reactive({
+    req(cols()$opt)
     req(nrow(cols()$opt) > 0)
     cols()$opt
   }), label = "Add column")
@@ -137,6 +139,7 @@ dataTable_module <- function(
   })
 
   output$selector <- renderUI({
+    req(cols()$opt)
     req(nrow(cols()$opt) > 0)
     triselector_ui(ns("select"))
     })

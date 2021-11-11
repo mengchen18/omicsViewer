@@ -127,10 +127,15 @@ line_rect <- function(l, coord) {
   
   if (is.numeric(x) && !is.numeric(y) && !l$corner %in% c("left", "right"))
     return(NULL)
+
+  if (!is.numeric(coord$x) && is.numeric(coord$y) && !l$corner %in% c("top", "bottom"))
+    return(NULL)
+  
+  if (is.numeric(coord$x) && !is.numeric(coord$y) && !l$corner %in% c("left", "right"))
+    return(NULL)
   
   if (l$corner == "None")
     return(NULL)
-  
 
   minx <- min(coord$x, na.rm = TRUE)
   maxx <- max(coord$x, na.rm = TRUE)

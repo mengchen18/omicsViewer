@@ -122,15 +122,6 @@ attr4selector_module <- function(
   observe(
     updateCheckboxInput(session, "showSearchBox", value = !is.null(vv()))
   )
-  
-  # val_xcut <- reactiveVal(NULL)
-  # observe({    
-  #   val_xcut( text2num(input$xcut) )
-  # })
-  # val_ycut <- reactiveVal(NULL)
-  # observe({
-  #   val_ycut( text2num(input$ycut) )
-  # })
 
   val_xcut <- reactive({ text2num(input$xcut) })
   val_ycut <- reactive({ text2num(input$ycut) })
@@ -176,6 +167,8 @@ attr4selector_module <- function(
     }
     })
   observe({    
+    req(vv())
+    req(searchValue())
     params$highlight <- which(vv() %in% searchValue())
     isolate( params$highlightName <- searchOnCol()$variable )
   })
@@ -200,6 +193,14 @@ attr4selector_module <- function(
   # observeEvent(input$scorner, {    
   observe({
     req( !is.null(input$scorner) && nchar(input$scorner) != 0 )      
+
+    # if (grepl("feature_space", ns("xx"))) {
+    #   print("xxxxxxxxxx")
+    #   print( input$scorner ) 
+    #   print( input$xcut ) 
+    #   print( input$ycut ) 
+    # }    
+
     acorner( input$scorner )
     i_xcut( input$xcut )
     i_ycut( input$ycut )
@@ -208,7 +209,7 @@ attr4selector_module <- function(
     params$cutoff <- l
   })
 
-  observe(
+  observe({
     params$status <- list(
       selectColor = selectColor(),
       selectShape = selectShape(),
@@ -222,8 +223,15 @@ attr4selector_module <- function(
       # ,
       # nClickCorner = input$actSelect
     )
-  )
+  })
   ############### restore status ##############
+  
+  # observe({
+  #   if (grepl("feature_space", ns("xx")))
+  #     print(reactive_status())
+  #   })
+
+
   observe({        
     if (is.null(s <- reactive_status()))
       return(NULL)
@@ -269,7 +277,7 @@ attr4selector_module <- function(
       return(NULL)
     updateTextInputIcon(session, "xcut", value = s$xcut)
     updateTextInputIcon(session, "ycut", value = s$ycut) 
-    updateSelectInput(session, "scorner", selected = s$acorner)
+    updateSelectInput(session, "scorner", selected = s$acorner)    
   })
   
   observe({

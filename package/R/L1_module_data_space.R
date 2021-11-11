@@ -11,7 +11,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     selected = activeTab,
     theme = shinytheme("spacelab"), 
     tabPanel('Feature', meta_scatter_ui(ns('feature_space'))),
-    tabPanel("Feature table", dataTable_ui(ns("tab_feature"))),
+    tabPanel("Feature table", dataTable_ui(ns("tab_feature")))    ,
     tabPanel("Sample", meta_scatter_ui(ns("sample_space"))),
     tabPanel("Sample table", dataTable_ui(ns("tab_pheno"))),
     tabPanel(
@@ -67,124 +67,111 @@ L1_data_space_module <- function(
 ) {
   
   ns <- session$ns
-
-  # heatmap
-  s_heatmap <- callModule( 
-    iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, 
-    rowDendrogram = rowDendrogram, status = reactive(status()$eset_heatmap)
-    )
   
-  ### feature space
-  # r_feature_fig <- reactiveVal()  
+  # # heatmap
+  s_heatmap <- callModule(
+    iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata,
+    rowDendrogram = rowDendrogram, status = reactive(status()$eset_heatmap)
+  )
+
+  # ### feature space
+  # r_feature_fig <- reactiveVal()
   s_feature_fig <- callModule(
-    meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr, 
-    combine = "feature", source = "scatter_meta_feature", reactive_x = reactive_x_f, 
+    meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr,
+    combine = "feature", source = "scatter_meta_feature", reactive_x = reactive_x_f,
     reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig)
   )
-  # observe({ r_feature_fig ( s_feature_fig() ) })
-  # observeEvent(status(), { r_feature_fig ( list(
-  #   clicked = status()$eset_fdata_fig$selection_clicked,
-  #   selected = status()$eset_fdata_fig$selection_selected
-  #  )) })  
 
   # sample space
   # r_sample_fig <- reactiveVal()# DONOT REMOVE
   s_sample_fig <- callModule(
     meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
     reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig)
-  )  
-  # observe({ r_sample_fig ( s_sample_fig() ) })
-  # observeEvent(status(), { r_sample_fig ( list(
-  #   clicked = status()$eset_pdata_fig$selection_clicked,
-  #   selected = status()$eset_pdata_fig$selection_selected
-  #  )) })  
+  )
 
-    tab_rows_fdata <- reactiveVal(TRUE)
-    tab_rows_pdata <- reactiveVal(TRUE)
-    notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
-    observeEvent(s_heatmap(), {      
-      # fdata
-      if (notNullAndPosLength(s_heatmap()$brushed$row)) {
-        tab_rows_fdata(s_heatmap()$brushed$row)
-      } else if (notNullAndPosLength(s_heatmap()$clicked)) {
-        tab_rows_fdata(s_heatmap()$clicked[["row"]])
-      } # else tab_rows_fdata(TRUE)
-      # pdata
-      if (notNullAndPosLength(s_heatmap()$brushed$col)) {
-        tab_rows_pdata(s_heatmap()$brushed$col)
-      } else if (notNullAndPosLength(s_heatmap()$clicked)) {
-        tab_rows_pdata(s_heatmap()$clicked[["col"]])
-      } # else         tab_rows_pdata(TRUE)
-    })
-    
-    observeEvent(c(s_feature_fig()), {
-      # printWithName(s_feature_fig()$selected, "s_feature_fig()$selected")
-      # printWithName(s_feature_fig()$clicked, "s_feature_fig()$clicked")
-      if (notNullAndPosLength(s_feature_fig()$selected)) {        
-        tab_rows_fdata( s_feature_fig()$selected )
-      } else if ( notNullAndPosLength(s_feature_fig()$clicked) ) {
-        tab_rows_fdata( s_feature_fig()$clicked )
-      } else
-        tab_rows_fdata(TRUE)
-    })
+  tab_rows_fdata <- reactiveVal(TRUE)
+  tab_rows_pdata <- reactiveVal(TRUE)
+  notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
+  observeEvent(s_heatmap(), {
+    # fdata
+    if (notNullAndPosLength(s_heatmap()$brushed$row)) {
+      tab_rows_fdata(s_heatmap()$brushed$row)
+    } else if (notNullAndPosLength(s_heatmap()$clicked)) {
+      tab_rows_fdata(s_heatmap()$clicked[["row"]])
+    } # else tab_rows_fdata(TRUE)
+    # pdata
+    if (notNullAndPosLength(s_heatmap()$brushed$col)) {
+      tab_rows_pdata(s_heatmap()$brushed$col)
+    } else if (notNullAndPosLength(s_heatmap()$clicked)) {
+      tab_rows_pdata(s_heatmap()$clicked[["col"]])
+    } # else         tab_rows_pdata(TRUE)
+  })
 
-    observeEvent(s_sample_fig(), {
-      # printWithName(s_sample_fig()$selected, "s_sample_fig()$selected")
-      # printWithName(s_sample_fig()$clicked, "s_sample_fig()$clicked")
-      if (notNullAndPosLength(s_sample_fig()$selected)) {
-        tab_rows_pdata( s_sample_fig()$selected )
-      } else if ( notNullAndPosLength(s_sample_fig()$clicked) ) {
-        tab_rows_pdata( s_sample_fig()$clicked )
-      } else
-        tab_rows_pdata(TRUE)
-    })
-  
+  observeEvent(c(s_feature_fig()), {
+    if (notNullAndPosLength(s_feature_fig()$selected)) {
+      tab_rows_fdata( s_feature_fig()$selected )
+    } else if ( notNullAndPosLength(s_feature_fig()$clicked) ) {
+      tab_rows_fdata( s_feature_fig()$clicked )
+    } else
+      tab_rows_fdata(TRUE)
+  })
+
+  observeEvent(s_sample_fig(), {
+    if (notNullAndPosLength(s_sample_fig()$selected)) {
+      tab_rows_pdata( s_sample_fig()$selected )
+    } else if ( notNullAndPosLength(s_sample_fig()$clicked) ) {
+      tab_rows_pdata( s_sample_fig()$clicked )
+    } else
+      tab_rows_pdata(TRUE)
+  })
+
   ## tables
   tab_pd <- callModule(
-    dataTable_module, id = "tab_pheno",  reactive_data = pdata, 
+    dataTable_module, id = "tab_pheno",  reactive_data = pdata,
     tab_status = reactive(status()$eset_pdata_tab), tab_rows = tab_rows_pdata
   )
   tab_fd <- callModule(
-    dataTable_module, id = "tab_feature",  reactive_data = fdata, 
+    dataTable_module, id = "tab_feature",  reactive_data = fdata,
     tab_status = reactive(status()$eset_fdata_tab), tab_rows = tab_rows_fdata
   )
   tab_expr <- callModule(
-    dataTable_module, id = "tab_expr",  reactive_data = reactive(
+    dataTable_module, id = "tab_expr",  reactive_data = reactive({
+      req(expr())
       cbind(data.frame(feature = rownames(expr()), expr()))
-    ), tab_status = reactive(status()$eset_exprs_tab), 
+    }), tab_status = reactive(status()$eset_exprs_tab),
     tab_rows = tab_rows_fdata, selector = FALSE)
-  
+
   ### return selected feature and samples
   selectedFeatures <- reactiveVal()
   selectedSamples <- reactiveVal()
-  
+
   observeEvent(s_heatmap(), {
-    
+
     if (!is.null(s_heatmap()$brushed$row)) {
       selectedFeatures(s_heatmap()$brushed$row)
     } else if (!is.null(s_heatmap()$clicked))
       selectedFeatures(s_heatmap()$clicked["row"]) # ?? else set to character(0)
-    
+
     if (!is.null(s_heatmap()$brushed$col)) {
       selectedSamples(s_heatmap()$brushed$col)
     } else if (!is.null(s_heatmap()$clicked))
       selectedSamples(s_heatmap()$clicked["col"]) # ?? else set to character(0)
   })
-  
+
   observeEvent(s_feature_fig(), {
     if (!is.null(s_feature_fig()$selected) && length(s_feature_fig()$selected) > 0) {
       selectedFeatures( s_feature_fig()$selected )
     } else if ( !is.null(s_feature_fig()$clicked) )
       selectedFeatures( s_feature_fig()$clicked )
   })
-  
+
   observeEvent(s_sample_fig(), {
     if (!is.null(s_sample_fig()$selected) && length(s_sample_fig()$selected) > 0) {
       selectedSamples( s_sample_fig()$selected )
     } else if ( !is.null(s_sample_fig()$clicked) )
       selectedSamples( s_sample_fig()$clicked )
   })
-  
+
   observe( selectedSamples(tab_pd()) )
   observe( selectedFeatures(tab_fd()) )
   observe( selectedFeatures(tab_expr()) )
@@ -193,19 +180,19 @@ L1_data_space_module <- function(
   observe({
     if (!is.null(tb <- status()$eset_active_tab))
       updateNavbarPage(session = session, inputId = "eset", selected = tb)
-    })
+  })
 
-  na2null <- function(x) {    
+  na2null <- function(x) {
     if (is.null(x) || is.na(x) || length(x) == 0)
       return(NULL)
     x
   }
-  observe({    
-    tab_rows_fdata( status()$eset_fdata_tabrows )    
-    tab_rows_pdata( status()$eset_pdata_tabrows )    
+  observe({
+    tab_rows_fdata( status()$eset_fdata_tabrows )
+    tab_rows_pdata( status()$eset_pdata_tabrows )
     selectedSamples( na2null( status()$eset_selected_samples ) )
     selectedFeatures( status()$eset_selected_features )
-    })
+  })
 
   reactive({
     l <- list(
@@ -224,7 +211,7 @@ L1_data_space_module <- function(
       eset_pdata_tabrows = tab_rows_pdata(),
       eset_selected_samples = c(selectedSamples()),
       eset_selected_features = c(selectedFeatures())
-      )
+    )
     if (sta$eset_active_tab != "Feature table" )# fig tab
       sta$eset_fdata_tab$rows_selected <- NULL
     if (sta$eset_active_tab != "Sample table" )

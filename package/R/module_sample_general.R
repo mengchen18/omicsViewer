@@ -20,6 +20,7 @@ sample_general_ui <- function(id) {
 #' @param session session
 #' @param reactive_phenoData reactive phenotype data
 #' @param reactive_j index for which row in phenotype data should be highlighted/selected
+#' @param reactive_status saved status to restore
 #' @examples 
 #' #' # library(shiny)
 #' # #
@@ -43,20 +44,32 @@ sample_general_ui <- function(id) {
 #' # 
 #' # shinyApp(ui, server)
 #'
-sample_general_module <- function(input, output, session, reactive_phenoData, reactive_j = reactive(NULL)) {
+sample_general_module <- function(input, output, session, reactive_phenoData, 
+  reactive_j = reactive(NULL), reactive_status = reactive(NULL)) {
   
   ns <- session$ns
   
   triset <- reactive({
     trisetter(meta = reactive_phenoData(), combine = "none")
   })
-  v1 <- callModule(triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Value")
+
+  xax <- reactiveVal()
+  v1 <- callModule(
+    triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Value",
+    reactive_selector1 = reactive(xax()$v1), 
+    reactive_selector2 = reactive(xax()$v2), 
+    reactive_selector3 = reactive(xax()$v3))
+  
+  attr4select_status <- reactiveVal()
   attr4select <- callModule(
-    attr4selector_module, id = "a4_gp", reactive_meta = reactive_phenoData, reactive_triset = triset
+    attr4selector_module, id = "a4_gp", reactive_meta = reactive_phenoData, 
+    reactive_triset = triset, reactive_status = attr4select_status
   )
   
   pheno <- reactive({
+    req(v1()$variable)
     req(!v1()$variable %in% c("", "Select a variable!"))
+    req(reactive_phenoData())
     cs <- do.call(paste, list(v1(), collapse = "|"))
     if (!cs %in% colnames(reactive_phenoData()))
       return(NULL)
@@ -76,6 +89,8 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   select <- reactive({
+    req(reactive_j())
+    req(reactive_phenoData())
     select <- rep("Unselected", nrow(reactive_phenoData()))
     if (!is.null(reactive_j()))
       select[rownames(reactive_phenoData()) %in% reactive_j()] <- "selected"
@@ -93,7 +108,9 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   ## beeswarm
-  # showRegLine <- reactiveVal(FALSE)
+  # showRegLine <- reactiveVal(FALSE)  
+  htestV1 <- reactiveVal()
+  htestV2 <- reactiveVal()
   vs_scatter <- callModule(
     plotly_scatter_module, id = "sample_general_beeswarm", 
     reactive_param_plotly_scatter = reactive({
@@ -118,11 +135,8 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
       l
     }), 
     reactive_regLine = reactive(FALSE), # showRegLine,
-    reactive_checkpoint = reactive(pheno()$type == "beeswarm"))
-  # observe({
-  #   req(pheno()$type == "beeswarm")
-  #   showRegLine(vs_scatter()$regline)
-  # })
+    reactive_checkpoint = reactive(pheno()$type == "beeswarm"),
+    htest_var1 = htestV1, htest_var2 = htestV2)
   
   # cont table stats
   callModule(factorIndependency_module, id = "sample_general_contab", 
@@ -151,4 +165,40 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   callModule(
     dataTableDownload_module, id = "msatab", reactive_table = metatab, prefix = "SampleTable_"
   )
+
+
+  ## save and restore status
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    })
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    attr4select_status(NULL)
+    attr4select_status(s$attr4)    
+    })
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    htestV1( s$htestV1 )
+    htestV2( s$htestV2 )
+    })  
+
+  ## return status ##
+  rv <- reactiveValues()
+  observe( rv$xax <- v1() )
+  observe( rv$attr4 <- attr4select$status )
+  observe({
+    rv$htestV1 <- vs_scatter()$htestV1
+    rv$htestV2 <- vs_scatter()$htestV2
+    })
+
+  reactive(
+    reactiveValuesToList(rv)
+    )
 }

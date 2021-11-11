@@ -23,6 +23,10 @@ getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
   r <- httr::POST(GENESHOT_URL, body = payload , encode = "json")
   r <- httr::content(r)
   v <- sapply(r$gene_count, unlist)
+
+  if (length(v) == 0) 
+    return(NULL)
+
   df <- data.frame(
     gene = colnames(v),
     n = v[1, ],

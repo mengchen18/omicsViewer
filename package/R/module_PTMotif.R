@@ -31,6 +31,7 @@ ptmotif_module <- function(
   bg.seqs <- reactiveVal(NULL)
   errText <- reactiveVal(NULL)
   observe({
+    req(fdata())
     req(ic <- grep("^PTMSeq\\|", colnames(fdata())))
     x <- background()
     if (!is.null(x)) {
@@ -58,6 +59,7 @@ the sequences have the same length, the middle of the sequence should be the mod
     })
   
   foregroundSeqs <- reactive({
+    req(fdata())
     req(ic <- grep("^PTMSeq\\|", colnames(fdata())))
     fg.seq <- fdata()[feature_selected(), ic]
     unique(unlist(strsplit(fg.seq, ";")))

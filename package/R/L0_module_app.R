@@ -121,7 +121,7 @@ app_module <- function(
     if (!is.null(ESVObj())) 
       return( tallGS(ESVObj()) )
 
-    # otherwise load from disk
+    # otherwise load from disk    
     req(input$selectFile)
     flink <- file.path(dir(), input$selectFile)
     sss <- file.size(flink)
@@ -134,17 +134,17 @@ app_module <- function(
   })
   
   expr <- reactive({
-    req(reactive_eset())
+    req(reactive_eset())        
     exprsGetter(reactive_eset())
   })
   
   pdata <-reactive({
-    req(reactive_eset())
+    req(reactive_eset())     
     pDataGetter(reactive_eset())
   })
   
   fdata <-reactive({
-    req(reactive_eset())    
+    req(reactive_eset())
     fDataGetter(reactive_eset())    
   })
   
@@ -160,7 +160,10 @@ app_module <- function(
     TRUE
   }
   
-  observe({
+  observe({    
+    req(expr())
+    req(pdata())
+    req(fdata())
     x <- validEset(expr = expr(), pd = pdata(), fd = fdata())
     if (!x[[1]]) {
       showModal(modalDialog(
@@ -246,6 +249,7 @@ app_module <- function(
     HTML(txt)
   })
   
+  # v1 <- reactiveVal()
   v1 <- callModule(
     L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
@@ -268,7 +272,7 @@ app_module <- function(
     rh( c( v1()$sample ) )
     })
   observeEvent( expr(), rh(NULL) )
-  
+
   v2 <- callModule(L1_result_space_module, id = "resultspace",
                    reactive_expr = expr,
                    reactive_phenoData = pdata,
@@ -306,13 +310,13 @@ app_module <- function(
   }
 
   output$tab_saveSS <- renderDT({
-    req( nrow(dt <- savedSS()) > 0)    
+    req( nrow(dt <- savedSS()) > 0 )    
     dt$delete <- shinyInput(
       actionButton, dt$name, 'deletess_', label = "Delete", onclick = sprintf('Shiny.setInputValue(\"%s\",  this.id)', ns("deletess_button")) 
       )
     DT::datatable(
       dt[, c(1, 3), drop = FALSE], rownames = FALSE, colnames = c(NULL, NULL, NULL), 
-      selection = list(mode = "single", target = "cell", selectable = 1), escape = FALSE,
+      selection = list(mode = "single", target = "cell", selectable = -cbind(1:nrow(dt), 1)), escape = FALSE,
       options = list(
         dom = "t", autoWidth = FALSE, style="compact-hover", scrollY = "450px", 
         paging = FALSE, columns = list(list(width = "85%"), list(width = "15%"))

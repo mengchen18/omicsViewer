@@ -476,13 +476,14 @@ plotly_scatter_module <- function(
     })  
   
   output$uiGroup1 <- renderUI({
-    req(reactive_checkpoint())
+    req(reactive_checkpoint())    
     selectInput(inputId = ns("group1"), "group 1", choices = choices()$group, selected = htv1(), selectize = TRUE, width = "100%")
   })
   output$uiGroup2 <- renderUI({
     req(reactive_checkpoint())
     selectInput(inputId = ns("group2"), "group 2", choices = choices()$group, selected = htv2(), selectize = TRUE, width = "100%")
   })
+
   # output$testResult <- renderUI({
   output$testResult <- DT::renderDataTable({
     req(reactive_checkpoint())
@@ -601,7 +602,7 @@ plotly_scatter_module <- function(
     list(selected = selected, clicked = clicked)
     })
 
-  reactive({    
+  reactive({
     list(
       selected = rr()$selected,
       clicked = rr()$clicked,

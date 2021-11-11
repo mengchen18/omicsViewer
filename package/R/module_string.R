@@ -48,7 +48,7 @@ string_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 string_module <- function(
-  input, output, session, reactive_ids
+  input, output, session, reactive_ids, reactive_status = reactive(NULL)
 ) {
   
   ns <- session$ns
@@ -61,7 +61,9 @@ string_module <- function(
     sprintf("%s features selected [MAX 300 FEATURES ALLOWED!]", length(reactive_ids()))
   })
   
-  nk <- eventReactive( input$run, {
+  nk <- reactiveVal()
+  # nk <- eventReactive( input$run, {
+  observeEvent( input$run, {
     r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid()) 
     if (is.data.frame(r)) {
       if (nrow(r) > 999) {
@@ -69,22 +71,27 @@ string_module <- function(
         r <- r[1:999, ]
       }
     }
-    r
+    nk(r)
   })
   
-  gs <- eventReactive(input$run, {
+  gs <- reactiveVal()
+  gs <- eventReactive( input$run, {
+  # observeEvent(input$run, {
     req(!overflow())
     show_modal_spinner(text = "Querying database ...")
     tab <- stringGSA(genes = reactive_ids(), taxid = input$tax) 
     remove_modal_spinner()
-    if (inherits(tab, "character")) 
+    if (inherits(tab, "character")) {
+      # gs(tab)
       return(tab)
+    }       
     colnames(tab) <- c(
       "category", "term", "gene number", "background number", 
       "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
+    # gs(tab)    
     tab
   })
-  
+
   nores <- reactive( {
     !is.data.frame(nk()) || !is.data.frame(gs()) 
   })
@@ -95,22 +102,22 @@ string_module <- function(
     c(gs(), nk())[c(!is.data.frame(gs()), !is.data.frame(nk()))]
   })
   
-  output$noresRet <- renderUI({
+  output$noresRet <- renderUI({    
     verbatimTextOutput(ns("nores.msg"))
   })
   
-  highlight <- reactiveVal(1)
+  highlightP <- reactiveVal(1)
   
   output$network <- renderForceNetwork({
     req(!nores())
     req(nrow(nk()) > 0)
-    stringD3Net(ntwk = nk(), gsa = gs(), i = highlight(), label = input$showLabel)
+    stringD3Net(ntwk = nk(), gsa = gs(), i = highlightP(), label = input$showLabel)
   })
   
   tt <- callModule(
     dataTableDownload_module, id = "strtab", reactive_table = eventReactive(gs(), {
       req(!nores())
-      req(!overflow())
+      req(!overflow())      
       req(nrow(gs()) > 0)
       gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
     }), prefix = "FeatureTable_"
@@ -118,8 +125,23 @@ string_module <- function(
   
   observe({
     req(tt())
-    highlight(tt())
+    highlightP(tt())
   })
+
+  # return and restore session
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    # nk(s$nk)
+    # gs(s$gs)
+    updateTextInputIcon(session, "tax", value = s$tax)
+    updateCheckboxInput(session, "showLabel", value = s$showLabel)
+    shinyjs::click("run")
+    })
+
+  reactive({
+    list( tax = input$tax, showLabel = input$showLabel ) # nk = nk(), gs = gs(), 
+    })
 }
 
 

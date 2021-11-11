@@ -111,8 +111,10 @@ meta_scatter_module <- function(
     attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, 
     reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status
   )
-  
+
   xycoord <- reactive({
+    req(v1()$variable)
+    req(v2()$variable)
     req(!v1()$variable %in% c("Select a variable!", ""))
     req(!v2()$variable %in% c("Select a variable!", ""))
     x <- varSelector(v1(), reactive_expr(), reactive_meta())
@@ -139,7 +141,6 @@ meta_scatter_module <- function(
       rectval(NULL)
   })
   
-  # ins <- reactiveVal(NA)
   scatter_vars <- reactive({
     req(l <- xycoord())
     l$source <- source
@@ -164,10 +165,8 @@ meta_scatter_module <- function(
   v_scatter <- callModule(
     plotly_scatter_module, id = "main_scatterOutput", reactive_param_plotly_scatter = scatter_vars,
     reactive_regLine = showRegLine, htest_var1 = htestV1, htest_var2 = htestV2)
-  observe({    
-    if (!is.null(s <- reactive_status()))
-      showRegLine(s$showRegLine) else
-        showRegLine(v_scatter()$regline) 
+  observe({
+    showRegLine(v_scatter()$regline) 
     })
   
   selVal <- reactiveVal(
@@ -275,18 +274,10 @@ meta_scatter_module <- function(
     attr4select_status(s$attr4)    
     })
 
-  # pure mimic - a bit strange
-  # observeEvent(reactive_status(), { 
-  #   req(xycoord())
-  #   req(s <- reactive_status())
-  #   l <- list(x = text2num(s$attr4$xcut), y =  text2num(s$attr4$ycut), corner = s$attr4$acorner)
-  #   try(r <- line_rect(l = l, xycoord())$rect, silent = TRUE)
-  #   if (inherits(r, "try-error")) return(NULL)
-  #   j <- sapply(r, function(x) length(x) == 4 && is.numeric(x))
-  #   if (any(!j)) return(NULL)
-  #   printWithName(r$rect, "r$rect")
-  #   rectval( r )
-  # })
+  observeEvent(reactive_status(), {    
+    if (!is.null(s <- reactive_status()))
+      showRegLine(s$showRegLine) 
+      })
 
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))

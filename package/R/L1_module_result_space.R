@@ -32,36 +32,46 @@ L1_result_space_module <- function(
 ) {
   ns <- session$ns
   
+  # session restore finished
   v <- callModule(feature_general_module, id = "feature_general", 
                   reactive_expr = reactive_expr, 
                   reactive_i = reactive_i,
                   reactive_highlight = reactive_highlight,
                   reactive_phenoData = reactive_phenoData,
-                  reactive_featureData = reactive_featureData)
+                  reactive_featureData = reactive_featureData, 
+                  reactive_status = reactive(status()$analyst_feature_general))
   
+  # session restore finished
   v2 <- callModule(enrichment_fgsea_module, id = "fgsea", 
-                   reactive_featureData = reactive_featureData)
+                   reactive_featureData = reactive_featureData,
+                   reactive_status = reactive(status()$analyst_fgsea))
   
   v3 <- callModule(enrichment_analysis_module, id = "ora", 
                    reactive_i = reactive_i, reactive_featureData = reactive_featureData
                    )
   
+  # session restore finished
   v4 <- callModule(
     string_module, id = "stringdb", reactive_ids = reactive({
       i <- grep("^StringDB\\|", colnames(reactive_featureData()))
       reactive_featureData()[reactive_i(), i[1]]
-    }))
+    }), reactive_status = reactive(status()$analyst_stringdb)
+    )
   
+  # session restore finished
   v5 <- callModule(
     sample_general_module, id = "sample_general", 
     reactive_phenoData = reactive_phenoData, 
-    reactive_j = reactive_highlight
+    reactive_j = reactive_highlight, 
+    reactive_status = reactive(status()$analyst_sample_general)
   )
 
+  # session restore finished
   v6 <- callModule(
     geneshot_module, id = "geneshotTab", 
     fdata = reactive_featureData, 
-    feature_selected = reactive_i
+    feature_selected = reactive_i,
+    reactive_status = reactive( status()$analyst_gene_shot )
     )
   
   v7 <- callModule(
@@ -69,6 +79,11 @@ L1_result_space_module <- function(
     fdata = reactive_featureData, 
     feature_selected = reactive_i, 
     background = reactive( attr(object(), "ptm.seq.window") )
+  )
+
+  v8 <- callModule(
+    gslist_module, id = "gsList", reactive_i = reactive_i, 
+    reactive_featureData = reactive_featureData
   )
   
   # 
@@ -111,6 +126,7 @@ L1_result_space_module <- function(
     if (!is.null(attr(reactive_featureData(), "GS"))) {
       optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
       optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))
+      optionalTabs <- c(optionalTabs, list(tabPanel("GSList", gslist_ui(ns("gsList")))))
     }
     
     if (any(grepl("^StringDB\\|", colnames(reactive_featureData()))))
@@ -129,6 +145,13 @@ L1_result_space_module <- function(
   })
 
   reactive({
-    list(analyst_active_tab = input$analyst)
+    list(
+      analyst_active_tab = input$analyst, 
+      analyst_feature_general = v(),
+      analyst_sample_general = v5(),
+      analyst_gene_shot = v6(),
+      analyst_fgsea = v2(),
+      analyst_stringdb = v4()
+      )
     })
 }
