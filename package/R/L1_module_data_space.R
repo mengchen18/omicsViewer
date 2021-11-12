@@ -22,7 +22,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
           dropdown(
             inputId = "mydropdown",
             label = "Controls",
-            circle = FALSE, status = "default", icon = icon("gear"),
+            circle = FALSE, status = "default", icon = icon("cog"),
             width = 700,
             tooltip = tooltipOptions(title = "Click to update heatmap and check legend!"),
             margin = "10px",

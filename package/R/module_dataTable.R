@@ -7,7 +7,7 @@ dataTable_ui <- function(id) {
   tagList(
     fluidRow(
       # column(2, dropdown( 
-      #   margin = "25px", status = "default", icon = icon("gear"), width = "700px",
+      #   margin = "25px", status = "default", icon = icon("cog"), width = "700px",
       #   tooltip = tooltipOptions(title = "Add more columns to the table!"),
       #    )),
       column(3, actionButton(ns("clear"), "Show all")),

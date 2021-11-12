@@ -7,7 +7,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
   ns <- NS(id)
   dropdown(
     margin = "25px",
-    circle = circle, status = "default", icon = icon("gear"), width = "700px",
+    circle = circle, status = "default", icon = icon("cog"), width = "700px",
     tooltip = tooltipOptions(title = "Click to modify figure!"),
     br(),
     triselector_ui(ns("selectColorUI")),
