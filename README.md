@@ -34,21 +34,78 @@ devtools::install_github("mengchen18/ExpressionSetViewer/package")
 ```
 
 ### Installation from scratch
-First, installing dependencies may encounter problems:
+First, installing dependencies using as follow:
 ```
 install.packages("V8")
 install.packages("SparseM")
+# cran
+s1 <- c(
+  "survminer",
+  "survival",
+  "fastmatch",
+  "reshape2",
+  "beeswarm",
+  "grDevices",
+  "shinycssloaders",
+  "shinythemes",
+  "networkD3",
+  "httr",
+  "RColorBrewer",
+  "psych",
+  "stringr",
+  "shiny",
+  "shinydashboard",
+  "shinyWidgets",
+  "shinybusy",
+  "matrixStats",
+  "flatxml",
+  "excelR",
+  "shinyjs",
+  "shinyFiles",
+  "DT",
+  "randomcoloR",
+  "plotly",
+  "openxlsx",
+  "yaml",
+  "curl", 
+  "sortable",
+  "BiocManager",
+  "password",
+  "ggseqlogo",
+  "devtools"
+  )
+
+# # BIOC
+s2 <- c(
+  "Biobase", "fgsea"
+  )
+
+# 
+lapply(s1, function(x) {
+  if (x %in% installed.packages()[, 1])
+    return()
+  install.packages(x)
+})
+# 
+lapply(s2, function(x) {
+  if (x %in% installed.packages()[, 1])
+    return()
+  BiocManager::install(x, update = FALSE)
+})
+# 
+a <- installed.packages()[,1 ]
+# 
+xs <- c(s1, s2)
+missingPkg <- setdiff(xs, a)
+
+devtools::install_github('omarwagih/rmotifx')
+
+if (length(missingPkg) > 0)
+  stop(paste("this packages are missing", paste(missingPkg, collapse = " ")))
 ```
-If you see an error message, please solve then first. 
-Then install the packages to manager other dependencies:
-```
-install.packages(c("devtools", "BiocManager"))
-```
-Next, installing the Bioconductor dependencies
-```
-BiocManager::install(c("Biobase", "fgsea"))
-```
-Last:
+
+If you see error messages, please solve them first. 
+Then install the `ExpressionSetViewer` packages
 ```
 devtools::install_github("mengchen18/ExpressionSetViewer/package")
 ```
