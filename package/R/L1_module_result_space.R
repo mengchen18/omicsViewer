@@ -55,7 +55,8 @@ L1_result_space_module <- function(
     string_module, id = "stringdb", reactive_ids = reactive({
       i <- grep("^StringDB\\|", colnames(reactive_featureData()))
       reactive_featureData()[reactive_i(), i[1]]
-    }), reactive_status = reactive(status()$analyst_stringdb)
+    }), reactive_status = reactive(status()$analyst_stringdb), 
+    active = reactive( status()$analyst_active_tab == "StringDB")
     )
   
   # session restore finished

@@ -51,7 +51,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @param input input
 #' @param output output
 #' @param session session
-#' @param dir reactive; directory containing the .RDS file of ExpressionSet
+#' @param .dir reactive; directory containing the .RDS file of ExpressionSet
 #' @param filePattern file pattern to be displayed.
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param esetLoader function to load the eset object, if an RDS file, should be "readRDS"
@@ -102,14 +102,13 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @return do not return any values
 
 app_module <- function(
-  input, output, session, dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
+  input, output, session, .dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, imputeGetter = exprsImpute, 
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
   appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
 ) {
   
   ns <- session$ns
-  
   observe({
     req(dir())
     ll <- list.files(dir(), pattern = filePattern, ignore.case = TRUE)
@@ -118,9 +117,10 @@ app_module <- function(
   
   reactive_eset <- reactive({
     # try to get global object first
-    if (!is.null(ESVObj())) 
+    if (!is.null(ESVObj())) {
+      updateSelectizeInput(session, "selectFile", choices = "ESVObj.RDS", selected = "ESVObj.RDS")
       return( tallGS(ESVObj()) )
-
+    } 
     # otherwise load from disk    
     req(input$selectFile)
     flink <- file.path(dir(), input$selectFile)
@@ -289,9 +289,22 @@ app_module <- function(
   # =======================================================
   # =======================================================
 
+  dir <- reactiveVal()
+  observe({
+    dd <- getwd()
+    if (!is.null(.dir()))
+      dd <- .dir()
+    dir(dd)
+    })
+
   savedSS <- reactiveVal()
   observe({
-    fl <- paste0("ESVSnapshot_", input$selectFile, "_")
+    # req(input$selectFile)
+    if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
+      fs <- "ESVObj.RDS" else
+        fs <- input$selectFile
+
+    fl <- paste0("ESVSnapshot_", fs, "_")
     ff <- list.files(dir(), pattern = fl)
     if (length(ff) == 0)
       return(NULL)
@@ -359,18 +372,24 @@ app_module <- function(
       )
     })
 
-  observeEvent(input$snapshot_save, {
-    req(input$selectFile)
+  observeEvent(input$snapshot_save, {    
+    # req(input$selectFile)
+    if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
+      fs <- "ESVObj.RDS" else
+        fs <- input$selectFile    
+
     df <- savedSS()
-    if (input$snapshot_name %in% df$name) {      
-      showModal(modalDialog(
-        title = "FAILED!",  
-        "Snapshot with this name already exists, please give a different name."
-        ))
-      return(NULL)
+    if (!is.null(df)) {
+      if (input$snapshot_name %in% df$name) {              
+        showModal(modalDialog(
+          title = "FAILED!",  
+          "Snapshot with this name already exists, please give a different name."
+          ))
+        return(NULL)
+      }
     }
     obj <- c(attr(v1(), "status"), v2(), active_feature = list(ri()), active_sample = list(rh()))
-    flink <- file.path(dir(), paste0("ESVSnapshot_", input$selectFile, "_", input$snapshot_name, ".ESS"))
+    flink <- file.path(dir(), paste0("ESVSnapshot_", fs, "_", input$snapshot_name, ".ESS"))
     saveRDS(obj, flink)
     df <- rbind(df, data.frame(name = input$snapshot_name, link = basename(flink)), stringsAsFactors = FALSE)
     dt <- df[order(df$name), ]

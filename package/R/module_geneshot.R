@@ -41,8 +41,9 @@ geneshot_module <- function(
   )
   
 
-  outliersLabs <- reactiveVal()
-  rif <- eventReactive(input$submit, {
+  
+  rif <- reactiveVal()
+  observeEvent(input$submit, {
     show_modal_spinner(text = "Querying database ...")
     res <- getAutoRIF(trimws(strsplit(input$term, ";")[[1]]), filter = TRUE)    
     if (!is.null(res) && nrow(res) > 0) {
@@ -62,22 +63,22 @@ geneshot_module <- function(
       )
     } 
     remove_modal_spinner()
-    req(!is.null(res) && nrow(res) > 0)
-    outliersLabs(outliers)    
-    list(
+    req(!is.null(res) && nrow(res) > 0)    
+    rif(
+      list(
       tab = res,
       outliers = outliers
-    )
+    ))    
   })
+
+  outliersLabs <- reactive( rif()$outliers )
   
-  gtab <- reactiveVal()
-  # gtab <- reactive({
-  observe({
-    df <- rif()$tab
+  gtab <- reactive({
+    req(df <- rif()$tab)
     cid <- paste(unlist(v1()), collapse = "|")
     if ( cid %in% colnames(fdata()) )
-      df$selected[ df$gene %in% fdata()[feature_selected(), cid] ] <- "+"
-    gtab(df)
+      df$selected[ df$gene %in% fdata()[feature_selected(), cid] ] <- "+"    
+    df
     })  
 
   rifRow <- callModule(
@@ -110,16 +111,17 @@ geneshot_module <- function(
       return()
     xax(NULL)
     xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
-    gtab(s$table)
-    outliersLabs(s$outliers)
+    # gtab(s$table)
+    # outliersLabs(s$outliers)
+    rif( s$rif )
     updateTextInput(session, inputId = "term", value = s$term)
     })
 
   ##
   rv <- reactiveValues()
   observe( rv$xax <- v1() )
-  observe( rv$table <- gtab() )
-  observe( rv$outliers <- rif()$outliers )
+  observe( rv$rif <- rif() )
+  # observe( rv$outliers <- rif()$outliers )
   observe( rv$term <- input$term )
 
   reactive({

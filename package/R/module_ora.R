@@ -55,6 +55,7 @@ enrichment_analysis_module <- function(
   rii <- reactiveVal()
 
   observe({    
+    req(reactive_i())
     if ( length(reactive_i()) <= 1)
       return(NULL)
     if (length(reactive_i()) <=  3)
@@ -63,6 +64,7 @@ enrichment_analysis_module <- function(
     })
   
   oraTab <- reactive({    
+    req(rii())
     notest <- "No geneset has been tested, please try to include more input feature IDs!" 
     if (rii()[1] == "notest")
       return(notest)
@@ -101,7 +103,6 @@ enrichment_analysis_module <- function(
     ii <- grep("^General", colnames(reactive_featureData()), ignore.case = TRUE)
     if (length(ii) == 0)
       ii <- 1:min(3, ncol(reactive_featureData()))
-
     i <- oraTab()[i, ]        
     # positive_ids <- i$overlap_ids[[1]]
     # hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
@@ -109,7 +110,6 @@ enrichment_analysis_module <- function(
     req(hid)
     df1 <- reactive_featureData()[hid, ii, drop = FALSE]
     df1 <- cbind(Overlap = "+", df1)
-    
     apath <- reactive_pathway()[reactive_pathway()$gsId == i$pathway, ]
     aid <- setdiff(apath$featureId, hid)
     # pathway_name <- as.character(i$pathway)

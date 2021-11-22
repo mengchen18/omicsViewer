@@ -48,7 +48,7 @@ string_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 string_module <- function(
-  input, output, session, reactive_ids, reactive_status = reactive(NULL)
+  input, output, session, reactive_ids, reactive_status = reactive(NULL), active = reactive(FALSE)
 ) {
   
   ns <- session$ns
@@ -136,7 +136,8 @@ string_module <- function(
     # gs(s$gs)
     updateTextInputIcon(session, "tax", value = s$tax)
     updateCheckboxInput(session, "showLabel", value = s$showLabel)
-    shinyjs::click("run")
+    if (active())
+      shinyjs::click("run")
     })
 
   reactive({

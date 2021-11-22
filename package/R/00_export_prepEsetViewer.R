@@ -190,7 +190,11 @@ prepEsetViewer <- function(
     pData <- cbind(pData, surv)
   }
   
-  ExpressionSet(assayData = as.matrix(expr), 
+  aenv <- new.env()
+  aenv$exprs <- as.matrix(expr)
+  if (pca.fillNA || ttest.fillNA) 
+    aenv$exprs_impute <- fillNA(expr)
+  ExpressionSet(assayData = aenv, 
                 phenoData = AnnotatedDataFrame(pData), 
                 featureData = AnnotatedDataFrame(fData))
 }
