@@ -26,15 +26,17 @@ of ExpressionSetViewer together with designated omics data could be easily creat
 portable R or with docker, which can be shared with collaborators or submitted as supplementary data together 
 with a manuscript.
 
-## Install package
+## Vignette
+[Link](https://mengchen18.github.io/ExpressionSetViewer/index.html)
 
+## Install package
 ### Quick installation:
 ```
 devtools::install_github("mengchen18/ExpressionSetViewer/package")
 ```
-
+If you see an error message, perhaps because you are missing some dependencies, please follow the next section.
 ### Installation from scratch
-First, installing dependencies using as follow:
+First, installing dependencies as follow:
 ```
 install.packages("V8")
 install.packages("SparseM")
@@ -118,15 +120,6 @@ library(ExpressionSetViewer)
 ExpressionSetViewer(system.file("extdata", package = "ExpressionSetViewer"))
 ```
 
-## Vignette
 
-[Link](https://mengchen18.github.io/ExpressionSetViewer/index.html)
 
-## Docker image:
-
-```
-docker pull mengchen18/expression_set_viewer
-```
-
-[link to dockerhub](https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer)
 
