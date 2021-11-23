@@ -8,7 +8,7 @@ app_module(
   input,
   output,
   session,
-  dir,
+  .dir,
   filePattern = ".RDS$",
   additionalTabs = NULL,
   ESVObj = reactive(NULL),
@@ -30,7 +30,7 @@ app_module(
 
 \item{session}{session}
 
-\item{dir}{reactive; directory containing the .RDS file of ExpressionSet}
+\item{.dir}{reactive; directory containing the .RDS file of ExpressionSet}
 
 \item{filePattern}{file pattern to be displayed.}
 

@@ -148,7 +148,7 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
 #' @param maxfill the maximum of filled value
 #' @param fillingFun function to calculate half value
 #'   e.g.
-#'   function(x) x - log10(2) # default, when x is in log10 scale
+#'   function(x) x - log10(2) # default, when log10 scaleed, x is the minimum value in matrix x
 #'   function(x) x - 1 # half lowest detected value when x is in log2 scale
 #'   function(x) 0 # replace NA by 0
 #' @export

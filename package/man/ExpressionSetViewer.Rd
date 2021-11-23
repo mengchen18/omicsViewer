@@ -8,6 +8,7 @@ ExpressionSetViewer(
   dir,
   additionalTabs = NULL,
   filePattern = ".RDS$",
+  ESVObj = NULL,
   esetLoader = readESVObj,
   exprsGetter = exprs,
   pDataGetter = pData,
@@ -24,6 +25,8 @@ in this argument, not the .rds file.}
 \item{additionalTabs}{additional tabs added to "Analyst" panel}
 
 \item{filePattern}{file pattern to be displayed.}
+
+\item{ESVObj}{the ESV object}
 
 \item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}
 
