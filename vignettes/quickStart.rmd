@@ -37,6 +37,8 @@ Both features and samples could be selected from (data) tables or graphs (scatte
 
 Install the package from bioconductor:
 ```{r eval=FALSE}
+# install dependencies on github
+devtools::install_github('omarwagih/rmotifx')
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("ExpressionSetViewer")
 BiocManager::install("ExpressionSetViewer")

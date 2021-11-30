@@ -65,7 +65,6 @@ s1 <- c(
   "shinyjs",
   "shinyFiles",
   "DT",
-  "randomcoloR",
   "plotly",
   "openxlsx",
   "yaml",
@@ -109,7 +108,7 @@ if (length(missingPkg) > 0)
 If you see error messages, please solve them first. 
 Then install the `ExpressionSetViewer` packages
 ```
-devtools::install_github("mengchen18/ExpressionSetViewer/package")
+devtools::install_github("mengchen18/ExpressionSetViewer")
 ```
 
 
