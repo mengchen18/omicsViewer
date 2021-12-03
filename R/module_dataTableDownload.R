@@ -48,13 +48,20 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
   reactive_cols=reactive(NULL), prefix = "", pageLength = 10, sortBy = NULL, decreasing = TRUE) {
   
   ns <- session$ns
+
+  rtab <- reactive({
+    req(tt <- reactive_table())
+    if (is.matrix(tt))
+      tt <- as.data.frame(tt, stringsAsFactors = FALSE)
+    tt
+    })
   
   output$downloadData <- downloadHandler(
     filename = function() {
       paste0(prefix, Sys.time(), ".tsv")
     },
     content = function(file) {
-      tab <- reactive_table()
+      tab <- rtab()
       ic <- which(vapply(tab, is.list, logical(1)))
       if (length(ic) > 0) {
         for (ii in ic) {
@@ -66,7 +73,7 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
   )
   
   output$showButton <- renderUI({
-    req(reactive_table())
+    req(rtab())
     downloadButton(ns("downloadData"), "Save table")
   })
   
@@ -84,7 +91,7 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
   }
 
   tabsort <- reactive({
-    req(tab <- reactive_table())
+    req(tab <- rtab())
     index <- seq_len( nrow(tab) )
     if (!is.null(sortBy)) {
       if (sortBy %in% colnames(tab)) {

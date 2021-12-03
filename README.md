@@ -99,8 +99,6 @@ a <- installed.packages()[,1 ]
 xs <- c(s1, s2)
 missingPkg <- setdiff(xs, a)
 
-devtools::install_github('omarwagih/rmotifx')
-
 if (length(missingPkg) > 0)
   stop(paste("this packages are missing", paste(missingPkg, collapse = " ")))
 ```

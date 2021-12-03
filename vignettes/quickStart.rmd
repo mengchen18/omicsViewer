@@ -37,8 +37,6 @@ Both features and samples could be selected from (data) tables or graphs (scatte
 
 Install the package from bioconductor:
 ```{r eval=FALSE}
-# install dependencies on github
-devtools::install_github('omarwagih/rmotifx')
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("ExpressionSetViewer")
 BiocManager::install("ExpressionSetViewer")
@@ -113,9 +111,8 @@ particularly useful in prioritizing the gene candidate in the data analysis.
 
 * **gsList** The functional annotation of genes in a simple tabular format. 
 
-* **PTM** This tab will only be shown when users give a column as the "sequence window" in the 
-feature data. The column should contain the peptide sequence with the same length. The enriched motif 
-maybe identified according to user selected features. 
+* **SeqLogo** This tab will only be shown when users give at least one column as the "sequence window" in the 
+feature data. The column should contain the peptide sequence with the same length. SeqLogo will be drawn. 
 
 
 # Prepare the ExpressionSet

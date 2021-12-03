@@ -23,6 +23,18 @@ exprsImpute <- function(x) {
     v
 }
 
+
+#' Generating k distinct colors
+#' @description Mainly used in the shiny app to generate reproducible k distinct colors. 
+#' @param k a number between 2 to 60 tells how many distinct colors to use
+#' @param stop logical; whether the function should return an error message if
+#'   k is not in the range of 2 to 60. Default FALSE, the function will return NULL. 
+#' @return a vector of hex code for k colors or NULL
+#' @examples 
+#' nColors(5)
+#' nColors(1, stop = FALSE)
+#' @export
+
 nColors <- function(k, stop = FALSE) {
   
   if (k > 60 || k < 2) {

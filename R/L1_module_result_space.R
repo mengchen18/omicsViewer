@@ -78,8 +78,13 @@ L1_result_space_module <- function(
   v7 <- callModule(
     ptmotif_module, id = "ptm", 
     fdata = reactive_featureData, 
-    feature_selected = reactive_i, 
-    background = reactive( attr(object(), "ptm.seq.window") )
+    feature_selected = reactive_i
+    #, 
+    # background = reactive( attr(object(), "ptm.seq.window") )
+    # background = reactive({
+    #   i <- grep("^PTMSeq\\|", colnames(reactive_featureData()))
+    #   reactive_featureData()[[i]]
+    #   })
   )
 
   v8 <- callModule(
@@ -133,8 +138,8 @@ L1_result_space_module <- function(
     if (any(grepl("^StringDB\\|", colnames(reactive_featureData()))))
       optionalTabs <- c(optionalTabs, list(tabPanel("StringDB", string_ui(ns("stringdb")))))
     
-    if (any(grepl("^PTMSeq\\|", colnames(reactive_featureData()))))
-      optionalTabs <- c(optionalTabs, list(tabPanel("PTM motif", ptmotif_ui(ns("ptm")))))
+    if (any(grepl("^SeqLogo\\|", colnames(reactive_featureData()))))
+      optionalTabs <- c(optionalTabs, list(tabPanel("SeqLogo", ptmotif_ui(ns("ptm")))))
     
     ######
     if (length(additionalTabs) > 0) {

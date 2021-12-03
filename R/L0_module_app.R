@@ -112,8 +112,8 @@ app_module <- function(
   
   ns <- session$ns
   observe({
-    req(dir())
-    ll <- list.files(dir(), pattern = filePattern, ignore.case = TRUE)
+    req(.dir())
+    ll <- list.files(.dir(), pattern = filePattern, ignore.case = TRUE)
     updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
   })
   
@@ -125,7 +125,7 @@ app_module <- function(
     } 
     # otherwise load from disk    
     req(input$selectFile)
-    flink <- file.path(dir(), input$selectFile)
+    flink <- file.path(.dir(), input$selectFile)
     sss <- file.size(flink)
     if (sss > 1e7)
       show_modal_spinner(text = "Loading data ...")
@@ -307,7 +307,7 @@ app_module <- function(
         fs <- input$selectFile
 
     fl <- paste0("ESVSnapshot_", fs, "_")
-    ff <- list.files(dir(), pattern = fl)
+    ff <- list.files(.dir(), pattern = fl)
     if (length(ff) == 0)
       return(NULL)
     r <- sub(fl, "", ff)
@@ -391,7 +391,7 @@ app_module <- function(
       }
     }
     obj <- c(attr(v1(), "status"), v2(), active_feature = list(ri()), active_sample = list(rh()))
-    flink <- file.path(dir(), paste0("ESVSnapshot_", fs, "_", input$snapshot_name, ".ESS"))
+    flink <- file.path(.dir(), paste0("ESVSnapshot_", fs, "_", input$snapshot_name, ".ESS"))
     saveRDS(obj, flink)
     df <- rbind(df, data.frame(name = input$snapshot_name, link = basename(flink)), stringsAsFactors = FALSE)
     dt <- df[order(df$name), ]
@@ -406,14 +406,14 @@ app_module <- function(
       return(NULL)
     removeModal()  
     esv_status(NULL)  
-    esv_status( readRDS(file.path(dir(), df[i, 2])) )    
+    esv_status( readRDS(file.path(.dir(), df[i, 2])) )    
     })
 
   observeEvent(deleteSS(), {
     req(nrow( df <- savedSS() ) > 0 )
     req( i <- match( deleteSS(), df$name ))
     df <- savedSS()
-    unlink(file.path(dir(), df[i, 2]))
+    unlink(file.path(.dir(), df[i, 2]))
     df <- df[-i, , drop = FALSE]
     savedSS(df)    
     })
