@@ -640,7 +640,7 @@ filterRow <- function(x, max.quantile = NULL, max.value = NULL, var = NULL, min.
   if (!is.null(var)) {
     sn <- vapply(unique(var), function(xx) {
       rowSums(!is.na(x[, var == xx, drop = FALSE]))
-    }, integer(1))
+    }, double(nrow(x)))
     rsn <- rowMaxs(sn)
     f2 <- rsn < min.rep
   }

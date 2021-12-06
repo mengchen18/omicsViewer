@@ -26,7 +26,7 @@ exprsImpute <- function(x) {
 
 #' Generating k distinct colors
 #' @description Mainly used in the shiny app to generate reproducible k distinct colors. 
-#' @param k a number between 2 to 60 tells how many distinct colors to use
+#' @param k a number between 1 to 60 tells how many distinct colors to use
 #' @param stop logical; whether the function should return an error message if
 #'   k is not in the range of 2 to 60. Default FALSE, the function will return NULL. 
 #' @return a vector of hex code for k colors or NULL
@@ -37,13 +37,14 @@ exprsImpute <- function(x) {
 
 nColors <- function(k, stop = FALSE) {
   
-  if (k > 60 || k < 2) {
+  if (!is.integer(k) || k > 60 || k < 1) {
     if (stop) 
-      stop("k should be an integer between 2 and 60!") else
+      stop("k should be an integer between 1 and 60!") else
         return(NULL)
   }
   
   l <- list(
+    c('#B5D3A2'),
     c('#C07CCA', '#B5D3A2'),
     c('#B0C8C8', '#C470C8', '#B6D778'),
     c('#9FD2D2', '#D8949E', '#B86BD9', '#B5DA77'),
@@ -104,5 +105,5 @@ nColors <- function(k, stop = FALSE) {
     c('#E955EA', '#58A33C', '#AED3DD', '#6116BC', '#D8F2B2', '#5BE66E', '#A9E58A', '#B4BF3F', '#E5AFF1', '#A24678', '#DFCAE8', '#EDE988', '#9E9777', '#D59031', '#EB656D', '#E5EA43', '#DB2BAF', '#61EBDB', '#DF4432', '#7611F5', '#6E8B99', '#EB5391', '#9FE9E5', '#8CBAE6', '#B2EBC7', '#5178E9', '#8263AF', '#E17E98', '#76E22F', '#E7CCC3', '#ED75DB', '#7AE6B2', '#AF6EE7', '#E7C542', '#5F93D9', '#57EC9A', '#61AC8A', '#AFA0D2', '#DC8BE6', '#B6EC65', '#7136F5', '#8D57ED', '#E8AD9D', '#59D7DE', '#B096EA', '#DC82C3', '#9C667D', '#D88665', '#C935F0', '#BB41B8', '#5F39A2', '#D5E2C6', '#E6DAAA', '#D9B36C', '#E4A5CC', '#C0A3AA', '#A5B875', '#EBF0EE', '#68C8E6'),
     c('#51B5D8', '#6AEFE7', '#83E639', '#D28064', '#66E5BF', '#639ADF', '#D4E3F0', '#E66E81', '#52E468', '#89569F', '#EDA5D2', '#7376C0', '#8C56ED', '#EAF1E7', '#9B7BEB', '#B7EDC8', '#C2F2AB', '#70EA89', '#417DE9', '#E4CEBC', '#C632EF', '#98BEEA', '#B19474', '#ECADA2', '#5BC6C3', '#ED4CE4', '#E198E8', '#3DEC9F', '#AFA057', '#E0C8E7', '#EACB85', '#D9E835', '#6B27E7', '#C7AAB1', '#AE6A89', '#7DE0F1', '#5B38A2', '#D970B2', '#B0D8CB', '#D88B3F', '#C7A6EB', '#CD31AD', '#EBEFA4', '#E74886', '#A6CA83', '#93C5D6', '#C360E3', '#E67ADE', '#EDB83D', '#58B184', '#AD9ECB', '#DFE3B9', '#7AB642', '#8EEEB0', '#7F9673', '#CAC442', '#B3EE7D', '#ECF074', '#6E7E8E', '#E64B44')
   )
-  l[[k-1]]
+  l[[k]]
 }

@@ -7,7 +7,7 @@
 nColors(k, stop = FALSE)
 }
 \arguments{
-\item{k}{a number between 2 to 60 tells how many distinct colors to use}
+\item{k}{a number between 1 to 60 tells how many distinct colors to use}
 
 \item{stop}{logical; whether the function should return an error message if
 k is not in the range of 2 to 60. Default FALSE, the function will return NULL.}

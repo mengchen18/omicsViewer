@@ -1,15 +1,17 @@
 #' @importFrom shinybusy show_modal_spinner remove_modal_spinner
+#' @importFrom ggplot2 geom_vline
 ptmotif_ui <- function(id) {
   
   ns <- NS(id)
   tagList(
     triselector_ui(ns("tris_seqlogo")),
-    uiOutput(ns("msg_ui")),
-    tabsetPanel(
-      tabPanel("Selected seqs", dataTableDownload_ui(ns("seqtable"))),
-      tabPanel("PFM selected", dataTableDownload_ui(ns("seqtable_fg"))),
-      tabPanel("PFM all", dataTableDownload_ui(ns("seqtable_bg"))),
-      tabPanel("PFM selected/all", dataTableDownload_ui(ns("seqtable_rat")))#,
+    uiOutput(ns("msg_ui"))
+    )
+    # tabsetPanel(
+    #   tabPanel("Selected seqs", dataTableDownload_ui(ns("seqtable"))),
+    #   tabPanel("PFM selected", dataTableDownload_ui(ns("seqtable_fg"))),
+    #   tabPanel("PFM all", dataTableDownload_ui(ns("seqtable_bg"))),
+    #   tabPanel("PFM selected/all", dataTableDownload_ui(ns("seqtable_rat")))#,
       # tabPanel("Motifx", fluidRow(
       #   column(
       #     width = 3, textInput(ns("cent.res"), label = "Center residue", width = "100%", value = "all AA", placeholder = "e.g. all AA, STY, ST")
@@ -26,8 +28,8 @@ ptmotif_ui <- function(id) {
       #   )),
       #   dataTableDownload_ui(ns("tbl"))
       #   )
-      )
-    )
+    #   )
+    # )
 }
 
 ptmotif_module <- function(
@@ -96,7 +98,23 @@ ptmotif_module <- function(
   output$msg_ui <- renderUI({
     if (!is.null( errText() ))
       verbatimTextOutput(ns("errorMsg")) else
-        plotOutput(ns("plt"))
+      tabsetPanel(
+        tabPanel("Ratio selected/all", 
+          plotOutput(ns("plt"), height = "300px"),
+          tabsetPanel(
+            tabPanel("Selected seqs", dataTableDownload_ui(ns("seqtable"))),
+            tabPanel("Position weighted matrix", dataTableDownload_ui(ns("seqtable_rat")))            
+            )
+          ),
+        tabPanel("Selected", 
+          plotOutput(ns("plt.fg")),
+          dataTableDownload_ui(ns("seqtable_fg"))
+          ),
+        tabPanel("All", 
+          plotOutput(ns("plt.bg")),
+          dataTableDownload_ui(ns("seqtable_bg"))
+          )
+        )
     })
   
   foregroundSeqs <- reactive({
@@ -151,8 +169,24 @@ ptmotif_module <- function(
   ##
   output$plt <- renderPlot({
     req( logo() )
-    ggseqlogo::ggseqlogo( data = logo() )
+    ggseqlogo::ggseqlogo( data = logo() ) + geom_vline(
+      xintercept = (ncol(logo())+1)/2, linetype="dashed", color = "orange", size=1.5
+      )
   })
+
+  output$plt.fg <- renderPlot({
+    req( d <- fg.pfm() )
+    ggseqlogo::ggseqlogo( data = d ) + geom_vline(
+      xintercept = (ncol(d)+1)/2, linetype="dashed", color = "orange", size=1.5
+      )
+    })
+
+  output$plt.bg <- renderPlot({
+    req( d <- bg.pfm() )
+    ggseqlogo::ggseqlogo( data = d ) + geom_vline(
+      xintercept = (ncol(d)+1)/2, linetype="dashed", color = "orange", size=1.5
+      )
+    })
 
   mat2df <- function(x) {
     data.frame(Name = rownames(x), x, stringsAsFactors = FALSE)
