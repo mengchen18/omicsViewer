@@ -302,6 +302,7 @@ app_module <- function(
   savedSS <- reactiveVal()
   observe({
     # req(input$selectFile)
+    req(.dir())
     if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
       fs <- "ESVObj.RDS" else
         fs <- input$selectFile
