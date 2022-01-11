@@ -3,12 +3,6 @@ name: Docker Image CI
 on:
   push:
     branches: [ master ]
-    paths: 
-      - 'package/**'
-  pull_request:
-    branches: [ master ]
-    paths: 
-      - 'package/**'
 
 jobs:
 
@@ -29,9 +23,13 @@ jobs:
     - name: Set up Docker Buildx
       id: buildx
       uses: docker/setup-buildx-action@v1
-    
-    - name: pull docker image
-      run: docker pull mengchen18/expression_set_viewer:V0_1_13
+
+    - name: get package version
+      run: |
+        version=$(grep Version DESCRIPTION | grep -o "[0-9.]\+")
+        echo "packageVersion=${version}" >> $GITHUB_ENV
+      shell:
+        bash {0}
     
     - name: Build and push
       id: docker_build
@@ -40,7 +38,7 @@ jobs:
         context: ./
         file: ./Dockerfile
         push: true
-        tags: mengchen18/expression_set_viewer:latest
+        tags: mengchen18/expression_set_viewer:${{ env.packageVersion }}
     
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
