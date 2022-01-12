@@ -32,7 +32,7 @@ with a manuscript.
 ## Install package
 ### Quick installation:
 ```
-devtools::install_github("mengchen18/ExpressionSetViewer/package")
+devtools::install_github("mengchen18/ExpressionSetViewer")
 ```
 If you see an error message, perhaps because you are missing some dependencies, please follow the next section.
 ### Installation from scratch
@@ -116,7 +116,5 @@ devtools::install_github("mengchen18/ExpressionSetViewer")
 library(ExpressionSetViewer)
 ExpressionSetViewer(system.file("extdata", package = "ExpressionSetViewer"))
 ```
-
-
 
 
