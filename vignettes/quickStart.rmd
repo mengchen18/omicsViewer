@@ -62,13 +62,13 @@ The ExpressionViewer has a "Left and Right Halves Layout". The left side is the 
 The left side visualize the ExpressionSet, it contains the following tabs:
 
 * **Feature** visualizes the feature data. It is usually a scatter plot or beeswarm plot, every point in the plot is a feature. The x- and y-axis could be selected by the user. A single or multiple features can be selected from the plot and passed to the "analyst" (right) panel. A video tutorial about how to work with the *feature space":  
-<iframe width="560" height="315" src="https://www.youtube.com/embed/aojpqnXCc_Y" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/aojpqnXCc_Y" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
 
 * **Sample** visualizes the sample data. Like the feature space, usually, a scatter plot or a beeswarm plot is shown here. But every point in this tab is a sample. One or more samples could be selected from the figure. A video tutorial about the data: 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/TIYi6RHti5c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/TIYi6RHti5c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
 
 * **Heatmap** shows the expression matrix as heatmap. Additionally, the information in phenotype and feature data could be added as side colors or used as variables to sort the rows and columns of the heatmap. Both features and samples could be selected from the heatmap. Video tutorial:  
-<iframe width="560" height="315" src="https://www.youtube.com/embed/8wBtwMIrTyo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/8wBtwMIrTyo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
 
 
 ### Tabs in Analyst
@@ -84,7 +84,7 @@ The left side visualize the ExpressionSet, it contains the following tabs:
 | Surv | log-rank test | KM-curve |
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Video tutorial:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<iframe width="560" height="315" src="https://www.youtube.com/embed/iJQccosFXcw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
 
 * **feature general** The selected feature from the left panel is shown here. If a second variable is selected as a contrast, a hypothesis test will be performed to test the association between the contrast variable with the selected feature(s). Depending on the type of contrast variable, the following test will be done:
 
@@ -95,7 +95,7 @@ The left side visualize the ExpressionSet, it contains the following tabs:
 | categorical | t-test/Mann-Whitney U test | Beeswarm |  
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Video tutorial:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<iframe width="560" height="315" src="https://www.youtube.com/embed/RkCAQqtQjCo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
 
 * **ORA** represents *Over-Representation Analysis*, this tab will be shown if the gene set information is given in the feature data. This tab shows which gene sets are over-represented in the selected features. 
 

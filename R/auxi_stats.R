@@ -168,7 +168,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
     i2 <- which(pheno[[v[1]]] == v[3])
     
     if (length(i1) == 0 || length(i2) == 0)
-      stop(paste("Didn't find var:", paste(v, collapse = "-")))
+      stop("Didn't find var: ", paste(v, collapse = "-"))
     
     tv <- apply(x, 1, function(xx) {
       t <- try(t.test(xx[i1], xx[i2], var.equal = TRUE, ...), silent = TRUE) # 
