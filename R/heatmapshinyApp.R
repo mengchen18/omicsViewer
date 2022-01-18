@@ -1,5 +1,5 @@
 #' @description interactive heatmap
-#' @param x a matrix object or ExpressionSet
+#' @param x a matrix object or \code{ExpressionSet} or \code{SummarizedExperiment}
 #' @param fData feature data, ignored if x is an ExpressionSet
 #' @param pData phenotype data, ignored if x is an ExpressionSet
 #' @param impute whether impute the expression matrix

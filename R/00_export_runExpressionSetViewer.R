@@ -1,6 +1,6 @@
 
-#' Start ExpressionSetViewer
-#' @param dir directory to the \code{ExpressionSet} object. Only give the directory
+#' Start omicsViewer
+#' @param dir directory to the \code{ExpressionSet} or \code{SummarizedExperiment} object. Only give the directory
 #'  in this argument, not the .rds file.
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param filePattern file pattern to be displayed.
@@ -16,19 +16,21 @@
 #' @param ESVObj the ESV object
 #' @export
 #' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
+#' @importFrom S4Vectors DataFrame
+#' @importFrom SummarizedExperiment SummarizedExperiment
 #' @examples
 #' 1
 #' ## To start the shiny app: 
-#' # ExpressionSetViewer(
-#' #  system.file("extdata", package = "ExpressionSetViewer")
+#' # omicsViewer(
+#' #  system.file("extdata", package = "omicsViewer")
 #' # )
 #' @return do not return values
 #' 
-ExpressionSetViewer <- function(
+omicsViewer <- function(
   dir, additionalTabs = NULL, filePattern = ".RDS$", ESVObj = NULL,
   esetLoader = readESVObj, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData,
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy")[1]) attr(x, what),
-  appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
+  appName = "omicsViewer", appVersion = packageVersion("omicsViewer")
   ) {
   
   app <- list(

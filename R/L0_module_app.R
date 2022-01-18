@@ -7,7 +7,7 @@
 #' @export
 #' @examples
 #' if (interactive()) {
-#'   dir <- system.file("extdata", package = "ExpressionSetViewer")
+#'   dir <- system.file("extdata", package = "omicsViewer")
 #'   server <- function(input, output, session) {
 #'     callModule(app_module, id = "app", dir = reactive(dir))
 #'   }
@@ -53,7 +53,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @param input input
 #' @param output output
 #' @param session session
-#' @param .dir reactive; directory containing the .RDS file of ExpressionSet
+#' @param .dir reactive; directory containing the .RDS file of \code{ExpressionSet} or \code{SummarizedExperiment}
 #' @param filePattern file pattern to be displayed.
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param esetLoader function to load the eset object, if an RDS file, should be "readRDS"
@@ -92,7 +92,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @export
 #' @examples
 #' if (interactive()) {
-#'   dir <- system.file("extdata", package = "ExpressionSetViewer")
+#'   dir <- system.file("extdata", package = "omicsViewer")
 #'   server <- function(input, output, session) {
 #'     callModule(app_module, id = "app", dir = reactive(dir))
 #'   }
@@ -107,7 +107,7 @@ app_module <- function(
   input, output, session, .dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
   esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, imputeGetter = exprsImpute, 
   defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
-  appName = "ExpressionSetViewer", appVersion = packageVersion("ExpressionSetViewer")
+  appName = "omicsViewer", appVersion = packageVersion("omicsViewer")
 ) {
   
   ns <- session$ns

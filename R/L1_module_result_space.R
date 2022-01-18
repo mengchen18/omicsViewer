@@ -19,7 +19,7 @@ L1_result_space_ui <- function(id) {
 #' @param reactive_i row ID/name of rows selected
 #' @param reactive_highlight col ID/name of columns selected
 #' @param additionalTabs additional tabs added to "Analyst" panel
-#' @param object originally loaded object, mostly an ExpressionSet object
+#' @param object originally loaded object, mostly an \code{ExpressionSet} or \code{SummarizedExperiment} object
 #' @param status intial status
 
 L1_result_space_module <- function(

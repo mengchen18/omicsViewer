@@ -24,7 +24,7 @@ a list or data frame of gene set. When data.frame = TRUE, the returned
 Frequently the .gmt files are downloaed from MSigDB database
 }
 \examples{
-file <- system.file("extdata", package = "ExpressionSetViewer")
+file <- system.file("extdata", package = "omicsViewer")
 file <- file.path(file, "geneset.gmt")
 gs <- read_gmt(file)
 }

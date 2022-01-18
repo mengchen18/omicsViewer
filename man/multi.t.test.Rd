@@ -42,11 +42,11 @@ a \code{data.frame} stores the t-test results with the follow columns:
 \description{
 This is a convenience function to perform multiple student's t-test. 
   The output is in a format ready to be incorporated into object to be visualized by 
-  \code{ExpressionSetViewer}. This function use \code{\link{t.test}}.
+  \code{omicsViewer}. This function use \code{\link{t.test}}.
 }
 \examples{
 # reading expression
-packdir <- system.file("extdata", package = "ExpressionSetViewer")
+packdir <- system.file("extdata", package = "omicsViewer")
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 # reading phenotype data
 pd <- read.delim(file.path(packdir, "sampleGeneral.tsv"), stringsAsFactors = FALSE)

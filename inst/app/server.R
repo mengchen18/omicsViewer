@@ -1,4 +1,4 @@
-library(ExpressionSetViewer)
+library(omicsViewer)
 v <- "/media/ExpressionSetViewerData"
 server <- function(input, output, session) {
 	observe({
@@ -6,7 +6,7 @@ server <- function(input, output, session) {
 			list.files(v)
 			)
 		})
-  callModule(ExpressionSetViewer::app_module, id = "app", .dir = reactive(v), esetLoader = readESVObj)
+  callModule(omicsViewer::app_module, id = "app", .dir = reactive(v), esetLoader = readESVObj)
 }
 
 

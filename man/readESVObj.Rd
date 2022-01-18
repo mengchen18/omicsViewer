@@ -2,22 +2,23 @@
 % Please edit documentation in R/auxi_gsAnnotatedDF.R
 \name{readESVObj}
 \alias{readESVObj}
-\title{Read the object of ExpressetSet to be visualized using ExpressionSetViewer}
+\title{Read the object of SummarizedExperiment or ExpressetSet to be visualized using omicsViewer}
 \usage{
 readESVObj(x)
 }
 \arguments{
-\item{x}{a name of the file to be read, passed to \link{readRDS}}
+\item{x}{the path of an object of \code{SummarizedExperiment} or \code{ExpressionSet}, passed to \link{readRDS}}
 }
 \value{
-An object of ExpressionSet
+an object of class \code{ExpressionSet} or \code{SummarizedExperiment} to be visualzied.
 }
 \description{
-This function is similar to readRDS. The only difference is
-this function will convert gene set data to data.frame format, if they are 
-given in a matrix format.
+Similar to \code{readRDS}. It reads the object to R working environment and perform extra two things. 
+  1. If the loaded data an class of \code{SummarizedExperiment}, it will be converted to \code{ExpressionSet};
+  2. If the gene set annotatio is in matrix format, the gene set annotation is converted to \code{data.frame} format.
 }
 \examples{
-file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+file <- system.file("extdata/demo.RDS", package = "omicsViewer")
 obj <- readESVObj(file)
+
 }

@@ -22,7 +22,7 @@ Function should only be used for the developers
 }
 \examples{
 if (interactive()) {
-  dir <- system.file("extdata", package = "ExpressionSetViewer")
+  dir <- system.file("extdata", package = "omicsViewer")
   server <- function(input, output, session) {
     callModule(app_module, id = "app", dir = reactive(dir))
   }

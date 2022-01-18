@@ -1,5 +1,5 @@
 ---
-title: "Interactive and explorative visualization of ExpressionSet using ExpressionSetViewer"
+title: "Interactive and explorative visualization of ExpressionSet using omicsViewer"
 author:
   - name: "Chen Meng"
     affiliation: BayBioMS, TU Munich
@@ -25,11 +25,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-ExpressionSet is an S4 object defined in _Biobase_ package storing high throughput omics data. The core component of ExpressionSet is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are stored in *data.frames* called "feature data" and "phenotype data", respectively. More detailed instructions of _ExpressionSet_ could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf).
+"SummarizedExperiment" and the historical "ExpressionSet" are S4 objects storing high throughput omics data. The core component of the objects is an expression matrix, where the rows are features, such as genes, proteins, and columns are samples. The values in the matrix represent the abundance or presence/absence of features. The meta-information about features (rows) and samples (columns) are stored in *data.frames*-like object called "feature data" (or "row data") and "phenotype data" (or "col data), respectively. More detailed instructions of _ExpressionSet_ and _SummarizeExperiment_ could be found [here](https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf) and [here](https://bioconductor.org/packages/release/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html).
 
-ExpressionSetViewer visualizes ExpressionSet in an interactive way to facilitate data exploration. The ExpressionSet to be visualized needs to be prepared in R, usually, it contains all the necessary information for the data interpretation, e.g. functional annotation of features, meta information of samples, and the statistical results (See [Prepare the ExpressionSet]). Once the ExpressionSet is prepared, it can be visualized using the ExpressionSetViewer interface, implemented using shiny and plotly. At this stage, coding in R is not required, therefore, it can be shared with anyone who does not have experience with R or other programming knowledge. At the same time, the dependency on R/Bioconductor in the data preparation stage guarantees maximum flexibility in the statistical analysis. 
+omicsViewer visualizes ExpressionSet/SummarizedExperiment in an interactive way to facilitate data exploration. The object to be visualized needs to be prepared in R, usually, it contains all the necessary information for the data interpretation, e.g. functional annotation of features, meta information of samples, and the statistical results (See [Prepare the ExpressionSet]). Using R/Bioconductor in the data preparation stage guarantees maximum flexibility in the statistical analysis. Once the object is prepared, it can be visualized using the omicsViewer interface, implemented using shiny and plotly. At this stage, coding in R is not required, therefore, it can be shared with anyone who does not have experience with any programming knowledge. 
 
-Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap) in the ExpressionSetViewer. Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on the fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on means (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, the immediate analyses and result visualization in ExpressionSetViewer greatly facilitates data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
+Both features and samples could be selected from (data) tables or graphs (scatter plot/heatmap) in the omicsViewer. Different types of analyses, such as enrichment analysis (using Bioconductor package fgsea or fisher's exact test) and STRING network analysis, will be performed on the fly when a subset of features is selected. The statistical results are visualized simultaneously. When a subset of samples and a phenotype variable is selected, a significance test on mean difference (t-test or ranked based test; when phenotype variable is quantitative) or test of independence (chi-square or fisher’s exact test; when phenotype data is categorical) will be performed to test the association between the phenotype of interest with the selected samples. Therefore, the immediate analyses and result visualization in omicsViewer greatly facilitates data exploration, many different hypotheses can be explored in a short time without the need for knowledge of R.
 
 # For the shiny-app user
 
@@ -38,24 +38,24 @@ Both features and samples could be selected from (data) tables or graphs (scatte
 Install the package from bioconductor:
 ```{r eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("ExpressionSetViewer")
-BiocManager::install("ExpressionSetViewer")
+    install.packages("omicsViewer")
+BiocManager::install("omicsViewer")
 ```
 
-Let's assume the object of ExpressionSet has been prepared (See [Prepare the ExpressionSet]), and the task now is to visualize the object using ExpressionSetViewer. Inside R, this can be done using：
+Let's assume the object of ExpressionSet has been prepared (See [Prepare the ExpressionSet]), and the task now is to visualize the object using omicsViewer. Inside R, this can be done using：
 
 ```{r eval=FALSE}
-library(ExpressionSetViewer)
-path2data <- system.file("extdata", package = "ExpressionSetViewer")
-ExpressionSetViewer(path2data)
+library(omicsViewer)
+path2data <- system.file("extdata", package = "omicsViewer")
+omicsViewer(path2data)
 ```
 
-Here *path2data* is the path to the folder containing the *.RDS* files to be visualized by ExpressionSetViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets to load it into the viewer. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
+Here *path2data* is the path to the folder containing the *.RDS* files to be visualized by omicsViewer. All the *.RDS* files will be listed in the text box on the top right corner. Select one of the datasets to load it into the viewer. A video introduction on how to use the viewer is [here](https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk).
 
-The example data is an object of *ExpressionSet*, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 2700 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the ExpressionSetViewer and incorporated into the data interpretation interactively. 
+The example data is an object of *ExpressionSet*, storing the protein expression of 60 cell lines from 9 different tissues of origin. There are around 2700 proteins measured. The phenotype data contain the basic information about cell lines, such as tissue of origin (categorical), TP53 status (categorical), doubling time (quantitative), multi-drug resistance (quantitative), principal components (quantitative), drug sensitivity data (quantitative) and survival data (fake data for demonstrative purpose), etc. The feature data include the overall intensity of feature, t-test results comparing RE and ME (p-value, fold change, etc), and feature loading from principal component analysis, etc. All the information could be visualized in the omicsViewer and incorporated into the data interpretation interactively. 
 
 ## User interface
-The ExpressionViewer has a "Left and Right Halves Layout". The left side is the "Eset" panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the "Analyst" panel. In the "Analyst" panel, different statistical analyses will be performed depending on the features or samples selected. 
+The viewer has a "Left and Right Halves Layout". The left side is the "Eset" panel, where the ExpressionSet (feature data, phenotype data and expression matrix) is visualized. This panel also serves as a selector, i.e. a subset of features and samples could be selected from this panel, which will be passed to the "Analyst" panel. In the "Analyst" panel, different statistical analyses will be performed depending on the features or samples selected. 
 
 ### Tabs in Eset
 
@@ -119,14 +119,14 @@ feature data. The column should contain the peptide sequence with the same lengt
 
 ## Quick start
 
-The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to perform the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with ExpressionSetViewer. 
+The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to perform the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with omicsViewer. 
 
 A simple example:
 
 ```{r simple_pipeline, results=FALSE, message=FALSE}
-library(ExpressionSetViewer)
+library(omicsViewer)
 library(Biobase)
-packdir <- system.file("extdata", package = "ExpressionSetViewer")
+packdir <- system.file("extdata", package = "omicsViewer")
 
 # reading expression
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
@@ -141,7 +141,7 @@ pd <- read.delim(file.path(packdir, "sampleGeneral.tsv"), stringsAsFactors = FAL
 #  reading other datasets
 drugData <- read.delim(file.path(packdir, "sampleDrug.tsv"))
 # survival data
-# this data is from cell line, the survival data are fake data to show how to use the survival data in ExpressionSetViewer
+# this data is from cell line, the survival data are fake data to show how to use the survival data in omicsViewer
 surv <- read.delim(file.path(packdir, "sampleSurv.tsv"))
 # gene set information
 genesets <- read_gmt(file.path(packdir, "geneset.gmt"), data.frame = TRUE)
@@ -160,11 +160,12 @@ tests <- rbind(
 strid <- sapply(strsplit(fd$Protein.ID, ";|-"), "[", 1)
 
 ###
-d <- prepEsetViewer(
+d <- prepOmicsViewer(
   expr = expr, pData = pd, fData = fd, 
   PCA = TRUE, pca.fillNA = TRUE,
   t.test = tests, ttest.fillNA = FALSE, 
-  gs = gsannot, stringDB = strid, surv = surv)
+  gs = gsannot, stringDB = strid, surv = surv, 
+  SummarizedExperiment = FALSE)
 
 # feature space - default x axis
 attr(d, "fx") <- "ttest|RE_vs_ME|mean.diff"
@@ -177,7 +178,7 @@ attr(d, "sy") <- "PCA|All|PC2("
 
 # saveRDS(d, file = "dtest.RDS")
 ##  to open the viewer
-# ExpressionSetViewer("./")
+# omicsViewer("./")
 ```
 
 Additional columns of phenotype data and feature data could be added using *extendMetaData* function.
@@ -189,7 +190,7 @@ drugcor <- correlationAnalysis(expr, pheno = drugData[, 1:2])
 d <- extendMetaData(d, drugcor, where = "fData")
 # saveRDS(d, file = "dtest.RDS")
 ##  to open the viewer
-# ExpressionSetViewer("./")
+# omicsViewer("./")
 ```
 
 When the expression matrix has thousands of rows, calculating the dendrogram of rows will 
@@ -222,18 +223,18 @@ dl <- list(
 attr(d, "dendrogram") <- dl
 # saveRDS(d, file = "dtest.RDS")
 ##  to open the viewer
-# ExpressionSetViewer("./")
+# omicsViewer("./")
 ```
 
 ## Requirements on ExpressionSet
 
-When you prepare the object by yourself, please note that to be compatible with expressionSetVeiwer, there are two extra requirements imposed on the ExpressionSet:
+When you prepare the object by yourself, please note that to be compatible with omicsViewer, there are two extra requirements imposed on the object:
 
 * The expression matrix should have unique row names and column names. The row names of feature data should be the same as the row names of the expression matrix. The row names of phenotype data should be the same as the column names of the expression matrix. It is also recommended to use meaningful names such as gene names because the names will be displayed in the expression viewer. 
 
 * The columns names of feature data and phenotype data should be in the format consisting of three elements:  
 **Analysis|Subset|Variable**  
-The first element is called *analysis*, such as "t-test", "PCA", which tells the front-end user from which analysis the result is. There are few *analysis* "keywords" reserved so the ExpressionSetViewer knows how to process/interpret it internally. Please see the next section for more information. The second element is *subset*, it often indicates which subset of samples/features was used in the analysis. For example, in an experiment with three groups *A, B* and *C*, a t-test was used to compare the group *A* and *B*, the first two elements could be "ttest|A_vs_B". Alternatively, the *Subset* can be anything that helps to further narrow down the information given an "Analysis". If nothing needs to give, a place holder (e.g. "All") needs to be added to this position. The last elements are the variables returned by the analysis, for example, the "fold change" and (log-transformed) "p-value" could be given by header "ttest|A_vs_B|fold.change" and "ttest|A_vs_B|p.value". 
+The first element is called *analysis*, such as "t-test", "PCA", which tells the front-end user from which analysis the result is. There are few *analysis* "keywords" reserved so the omicsViewer knows how to process/interpret it internally. Please see the next section for more information. The second element is *subset*, it often indicates which subset of samples/features was used in the analysis. For example, in an experiment with three groups *A, B* and *C*, a t-test was used to compare the group *A* and *B*, the first two elements could be "ttest|A_vs_B". Alternatively, the *Subset* can be anything that helps to further narrow down the information given an "Analysis". If nothing needs to give, a place holder (e.g. "All") needs to be added to this position. The last elements are the variables returned by the analysis, for example, the "fold change" and (log-transformed) "p-value" could be given by header "ttest|A_vs_B|fold.change" and "ttest|A_vs_B|p.value". 
 
 Any information could be added to the feature and sample data as long as they meet these requirements. The purpose of this rule for headers is to let the users quickly navigate through the potentially large number of columns in the phenotype and feature data. Once the data are prepared in this way, the information of interest can be selected using a three-step selector in the front-end. 
    
@@ -247,7 +248,7 @@ These keywords are reserved for the **Analysis** element in the headers. Users s
 
 ## Deployment
 
-In addition to opening the viewer inside R, ExpressionSetViewer together with the data prepared, can be deployed via several other ways. 
+In addition to opening the viewer inside R, omicsViewer together with the data prepared, can be deployed via several other ways. 
 
 * **Docker**: Standalone version using [docker image](https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer)
 
@@ -255,16 +256,16 @@ In addition to opening the viewer inside R, ExpressionSetViewer together with th
 docker pull mengchen18/expression_set_viewer
 ```
 
-* **Portable R:** To share the ExpressionSetViewer and data with users do not use docker, you can install ExpressionSetViewer in the [r portable](https://sourceforge.net/projects/rportable/).
+* **Portable R:** To share the omicsViewer and data with users do not use docker, you can install omicsViewer in the [r portable](https://sourceforge.net/projects/rportable/).
 
-* **Shiny server:** ExpressionSetViewer can also be deployed via shiny server. To do so, a *server.R* and *ui.R* file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of *server.R* and *ui.R* are
+* **Shiny server:** omicsViewer can also be deployed via shiny server. To do so, a *server.R* and *ui.R* file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of *server.R* and *ui.R* are
 
 ```{r}
 # server.R
 library(shiny)
 dir <- "/path/to/obj" # this should be changed 
 server <- function(input, output, session) {
-  callModule(ExpressionSetViewer::app_module, id = "app", dir = reactive(dir))
+  callModule(omicsViewer::app_module, id = "app", dir = reactive(dir))
 }
 ```
 
@@ -272,17 +273,17 @@ server <- function(input, output, session) {
 # ui.R
 library(shiny)
 ui <- fluidPage(
-  ExpressionSetViewer::app_ui("app")
+  omicsViewer::app_ui("app")
 )
 ```
 
 * **Inside R**
 
-Assume you have prepared an object for ExpressionSetViewer, you can open it in R using
+Assume you have prepared an object for omicsViewer, you can open it in R using
 
 ```{r deploy_inside_R,eval=FALSE}
-library(ExpressionSetViewer)
-ExpressionSetViewer("path/to/object")
+library(omicsViewer)
+omicsViewer("path/to/object")
 ```
 
 The object could be loaded from the top-right corner. 
@@ -308,7 +309,7 @@ The users can also define their own analysis and plug it into the *Analyst* pane
 Then the four-element list should be wrapped by a parent list, which can store a single or multiple "four-element lists", each representing an additional analysis/tab. Here is an example including a single additional tab:
 
 ```{r write extension_1,eval=TRUE}
-library(ExpressionSetViewer)
+library(omicsViewer)
 ctxt <- function(x) paste(
   x[1:min(10, length(x))], collapse = ";"
 )
@@ -343,7 +344,7 @@ ll <- list(
 )
 
 if (interactive())
-  ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+  omicsViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 When more tabs should be added, simply add more elements in to the list and pass it to the *additionalTabs* argument:
@@ -415,7 +416,7 @@ ll <- list(
 )
 
 if (interactive())
-  ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+  omicsViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 Include a "three-step selector" in the module:
@@ -424,7 +425,7 @@ selector_example_ui <- function(id) {
   ns <- NS(id)
   tagList(
     # select variable
-    ExpressionSetViewer:::triselector_ui(ns("selector_id")) 
+    omicsViewer:::triselector_ui(ns("selector_id")) 
   )
 }
 
@@ -439,7 +440,7 @@ selector_example_module <- function(
     str_split_fixed(cn, "\\|", n = 3)
   })
   v1 <- callModule(
-    ExpressionSetViewer:::triselector_module, id = "selector_id", reactive_x = triset, label = "Label"
+    omicsViewer:::triselector_module, id = "selector_id", reactive_x = triset, label = "Label"
     )
 }
 
@@ -452,7 +453,7 @@ ll <- list(
   )
   )
 if (interactive())
-  ExpressionSetViewer("Git/package/inst/extdata/", additionalTabs = ll)
+  omicsViewer("Git/package/inst/extdata/", additionalTabs = ll)
 ```
 
 # SessionInfo

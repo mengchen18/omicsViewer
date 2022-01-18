@@ -19,7 +19,7 @@ analysis, if lower than this number, NA will be returned.}
 \item{prefix}{prefix of the names. Usually don't need to be changed by the user. 
 When changes are needed, the prefix should be in a format like 
 [analysis name]|[subset] so the "analysis name" and "subset" can be selected
-in the \code{ExpressionSetViewer}.}
+in the \code{omicsViewer}.}
 }
 \value{
 Every correlation analysis returns a \code{data.frame} with five 
@@ -33,7 +33,7 @@ Every correlation analysis returns a \code{data.frame} with five
 \description{
 This is a convenience function to perform correlation analysis, 
   the output is in a format ready to be incorporated into object to be 
-  visualized by \code{ExpressionSetViewer}.
+  visualized by \code{omicsViewer}.
 }
 \examples{
 e1 <- matrix(rnorm(500), 50, 10)

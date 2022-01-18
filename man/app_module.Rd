@@ -19,8 +19,8 @@ app_module(
   imputeGetter = exprsImpute,
   defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy", "dendrogram")[1])
     attr(x, what),
-  appName = "ExpressionSetViewer",
-  appVersion = packageVersion("ExpressionSetViewer")
+  appName = "omicsViewer",
+  appVersion = packageVersion("omicsViewer")
 )
 }
 \arguments{
@@ -30,7 +30,7 @@ app_module(
 
 \item{session}{session}
 
-\item{.dir}{reactive; directory containing the .RDS file of ExpressionSet}
+\item{.dir}{reactive; directory containing the .RDS file of \code{ExpressionSet} or \code{SummarizedExperiment}}
 
 \item{filePattern}{file pattern to be displayed.}
 
@@ -65,7 +65,7 @@ Function should only be used for the developers
 }
 \examples{
 if (interactive()) {
-  dir <- system.file("extdata", package = "ExpressionSetViewer")
+  dir <- system.file("extdata", package = "omicsViewer")
   server <- function(input, output, session) {
     callModule(app_module, id = "app", dir = reactive(dir))
   }

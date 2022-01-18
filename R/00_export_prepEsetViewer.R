@@ -1,5 +1,5 @@
-#' Prepare ExpressionSet to be viewed by ExpressionSetViewer
-#' @description This is a convenience function to prepare the data to be visualized using \code{\link{ExpressionSetViewer}}.
+#' Prepare object to be viewed by omicsViewer
+#' @description This is a convenience function to prepare the data to be visualized using \code{\link{omicsViewer}}.
 #'   The result of PCA and t-test could be included directly. 
 #' @param expr expression matrix where the rows are feature and columns are samples, 
 #'   matrix should be log10 transformed and have unique row and column names
@@ -13,11 +13,13 @@
 #' @param gs gene-set data, please refer to examples for more details about the format
 #' @param stringDB the IDs that can be used in the STRING database (https://string-db.org/) query. 
 #' @param surv survival data, please refer to examples for more details about the format
+#' @param SummarizedExperiment logical; whether to return an object of class \code{SummarizedExperiment}. 
+#'   If set to FALSE, the function will return an \code{ExpressionSet} object.
 #' @param ... arguments passed to \code{\link{t.test}}, such as \code{paired}.
 #' @importFrom Biobase ExpressionSet AnnotatedDataFrame
 #' @export
 #' @examples 
-#' packdir <- system.file("extdata", package = "ExpressionSetViewer")
+#' packdir <- system.file("extdata", package = "omicsViewer")
 #' # reading expression
 #' expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 #' colnames(expr) <- make.names(colnames(expr))
@@ -31,7 +33,7 @@
 #' drugData <- read.delim(file.path(packdir, "sampleDrug.tsv"))
 #' # survival data
 #' # this data is from cell line, the survival data are fake data to 
-#' # show how to use the survival data in #' ExpressionSetViewer
+#' # show how to use the survival data in #' omicsViewer
 #' surv <- read.delim(file.path(packdir, "sampleSurv.tsv"))
 #' # gene set information
 #' genesets <- read_gmt(file.path(packdir, "geneset.gmt"), data.frame = TRUE)
@@ -48,7 +50,7 @@
 #' # prepare column for stringDB query
 #' strid <- sapply(strsplit(fd$Protein.ID, ";|-"), "[", 1)
 #' ###
-#' d <- prepEsetViewer(
+#' d <- prepOmicsViewer(
 #'   expr = expr, pData = pd, fData = fd, 
 #'   PCA = TRUE, pca.fillNA = TRUE,
 #'   t.test = tests, ttest.fillNA = FALSE, 
@@ -64,15 +66,16 @@
 #' # Save object and view
 #' # saveRDS(d, file = "dtest.RDS")
 #' ##  to open the viewer
-#' # ExpressionSetViewer("./")
-#' @return an object of \code{ExpressionSet} that can be visualized using
-#' \code{ExpressionSetViewer}
+#' # omicsViewer("./")
+#' @return an object of \code{ExpressionSet} or \code{SummarizedExperiment} that can be visualized using
+#' \code{omicsViewer}
 
-prepEsetViewer <- function(
+prepOmicsViewer <- function(
   expr, pData, fData, 
   PCA = TRUE, ncomp = min(8, ncol(expr)), pca.fillNA = TRUE,
   t.test = NULL, ttest.fillNA = FALSE, ..., 
-  gs = NULL, stringDB = NULL, surv = NULL) {
+  gs = NULL, stringDB = NULL, surv = NULL, 
+  SummarizedExperiment = TRUE) {
   
   p0 <- pData
   ## ======================= check dimension and names  ============================
@@ -197,13 +200,63 @@ prepEsetViewer <- function(
     }
   }
   
-  aenv <- new.env()
-  aenv$exprs <- as.matrix(expr)
-  if (pca.fillNA || ttest.fillNA) 
-    aenv$exprs_impute <- fillNA(expr)
-  ExpressionSet(assayData = aenv, 
-                phenoData = AnnotatedDataFrame(pData), 
-                featureData = AnnotatedDataFrame(fData))
+  # options to set default axis
+  fx1 <- grep("ttest\\|(.*?)_vs_(.*?)\\|mean.diff", colnames(fData), value = TRUE)
+  fy1 <- intersect(colnames(fData), sub("mean.diff$", "log.fdr", fx1))
+  fx2 <- grep("PCA\\|All\\|PC1\\(", colnames(fData), value = TRUE)
+  fy2 <- grep("PCA\\|All\\|PC2\\(", colnames(fData), value = TRUE)
+  px <- grep("PCA\\|All\\|PC1\\(", colnames(pData), value = TRUE)
+  py <- grep("PCA\\|All\\|PC2\\(", colnames(pData), value = TRUE)
+  
+  # prep object
+  if (!SummarizedExperiment) {
+    aenv <- new.env()
+    aenv$exprs <- as.matrix(expr)
+    if (pca.fillNA || ttest.fillNA) 
+      aenv$exprs_impute <- fillNA(expr)
+    res <- ExpressionSet(
+      assayData = aenv, 
+      phenoData = AnnotatedDataFrame(pData), 
+      featureData = AnnotatedDataFrame(fData))
+  } else {
+    
+    DataFrameWithAttr <- function(x) {
+      attrs <- setdiff(names(attributes(x)), c("names", "class", "row.names"))
+      attr_list <- lapply(attrs, function(attr_name) attr(x, attr_name))
+      names(attr_list) <- attrs
+      x <- DataFrame(x, check.names = FALSE)
+      for (i in names(attr_list)) 
+        attr(x, i) <- attr_list[[i]]
+      x
+    }
+    
+    aenv <- list()
+    aenv$exprs <- as.matrix(expr)
+    if (pca.fillNA || ttest.fillNA) 
+      aenv$exprs_impute <- fillNA(expr)
+    pd <- DataFrameWithAttr(pData)
+    fd <- DataFrameWithAttr(fData)
+    
+    res <- SummarizedExperiment(
+      assays = aenv,
+      rowData = fd, 
+      colData = pd
+    )
+  }
+  
+  # set default axes
+  if (length(fx1) >= 1 && length(fy1) >= 1) {
+    attr(res, "fx") <- fx1[1]
+    attr(res, "fy") <- fy1[1]
+  } else if (length(fx2) >= 1 && length(fy2) >= 1) {
+    attr(res, "fx") <- fx2[1]
+    attr(res, "fy") <- fy2[1]
+  } 
+  
+  if (length(px) >= 1 && length(py) >= 1) {
+    attr(res, "sx") <- px[1]
+    attr(res, "sy") <- py[1]
+  }
+  
+  res
 }
-
-

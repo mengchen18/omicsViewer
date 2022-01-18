@@ -1,5 +1,5 @@
-library(ExpressionSetViewer)
+library(omicsViewer)
 ui <- fluidPage(
-  ExpressionSetViewer::app_ui("app")
+  omicsViewer::app_ui("app")
 )
 

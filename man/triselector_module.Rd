@@ -44,7 +44,7 @@ if (interactive()) {
   library(shiny)
   library(Biobase)
   
-  file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+  file <- system.file("extdata/demo.RDS", package = "omicsViewer")
   dat <- readRDS(file)
   fData <- fData(dat)
   triset <- stringr::str_split_fixed(colnames(fData), '\\\\|', n= 3)

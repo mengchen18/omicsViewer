@@ -7,7 +7,7 @@
 #'   library(shiny)
 #'   library(Biobase)
 #'   
-#'   file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+#'   file <- system.file("extdata/demo.RDS", package = "omicsViewer")
 #'   dat <- readRDS(file)
 #'   fData <- fData(dat)
 #'   triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)
@@ -68,7 +68,7 @@ triselector_ui <- function(id) {
 #'   library(shiny)
 #'   library(Biobase)
 #'   
-#'   file <- system.file("extdata/demo.RDS", package = "ExpressionSetViewer")
+#'   file <- system.file("extdata/demo.RDS", package = "omicsViewer")
 #'   dat <- readRDS(file)
 #'   fData <- fData(dat)
 #'   triset <- stringr::str_split_fixed(colnames(fData), '\\|', n= 3)

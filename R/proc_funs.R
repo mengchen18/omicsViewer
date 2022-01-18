@@ -719,7 +719,7 @@ getMQParams <- function(x) {
 #'   format. Default is FALSE, a list will be returned.
 #' @export
 #' @examples 
-#' file <- system.file("extdata", package = "ExpressionSetViewer")
+#' file <- system.file("extdata", package = "omicsViewer")
 #' file <- file.path(file, "geneset.gmt")
 #' gs <- read_gmt(file)
 #' @return a list or data frame of gene set. When data.frame = TRUE, the returned
@@ -756,12 +756,15 @@ read_gmt <- function(x, id = NA, data.frame = FALSE) {
   x
 } 
 
-# Adding extra columns to the pheno Data or feature Data in ExpressionSet
+# Adding extra columns to the pheno Data/colData or feature Data/rowData in \code{ExpressionSet} or \code{SummarizedExperiment}
 #' @param object an object of \code{ExpressionSet-class}
 #' @param newData a \code{data.frame} containing the data to be added
-#' @param where either "pData" or "fData"
+#' @param where where to add the extra columns, 
+#'   should be one of "pData", "fData", "rowData" and "colData". 
 #' @rdname extendMetaData
 #' @importFrom Biobase pData fData
+#' @importFrom SummarizedExperiment rowData colData
+#' @importFrom S4Vectors DataFrame
 #' @export
 #' @return an object of \code{ExpressionSet-class}
 #' @note The attributes in the pheno data and feature data will be preserved
@@ -774,13 +777,13 @@ setGeneric("extendMetaData", function(object, newData, where) {
   standardGeneric("extendMetaData")
 })
 
-#' Add extra columns to the phenoData or featureData in ExpressionSet
+#' Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment
 #' @rdname extendMetaData
 #' @export
 setMethod(
   "extendMetaData", 
   signature = c(object = "ExpressionSet", newData = "data.frame"), 
-  function(object, newData, where = c("pData", "fData")[1]) {
+  function(object, newData, where = c("pData", "fData", "colData", "rowData")[1]) {
     
     .addPData <- function(x, y) {
       at <- names(attributes(x))
@@ -797,13 +800,59 @@ setMethod(
       x
     }
     
-    where <- match.arg(where, c("pData", "fData"))
-    if (where == "pData") {
+    where <- match.arg(where, c("pData", "fData", "colData", "rowData"))
+    if (where == "pData" || where == "colData") {
       d <- .addPData(pData(object), newData)
       Biobase::pData(object) <- d
     } else {
       d <- .addPData(fData(object), newData)
       Biobase::fData(object) <- d
+    }
+    object
+  }
+) 
+
+#' Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment
+#' @rdname extendMetaData
+#' @export
+setMethod(
+  "extendMetaData", 
+  signature = c(object = "SummarizedExperiment", newData = "data.frame"), 
+  function(object, newData, where = c("pData", "fData", "colData", "rowData")[1]) {
+    newData <-  DataFrame(newData, check.names = FALSE)
+    extendMetaData(object, newData, where = where)
+    })
+
+#' Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment
+#' @rdname extendMetaData
+#' @export
+setMethod(
+  "extendMetaData", 
+  signature = c(object = "SummarizedExperiment", newData = "DFrame"), 
+  function(object, newData, where = c("pData", "fData", "colData", "rowData")[1]) {
+    
+    .addPData <- function(x, y) {
+      at <- names(attributes(x))
+      at <- setdiff(at, c("rownames", "nrows", "listData", "elementType", "elementMetadata", "metadata", "class"))
+      if (length(at) > 0) {
+        oldAt <- lapply(at, function(an) attr(x, an))
+        names(oldAt) <- at
+      }
+      x <- cbind(x, y)
+      if (length(at) > 0) {
+        for (i in at)
+          attr(x, i) <- oldAt[[i]]
+      }
+      x
+    }    
+    
+    where <- match.arg(where, c("pData", "fData", "colData", "rowData"))
+    if (where == "pData" || where == "colData") {
+      d <- .addPData(colData(object), newData)
+      SummarizedExperiment::colData(object) <- d
+    } else {
+      d <- .addPData(rowData(object), newData)
+      SummarizedExperiment::rowData(object) <- d
     }
     object
   }

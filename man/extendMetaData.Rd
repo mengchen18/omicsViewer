@@ -3,24 +3,47 @@
 \name{extendMetaData}
 \alias{extendMetaData}
 \alias{extendMetaData,ExpressionSet,data.frame-method}
-\title{Add extra columns to the phenoData or featureData in ExpressionSet}
+\alias{extendMetaData,SummarizedExperiment,data.frame-method}
+\alias{extendMetaData,SummarizedExperiment,DFrame-method}
+\title{Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment}
 \usage{
 extendMetaData(object, newData, where)
 
-\S4method{extendMetaData}{ExpressionSet,data.frame}(object, newData, where = c("pData", "fData")[1])
+\S4method{extendMetaData}{ExpressionSet,data.frame}(
+  object,
+  newData,
+  where = c("pData", "fData", "colData", "rowData")[1]
+)
+
+\S4method{extendMetaData}{SummarizedExperiment,data.frame}(
+  object,
+  newData,
+  where = c("pData", "fData", "colData", "rowData")[1]
+)
+
+\S4method{extendMetaData}{SummarizedExperiment,DFrame}(
+  object,
+  newData,
+  where = c("pData", "fData", "colData", "rowData")[1]
+)
 }
 \arguments{
 \item{object}{an object of \code{ExpressionSet-class}}
 
 \item{newData}{a \code{data.frame} containing the data to be added}
 
-\item{where}{either "pData" or "fData"}
+\item{where}{where to add the extra columns, 
+should be one of "pData", "fData", "rowData" and "colData".}
 }
 \value{
 an object of \code{ExpressionSet-class}
 }
 \description{
-Add extra columns to the phenoData or featureData in ExpressionSet
+Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment
+
+Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment
+
+Add extra columns to the phenoData/colData or featureData/rowData in ExpressionSet/SummarizedExperiment
 }
 \note{
 The attributes in the pheno data and feature data will be preserved

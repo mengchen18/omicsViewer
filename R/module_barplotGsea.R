@@ -98,7 +98,7 @@ plotly_barplot <- function(
     fig,
     toImageButtonOptions = list(
       format = "svg",
-      filename = "ExpressionSetViewerPlot",
+      filename = "omicsViewerPlot",
       width = 700,
       height = 700
     )

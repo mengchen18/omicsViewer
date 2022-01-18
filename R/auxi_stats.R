@@ -1,7 +1,7 @@
 #' Correlating a expression matrix with phenotypical variables
 #' @description This is a convenience function to perform correlation analysis, 
 #'   the output is in a format ready to be incorporated into object to be 
-#'   visualized by \code{ExpressionSetViewer}. 
+#'   visualized by \code{omicsViewer}. 
 #' @param x an expression matrix, rows are the features (e.g. proteins), 
 #'   columns are the samples
 #' @param pheno  a \code{data.frame} storing the numerical phenotypical variable to 
@@ -11,7 +11,7 @@
 #' @param prefix prefix of the names. Usually don't need to be changed by the user. 
 #'   When changes are needed, the prefix should be in a format like 
 #'   [analysis name]|[subset] so the "analysis name" and "subset" can be selected
-#'   in the \code{ExpressionSetViewer}.
+#'   in the \code{omicsViewer}.
 #' @importFrom psych corr.test
 #' @importFrom matrixStats rowMaxs rowMins
 #' @export
@@ -83,7 +83,7 @@ correlationAnalysis <- function(x, pheno, min.value = 12, prefix = "Cor") {
 #' Function to perform multiple t-tests on an expression matrix
 #' @description This is a convenience function to perform multiple student's t-test. 
 #'   The output is in a format ready to be incorporated into object to be visualized by 
-#'   \code{ExpressionSetViewer}. This function use \code{\link{t.test}}. 
+#'   \code{omicsViewer}. This function use \code{\link{t.test}}. 
 #' @param x an expression matrix, usually log10 transformed.
 #' @param pheno phenotype data of x, the number of rows in \code{pheno} must equal
 #'   the number of columns of \code{x}. Please refer to examples for more details. 
@@ -113,7 +113,7 @@ correlationAnalysis <- function(x, pheno, min.value = 12, prefix = "Cor") {
 #' @export 
 #' @examples 
 #' # reading expression
-#' packdir <- system.file("extdata", package = "ExpressionSetViewer")
+#' packdir <- system.file("extdata", package = "omicsViewer")
 #' expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 #' # reading phenotype data
 #' pd <- read.delim(file.path(packdir, "sampleGeneral.tsv"), stringsAsFactors = FALSE)
@@ -192,17 +192,17 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
   df
 }
 
-#' Perform PCA and prepare results for \code{ExpressionSetViewer}
+#' Perform PCA and prepare results for \code{omicsViewer}
 #' @description This is a convenience function to perform PCA on expression matrix, 
 #'   the output of PCA
 #'   will be in a format ready to be incorporated into object to be visualized by 
-#'   \code{ExpressionSetViewer}.
+#'   \code{omicsViewer}.
 #' @param x an expression matrix, where rows are features and samples are on columns. 
 #' @param n number of components to keep
 #' @param prefix prefix of the names. Usually don't need to be changed by the user. 
 #'   When changes are needed, the prefix should be in a format like 
 #'   [analysis name]|[subset] so the "analysis name" and "subset" can be selected
-#'   in the \code{ExpressionSetViewer}.
+#'   in the \code{omicsViewer}.
 #' @param fillNA logical; whether NA should be filled? If FALSE (default), 
 #'   \code{na.omit} will be called before PCA. If TRUE, the missing value 
 #'   will be replaced using \code{\link{fillNA}}. 
@@ -211,7 +211,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
 #' @importFrom stats prcomp
 #' @examples 
 #' # reading expression
-#' packdir <- system.file("extdata", package = "ExpressionSetViewer")
+#' packdir <- system.file("extdata", package = "omicsViewer")
 #' expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 #' # call PCA
 #' pc <- exprspca(expr)

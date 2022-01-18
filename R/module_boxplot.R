@@ -92,7 +92,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
         fig,
         toImageButtonOptions = list(
           format = "svg",
-          filename = "ExpressionSetViewerPlot",
+          filename = "omicsViewerPlot",
           width = 700,
           height = 700
         )
@@ -109,7 +109,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
     ff,
     toImageButtonOptions = list(
       format = "svg",
-      filename = "ExpressionSetViewerPlot",
+      filename = "omicsViewerPlot",
       width = 700,
       height = 700
     )

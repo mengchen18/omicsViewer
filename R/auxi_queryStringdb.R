@@ -36,7 +36,7 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
 #' @param caller your identifier for string-db.org
 #' @importFrom httr GET content
 
-stringNetwork <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
+stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
   
   string_api_url <- "https://string-db.org/api"
   output_format <- "tsv"
@@ -82,7 +82,7 @@ stringNetwork <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
 #' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
 #' # getStringId(gg)
 
-getStringId <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
+getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
   string_api_url = "https://string-db.org/api"
   output_format = "tsv"
   method = "get_string_ids"
@@ -121,7 +121,7 @@ getStringId <- function(genes, taxid = 9606, caller = "ExpressionSetViewer") {
 #' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
 #' # u <- stringGSA(gg)
 
-stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "ExpressionSetViewer") {
+stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "omicsViewer") {
   
   string_api_url = "https://string-db.org/api"
   output_format = "tsv"
