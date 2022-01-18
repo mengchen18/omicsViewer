@@ -42,6 +42,8 @@ RUN R -e 'install.packages("ggseqlogo")'
 RUN R -e 'install.packages("devtools")'
 RUN R -e 'BiocManager::install("Biobase", update = FALSE)'
 RUN R -e 'BiocManager::install("fgsea", update = FALSE)'
+RUN R -e 'BiocManager::install("S4Vectors", update = FALSE)'
+RUN R -e 'BiocManager::install("SummarizedExperiment", update = FALSE)'
 RUN R -e 'devtools::install_github("mengchen18/ExpressionSetViewer", dependencies = FALSE)'
 
 
