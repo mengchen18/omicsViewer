@@ -11,12 +11,12 @@ of omicsViewer together with designated omics data could be easily created by in
 portable R or with docker, which can be shared with collaborators or submitted as supplementary data together with a manuscript.
 
 ## Vignette
-[Link](https://mengchen18.github.io/ExpressionSetViewer/index.html)
+[Link](https://mengchen18.github.io/omicsViewer/index.html)
 
 ## Install package
 ### Quick installation:
 ```
-devtools::install_github("mengchen18/ExpressionSetViewer")
+devtools::install_github("mengchen18/omicsViewer")
 ```
 If you see an error message, perhaps because you are missing some dependencies, please follow the next section.
 ### Installation from scratch

@@ -44,7 +44,7 @@ RUN R -e 'BiocManager::install("Biobase", update = FALSE)'
 RUN R -e 'BiocManager::install("fgsea", update = FALSE)'
 RUN R -e 'BiocManager::install("S4Vectors", update = FALSE)'
 RUN R -e 'BiocManager::install("SummarizedExperiment", update = FALSE)'
-RUN R -e 'devtools::install_github("mengchen18/ExpressionSetViewer", dependencies = FALSE)'
+RUN R -e 'devtools::install_github("mengchen18/omicsViewer", dependencies = FALSE)'
 
 
 RUN mkdir /srv/shiny-server/sample-apps/ExpressionSetViewer
