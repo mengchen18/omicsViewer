@@ -143,7 +143,7 @@ feature_general_module <- function(input, output, session,
       l$xlab <- rownames(reactive_expr())[reactive_i()]
       l$ylab <- do.call(paste, list(v1(), collapse = "|"))
       if (is.null(l$tooltips))
-        l$tooltips = colnames(reactive_expr())
+        l$tooltips <- colnames(reactive_expr())
     }
     
     if (showBeeswarm()) {

@@ -742,8 +742,8 @@ read_gmt <- function(x, id = NA, data.frame = FALSE) {
     id <- match.arg(id, c("SYMBOL", "ENTREZ"))
   } else {
     if (any(grepl("[A-Z]", unlist(x[seq_len(10)]))))
-      id = "SYMBOL" else
-        id = "ENTREZ"
+      id <- "SYMBOL" else
+        id <- "ENTREZ"
   }
   attr(x, "ID") <- id
   

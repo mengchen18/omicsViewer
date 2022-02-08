@@ -777,12 +777,12 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     selected = list(col = NULL, row = NULL)
   )
   observeEvent(input$clear, {
-    selVal$clicked = NULL#
-    selVal$selected = list(col = NULL, row = NULL)
+    selVal$clicked <- NULL#
+    selVal$selected <- list(col = NULL, row = NULL)
   })
   observeEvent(list(clickedName(), brushedValues()), {
-    selVal$clicked = clickedName()# l[v_scatter()$clicked]
-    selVal$selected = brushedValues()#l[v_scatter()$selected]
+    selVal$clicked <- clickedName()# l[v_scatter()$clicked]
+    selVal$selected <- brushedValues()#l[v_scatter()$selected]
   })
 
   reactive({

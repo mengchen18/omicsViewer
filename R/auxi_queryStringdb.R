@@ -83,9 +83,9 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
 #' # getStringId(gg)
 
 getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
-  string_api_url = "https://string-db.org/api"
-  output_format = "tsv"
-  method = "get_string_ids"
+  string_api_url <- "https://string-db.org/api"
+  output_format <- "tsv"
+  method <- "get_string_ids"
   
   params <- list(
     "identifiers" = paste(genes, collapse = "%0d"),
@@ -98,9 +98,9 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
     vapply(names(params), function(x) paste(x, params[[x]], sep = "="), FUN.VALUE = character(1)),
     collapse = "&"
   )
-  request_url =  paste(string_api_url, output_format, method, sep = "/")
+  request_url <-  paste(string_api_url, output_format, method, sep = "/")
   ## Call STRING
-  results = httr::GET( paste(request_url, params, sep = "?") )
+  results <- httr::GET( paste(request_url, params, sep = "?") )
   suppressMessages(
     httr::content(results)
   )
@@ -123,12 +123,12 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
 
 stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "omicsViewer") {
   
-  string_api_url = "https://string-db.org/api"
-  output_format = "tsv"
-  method = "enrichment"
-  request_url = paste(string_api_url, output_format, method, sep = "/")
+  string_api_url <- "https://string-db.org/api"
+  output_format <- "tsv"
+  method <- "enrichment"
+  request_url <- paste(string_api_url, output_format, method, sep = "/")
   
-  params = list(
+  params <- list(
     "species" = taxid, 
     "caller_identity" = caller
   )
@@ -149,7 +149,7 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
     params$background_string_identifiers <- paste(g$stringId, collapse = "%0d")
   }
   
-  params$identifiers = paste(genes, collapse = "%0d") 
+  params$identifiers <- paste(genes, collapse = "%0d") 
   
   # call string
   response <- httr::GET(url = request_url, query = params) 

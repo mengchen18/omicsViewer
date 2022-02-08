@@ -23,8 +23,8 @@
 getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {  
   term <- gsub(" ", "%20", term)
   term <- paste(term, collapse = ",")
-  GENESHOT_URL = 'https://maayanlab.cloud/geneshot/api/search'
-  payload = list("rif" = rif, "term" = term)
+  GENESHOT_URL <- 'https://maayanlab.cloud/geneshot/api/search'
+  payload <- list("rif" = rif, "term" = term)
   r <- httr::POST(GENESHOT_URL, body = payload , encode = "json")
   r <- httr::content(r)
   v <- vapply(r$gene_count, unlist, numeric(2))
