@@ -250,13 +250,13 @@ These keywords are reserved for the **Analysis** element in the headers. Users s
 
 In addition to opening the viewer inside R, omicsViewer together with the data prepared, can be deployed via several other ways. 
 
-* **Docker**: Standalone version using [docker image](https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer)
+* **Docker**: Standalone version using [docker image](https://hub.docker.com/repository/docker/mengchen18/omicsviewer)
 
 ```
-docker pull mengchen18/expression_set_viewer
+docker pull mengchen18/omicsviewer
 ```
 
-* **Portable R:** To share the omicsViewer and data with users do not use docker, you can install omicsViewer in the [r portable](https://sourceforge.net/projects/rportable/).
+* **Portable R:** To share the omicsViewer and data with users do not use docker, you can use portable R with xcmsViewer installed. The ready-to-use package could be access from [zenodo](https://zenodo.org/record/6025394). 
 
 * **Shiny server:** omicsViewer can also be deployed via shiny server. To do so, a *server.R* and *ui.R* file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of *server.R* and *ui.R* are
 

@@ -57,14 +57,14 @@ s1 <- c(
   "BiocManager",
   "password",
   "ggseqlogo",
-  "devtools",
-  "S4Vectors",
-  "SummarizedExperiment"
+  "devtools"
   )
 
 # # BIOC
 s2 <- c(
-  "Biobase", "fgsea"
+  "Biobase", "fgsea",
+  "S4Vectors",
+  "SummarizedExperiment"
   )
 
 # 
@@ -107,4 +107,4 @@ omicsViewer(system.file("extdata", package = "omicsViewer"))
 ## Docker image
 
 
-https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer
+https://hub.docker.com/repository/docker/mengchen18/omicsviewer

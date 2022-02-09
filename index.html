@@ -242,7 +242,7 @@ div.tocify {
 <h1 class="title toc-ignore">Interactive and explorative visualization of ExpressionSet using omicsViewer</h1>
 <h4 class="author">Chen Meng</h4>
 <address class="author_afil">
-BayBioMS, TU Munich<br><h4 class="date">18 January, 2022</h4>
+BayBioMS, TU Munich<br><h4 class="date">09 February, 2022</h4>
 
 </div>
 
@@ -475,11 +475,11 @@ The first element is called <em>analysis</em>, such as “t-test”, “PCA”, 
 <h2 number="3.3"><span class="header-section-number">3.3</span> Deployment</h2>
 <p>In addition to opening the viewer inside R, omicsViewer together with the data prepared, can be deployed via several other ways.</p>
 <ul>
-<li><strong>Docker</strong>: Standalone version using <a href="https://hub.docker.com/repository/docker/mengchen18/expression_set_viewer">docker image</a></li>
+<li><strong>Docker</strong>: Standalone version using <a href="https://hub.docker.com/repository/docker/mengchen18/omicsviewer">docker image</a></li>
 </ul>
-<pre><code>docker pull mengchen18/expression_set_viewer</code></pre>
+<pre><code>docker pull mengchen18/omicsviewer</code></pre>
 <ul>
-<li><p><strong>Portable R:</strong> To share the omicsViewer and data with users do not use docker, you can install omicsViewer in the <a href="https://sourceforge.net/projects/rportable/">r portable</a>.</p></li>
+<li><p><strong>Portable R:</strong> To share the omicsViewer and data with users do not use docker, you can use portable R with xcmsViewer installed. The ready-to-use package could be access from <a href="https://zenodo.org/record/6025394">zenodo</a>.</p></li>
 <li><p><strong>Shiny server:</strong> omicsViewer can also be deployed via shiny server. To do so, a <em>server.R</em> and <em>ui.R</em> file should be created and put into the shiny app directory in the shiny server. By doing this, any users who have accession to the shiny server will be able to explore the data and do not need to install anything. The example files of <em>server.R</em> and <em>ui.R</em> are</p></li>
 </ul>
 <pre class="r"><code># server.R
@@ -690,7 +690,7 @@ if (interactive())
 ## 
 ## other attached packages:
 ## [1] shiny_1.7.1         Biobase_2.52.0      BiocGenerics_0.38.0
-## [4] omicsViewer_0.99.1 
+## [4] omicsViewer_0.99.2 
 ## 
 ## loaded via a namespace (and not attached):
 ##   [1] fgsea_1.18.0                colorspace_2.0-2           
@@ -737,7 +737,7 @@ if (interactive())
 ##  [83] R6_2.5.1                    IRanges_2.26.0             
 ##  [85] generics_0.1.0              DelayedArray_0.18.0        
 ##  [87] DBI_1.1.1                   pillar_1.6.2               
-##  [89] haven_2.4.3                 foreign_0.8-81             
+##  [89] haven_2.4.3                 foreign_0.8-82             
 ##  [91] survival_3.2-13             abind_1.4-5                
 ##  [93] RCurl_1.98-1.4              tibble_3.1.4               
 ##  [95] crayon_1.4.1                car_3.0-11                 

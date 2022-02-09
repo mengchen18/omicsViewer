@@ -38,7 +38,7 @@ jobs:
         context: ./
         file: ./Dockerfile
         push: true
-        tags: mengchen18/expression_set_viewer:${{ env.packageVersion }}
+        tags: mengchen18/omicsviewer:${{ env.packageVersion }}
     
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
