@@ -9,16 +9,15 @@ app_module(
   output,
   session,
   .dir,
-  filePattern = ".RDS$",
+  filePattern = ".(RDS|db|sqlite|sqlite3)$",
   additionalTabs = NULL,
   ESVObj = reactive(NULL),
-  esetLoader = readRDS,
-  exprsGetter = exprs,
-  pDataGetter = pData,
-  fDataGetter = fData,
-  imputeGetter = exprsImpute,
-  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy", "dendrogram")[1])
-    attr(x, what),
+  esetLoader = readESVObj,
+  exprsGetter = getExprs,
+  pDataGetter = getPData,
+  fDataGetter = getFData,
+  imputeGetter = getExprsImpute,
+  defaultAxisGetter = getAx,
   appName = "omicsViewer",
   appVersion = packageVersion("omicsViewer")
 )

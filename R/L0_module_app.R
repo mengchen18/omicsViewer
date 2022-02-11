@@ -76,6 +76,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @importFrom stats 
 #'  as.dendrogram
 #'  as.dist
+#'  as.hclust
 #'  chisq.test
 #'  cor.test
 #'  fisher.test
@@ -104,9 +105,9 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @return do not return any values
 
 app_module <- function(
-  input, output, session, .dir, filePattern = ".RDS$", additionalTabs = NULL, ESVObj = reactive(NULL),
-  esetLoader = readRDS, exprsGetter = exprs, pDataGetter = pData, fDataGetter = fData, imputeGetter = exprsImpute, 
-  defaultAxisGetter = function(x, what=c("sx", "sy", "fx", "fy", "dendrogram")[1]) attr(x, what),
+  input, output, session, .dir, filePattern = ".(RDS|db|sqlite|sqlite3)$", additionalTabs = NULL, ESVObj = reactive(NULL),
+  esetLoader = readESVObj, exprsGetter = getExprs, pDataGetter = getPData, fDataGetter = getFData, 
+  imputeGetter = getExprsImpute, defaultAxisGetter = getAx,
   appName = "omicsViewer", appVersion = packageVersion("omicsViewer")
 ) {
   

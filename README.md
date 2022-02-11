@@ -57,7 +57,8 @@ s1 <- c(
   "BiocManager",
   "password",
   "ggseqlogo",
-  "devtools"
+  "devtools",
+  "RSQLite"
   )
 
 # # BIOC

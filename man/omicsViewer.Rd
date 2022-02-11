@@ -7,13 +7,13 @@
 omicsViewer(
   dir,
   additionalTabs = NULL,
-  filePattern = ".RDS$",
+  filePattern = ".(RDS|DB|SQLITE|SQLITE3)$",
   ESVObj = NULL,
   esetLoader = readESVObj,
-  exprsGetter = exprs,
-  pDataGetter = pData,
-  fDataGetter = fData,
-  defaultAxisGetter = function(x, what = c("sx", "sy", "fx", "fy")[1]) attr(x, what),
+  exprsGetter = getExprs,
+  pDataGetter = getPData,
+  fDataGetter = getFData,
+  defaultAxisGetter = getAx,
   appName = "omicsViewer",
   appVersion = packageVersion("omicsViewer")
 )

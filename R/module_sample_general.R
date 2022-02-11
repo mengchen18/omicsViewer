@@ -118,8 +118,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData,
       req(pheno()$value)
       tooltips <- attr4select$tooltips
       if (is.null(tooltips))
-        tooltips <- rownames(reactive_phenoData())
-      
+        tooltips <- rownames(reactive_phenoData())      
       l <- list(
         x = select(), 
         y = pheno()$value,

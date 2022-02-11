@@ -147,7 +147,7 @@ L1_result_space_module <- function(
         optionalTabs <- c( optionalTabs, list(tabPanel(lo$tabName, lo$moduleUi(ns(lo$moduleName)))) )
       }
     }    
-    do.call(navbarPage, c(titleTabs, optionalTabs, geneshot, sampleAnalyst))
+    do.call(navbarPage, c(titleTabs, optionalTabs, geneshot, sampleAnalyst))    
   })
 
   reactive({

@@ -97,45 +97,6 @@ tallGS <- function(obj) {
   obj
 }
 
-#' Read the object of SummarizedExperiment or ExpressetSet to be visualized using omicsViewer
-#' @description Similar to \code{readRDS}. It reads the object to R working environment and perform extra two things. 
-#'   1. If the loaded data an class of \code{SummarizedExperiment}, it will be converted to \code{ExpressionSet};
-#'   2. If the gene set annotatio is in matrix format, the gene set annotation is converted to \code{data.frame} format.
-#' @return an object of class \code{ExpressionSet} or \code{SummarizedExperiment} to be visualzied.
-#' @param x the path of an object of \code{SummarizedExperiment} or \code{ExpressionSet}, passed to \link{readRDS}
-#' @importFrom Biobase pData fData fData<- pData<-
-#' @importFrom methods as
-#' @export
-#' @examples 
-#' file <- system.file("extdata/demo.RDS", package = "omicsViewer")
-#' obj <- readESVObj(file)
-#' 
-readESVObj <- function(x) {
-  
-  asEsetWithAttr <- function(x) {
-    if (inherits(x, "SummarizedExperiment")) {
-      eset <- as(x, "ExpressionSet")
-      colnames(pData(eset)) <- colnames(colData(x))
-      colnames(fData(eset)) <- colnames(rowData(x))
-      
-      DFattrs <- c("rownames", "nrows", "listData", "elementType", "elementMetadata", "metadata", "class")
-      for (i in setdiff(names(attributes(colData(x))), DFattrs)) 
-        attr(pData(eset), i) <- attr(colData(x), i)
-      for (i in setdiff(names(attributes(rowData(x))), DFattrs))
-        attr(fData(eset), i) <- attr(rowData(x), i)
-      SEattrs <- c("assays", "colData", "NAMES", "elementMetadata", "metadata", "class")
-      for (i in setdiff(names(attributes(x)), SEattrs))
-        attr(eset, i) <- attr(x, i)
-    } else if (inherits(x, "ExpressionSet")) {
-      eset <- x
-    } else
-      stop("x should be either an SummarizedExperiment or ExpressionSet")
-    eset
-  }
-  
-  x <- asEsetWithAttr( readRDS(x) )
-  tallGS(x)
-}
 
 vectORATall <- function(
   gs, i, background, minOverlap = 2, minSize=2, maxSize=Inf, gs_desc = NULL, feature_desc = NULL,
