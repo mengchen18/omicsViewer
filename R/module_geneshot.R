@@ -47,7 +47,6 @@ geneshot_module <- function(
     show_modal_spinner(text = "Querying database ...")
     res <- getAutoRIF(trimws(strsplit(input$term, ";")[[1]]), filter = TRUE)    
     if (!is.null(res) && nrow(res) > 0) {
-      # req(nrow(res) > 0)
       res$selected <- ""
       res <- res[order(res$rank, decreasing = TRUE), ]
       dft <- res[seq_len(min(nrow(res), 20)), ]
@@ -63,7 +62,13 @@ geneshot_module <- function(
       )
     } 
     remove_modal_spinner()
-    req(!is.null(res) && nrow(res) > 0)    
+    if (is.null(res) || nrow(res) == 0)
+      showModal(
+        modalDialog(
+          "No genes identified, perhaps the terms is not correctly typed."
+        )
+      )
+    req(!is.null(res) && nrow(res) > 0)
     rif(
       list(
       tab = res,
