@@ -145,7 +145,7 @@ drugData <- read.delim(file.path(packdir, "sampleDrug.tsv"))
 surv <- read.delim(file.path(packdir, "sampleSurv.tsv"))
 # gene set information
 genesets <- read_gmt(file.path(packdir, "geneset.gmt"), data.frame = TRUE)
-gsannot <- gsAnnotIdList(idList = rownames(fd), gsIdMap = genesets, data.frame = TRUE)
+gsannot <- gsAnnotIdList(idList = rownames(fd), gsIdMap = genesets, data.frame = FALSE)
 
 # Define t-test to be done, a matrix nx3
 # every row define a t-test, the format

@@ -52,6 +52,8 @@ setMethod(
     gs <- data.frame(featureId = character(0), gsId = character(0), weight = numeric(0))
     if (hasAttr(fd, "GS"))
       gs <- attr(fd, "GS")
+    if (inherits(gs, c("dgCMatrix", "lgCMatrix")))
+      gs <- csc2list(gs)
     dbWriteTable(conn = con, name = "GS", value = gs, overwrite = overwrite)
     
     defaultxy <- data.frame(axis = character(0), value = character(0))

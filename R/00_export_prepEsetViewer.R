@@ -151,7 +151,7 @@ prepOmicsViewer <- function(
     fData <- cbind(fData, strdb)
   }
   
-  # surv
+  # ==================  surv ================== 
   if (!is.null(surv)) {
     if (is.vector(surv) && length(surv) == nrow(expr)) {
       surv <- data.frame( "Surv|all|surv" = surv, 
@@ -175,29 +175,29 @@ prepOmicsViewer <- function(
     pData <- cbind(pData, surv)
   }
   
-  # gs
+  # ==================  gs ================== 
   if (!is.null(gs)) {
     if (all(colnames(gs) %in% c("featureId", "gsId", "weight"))) {
       gs$featureId <- factor(rownames(fData)[gs$featureId])
       gs$gsId <- factor(gs$gsId)
       gs$weight <- as.integer(gs$weight)
-      attr(fData, "GS") <- gs
     } else {
-      if (is.data.frame(gs))
-        gs <- as.matrix(gs)
       if (is.vector(gs) && length(gs) == nrow(expr)) {
         gs <- matrix(gs, ncol = 1)
         colnames(gs) <- "geneset"
-      } else if ( !(is.matrix(gs) && nrow(gs) == nrow(expr)) )
+      }
+      if (!inherits(gs, c("matrix", "dgCMatrix")))
+        stop("gs should either be a (sparse) matrix or data.frame with three columns: featureId, gsId, weight!")
+      if (is.null(rownames(gs)))
+        rownames(gs) <- rownames(fData)
+      if ( !(nrow(gs) == nrow(expr)) )
         stop("incompatible 'gs'")
       if (is.null(colnames(gs)))
         stop("colnames of gs should not be null!")
       if (any(duplicated(colnames(gs))))
         stop('colnames of gs should be unique!')
-      colnames(gs) <- paste0('GS|All|', colnames(gs))
-      gs <- data.frame(gs, check.names = FALSE, stringsAsFactors = FALSE)
-      fData <- cbind(fData, gs) 
     }
+    attr(fData, "GS") <- gs
   }
   
   # options to set default axis

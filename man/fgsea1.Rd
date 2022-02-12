@@ -2,27 +2,29 @@
 % Please edit documentation in R/auxi_fgsea.R
 \name{fgsea1}
 \alias{fgsea1}
-\title{Wrapper of fgsea function to take binary gene set matrix as input}
+\title{Wrapper of fgseaMultilevel function to take binary gene set matrix as input}
 \usage{
-fgsea1(gs, stats, nperm = 100, gs_desc = NULL, ...)
+fgsea1(gs, stats, gs_desc = NULL, ...)
 }
 \arguments{
-\item{gs}{a data.frame object with at least three columns named as "featureId", "gsId" and "weight".}
+\item{gs}{either a data.frame or a (sparse) matrix input. If a data.frame object 
+is given, it should have at least three columns named as "featureId", "gsId" and "weight".
+If a matrix is given, the matrix is binary matrix where rows are features and 
+columns are gene sets. The values in the matrix should be either 1 or 0 representing
+the presence and absence of a feature in the genesets, repectively.}
 
-\item{stats}{other parameter passed to fgsea}
-
-\item{nperm}{number of permutation}
+\item{stats}{other parameter passed to fgseaMultilevel}
 
 \item{gs_desc}{description of gene sets, it should be a named vector and the names
 should be the same as colnames(gs)}
 
-\item{...}{other parameters passed to fgsea}
+\item{...}{other parameters passed to fgseaMultilevel}
 }
 \value{
 a \code{data.frame} of fgsea results
 }
 \description{
-Wrapper of fgsea function to take binary gene set matrix as input
+Wrapper of fgseaMultilevel function to take binary gene set matrix as input
 }
 \examples{
 ## not for users
@@ -31,8 +33,8 @@ Wrapper of fgsea function to take binary gene set matrix as input
 # dat <- readRDS("Dat/exampleEset.RDS")
 # fd <- fData(dat)
 # fdgs <- fd[, grep("^GS\\|", colnames(fd))]
-# res <- fgsea0(fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, minSize = 5, maxSize = 500)
-# res <- fgsea0(
-#   fdgs, stats = fd$`t-test|OV_BR|md`, nperm = 1000, 
+# res <- fgsea1(fdgs, stats = fd$`t-test|OV_BR|md`, minSize = 5, maxSize = 500)
+# res <- fgsea1(
+#   fdgs, stats = fd$`t-test|OV_BR|md`,  
 #   minSize = 5, maxSize = 500, gs_desc = colnames(fdgs))
 }

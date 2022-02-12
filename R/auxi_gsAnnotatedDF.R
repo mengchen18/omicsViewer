@@ -13,6 +13,7 @@
 #' @param maxSize maximum size of gene sets
 #' @param data.frame logical; whether to organize the result into \code{data.frame} format, 
 #'   see "Value" section. 
+#' @param sparse logical; whether to return a sparse matrix, only used when data.frame=FALSE
 #' @importFrom matrixStats colSums2
 #' @export
 #' @examples
@@ -39,7 +40,7 @@
 #' TRUE) with three columns: featureId, gsId, weight.
 #' 
 #' 
-gsAnnotIdList <- function(idList, gsIdMap, minSize = 5, maxSize = 500, data.frame = FALSE) {
+gsAnnotIdList <- function(idList, gsIdMap, minSize = 5, maxSize = 500, data.frame = FALSE, sparse = TRUE) {
   pid <- data.frame(
     id = unlist(idList),
     index = rep(seq_along(idList), times = vapply(idList, length, integer(1))),
@@ -68,6 +69,8 @@ gsAnnotIdList <- function(idList, gsIdMap, minSize = 5, maxSize = 500, data.fram
     colnames(v) <- names(gsIdMap)
     nm <- matrixStats::colSums2(v)
     v <- v[, which(nm >= minSize & nm <= maxSize)]
+    if (sparse)
+      v <- as(v, "dgCMatrix")
   }
   v
 }
@@ -85,14 +88,17 @@ tallGS <- function(obj) {
   fd <- Biobase::fData(obj)
   scn <- str_split_fixed(colnames(fd), "\\|", n = 3)
   ir <- which(scn[, 1] == "GS")
-  if (length(ir) == 0)
-    return(obj)
-  
-  igs <- fd[, ir, drop = FALSE]
-  colnames(igs) <- make.names(scn[ir, 3])
-  gs <- totall(igs)
-  fd <- fd[, -ir]
-  attr(fd, "GS") <- gs
+  gscsc <- attr(fd, "GS")
+  if (length(ir) > 0) {
+    igs <- fd[, ir, drop = FALSE]
+    colnames(igs) <- make.names(scn[ir, 3])
+    gs <- totall(igs)
+    fd <- fd[, -ir]
+    attr(fd, "GS") <- gs
+  } else if (inherits(gscsc, c("dgCMatrix", "lgCMatrix"))) {
+    gs <- csc2list(gscsc)
+    attr(fd, "GS") <- gs
+  }
   Biobase::fData(obj) <- fd
   obj
 }

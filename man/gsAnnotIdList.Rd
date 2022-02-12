@@ -4,7 +4,14 @@
 \alias{gsAnnotIdList}
 \title{Annotation of gene/protein function using multiple IDs.}
 \usage{
-gsAnnotIdList(idList, gsIdMap, minSize = 5, maxSize = 500, data.frame = FALSE)
+gsAnnotIdList(
+  idList,
+  gsIdMap,
+  minSize = 5,
+  maxSize = 500,
+  data.frame = FALSE,
+  sparse = TRUE
+)
 }
 \arguments{
 \item{idList}{list of protein IDs, e.g. list(c("ID1", "ID2"), c("ID13"), c("ID4", "ID8", "ID10"))}
@@ -25,6 +32,8 @@ gsIdMap <- data.frame(
 
 \item{data.frame}{logical; whether to organize the result into \code{data.frame} format, 
 see "Value" section.}
+
+\item{sparse}{logical; whether to return a sparse matrix, only used when data.frame=FALSE}
 }
 \value{
 A binary matrix (if \code{data.frame} = FALSE),

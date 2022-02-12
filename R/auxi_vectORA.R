@@ -1,6 +1,6 @@
 #' @description Vectorized over-representation analysis using fisher's exact test
 #' @param gs a matrix where rows are features and columns are gene sets. The zeros in the matrix 
-#'   indicate a gene is not a memeber of the gene sets in the column. 
+#'   indicate a gene is not a member of the gene sets in the column. 
 #' @param i the row number selected from the gs
 #' @param background An integer to indicate the size of background; if NA, background = nrow(gs)
 #' @param minOverlap the minimum required overlap between gene set and gene list, if the overlap is lower
@@ -63,11 +63,17 @@ vectORA <- function(
     gs_annot_x <- gs_desc[colnames(mat)]
   if (is.null(feature_desc))
     feature_desc <- rownames(gs)
-  fi <- feature_desc[i]
-  overlap <- lapply(seq_len(ncol(mat)), function(j) {
-    x <- mat[i, j, drop = FALSE]
-    fi[x != 0]
-  })
+  
+  if (is.matrix(mat)) {
+    fi <- feature_desc[i]
+    overlap <- lapply(seq_len(ncol(mat)), function(j) {
+      x <- mat[i, j, drop = FALSE]
+      fi[x != 0]
+    })
+  } else if (inherits(mat, c("dgCMatrix", "lgCMatrix"))) {
+    overlap <- csc2list(mat[i, ])
+    overlap <- split(overlap$featureId, overlap$gsId)
+  }
   
   rs <- cbind(
     pathway = colnames(mat), desc = gs_annot_x, bdf

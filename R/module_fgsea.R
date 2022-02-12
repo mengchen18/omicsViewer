@@ -80,7 +80,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     }
     
     res <- fgsea1(
-      fdgs, stats = stats, nperm = 1000, minSize = 3, maxSize = 500, 
+      fdgs, stats = stats, minSize = 3, maxSize = 500, 
       gs_desc = gsInfo()$desc)
     
     cn <- colnames(res)
