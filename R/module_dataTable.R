@@ -95,7 +95,7 @@ dataTable_module <- function(
     } else if (is.data.frame(reactive_data()))
       x <- reactive_data() else
         stop('reactive_data shold be either a matrix or data.frame')
-    x[selectedRowOrCol(), ]
+    x[selectedRowOrCol(), , drop = FALSE]
   })
   
   callModule(
@@ -183,7 +183,7 @@ dataTable_module <- function(
   
   output$table <- DT::renderDataTable({
     req(scn())
-    tab <- rdd()[, scn()]
+    tab <- rdd()[, scn(), drop = FALSE]
     i <- which(vapply(tab, function(x) is.numeric(x) && !is.integer(x), logical(1)))
     if (any(i))
       tab[i] <- lapply(tab[i], round, digits = 4)
