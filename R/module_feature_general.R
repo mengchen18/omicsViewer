@@ -142,7 +142,6 @@ feature_general_module <- function(input, output, session,
       l$x <- reactive_expr()[reactive_i(), ] 
       l$y <- pheno()
       l$xlab <- rownames(reactive_expr())[reactive_i()]
-      print("c")
       l$ylab <- do.call(paste, list(v1(), collapse = "|"))
       if (is.null(l$tooltips))
         l$tooltips <- colnames(reactive_expr())

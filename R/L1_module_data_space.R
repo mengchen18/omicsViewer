@@ -172,9 +172,27 @@ L1_data_space_module <- function(
       selectedSamples( s_sample_fig()$clicked )
   })
 
-  observe( selectedSamples(tab_pd()) )
-  observe( selectedFeatures(tab_fd()) )
-  observe( selectedFeatures(tab_expr()) )
+  observeEvent(tab_pd(), {
+    # sso <- selectedSamples()
+    # if (length(tab_pd()) < length(sso))
+      selectedSamples(tab_pd()) 
+    } )
+  
+  singleTrue <- function(x) !is.null(x) && is.logical(x) && length(x) == 1 && x
+  observeEvent(tab_fd(), {
+    i1 <- length(tab_fd()) < length(tab_rows_fdata())
+    i2 <- singleTrue(tab_rows_fdata())
+    i3 <- !singleTrue(tab_fd())
+    if (  (i1 || i2) && i3  )
+      selectedFeatures( tab_fd() )
+    })
+  observeEvent(tab_expr(), {
+    i1 <- length(tab_expr()) < length(tab_rows_fdata())
+    i2 <- singleTrue(tab_rows_fdata())
+    i3 <- !singleTrue(tab_expr())
+    if (  (i1 || i2) && i3  )
+      selectedFeatures(tab_expr())
+    })
 
   #### status for snapshot #####
   observe({
