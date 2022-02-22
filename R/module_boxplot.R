@@ -105,7 +105,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
   )
   ff <- subplot(figext, fig, shareX = TRUE, nrows = 2, heights = c(0.2, 0.8), margin = 0, titleY = TRUE)
   ff <- plotly::layout(ff, yaxis = list(title = ylab.extvar), yaxis2 = list(title = ylab))
-  plotly::config(
+  fig <- plotly::config(
     ff,
     toImageButtonOptions = list(
       format = "svg",
@@ -114,6 +114,7 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
       height = 700
     )
   )
+  toWebGL(fig)
   
 }
 

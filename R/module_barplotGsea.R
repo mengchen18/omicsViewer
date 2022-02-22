@@ -103,6 +103,7 @@ plotly_barplot <- function(
       height = 700
     )
   )
+  toWebGL(fig)
 }
 
 

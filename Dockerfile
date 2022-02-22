@@ -8,44 +8,44 @@ RUN apt-get update \
 	libnode-dev \
 	libgit2-dev
 
-RUN R -e 'install.packages("survminer")'
-RUN R -e 'install.packages("survival")'
-RUN R -e 'install.packages("fastmatch")'
-RUN R -e 'install.packages("reshape2")'
-RUN R -e 'install.packages("beeswarm")'
-RUN R -e 'install.packages("grDevices")'
-RUN R -e 'install.packages("shinycssloaders")'
-RUN R -e 'install.packages("shinythemes")'
-RUN R -e 'install.packages("networkD3")'
-RUN R -e 'install.packages("httr")'
-RUN R -e 'install.packages("RColorBrewer")'
-RUN R -e 'install.packages("psych")'
-RUN R -e 'install.packages("stringr")'
-RUN R -e 'install.packages("shiny")'
-RUN R -e 'install.packages("shinydashboard")'
-RUN R -e 'install.packages("shinyWidgets")'
-RUN R -e 'install.packages("shinybusy")'
-RUN R -e 'install.packages("matrixStats")'
-RUN R -e 'install.packages("flatxml")'
-RUN R -e 'install.packages("excelR")'
-RUN R -e 'install.packages("shinyjs")'
-RUN R -e 'install.packages("shinyFiles")'
-RUN R -e 'install.packages("DT")'
-RUN R -e 'install.packages("plotly")'
-RUN R -e 'install.packages("openxlsx")'
-RUN R -e 'install.packages("yaml")'
-RUN R -e 'install.packages("curl",)'
-RUN R -e 'install.packages("sortable")'
-RUN R -e 'install.packages("BiocManager")'
-RUN R -e 'install.packages("password")'
-RUN R -e 'install.packages("ggseqlogo")'
-RUN R -e 'install.packages("devtools")'
-RUN R -e 'install.packages("Matrix")'
-RUN R -e 'install.packages("RSQLite")'
-RUN R -e 'BiocManager::install("Biobase", update = FALSE)'
-RUN R -e 'BiocManager::install("fgsea", update = FALSE)'
-RUN R -e 'BiocManager::install("S4Vectors", update = FALSE)'
-RUN R -e 'BiocManager::install("SummarizedExperiment", update = FALSE)'
+RUN R -e 'install.packages(
+	c(
+		"survminer",
+		"survival",
+		"fastmatch",
+		"reshape2",
+		"beeswarm",
+		"grDevices",
+		"shinycssloaders",
+		"shinythemes",
+		"networkD3",
+		"httr",
+		"RColorBrewer",
+		"psych",
+		"stringr",
+		"shiny",
+		"shinydashboard",
+		"shinyWidgets",
+		"shinybusy",
+		"matrixStats",
+		"flatxml",
+		"excelR",
+		"shinyjs",
+		"shinyFiles",
+		"DT",
+		"plotly",
+		"openxlsx",
+		"yaml",
+		"curl",,
+		"sortable",
+		"BiocManager",
+		"password",
+		"ggseqlogo",
+		"devtools",
+		"Matrix",
+		"RSQLite"
+	))'
+RUN R -e 'BiocManager::install(c("Biobase", "fgsea", "S4Vectors", "SummarizedExperiment"), update = FALSE)'
 RUN R -e 'devtools::install_github("mengchen18/omicsViewer", dependencies = FALSE)'
 
 

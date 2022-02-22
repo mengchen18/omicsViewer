@@ -267,8 +267,8 @@ plotly_scatter <- function(
       modeBarButtonsToAdd = modeBarAdd
     )
   
-  # set.seed(8610)
-  return(list(fig = fig, data = df))
+  return(list(fig = toWebGL(fig), data = df))
+  # return(list(fig = fig, data = df))
 }
 
 
