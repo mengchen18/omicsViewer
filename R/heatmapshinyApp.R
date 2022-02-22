@@ -61,7 +61,7 @@ iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
 #' @description iheatmap input
 #' @param id id
 #' @describeIn iheatmap
-#' 
+#' @importFrom shinycssloaders withSpinner
 iheatmapInput <- function(id) {
   
   ns <- NS(id)
@@ -131,8 +131,8 @@ iheatmapInput <- function(id) {
 #' @describeIn iheatmap
 #' 
 iheatmapOutput <- function(id) {
-  ns <- NS(id) 
-  tagList(
+  ns <- NS(id)   
+  tagList(    
     fluidRow(
       uiOutput(ns("topleft")),
       uiOutput(ns("topmiddle")),
@@ -142,7 +142,9 @@ iheatmapOutput <- function(id) {
       uiOutput(ns("column_sideColor_ui")),
       uiOutput(ns("row_dend_ui")),
       uiOutput(ns("row_sideColor_ui")),
-      uiOutput(ns("heatmap_ui"))
+      shinycssloaders::withSpinner(
+        uiOutput(ns("heatmap_ui")), type = 8, color = "green"
+      )
     ),
     shinyPlotTooltipsUI(ns("tlp_heatmap"))
   )

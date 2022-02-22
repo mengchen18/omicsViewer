@@ -278,6 +278,7 @@ plotly_scatter <- function(
 #' @param id id
 #' @param height figure height
 #' @return a tagList of UI components
+#' @importFrom shinycssloaders withSpinner
 #' @export
 #' @examples
 #' if (interactive()) {
@@ -343,7 +344,9 @@ plotly_scatter_ui <- function(id, height = "400px") {
   tagList(
     uiOutput(ns('htest')),
     uiOutput(ns("regTickBox")),
-    plotlyOutput(ns("plotly.scatter.output"), height = height)
+    shinycssloaders::withSpinner(
+      plotlyOutput(ns("plotly.scatter.output"), height = height), type = 8, color = "green"
+    )
   )
 }
 

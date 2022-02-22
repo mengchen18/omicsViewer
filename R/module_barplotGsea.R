@@ -110,10 +110,12 @@ plotly_barplot <- function(
 
 #' @description utility - barplot shiny UI
 #' @param id id
-#' 
+#' @importFrom shinycssloaders withSpinner
 plotly_barplot_ui <- function(id) {
   ns <- NS(id)
-  plotlyOutput(ns("plot"))
+  shinycssloaders::withSpinner(
+    plotlyOutput(ns("plot")), type = 8, color = "green"
+    )
 }
 
 #' @description utility - barplot shiny module

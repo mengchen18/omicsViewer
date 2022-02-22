@@ -149,11 +149,12 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
 #'   shinyApp(ui, server)
 #' }
 #' @return a tagList of UI components
+#' @importFrom shinycssloaders withSpinner
 
 plotly_boxplot_ui <- function(id) {
   ns <- NS(id)
-  tagList(
-    plotlyOutput(ns('boxplotly'))
+  shinycssloaders::withSpinner(
+    plotlyOutput(ns('boxplotly')), type = 8, color = "green"
   )
 }
 

@@ -6,7 +6,9 @@ enrichment_fgsea_ui <- function(id) {
     # select variable
     triselector_ui(ns("tris_fgsea")),
     # plotly barplot
-    plotlyOutput(ns("bplot")),
+    shinycssloaders::withSpinner(
+      plotlyOutput(ns("bplot")), type = 8, color = "green"
+      ),
     # table
     dataTableDownload_ui(ns("stab"))
   )
