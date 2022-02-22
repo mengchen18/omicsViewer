@@ -5,10 +5,7 @@
 dataTableDownload_ui <- function(id, showTable = TRUE) {
   ns <- NS(id)
   if (showTable) {
-    r <- tagList(
-      DT::dataTableOutput(ns("table")),
-      uiOutput(ns("showButton"))
-    )
+    r <- DT::dataTableOutput(ns("table"))      
   } else
     r <- uiOutput(ns("showButton"))
   r
@@ -84,8 +81,10 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
-      options = list(scrollX = TRUE, pageLength = pageLength, dom = 'tip', stateSave = TRUE,  stateDuration = -1,
-        searchCols = getSearchCols(tab_status), order = getOrderCols(tab_status))
+      extensions = "Buttons",
+      options = list(scrollX = TRUE, pageLength = pageLength, dom = 'Bftip', stateSave = TRUE,  stateDuration = -1,
+        searchCols = getSearchCols(tab_status), order = getOrderCols(tab_status),
+        buttons = c('copy', 'csv', 'excel', 'pdf'))
     )
     DT::formatStyle(dt, columns = seq_len(ncol(tab)), fontSize = '90%')
   }
