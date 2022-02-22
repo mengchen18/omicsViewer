@@ -23,7 +23,7 @@ gslist_module <- function(
   reactive_pathway <- reactive({    
     req(f1 <- reactive_featureData())
     gss <- attr(f1, "GS")
-    s <- cbind(f1[fmatch(gss$featureId, rownames(f1)), grep("^General", colnames(f1))], gss)
+    s <- cbind(f1[fmatch(gss$featureId, rownames(f1)), grep("^General", colnames(f1)), drop = FALSE], gss)
     colnames(s)[colnames(s) == "gsId"] <- "Gene-set"
     s
   })

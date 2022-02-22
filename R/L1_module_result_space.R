@@ -115,10 +115,10 @@ L1_result_space_module <- function(
     titleTabs <- list(
       title = "Analyst", id = ns("analyst"),
       theme = shinytheme("spacelab"), 
-      tabPanel("Feature general", feature_general_ui(ns("feature_general")))     
+      tabPanel("Feature", feature_general_ui(ns("feature_general")))     
     )
     sampleAnalyst <- list(
-      tabPanel("Sample general", sample_general_ui(ns("sample_general")))
+      tabPanel("Sample", sample_general_ui(ns("sample_general")))
       )
     
     ### geneshot

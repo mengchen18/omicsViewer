@@ -110,6 +110,20 @@ feature_general_module <- function(input, output, session,
       return( plotly_scatter_ui(ns("feature_general_beeswarm")) )
   })
   
+  rh <- reactiveVal()
+  observeEvent(reactive_highlight(), {
+    r <- reactive_highlight()
+    print(r)
+    if ( is.null(r) || is.logical(r) )
+      return(NULL)
+    
+    if ( length(r) == 0 && !is.null(rh()) && length(rh()) > 0) {
+      rh(integer(0))
+    } else if (length(r) > 0) {
+      rh( match(r, colnames(reactive_expr())) ) 
+    }    
+    })
+
   # boxplot:
   #  - no phenoData selected 
   #  - multi feature selected - numerical phenoData selected - boxplot with external
@@ -122,7 +136,7 @@ feature_general_module <- function(input, output, session,
                ylab.extvar <- do.call(paste, list(v1(), collapse = "|"))
                list(
                  x = reactive_expr(), i = reactive_i(), 
-                 highlight = match(reactive_highlight(), colnames(reactive_expr())), 
+                 highlight = rh(), 
                  extvar = pheno(),
                  ylab = ylab, ylab.extvar = ylab.extvar)
              }), 
