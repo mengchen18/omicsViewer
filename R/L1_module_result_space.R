@@ -113,7 +113,7 @@ L1_result_space_module <- function(
   output$optTabs <- renderUI({
     
     titleTabs <- list(
-      title = "Analyst", id = ns("analyst"),
+      title = "Analysis", id = ns("analyst"),
       theme = shinytheme("spacelab"), 
       tabPanel("Feature", feature_general_ui(ns("feature_general")))     
     )

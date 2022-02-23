@@ -7,7 +7,7 @@
 L1_data_space_ui <- function(id, activeTab = "Feature") {
   ns <- NS(id)
   navbarPage(
-    "Eset", id = ns("eset"),
+    "Data", id = ns("eset"),
     selected = activeTab,
     theme = shinytheme("spacelab"), 
     tabPanel('Feature', meta_scatter_ui(ns('feature_space'))),
