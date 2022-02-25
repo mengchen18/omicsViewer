@@ -17,7 +17,7 @@
 #'   shinyApp(ui = ui, server = server)
 #' }
 #' @return a list of UI components
-#' @importFrom shinyjs useShinyjs
+#' @importFrom shinyjs useShinyjs hidden
 
 app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
@@ -30,12 +30,19 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
       downloadButton(outputId = ns("download"), label = "xlsx", class = NULL),
       actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro"))
     ),
-    column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
-    column(6, L1_result_space_ui(ns("resultspace"))))
+    shinyjs::hidden(
+      div(id = ns("contents"),
+        column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
+        column(6, L1_result_space_ui(ns("resultspace")))
+        )
+      )    
+    )
 
   if (showDropList) {
     l2 <- list(
-      uiOutput(ns("summary")),
+      shinycssloaders::withSpinner(
+        uiOutput(ns("summary")), hide.ui = FALSE, type = 8, color = "green"
+        ),      
       br(),
       absolutePanel(
         top = 8, right = 140, style = "z-index: 9999;",
@@ -163,6 +170,7 @@ app_module <- function(
     TRUE
   }
   
+  vEset <- reactiveVal(FALSE)
   observe({    
     req(expr())
     req(pdata())
@@ -173,8 +181,12 @@ app_module <- function(
         title = "Problem in data!",
         x[[2]]
       ))
+    } else {
+      vEset( TRUE )
+      shinyjs::show("contents")
     }
   })  
+
   ########################  
   d_s_x <- reactive( {
     req(eset <- reactive_eset())
@@ -240,24 +252,26 @@ app_module <- function(
       })
     }
   )
-  
+
   output$summary <- renderUI({
-    req(is.null(ESVObj()))
-    if (is.null(input$selectFile) || input$selectFile == "" || !is.numeric(nrow(expr())))
-      return(HTML(sprintf('<h1 style="display:inline;">%s</h1>', appName)))
+    if (! vEset()) {
+      txt <- sprintf(
+      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup></h3>', 
+      appName, paste0("v", appVersion))
+    } else {
     txt <- sprintf(
       '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>', 
-      appName, paste0("v", appVersion), nrow(expr()), ncol(expr())
-    )
+      appName, paste0("v", appVersion), nrow(expr()), ncol(expr()))
+    }
     HTML(txt)
   })
-  
+
   # v1 <- reactiveVal()
   v1 <- callModule(
     L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
     rowDendrogram = reactive_rdg, status = esv_status
-  )
+  )  
   
   sameValues <- function(a, b) {
     if (is.null(a) || is.null(b)) 

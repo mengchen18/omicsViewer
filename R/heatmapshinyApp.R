@@ -60,7 +60,7 @@ iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
 
 #' @description iheatmap input
 #' @param id id
-#' @describeIn iheatmap
+#' @describeIn iheatmap input for heatmap
 #' @importFrom shinycssloaders withSpinner
 iheatmapInput <- function(id) {
   
