@@ -15,6 +15,33 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     tabPanel("Sample", meta_scatter_ui(ns("sample_space"))),
     tabPanel("Sample table", dataTable_ui(ns("tab_pheno"))),
     tabPanel(
+      "Cor",
+      fluidRow(
+        column(
+          6,             
+          dropdown(
+            inputId = "mydropdown2",
+            label = "Controls",
+            circle = FALSE, status = "default", icon = icon("cog"),
+            width = 700,
+            tooltip = tooltipOptions(title = "Click to update heatmap and check legend!"),
+            margin = "10px",
+            tabsetPanel(
+              tabPanel("Parameters", iheatmapInput(id = ns("corheatmapViewer"), scaleOn = "none")),
+              tabPanel("Legend", iheatmapLegend(id = ns("corheatmapViewer")))
+            )
+          )
+        ),
+        column(
+          6, align = "right",
+          iheatmapClear(id = ns("corheatmapViewer"))
+        ),
+        column(
+          12, iheatmapOutput(id = ns("corheatmapViewer"))
+        )
+      )
+    ),
+    tabPanel(
       "Heatmap",
       fluidRow(
         column(
@@ -52,7 +79,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 #' @param expr reactive value; expression matrix
 #' @param pdata reactive value; phenotype data
 #' @param fdata reactive value; feature data
-#' @param rowDendrogram row dendrogram list
+#' @param cormat reactive value; correlation matrix. if not given, calculated on the fly. 
 #' @param reactive_x_s pre-selected x axis for sample space
 #' @param reactive_y_s pre-selected y axis for sample space
 #' @param reactive_x_f pre-selected x axis for feature space
@@ -63,15 +90,40 @@ L1_data_space_module <- function(
   input, output, session, expr, pdata, fdata, 
   reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
   reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
-  rowDendrogram = reactive(NULL), status = reactive(NULL)
+  cormat = reactive(NULL), status = reactive(NULL)
 ) {
   
   ns <- session$ns
+
+  cmat <- reactive({
+    req(expr())
+    if (is.null(cormat())) {      
+      cc <- cor(expr(), use = "pairwise.complete.obs")
+      diag(cc) <- NA
+
+      hcl <- hclust(as.dist(1-cor(t(cc), use= "pair")), method = "ward.D")
+      dend <- as.dendrogram(hcl)
+      dl <- list( pearson_ward.D = list(ord = hcl$order, hcl = dend) )
+      attr(cc, "rowDendrogram") <- dl
+      attr(cc, "colDendrogram") <- dl
+      return(cc)
+    } else if (nrow(cormat()) == ncol(cormat()) && nrow(cormat()) == ncol(expr())) {
+      return(cormat())
+    } else
+      stop("Incorrect dimension of cormat!")    
+    })
+
+  s_cor_heatmap <- callModule(
+    iheatmapModule, 'corheatmapViewer', mat = cmat, pd = pdata, fd = pdata,
+    status = reactive(status()$eset_cor_heatmap), fill.NA = FALSE
+  )
+
+  # observe(print(s_cor_heatmap()))
   
   # # heatmap
   s_heatmap <- callModule(
-    iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata,
-    rowDendrogram = rowDendrogram, status = reactive(status()$eset_heatmap)
+    iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, 
+    status = reactive(status()$eset_heatmap)
   )
 
   # ### feature space
@@ -92,6 +144,15 @@ L1_data_space_module <- function(
   tab_rows_fdata <- reactiveVal(TRUE)
   tab_rows_pdata <- reactiveVal(TRUE)
   notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
+
+  observeEvent(s_cor_heatmap(), {
+    if (notNullAndPosLength(s_cor_heatmap()$brushed$col)) {
+      tab_rows_pdata(s_cor_heatmap()$brushed$col)
+    } else if (notNullAndPosLength(s_cor_heatmap()$clicked)) {
+      tab_rows_pdata(s_cor_heatmap()$clicked[["col"]])
+    } # else         tab_rows_pdata(TRUE)    
+  })
+
   observeEvent(s_heatmap(), {
     # fdata
     if (notNullAndPosLength(s_heatmap()$brushed$row)) {
@@ -144,6 +205,13 @@ L1_data_space_module <- function(
   ### return selected feature and samples
   selectedFeatures <- reactiveVal()
   selectedSamples <- reactiveVal()
+
+  observeEvent(s_cor_heatmap(), {
+    if (!is.null(s_cor_heatmap()$brushed$col)) {
+      selectedSamples(s_cor_heatmap()$brushed$col)
+    } else if (!is.null(s_cor_heatmap()$clicked))
+      selectedSamples(s_cor_heatmap()$clicked["col"]) # ?? else set to character(0)
+  })
 
   observeEvent(s_heatmap(), {
 

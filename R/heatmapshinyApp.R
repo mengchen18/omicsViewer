@@ -60,29 +60,16 @@ iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
 
 #' @description iheatmap input
 #' @param id id
+#' @param scaleOn the default scale, row, column or none
 #' @describeIn iheatmap input for heatmap
 #' @importFrom shinycssloaders withSpinner
-iheatmapInput <- function(id) {
+iheatmapInput <- function(id, scaleOn = "row") {
   
   ns <- NS(id)
   tagList(
     fluidRow(
       column(
         6, 
-        # clustering row/distance/linkage
-        selectInput(ns("rowSortBy"), "Sorting rows by", choices = NULL, selectize = TRUE, multiple = FALSE),
-        conditionalPanel(
-          sprintf("input['%s'] == 'hierarchical cluster'", ns("rowSortBy")), 
-          selectInput(ns("clusterRowDist"), "Distance", 
-                      choices = c("Pearson correlation", "Euclidean", "Maximum", "Manhattan", "Canberra", "Binary", 
-                                  "Minkowski", "Spearman correlation"), 
-                      selectize = TRUE),
-          selectInput(ns("clusterRowLink"), "Linkage", 
-                      choices = c("ward.D", "ward.D2", "single", "complete", "average", 
-                                  "mcquitty", "median", "centroid"), 
-                      selectize = TRUE)
-        ),
-        hr(),
         # clustering column/distance/linkage
         selectInput(ns("colSortBy"), "Sorting columns by", choices = NULL, selectize = TRUE),
         conditionalPanel(
@@ -97,9 +84,23 @@ iheatmapInput <- function(id) {
                       selectize = TRUE)
         ),
         hr(),
+        # clustering row/distance/linkage
+        selectInput(ns("rowSortBy"), "Sorting rows by", choices = NULL, selectize = TRUE, multiple = FALSE),
+        conditionalPanel(
+          sprintf("input['%s'] == 'hierarchical cluster'", ns("rowSortBy")), 
+          selectInput(ns("clusterRowDist"), "Distance", 
+                      choices = c("Pearson correlation", "Euclidean", "Maximum", "Manhattan", "Canberra", "Binary", 
+                                  "Minkowski", "Spearman correlation"), 
+                      selectize = TRUE),
+          selectInput(ns("clusterRowLink"), "Linkage", 
+                      choices = c("ward.D", "ward.D2", "single", "complete", "average", 
+                                  "mcquitty", "median", "centroid"), 
+                      selectize = TRUE)
+        ),
+        hr(),        
         # scale none/row/col
         selectInput(ns("scale"), "Scale on", 
-                    choices = c("row", "none", "column"), 
+                    choices = c("row", "none", "column"), selected = scaleOn,
                     selectize = TRUE)
       ),
       column(
@@ -179,25 +180,35 @@ iheatmapClear <- function(id) {
 #' @param mat expression matrix
 #' @param pd phenotype data
 #' @param fd feature data
-#' @param rowDendrogram row dendrogram list
+#' @param fill.NA fill NA? TRUE or FALSE
 #' @param status heatmap states
 #' @importFrom RColorBrewer brewer.pal
 #' @name iheatmap
 #' 
-iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = reactive(NULL), status = reactive(NULL)) {
+iheatmapModule <- function(
+  input, output, session, mat, pd, fd, status = reactive(NULL), fill.NA = TRUE
+  ) {
   
   ns <- session$ns
   
   matr <- reactive({
     req(mat())
-    if (any(is.na(mat())))
+    if (any(is.na(mat())) && fill.NA )
       r <- fillNA(mat()) else
         r <- mat()
     r
     })
 
+  rowDendrogram <- reactive({
+    attr(mat(), "rowDendrogram")
+    })
+
+  colDendrogram <- reactive({
+    attr(mat(), "colDendrogram")
+    })
+
   clsRow <- reactive({
-    if (nrow(matr()) > 750)
+    if (nrow(matr()) > 750 || !is.null(rowDendrogram()))
       return("none")
     "hierarchical cluster"
   })
@@ -206,6 +217,14 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     if (is.null(rowDendrogram()) || is.null(names(rowDendrogram())))
       return(NULL)
     x <- rowDendrogram()
+    names(x) <- paste("HCL", names(x))
+    x
+    })
+
+  cdg <- reactive({
+    if (is.null(colDendrogram()) || is.null(names(colDendrogram())))
+      return(NULL)
+    x <- colDendrogram()
     names(x) <- paste("HCL", names(x))
     x
     })
@@ -229,11 +248,16 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     }) 
   observe({
     req(pd())
-    updateSelectInput(session, "colSortBy", choices = c("hierarchical cluster", "none", colnames(pd()))) 
+    updateSelectInput(
+      session, "colSortBy", choices = c(names(cdg()), "hierarchical cluster", "none", colnames(pd()))) 
     })
-  observe( updateSelectInput(
-    session, "rowSortBy", choices = c(names(rdg()), "none", "hierarchical cluster", fdColWithGS()), selected = clsRow()
-    ))
+  observe({
+    cs <- c(names(rdg()), "none", "hierarchical cluster", fdColWithGS())
+    ss <- clsRow()
+    if (ss == "none" && cs[[1]] != "none")
+      ss <- cs[[1]]
+    updateSelectInput( session, "rowSortBy", choices = cs, selected = ss )
+    })
   observe({
     req(pd())
     updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) 
@@ -258,6 +282,8 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
   
   pre_hcl <- reactiveVal()
   pre_ord <- reactiveVal()
+  pre_hcl_col <- reactiveVal()
+  pre_ord_col <- reactiveVal()
   observeEvent(status(), {
     if (is.null(status()))
       return(NULL)
@@ -276,6 +302,8 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     updateSliderInput(session, "marginBottom", value = status()$marginBottom)
     pre_hcl(status()$rowDendrogram)
     pre_ord(status()$rowOrder)
+    pre_hcl_col(status()$colDendrogram)
+    pre_ord_col(status()$colOrder)
     })
 
   rowSB <- eventReactive(list(
@@ -303,18 +331,23 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
       ord_r <- hcl_r$order 
       hcl_r <- as.dendrogram(hcl_r)
     }
-    pre_hcl(hcl_r)
-    pre_ord(ord_r)
     list(ord = ord_r, hcl = hcl_r)
   })
   
   colSB <- eventReactive(list(    
-    input$colSortBy, mm()$mat, input$clusterColDist, input$clusterColLink 
-    ), {    
+    input$colSortBy, mm()$mat, input$clusterColDist, input$clusterColLink, status()
+    ), {        
+    if (!is.null(pre_hcl_col()) & !is.null(pre_ord_col())) {
+      return(list(
+        ord = pre_ord_col(), hcl = pre_hcl_col()
+        ))
+    }
     req(input$colSortBy)
     hcl_c <- NULL
     ord_c <- seq_len(ncol(mm()$mat))
-    if (!input$colSortBy %in% c("", "none", "hierarchical cluster")) {
+    if (input$colSortBy %in% names(cdg())) {
+      return(cdg()[[input$colSortBy]])
+    } else if (!input$colSortBy %in% c("", "none", "hierarchical cluster")) {
       ord_c <- order(pd()[, input$colSortBy])
     } else if (input$colSortBy == "hierarchical cluster") {
       dd <- tolower(strsplit(input$clusterColDist, " ")[[1]][1])
@@ -521,8 +554,6 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
     )
   })
 
-
-
   ######## place holder plots ##########
   output$empty1 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
@@ -543,16 +574,17 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
 
   ######### dynamic UI render; dynamic layout ##########
   show_col_dend <- reactiveVal(TRUE)
-  observe( show_col_dend(input$colSortBy == "hierarchical cluster") )
+  observe( show_col_dend(
+    input$colSortBy == "hierarchical cluster" || grepl("^HCL ", input$colSortBy)
+    ))
 
   show_col_sideColor <- reactiveVal(FALSE)
   observe( show_col_sideColor(length(input$annotCol) != 0) )
 
   show_row_dend <- reactiveVal(TRUE)
-  observe( 
-    show_row_dend(
+  observe( show_row_dend(
       input$rowSortBy == "hierarchical cluster" || grepl("^HCL ", input$rowSortBy)
-  ) ) #clusterRow
+    ))
 
   show_row_sideColor <- reactiveVal(FALSE)
   observe( show_row_sideColor(length(input$annotRow) != 0) )
@@ -805,8 +837,10 @@ iheatmapModule <- function(input, output, session, mat, pd, fd, rowDendrogram = 
       clusterColLink = input$clusterColLink,
       clusterRowDist = input$clusterRowDist,
       clusterRowLink = input$clusterRowLink,
-      rowDendrogram = pre_hcl(),
-      rowOrder = pre_ord(),
+      rowDendrogram = rowSB()$hcl,
+      rowOrder = rowSB()$ord,
+      colDendrogram = colSB()$hcl,
+      colOrder =  colSB()$ord,
       ranges_x = ranges$x,
       ranges_y = ranges$y
       )
