@@ -13,12 +13,12 @@ value2color <- function(x, n=10) {
     cc <- cp[nl]
   } else if (is.factor(x) || is.character(x) || is.logical(x)) {
     x <- as.character(x)
-    nl <- unique(x)
+    nl <- sort(unique(x))
     if (length(nl) > 40) {
-      cp <- sort(nColors(k = 40))
+      cp <- nColors(k = 40)
       cp <- rep(cp, ceiling(length(nl)/40))[seq_along(nl)]
     } else {
-      cp <- sort(nColors(k = length(nl)))
+      cp <- nColors(k = length(nl))
     }
     names(cp) <- nl
     cp <- cp[sort(names(cp))]

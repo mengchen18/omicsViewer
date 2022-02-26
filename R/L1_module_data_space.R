@@ -117,8 +117,6 @@ L1_data_space_module <- function(
     iheatmapModule, 'corheatmapViewer', mat = cmat, pd = pdata, fd = pdata,
     status = reactive(status()$eset_cor_heatmap), fill.NA = FALSE
   )
-
-  # observe(print(s_cor_heatmap()))
   
   # # heatmap
   s_heatmap <- callModule(
