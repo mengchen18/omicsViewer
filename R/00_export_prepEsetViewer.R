@@ -207,13 +207,25 @@ prepOmicsViewer <- function(
   fy2 <- grep("PCA\\|All\\|PC2\\(", colnames(fData), value = TRUE)
   px <- grep("PCA\\|All\\|PC1\\(", colnames(pData), value = TRUE)
   py <- grep("PCA\\|All\\|PC2\\(", colnames(pData), value = TRUE)
+
+  exprsWithAttr <- function(x, fillNA = FALSE, environment = FALSE, attrs = c("rowDendrogram", "colDendrogram")) {
+    if (environment)
+     aenv <- new.env() else 
+       aenv <- list()
+    mx <- as.matrix(x)    
+    for (i in attrs) attr(mx, i) <- attr(x, i)
+    aenv$exprs <- mx
+    if (fillNA) {      
+      mxf <- fillNA(mx)
+      for (i in attrs) attr(mxf, i) <- attr(x, i)
+      aenv$exprs_impute <- mxf
+    }
+    aenv
+  }
   
   # prep object
   if (!SummarizedExperiment) {
-    aenv <- new.env()
-    aenv$exprs <- as.matrix(expr)
-    if (pca.fillNA || ttest.fillNA) 
-      aenv$exprs_impute <- fillNA(expr)
+    aenv <- exprsWithAttr(expr, fillNA = pca.fillNA || ttest.fillNA, environment = TRUE)
     res <- ExpressionSet(
       assayData = aenv, 
       phenoData = AnnotatedDataFrame(pData), 
@@ -230,10 +242,7 @@ prepOmicsViewer <- function(
       x
     }
     
-    aenv <- list()
-    aenv$exprs <- as.matrix(expr)
-    if (pca.fillNA || ttest.fillNA) 
-      aenv$exprs_impute <- fillNA(expr)
+    aenv <- exprsWithAttr(expr, fillNA = pca.fillNA || ttest.fillNA, environment = FALSE)
     pd <- DataFrameWithAttr(pData)
     fd <- DataFrameWithAttr(fData)
     

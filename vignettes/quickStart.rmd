@@ -121,7 +121,7 @@ feature data. The column should contain the peptide sequence with the same lengt
 
 The back-end user needs to prepare the data to be visualized by ExpresssionSetViewer. There are functions defined in the package to perform the most basic analyses, such as principal component analysis and t-test. The results of these analyses will be integrated into the ExpressionSet in a format that is compatible with omicsViewer. 
 
-A simple example:
+A simple example start with an expression matrix:
 
 ```{r simple_pipeline, results=FALSE, message=FALSE}
 library(omicsViewer)
@@ -132,6 +132,41 @@ packdir <- system.file("extdata", package = "omicsViewer")
 expr <- read.delim(file.path(packdir, "expressionMatrix.tsv"), stringsAsFactors = FALSE)
 colnames(expr) <- make.names(colnames(expr))
 rownames(expr) <- make.names(rownames(expr))
+```
+
+(Optional) When the expression matrix has thousands of rows, calculating the dendrogram of rows in
+shinyapp will be slow, we can also calculate the dendrograms in advance and store them 
+as the "rowDendrogram" (or "colDendrogram" for columns) attribute of expression matrix. 
+The "rowDendrogram" should be a named list, the suggested name is in the format like:
+
+[distance measure]\_[linkage method]\_[imputed/noImpute]
+
+Every element should be a list of length two:
+
+ - ord: the order of variables
+ - hcl: the dendrogram
+ 
+An example:
+
+```{r dend,eval=TRUE}
+# euclidean distance + complete linkage
+hcl <- hclust(dist(expr))
+dend <- as.dendrogram(hcl)
+# correlation distance + ward.D linkage
+hcl2 <- hclust(as.dist(1-cor(t(expr), use= "pair")), method = "ward.D")
+dend2 <- as.dendrogram(hcl2)
+# put two cluster results into one list and add it to the attributes of expression
+dl <- list(
+  euclidean_complete_imputed = list(ord = hcl$order, hcl = dend),
+  pearson_ward.D_imputed = list(ord = hcl2$order, hcl = dend2)
+)
+attr(expr, "rowDendrogram") <- dl
+
+```
+
+Then we can continue to create the phenotypic and sample data:
+
+```{r simple_pipeline_continue, results=FALSE, message=FALSE}
 
 # reading feature data
 fd <- read.delim(file.path(packdir, "featureGeneral.tsv"), stringsAsFactors = FALSE)
@@ -193,38 +228,6 @@ d <- extendMetaData(d, drugcor, where = "fData")
 # omicsViewer("./")
 ```
 
-When the expression matrix has thousands of rows, calculating the dendrogram of rows will 
-be slow, we can also calculate the dendrograms in advance and store them as the "dendrogram"
-attribute of ExpressionSet. The "dendrogram" should be a named list, the suggested name is 
-in the format like:
-
-[distance measure]\_[linkage method]\_[imputed/noImpute]
-
-Every element should be a list of length two:
-
- - ord: the order of variables
- - hcl: the dendrogram
- 
-An example:
-
-```{r dend,eval=TRUE}
-library(Biobase)
-expr <- exprs(d)
-hcl <- hclust(dist(expr))
-dend <- as.dendrogram(hcl)
-
-hcl2 <- hclust(as.dist(1-cor(t(expr), use= "pair")), method = "ward.D")
-dend2 <- as.dendrogram(hcl2)
-
-dl <- list(
-  euclidean_complete_imputed = list(ord = hcl$order, hcl = dend),
-  pearson_ward.D_imputed = list(ord = hcl2$order, hcl = dend2)
-  )
-attr(d, "dendrogram") <- dl
-# saveRDS(d, file = "dtest.RDS")
-##  to open the viewer
-# omicsViewer("./")
-```
 
 ## Requirements on ExpressionSet
 

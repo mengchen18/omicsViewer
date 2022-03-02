@@ -204,6 +204,12 @@ app_module <- function(
     req(eset <- reactive_eset())
     defaultAxisGetter(eset, "fy") 
   })
+  cormat <- reactive( {
+    req(eset <- reactive_eset())
+    attr(eset, "cormat") 
+  })
+
+
   #####################
   
   output$download <- downloadHandler(
@@ -266,7 +272,7 @@ app_module <- function(
   v1 <- callModule(
     L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
-    status = esv_status
+    status = esv_status, cormat = cormat
   )  
   
   sameValues <- function(a, b) {

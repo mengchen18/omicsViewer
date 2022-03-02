@@ -113,7 +113,6 @@ feature_general_module <- function(input, output, session,
   rh <- reactiveVal()
   observeEvent(reactive_highlight(), {
     r <- reactive_highlight()
-    print(r)
     if ( is.null(r) || is.logical(r) )
       return(NULL)
     

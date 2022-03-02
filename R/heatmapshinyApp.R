@@ -200,10 +200,12 @@ iheatmapModule <- function(
     })
 
   rowDendrogram <- reactive({
+    req(mat())
     attr(mat(), "rowDendrogram")
     })
 
   colDendrogram <- reactive({
+    req(mat())
     attr(mat(), "colDendrogram")
     })
 
@@ -314,7 +316,7 @@ iheatmapModule <- function(
         ord = pre_ord(), hcl = pre_hcl()
         ))
     }
-    req(input$rowSortBy)
+    req(input$rowSortBy)    
     hcl_r <- NULL
     ord_r <- seq_len(nrow(mm()$mat))
     if (input$rowSortBy %in% names(rdg())) {
@@ -324,6 +326,7 @@ iheatmapModule <- function(
       d <- as.numeric( rownames(fd()) %fin% as.character(d) )
       ord_r <- order(d)
     } else if (!input$rowSortBy %in% c("", "none", "hierarchical cluster")) {
+      req(input$rowSortBy %in% colnames(fd()))
       ord_r <- order(fd()[, input$rowSortBy])
     } else if (input$rowSortBy == "hierarchical cluster") { #clusterRow
       dd <- tolower(strsplit(input$clusterRowDist, " ")[[1]][1])
@@ -348,6 +351,7 @@ iheatmapModule <- function(
     if (input$colSortBy %in% names(cdg())) {
       return(cdg()[[input$colSortBy]])
     } else if (!input$colSortBy %in% c("", "none", "hierarchical cluster")) {
+      req(input$colSortBy %in% colnames(pd()))
       ord_c <- order(pd()[, input$colSortBy])
     } else if (input$colSortBy == "hierarchical cluster") {
       dd <- tolower(strsplit(input$clusterColDist, " ")[[1]][1])
@@ -406,6 +410,7 @@ iheatmapModule <- function(
   
   output$heatmap <- renderPlot({
     par(mar = c(input$marginBottom, 0, 0, input$marginRight))
+    req(hm()$mat)
     image(hm()$mat, x = seq_len(nrow(hm()$mat)), y = seq_len(ncol(hm()$mat)), xlim = ranges$x, ylim = ranges$y,
           col = heatColor(), axes = FALSE, xlab = "", ylab = "", breaks = hm()$brk)
     
