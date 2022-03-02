@@ -97,10 +97,11 @@ L1_data_space_module <- function(
 
   cmat <- reactive({
     req(expr())
+    if (ncol(expr()) <= 3)
+      return(NULL)
     if (is.null(cormat())) {      
       cc <- cor(expr(), use = "pairwise.complete.obs")
       diag(cc) <- NA
-
       hcl <- hclust(as.dist(1-cor(t(cc), use= "pair")), method = "ward.D")
       dend <- as.dendrogram(hcl)
       dl <- list( pearson_ward.D = list(ord = hcl$order, hcl = dend) )
