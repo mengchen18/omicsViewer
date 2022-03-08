@@ -211,7 +211,8 @@ getExprsImpute <- function(x) {
     mat <- apply(mat, 2, as.numeric)
     rownames(mat) <- rn
   } else if (inherits(x, "ExpressionSet"))
-    mat <- exprsImpute(x)
+    mat <- exprsImpute(x) else 
+      mat <- NULL
   mat
 } 
 
