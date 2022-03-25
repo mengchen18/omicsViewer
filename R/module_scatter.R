@@ -547,51 +547,53 @@ plotly_scatter_module <- function(
     suppressWarnings( plotter()$fig )
   })
   
-  #################### add plot data ####################
-  figureId <- eventReactive(input$testComp, {
-    avl <- ls(envir = .GlobalEnv, pattern = "^.__plotData__", all.names = TRUE)
-    if (length(avl) == 0) {
-      nplot <- 1
-    } else {
-      dup <- vapply(avl, function(name) {
-        ob <- get(name, envir = .GlobalEnv)
-        identical(ob, plotter()$data)
-      }, logical(1))
-      if (any(dup)) return("duplicated")
-      plotcum <- as.integer(sub("^.__plotData__", "0", avl))
-      nplot <- max(plotcum)+1
-    }
-    paste0(".__plotData__", nplot)
-  })
+  # add a button to save figure data for later editting
+  # disabled currently
+  # #################### add plot data ####################
+  # figureId <- eventReactive(input$testComp, {
+  #   avl <- ls(envir = .GlobalEnv, pattern = "^.__plotData__", all.names = TRUE)
+  #   if (length(avl) == 0) {
+  #     nplot <- 1
+  #   } else {
+  #     dup <- vapply(avl, function(name) {
+  #       ob <- get(name, envir = .GlobalEnv)
+  #       identical(ob, plotter()$data)
+  #     }, logical(1))
+  #     if (any(dup)) return("duplicated")
+  #     plotcum <- as.integer(sub("^.__plotData__", "0", avl))
+  #     nplot <- max(plotcum)+1
+  #   }
+  #   paste0(".__plotData__", nplot)
+  # })
 
-  observeEvent(figureId(), {
-    if (figureId() == "duplicated") {
-      showModal(modalDialog(
-        "Figure data has been added!", footer = modalButton("Dismiss")
-      ))
-    } else {      
-      showModal( modalDialog(
-          "Figure name",
-          textInput(inputId = ns("fname"), label = "Figure name", placeholder = "Give figure name"),
-          actionButton(inputId = ns("savefname"), label = "Save for later editting!"),
-          easyClose = TRUE,
-          footer = NULL
-        )
-      )
-    }
-  })
+  # observeEvent(figureId(), {
+  #   if (figureId() == "duplicated") {
+  #     showModal(modalDialog(
+  #       "Figure data has been added!", footer = modalButton("Dismiss")
+  #     ))
+  #   } else {      
+  #     showModal( modalDialog(
+  #         "Figure name",
+  #         textInput(inputId = ns("fname"), label = "Figure name", placeholder = "Give figure name"),
+  #         actionButton(inputId = ns("savefname"), label = "Save for later editting!"),
+  #         easyClose = TRUE,
+  #         footer = NULL
+  #       )
+  #     )
+  #   }
+  # })
 
-  observeEvent(input$savefname, {
-    req(figureId())
-    fid <- ifelse(nchar(input$fname) == 0, "Unnamed figure", input$fname)
-    fata <- plotter()$data
-    attr(fata, "name") <- fid
-    attr(fata, "type") <- "scatter"
-    assign(figureId(), fata, envir = .GlobalEnv)
-    showModal(modalDialog(
-      "Figure data has been added!", footer = modalButton("Dismiss"), easyClose = TRUE
-    ))
-  })  
+  # observeEvent(input$savefname, {
+  #   req(figureId())
+  #   fid <- ifelse(nchar(input$fname) == 0, "Unnamed figure", input$fname)
+  #   fata <- plotter()$data
+  #   attr(fata, "name") <- fid
+  #   attr(fata, "type") <- "scatter"
+  #   assign(figureId(), fata, envir = .GlobalEnv)
+  #   showModal(modalDialog(
+  #     "Figure data has been added!", footer = modalButton("Dismiss"), easyClose = TRUE
+  #   ))
+  # })  
   
   ################## return selected ###################
 
