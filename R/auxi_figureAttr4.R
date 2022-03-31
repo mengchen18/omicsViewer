@@ -100,7 +100,7 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
 text2num <- function(x) {
   if (is.null(x))
     return(NULL)
-  x0 <- suppressWarnings(as.numeric(x))
+  x0 <- as.numeric( gsub("[^0-9.]", "",  x) )
   if (is.na(x0))
     x0 <-  try(eval(parse(text = x)), silent = TRUE)
   if (!is.numeric(x0)) {

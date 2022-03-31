@@ -82,9 +82,9 @@ survival_module <- function(
       r <- surv_pvalue(fit, data = df, method = "survdiff")
       lab <- paste(r$method, r$pval.txt)
     }
-    suppressWarnings(
-      ggsurvplot(fit, data = df, risk.table = TRUE, conf.int = TRUE, pval = lab, surv.median.line = "hv")
-    )
+    
+    ggsurvplot(fit, data = df, risk.table = TRUE, conf.int = TRUE, pval = lab, surv.median.line = "hv")
+    
   })
 }
 

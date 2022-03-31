@@ -58,9 +58,7 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
     collapse = "&"
   )
   results <- GET( paste(request_url, params, sep = "?") )
-  dd <- suppressMessages(
-    httr::content(results)
-  )
+  dd <- httr::content(results)
   dd <- unique(dd)
   if (!is.data.frame(dd)) {
     message('stringdb error, return NULL!')
@@ -101,9 +99,7 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
   request_url <-  paste(string_api_url, output_format, method, sep = "/")
   ## Call STRING
   results <- httr::GET( paste(request_url, params, sep = "?") )
-  suppressMessages(
-    httr::content(results)
-  )
+  httr::content(results)
 }
 
 #' @description Performing gene set analysis using string-db
@@ -153,7 +149,7 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
   
   # call string
   response <- httr::GET(url = request_url, query = params) 
-  dd <- suppressMessages( httr::content(response) )
+  dd <- httr::content(response) 
   if (!is.data.frame(dd)) {
     message('stringdb error, return NULL!')
     return(dd)

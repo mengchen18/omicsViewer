@@ -496,10 +496,8 @@ plotly_scatter_module <- function(
     req(x <- choices()$x)
     req(f <- choices()$f)
     r1 <- try(t.test(x[f == input$group1], x[f == input$group2]), silent = TRUE)
-    req(inherits(r1, "htest"))
-    suppressWarnings(  # ties problem when the same variables are selected
-      r2 <- wilcox.test(x[choices()$f == input$group1], x[choices()$f == input$group2]) 
-    )
+    req(inherits(r1, "htest"))    
+    r2 <- wilcox.test(x[choices()$f == input$group1], x[choices()$f == input$group2]) 
     df <- data.frame(
       "Mean diff" = signif(r1$estimate[1] - r1$estimate[2], digits = 3), 
       "p value (t-test)" = signif(r1$p.value, digits = 3), 
@@ -544,7 +542,7 @@ plotly_scatter_module <- function(
   })
   output$plotly.scatter.output <- renderPlotly({
     req( plotter()$fig )
-    suppressWarnings( plotter()$fig )
+    plotter()$fig 
   })
   
   # add a button to save figure data for later editting
