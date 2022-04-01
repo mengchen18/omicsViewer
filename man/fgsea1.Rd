@@ -13,7 +13,7 @@ If a matrix is given, the matrix is binary matrix where rows are features and
 columns are gene sets. The values in the matrix should be either 1 or 0 representing
 the presence and absence of a feature in the genesets, repectively.}
 
-\item{stats}{other parameter passed to fgseaMultilevel}
+\item{stats}{ranking stats}
 
 \item{gs_desc}{description of gene sets, it should be a named vector and the names
 should be the same as colnames(gs)}
@@ -30,7 +30,7 @@ Wrapper of fgseaMultilevel function to take binary gene set matrix as input
 ## not for users
 # library(fgsea)
 # library(Biobase)
-# dat <- readRDS("Dat/exampleEset.RDS")
+# dat <- readRDS(system.file(package = "omicsViewer", "extdata/demo.RDS"))
 # fd <- fData(dat)
 # fdgs <- fd[, grep("^GS\\|", colnames(fd))]
 # res <- fgsea1(fdgs, stats = fd$`t-test|OV_BR|md`, minSize = 5, maxSize = 500)

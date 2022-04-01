@@ -7,7 +7,7 @@
 csc2list(x)
 }
 \arguments{
-\item{x}{a CsparseMatrix object}
+\item{x}{a matrix or CsparseMatrix object}
 }
 \value{
 a sparse frame in data.frame

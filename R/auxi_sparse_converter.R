@@ -1,21 +1,34 @@
 #' convert a column compressed sparse matrix to a list
-#' @param x a CsparseMatrix object
+#' @param x a matrix or CsparseMatrix object
 #' @importFrom fastmatch fmatch
+#' @importFrom reshape2 melt
 #' @rawNamespace import(Matrix, except = image)
 #' @return a sparse frame in data.frame 
 #'  
 csc2list <- function(x) {
-  if (is.null(x@Dimnames[[1]]) || is.null(x@Dimnames[[2]]))
-    stop("csmlist: x need to have dimnames!")
-  df <- data.frame(
-    featureId = x@Dimnames[[1]][x@i+1],
-    gsId = rep(x@Dimnames[[2]], x@p[-1] - x@p[-length(x@p)]),
-    stringsAsFactors = TRUE
-  )
-  if (hasAttr(x, "x"))
-    df$weight <- x@x
+  if (is.matrix(x)) {
+    if (is.null(rownames(x)) || is.null(colnames(x)))
+      stop("csmlist: x need to have dimnames!")
+    x[x == 0] <- NA
+    df <- melt(x, na.rm = TRUE)
+    colnames(df) <- c("featureId", "gsId", "weight")
+  } else if (inherits(x, "dgCMatrix")) {
+    if (is.null(x@Dimnames[[1]]) || is.null(x@Dimnames[[2]]))
+      stop("csmlist: x need to have dimnames!")
+    df <- data.frame(
+      featureId = x@Dimnames[[1]][x@i+1],
+      gsId = rep(x@Dimnames[[2]], x@p[-1] - x@p[-length(x@p)]),
+      stringsAsFactors = TRUE
+      )
+    if (hasAttr(x, "x"))
+      df$weight <- x@x
+  } else
+    stop("x should be either a matrix or CsparseMatrix")
+  rownames(df) <- NULL  
   df
 }
+
+
 
 #' convert a list to column compressed sparse matrix
 #' @param l a data.frame with at least two columns - featureId, gsId; optionally
