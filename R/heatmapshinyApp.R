@@ -328,7 +328,7 @@ iheatmapModule <- function(
     } else if (!input$rowSortBy %in% c("", "none", "hierarchical cluster")) {
       req(input$rowSortBy %in% colnames(fd()))
       ord_r <- order(fd()[, input$rowSortBy])
-    } else if (input$rowSortBy == "hierarchical cluster") { #clusterRow
+    } else if (input$rowSortBy == "hierarchical cluster" && nrow(mm()$mat) > 2) { #clusterRow
       dd <- tolower(strsplit(input$clusterRowDist, " ")[[1]][1])
       hcl_r <- hclust(adist(mm()$mat, method = dd), method = input$clusterRowLink)
       ord_r <- hcl_r$order 
@@ -353,7 +353,7 @@ iheatmapModule <- function(
     } else if (!input$colSortBy %in% c("", "none", "hierarchical cluster")) {
       req(input$colSortBy %in% colnames(pd()))
       ord_c <- order(pd()[, input$colSortBy])
-    } else if (input$colSortBy == "hierarchical cluster") {
+    } else if (input$colSortBy == "hierarchical cluster" && ncol(mm()$mat) > 2) {
       dd <- tolower(strsplit(input$clusterColDist, " ")[[1]][1])
       hcl_c <- hclust(adist(t(mm()$mat), method = dd), method = input$clusterColLink)
       ord_c <- hcl_c$order
