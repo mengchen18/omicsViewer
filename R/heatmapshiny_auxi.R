@@ -137,9 +137,14 @@ adist <- function(x, method="pearson") {
   method <- match.arg(method, choices = c(arg.dist, arg.cor))
   
   if (method %in% arg.dist) 
-    dd <- dist(x, method = method) else
-      dd <- as.dist(1-cor(t(x), use = "pairwise"))
-  dd
+    dd <- as.matrix(dist(x, method = method)) else
+      dd <- 1-cor(t(x), use = "pairwise")
+  med <- median(dd, na.rm = TRUE)
+  if (is.na(med))
+    med <- 0
+  dd[is.infinite(dd)] <- med
+  dd[is.na(dd)] <- med
+  as.dist(dd)
 }
 
 #' @description Plot heatmap key
