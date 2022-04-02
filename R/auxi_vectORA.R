@@ -32,8 +32,9 @@ vectORA <- function(
   
   if (is.na(background))
     background <- nrow(gs)
-  mat <- gs != 0
-  mat[is.na(mat)] <- FALSE
+  mat <- gs
+  mat[gs != 0] <- 1
+  mat[is.na(mat)] <- 0
   ncand <- colSums(mat != 0)
   ic <- which(ncand >= minSize & ncand <= maxSize)
   if (length(ic) == 0) {
@@ -70,10 +71,11 @@ vectORA <- function(
       x <- mat[i, j, drop = FALSE]
       fi[x != 0]
     })
-  } else if (inherits(mat, c("dgCMatrix", "lgCMatrix"))) {
+  } else if (inherits(mat, "dgCMatrix")) {
     overlap <- csc2list(mat[i, ])
-    overlap <- split(overlap$featureId, overlap$gsId)
-  }
+    overlap <- split(as.character(overlap$featureId), overlap$gsId)
+  } else
+    stop("vectORA should be either a matrix or dgCMatrix!")
   
   rs <- cbind(
     pathway = colnames(mat), desc = gs_annot_x, bdf
