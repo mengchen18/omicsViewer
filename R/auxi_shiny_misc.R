@@ -18,7 +18,7 @@ null2empty <- function(x) {
 
 exprsImpute <- function(x) { 
     v <- try(x@assayData$exprs_impute, silent = TRUE)
-    if (inherits(x, "try-error")) 
+    if (inherits(v, "try-error")) 
       v <- NULL
     v
 }
