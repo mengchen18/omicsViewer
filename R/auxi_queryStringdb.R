@@ -61,7 +61,7 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
   dd <- httr::content(results)
   dd <- unique(dd)
   if (!is.data.frame(dd)) {
-    message('stringdb error, return NULL!')
+    message('stringdb does not return valid results, return NULL!')
     return(dd)
   }
   as.data.frame(dd)
@@ -151,7 +151,7 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
   response <- httr::GET(url = request_url, query = params) 
   dd <- httr::content(response) 
   if (!is.data.frame(dd)) {
-    message('stringdb error, return NULL!')
+    message('stringdb does not return valid results, return NULL!')
     return(dd)
   }
   as.data.frame(dd)
