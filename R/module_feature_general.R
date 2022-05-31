@@ -151,6 +151,7 @@ feature_general_module <- function(input, output, session,
     l$highlight <- attr4select$highlight
     l$highlightName <- attr4select$highlightName
     
+    req(reactive_i() %in% rownames(reactive_expr()) || reactive_i() <= nrow(reactive_expr()))
     if (showScatter()) {
       l$x <- reactive_expr()[reactive_i(), ] 
       l$y <- pheno()
