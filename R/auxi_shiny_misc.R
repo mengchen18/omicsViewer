@@ -36,8 +36,9 @@ exprsImpute <- function(x) {
 #' @export
 
 nColors <- function(k, stop = FALSE) {
-  
-  if (!is.integer(k) || k > 60 || k < 1) {
+
+  k <- as.integer(k)  
+  if (!is.integer(k) || k > 60 || k < 1 || is.na(k)) {
     if (stop) 
       stop("k should be an integer between 1 and 60!") else
         return(NULL)
