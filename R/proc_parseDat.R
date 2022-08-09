@@ -6,7 +6,7 @@
 #' @return a data.frame parse from .dat file
 #' 
 parseDatTerm <- function(file, outputDir = NULL, ...) {
-  cat('Reading dat file ...\n')
+  message('Reading dat file ...')
   d0 <- readLines(file, ...)
   d0 <- split(d0, cumsum(d0 == "//"))
   
@@ -21,7 +21,7 @@ parseDatTerm <- function(file, outputDir = NULL, ...) {
     outputDir <- dirname(file)
   outputFile <- file.path(outputDir, sub("(.dat|.dat.gz)$", vn, fn))
   
-  cat('Processing ...\n')
+  message('Processing ...')
   dd <- lapply(d0, function(x) {
     
     dr <- grep("^DR", x, value = TRUE)
@@ -55,7 +55,7 @@ parseDatTerm <- function(file, outputDir = NULL, ...) {
   for(i in colnames(dd)) 
     dd[[i]][is.na(dd[[i]])] <- "_NA_"
   if (!is.null(dd)) {
-    cat('Writing table ...\n')
+    message('Writing table ...')
     write.table(dd, file = outputFile, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
   }
   invisible(dd)

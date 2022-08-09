@@ -86,11 +86,6 @@ L1_result_space_module <- function(
     #   reactive_featureData()[[i]]
     #   })
   )
-
-  v8 <- callModule(
-    gslist_module, id = "gsList", reactive_i = reactive_i, 
-    reactive_featureData = reactive_featureData
-  )
   
   # 
   if (length(additionalTabs) > 0) {
@@ -132,7 +127,6 @@ L1_result_space_module <- function(
     if (!is.null(attr(reactive_featureData(), "GS"))) {
       optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
       optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))
-      optionalTabs <- c(optionalTabs, list(tabPanel("GSList", gslist_ui(ns("gsList")))))
     }
     
     if (any(grepl("^StringDB\\|", colnames(reactive_featureData()))))

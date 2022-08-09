@@ -68,7 +68,8 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
         )
       )
     ),
-    tabPanel("Expression", dataTable_ui(ns("tab_expr")))
+    tabPanel("Expression", dataTable_ui(ns("tab_expr"))),
+    tabPanel("GSList", gslist_ui(ns("gsList")))
   )
 }
 
@@ -260,6 +261,16 @@ L1_data_space_module <- function(
     if (  (i1 || i2) && i3  )
       selectedFeatures(tab_expr())
     })
+
+  # GS List
+  tab_gslist <- callModule(
+    gslist_module, id = "gsList", reactive_i = tab_rows_fdata, reactive_featureData = fdata
+  )
+
+  observeEvent(tab_gslist(), {
+    req(tab_gslist())
+    selectedFeatures( tab_gslist() )
+  })
 
   #### status for snapshot #####
   observe({
