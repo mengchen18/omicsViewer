@@ -3,11 +3,12 @@
 #' @param circle circle icon for dropdown manu
 #' @importFrom shinyWidgets dropdown textInputIcon updateTextInputIcon updateSwitchInput
 #' 
-attr4selector_ui <- function(id, circle = TRUE) {
+attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
   ns <- NS(id)
   dropdown(
     margin = "25px",
-    circle = circle, status = "default", icon = icon("cog"), width = "700px",
+    circle = circle, right = right,
+    status = "default", icon = icon("cog"), width = "788px",
     tooltip = tooltipOptions(title = "Click to modify figure!"),
     br(),
     triselector_ui(ns("selectColorUI")),
@@ -36,7 +37,7 @@ attr4selector_ui <- function(id, circle = TRUE) {
         4, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:27px; padding-bottom:2px;',         
         textInputIcon(inputId = ns("ycut"), label = NULL, value = "-log10(0.05)", placeholder = "e.g 2 or -log10(0.05)", icon = list("y-cut"))),
       column(
-        2, offset = 0, style='padding-left:5px; padding-right:2px; padding-top:4px; padding-bottom:2px;', 
+        2, offset = 0, style='padding-left:5px; padding-right:20px; padding-top:4px; padding-bottom:2px;', 
         selectInput(inputId = ns("scorner"), label = "Area", choices = "None", selectize = TRUE))
     )
   )

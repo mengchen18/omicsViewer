@@ -169,7 +169,8 @@ iheatmapLegend <- function(id) {
 #'
 iheatmapClear <- function(id) {
   ns <- NS(id)
-  actionButton(ns("clear"), "Clear selection")
+  # actionButton(ns("clear"), "Clear selection")
+  actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs")
 }
 
 

@@ -4,7 +4,7 @@ enrichment_fgsea_ui <- function(id) {
   ns <- NS(id)
   tagList(
     # select variable
-    triselector_ui(ns("tris_fgsea")),
+    triselector_ui(ns("tris_fgsea"), right_margin = "5"),
     # plotly barplot
     shinycssloaders::withSpinner(
       plotlyOutput(ns("bplot")), type = 8, color = "green"
@@ -54,7 +54,7 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
 
   xax <- reactiveVal()
   v1 <- callModule(
-    triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Value",
+    triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Input variable",
     reactive_selector1 = reactive(xax()$v1), 
     reactive_selector2 = reactive(xax()$v2), 
     reactive_selector3 = reactive(xax()$v3)

@@ -5,10 +5,9 @@ sample_general_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(1, style = "margin-top: 0px;", attr4selector_ui(ns("a4_gp"), circle = FALSE)),
-      column(11, triselector_ui(ns("tris_sample_general")))
+      column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_sample_general"), right_margin = "5")),
+      uiOutput(ns("sample_general_plot"))
     ),
-    uiOutput(ns("sample_general_plot")),
     # DT::dataTableOutput(ns('mtab'))
     dataTableDownload_ui(ns("msatab"))
   )
@@ -55,7 +54,7 @@ sample_general_module <- function(input, output, session, reactive_phenoData,
 
   xax <- reactiveVal()
   v1 <- callModule(
-    triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Value",
+    triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Link selection to",
     reactive_selector1 = reactive(xax()$v1), 
     reactive_selector2 = reactive(xax()$v2), 
     reactive_selector3 = reactive(xax()$v3))
@@ -100,11 +99,15 @@ sample_general_module <- function(input, output, session, reactive_phenoData,
   output$sample_general_plot <- renderUI({
     req(pheno()$type)
     if (pheno()$type == "beeswarm")
-      return( plotly_scatter_ui(ns("sample_general_beeswarm")) )
+      r <-  plotly_scatter_ui(ns("sample_general_beeswarm")) 
     if (pheno()$type == "table")
-      return( factorIndependency_ui(ns("sample_general_contab")) )
+      r <- factorIndependency_ui(ns("sample_general_contab"))
     if (pheno()$type == "surv")
-      return( survival_ui(ns("sample_general_surv")) )
+      r <- survival_ui(ns("sample_general_surv")) 
+    tagList(
+      column(11, r),
+      column(1, attr4selector_ui(ns("a4_gp"), circle = FALSE, right = TRUE))      
+      )
   })
   
   ## beeswarm

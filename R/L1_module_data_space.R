@@ -150,7 +150,8 @@ L1_data_space_module <- function(
       tab_rows_pdata(s_cor_heatmap()$brushed$col)
     } else if (notNullAndPosLength(s_cor_heatmap()$clicked)) {
       tab_rows_pdata(s_cor_heatmap()$clicked[["col"]])
-    } # else         tab_rows_pdata(TRUE)    
+    } else
+      tab_rows_pdata(TRUE)    
   })
 
   observeEvent(s_heatmap(), {
@@ -159,13 +160,17 @@ L1_data_space_module <- function(
       tab_rows_fdata(s_heatmap()$brushed$row)
     } else if (notNullAndPosLength(s_heatmap()$clicked)) {
       tab_rows_fdata(s_heatmap()$clicked[["row"]])
-    } # else tab_rows_fdata(TRUE)
+    } else {
+      tab_rows_fdata(TRUE)
+    }
     # pdata
     if (notNullAndPosLength(s_heatmap()$brushed$col)) {
       tab_rows_pdata(s_heatmap()$brushed$col)
     } else if (notNullAndPosLength(s_heatmap()$clicked)) {
       tab_rows_pdata(s_heatmap()$clicked[["col"]])
-    } # else         tab_rows_pdata(TRUE)
+    } else {
+      tab_rows_pdata(TRUE)
+    }
   })
 
   observeEvent(c(s_feature_fig()), {
@@ -209,21 +214,27 @@ L1_data_space_module <- function(
   observeEvent(s_cor_heatmap(), {
     if (!is.null(s_cor_heatmap()$brushed$col)) {
       selectedSamples(s_cor_heatmap()$brushed$col)
-    } else if (!is.null(s_cor_heatmap()$clicked))
-      selectedSamples(s_cor_heatmap()$clicked["col"]) # ?? else set to character(0)
+    } else if (!is.null(s_cor_heatmap()$clicked)) {
+      selectedSamples(s_cor_heatmap()$clicked["col"])  # ?? else set to character(0)
+    } else 
+      selectedSamples(character(0))
   })
 
   observeEvent(s_heatmap(), {
 
     if (!is.null(s_heatmap()$brushed$row)) {
       selectedFeatures(s_heatmap()$brushed$row)
-    } else if (!is.null(s_heatmap()$clicked))
+    } else if (!is.null(s_heatmap()$clicked)) {
       selectedFeatures(s_heatmap()$clicked["row"]) # ?? else set to character(0)
+    } else
+      selectedFeatures(character(0))
 
     if (!is.null(s_heatmap()$brushed$col)) {
       selectedSamples(s_heatmap()$brushed$col)
-    } else if (!is.null(s_heatmap()$clicked))
+    } else if (!is.null(s_heatmap()$clicked)) {
       selectedSamples(s_heatmap()$clicked["col"]) # ?? else set to character(0)
+    } else 
+      selectedSamples(character(0))
   })
 
   observeEvent(s_feature_fig(), {

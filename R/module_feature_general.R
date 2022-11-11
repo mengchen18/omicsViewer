@@ -6,10 +6,21 @@ feature_general_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(1, style = "margin-top: 0px;", attr4selector_ui(ns("a4_gf"), circle = FALSE)),
-      column(11, triselector_ui(ns("tris_feature_general")))
+      column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_feature_general"), right_margin = "5")),
+      column(11, uiOutput(ns("feature_general_plot"))),
+      column(
+        1, 
+        attr4selector_ui(ns("a4_gf"), circle = FALSE, right = TRUE),
+        radioGroupButtons(
+              inputId = ns("internal_radio"),
+              label = " ",
+              size = "xs",
+              choices = c("Bees", "Curve"),
+              direction = "vertical", 
+              status = "success"
+            )
+        )
     ),
-    uiOutput(ns("feature_general_plot")),
     dataTableDownload_ui(ns("mtab"))
   )
 }
@@ -26,7 +37,8 @@ feature_general_ui <- function(id) {
 #' @param reactive_status saved status to restore
 #' @importFrom DT renderDataTable
 #' @importFrom reshape2 melt
-#' @examples
+#' @importFrom shinyWidgets radioGroupButtons updateRadioGroupButtons
+#' @examples 
 #' #' # library(shiny)
 #' # library(shinyBS)
 #' # library(Biobase)
@@ -73,7 +85,7 @@ feature_general_module <- function(input, output, session,
   
   xax <- reactiveVal()
   v1 <- callModule(
-    triselector_module, id = "tris_feature_general", reactive_x = triset, label = 'Value', 
+    triselector_module, id = "tris_feature_general", reactive_x = triset, label = "Link to variable", 
     reactive_selector1 = reactive(xax()$v1), 
     reactive_selector2 = reactive(xax()$v2), 
     reactive_selector3 = reactive(xax()$v3))
@@ -106,9 +118,14 @@ feature_general_module <- function(input, output, session,
       return( plotly_boxplot_ui(ns("feature_general_boxplotly")) )
     if (showScatter())
       return( plotly_scatter_ui(ns("feature_general_scatter")) )
-    if (showBeeswarm())
-      return( plotly_scatter_ui(ns("feature_general_beeswarm")) )
+    if (showBeeswarm()) {
+      if (input$internal_radio == "Bees")
+        r <- plotly_scatter_ui(ns("feature_general_beeswarm")) else
+          r <- plot_roc_pr_ui(ns("feature_general_roc_pr")) 
+      r          
+    }
   })
+
   
   rh <- reactiveVal()
   observeEvent(reactive_highlight(), {
@@ -130,8 +147,10 @@ feature_general_module <- function(input, output, session,
              reactive_param_plotly_boxplot = reactive({
                req(reactive_expr())
                ylab <- rownames(reactive_expr())[reactive_i()]
-               if (length(ylab) > 1)
-                 ylab <- "Abundance of selected features"
+               if (length(ylab) > 1) 
+                ylab <- "Abundance of selected features" else if (length(ylab) == 0)
+                  ylab <- "Relative abundance" else if (is.na(ylab))
+                    ylab <- "Relative abundance" 
                ylab.extvar <- do.call(paste, list(v1(), collapse = "|"))
                list(
                  x = reactive_expr(), i = reactive_i(), 
@@ -167,8 +186,10 @@ feature_general_module <- function(input, output, session,
       df$pheno <- rep(pheno(), each = length(reactive_i()))
       xlab <- ""
       ylab <- rownames(reactive_expr())[reactive_i()]
-      if (length(ylab) > 1)
-        ylab <- "Abundance of multiple selected features"
+      if (length(ylab) > 1) 
+       ylab <- "Abundance of selected features" else if (length(ylab) == 0)
+         ylab <- "Relative abundance" else if (is.na(ylab))
+           ylab <- "Relative abundance" 
       df <- na.omit(df)
       
       l$y <- df$value
@@ -199,6 +220,9 @@ feature_general_module <- function(input, output, session,
                            reactive_param_plotly_scatter = scatter_vars, 
                            reactive_checkpoint = showBeeswarm,
                            htest_var1 = htestV1, htest_var2 = htestV2)
+
+  callModule(plot_roc_pr_module, id = "feature_general_roc_pr",
+    reactive_param = scatter_vars, reactive_checkpoint = showBeeswarm)
   
   metatab <- reactive({
     req(reactive_i())

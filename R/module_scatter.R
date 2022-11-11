@@ -499,9 +499,9 @@ plotly_scatter_module <- function(
     req(inherits(r1, "htest"))    
     r2 <- wilcox.test(x[choices()$f == input$group1], x[choices()$f == input$group2]) 
     df <- data.frame(
-      "Mean diff" = signif(r1$estimate[1] - r1$estimate[2], digits = 3), 
-      "p value (t-test)" = signif(r1$p.value, digits = 3), 
-      "p value (MVU-test)" = signif(r2$p.value, digits = 3), 
+      "Diff" = signif(r1$estimate[1] - r1$estimate[2], digits = 3), 
+      "P t-test" = signif(r1$p.value, digits = 3), 
+      "P MVU-test" = signif(r2$p.value, digits = 3), 
       check.names = FALSE, row.names = NULL
     )
     DT::datatable( df , options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), rownames = FALSE, class = "compact")

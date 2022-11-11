@@ -1,6 +1,7 @@
 #' The three-step selector - the ui function
 #' @description Function should only be used for the developers
 #' @param id id
+#' @importFrom shinyWidgets pickerInput updatePickerInput
 #' @export
 #' @examples
 #' if (interactive()) {
@@ -36,7 +37,8 @@
 #' }
 #' @return a tagList of UI components
 
-triselector_ui <- function(id) {
+triselector_ui <- function(id, right_margin = "20") {
+  rmar <- sprintf("padding-left:2px; padding-right:%spx; padding-top:2px; padding-bottom:2px", right_margin)
   ns <- NS(id)
   tagList(
     fluidRow(
@@ -44,9 +46,18 @@ triselector_ui <- function(id) {
              style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px', 
              uiOutput(ns("groupLabel"))
       ),
-      column(3, offset = 0, style='padding:2px;', selectInput(inputId = ns("analysis"), label = NULL, choices = NULL, selectize = TRUE)),
-      column(4, offset = 0, style='padding:2px;', selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE)),
-      column(3, offset = 0, style='padding:2px;', selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE))
+      column(3, offset = 0, style='padding:2px;', 
+        selectInput(inputId = ns("analysis"), label = NULL, choices = NULL, selectize = TRUE, width = "100%")),
+      column(4, offset = 0, style='padding:2px;', 
+        selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE, width = "100%")),
+      column(3, offset = 0, style=rmar, #'padding:2px;', 
+        selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE, width = "100%"))
+      # column(3, offset = 0, style='padding:2px;'
+        # pickerInput(inputId = ns("analysis"), label = NULL, choices = NULL, options = list(`live-search` = TRUE))),
+      # column(4, offset = 0, style='padding:2px;', 
+        # pickerInput(inputId = ns("subset"), label = NULL, choices = NULL, options = list(`live-search` = TRUE))),
+      # column(3, offset = 0, style="padding-left:2px; padding-right:20px; padding-top:2px; padding-bottom:2px", #'padding:2px;', 
+        # pickerInput(inputId = ns("variable"), label = NULL, choices = NULL, options = list(`live-search` = TRUE)))
     )
   )
 }
@@ -124,6 +135,7 @@ triselector_module <- function(input, output, session,
       ss <- reactive_selector1() else
         ss <- cc[1]
     updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
+    # updatePickerInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
   
   observeEvent(list(names(input), reactive_x()), {
@@ -136,6 +148,7 @@ triselector_module <- function(input, output, session,
         ss <- reactive_selector1() else
           ss <- cc[1]
     updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
+    # updatePickerInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
   
   # bug fix
@@ -147,6 +160,7 @@ triselector_module <- function(input, output, session,
       ss <- cc[1] else
         ss <- reactive_selector1()    
       updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
+      # updatePickerInput(session, inputId = "analysis", choices = cc, selected = ss)
     })
   
   # updat selectize input when reactive_x is given
@@ -156,6 +170,7 @@ triselector_module <- function(input, output, session,
     req(input$analysis)
     cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
+    # updatePickerInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
   })
   
   observe({
@@ -171,6 +186,7 @@ triselector_module <- function(input, output, session,
       if (inherits(preselected, "try-error"))
         preselected <- NULL
     updateSelectInput(session, inputId = "variable", choices = cc, selected = preselected)
+    # updatePickerInput(session, inputId = "variable", choices = cc, selected = preselected)
   })
   
   reactive({

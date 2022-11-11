@@ -4,7 +4,7 @@
 \alias{triselector_ui}
 \title{The three-step selector - the ui function}
 \usage{
-triselector_ui(id)
+triselector_ui(id, right_margin = "20")
 }
 \arguments{
 \item{id}{id}

@@ -3,17 +3,19 @@ geneshot_ui <- function(id) {
   ns <- NS(id)
   tagList(
     # select variable
-    triselector_ui(ns("geneNameCol")),
     fluidRow(
       column(
-        width = 10, 
-        textInput(ns("term"), label = NULL, value = "", width = "100%", placeholder = "Search any term here, multiple separated by (;) ...")
-      ),
+        width = 8, 
+        textInput(ns("term"), label = NULL, value = "", width = "100%", 
+          placeholder = "Search any term here, multiple separated by (;) ...")
+        ),
       column(
-        width = 2, align = "right", 
-        actionButton(ns("submit"), label = "Submit!")
-      )
-    ),
+        width = 4, align = "right",
+        actionButton(ns("submit"), label = "Search related genes!", width = "100%")
+        ),
+      column(
+        width = 11, triselector_ui(ns("geneNameCol")))
+      ),    
     plotly::plotlyOutput(ns("plt")),
     tags$br(),
     dataTableDownload_ui(ns("autorif"))
@@ -34,7 +36,7 @@ geneshot_module <- function(
 
   xax <- reactiveVal()
   v1 <- callModule(
-    triselector_module, id = "geneNameCol", reactive_x = triset, label = "Gene name",
+    triselector_module, id = "geneNameCol", reactive_x = triset, label = "Map ID",
     reactive_selector1 = reactive(xax()$v1), 
     reactive_selector2 = reactive(xax()$v2), 
     reactive_selector3 = reactive(xax()$v3)

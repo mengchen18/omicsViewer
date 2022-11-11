@@ -1,17 +1,21 @@
 #' @description Utility - scatter plot for meta shiny ui
 #' @param id id
+#' @importFrom shinyWidgets actionBttn
 #' 
 meta_scatter_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(1, attr4selector_ui(ns("a4selector"))), # style = "margin-top: 20px;", 
+      column(1, 
+        attr4selector_ui(ns("a4selector")),
+        actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs")
+        ), # style = "margin-top: 20px;", 
       column(11, 
              triselector_ui(ns("tris_main_scatter1")),
              triselector_ui(ns("tris_main_scatter2")))
     ),
-    plotly_scatter_ui(ns("main_scatterOutput"), height = "666px"),
-    actionButton(ns("clear"), "Clear selection and box")
+    plotly_scatter_ui(ns("main_scatterOutput"), height = "666px")#,
+    # actionButton(ns("clear"), "Clear selection and box")
   )
 }
 
