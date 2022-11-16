@@ -8,6 +8,8 @@ triselector_ui(id, right_margin = "20")
 }
 \arguments{
 \item{id}{id}
+
+\item{right_margin}{margin on the right side, in px. For example, "20" translates to "20px".}
 }
 \value{
 a tagList of UI components

@@ -1,6 +1,7 @@
 #' The three-step selector - the ui function
 #' @description Function should only be used for the developers
 #' @param id id
+#' @param right_margin margin on the right side, in px. For example, "20" translates to "20px".
 #' @importFrom shinyWidgets pickerInput updatePickerInput
 #' @export
 #' @examples

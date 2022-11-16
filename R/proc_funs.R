@@ -424,7 +424,9 @@ read.proteinGroups.lf <- function(file) {
   stringsAsFactors = FALSE)
   
   vi <- vapply(df$val, function(x) length(grep(x, colnames(pg))) > 0, FUN.VALUE = logical(1))
-  df <- df[vi, ]             
+  df <- df[vi, ]           
+  if ( !"Intensity." %in% df$val )
+    stop("The proteinGroup.txt table should have at least Intensity columns!")
   
   i <- ! (grepl("^REV_", pg$Majority.protein.IDs) |
             grepl("^CON_", pg$Majority.protein.IDs) |
@@ -450,6 +452,14 @@ read.proteinGroups.lf <- function(file) {
                val = df$val, log = df$log)
   names(ml) <- gsub("\\.$", "", df$val)  
   ml$annot <- annot
+  
+  cnames <- colnames(ml$Intensity)
+  for (i in names(ml)) {
+    tmp <- ml[[i]]
+    if (all(colnames(tmp) %in% cnames) && all(cnames %in% colnames(tmp)))
+      ml[[i]] <- tmp[, cnames]
+  }
+  
   
   if (!is.null(ml$iBAQ)) {
     i <- which(rowSums(ml$iBAQ, na.rm = TRUE) == 0)

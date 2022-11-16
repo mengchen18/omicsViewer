@@ -2,6 +2,9 @@
 #' @param value a numerical vector indicates the predictions
 #' @param label true class labels, could be two or more unique values
 #' @importFrom ROCR performance prediction
+#' @importFrom stats model.matrix
+#' @importFrom graphics legend
+#' @export
 #' @examples 
 #' v <- sort(rnorm(100))
 #' l <- sample(1:2, size = 100, replace = TRUE)
@@ -56,7 +59,7 @@ draw_roc_pr <- function(value, label) {
   curves <- lapply(seq_len(ncol(dum)), function(i) pred_one(value, dum[, i]))
   
   layout(matrix(1:2, 1, 2))
-  cols <- omicsViewer:::nColors(ncol(dum))
+  cols <- nColors(ncol(dum))
   for (i in seq_along(curves)) 
     plot(curves[[i]]$roc, add = i > 1, col = cols[i], main = "ROC Curve", lwd = 2)
   lab <- paste0(colnames(dum), " | ", colSums(dum), " | ", signif(sapply(curves, "[[", "auc"), 2))

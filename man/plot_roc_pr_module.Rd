@@ -19,9 +19,9 @@ plot_roc_pr_module(
 
 \item{session}{session}
 
-\item{reactive_checkpoint}{reactive_value; check this value before render any plot/executing any calculation}
+\item{reactive_param}{reactive value; argument pass to draw_roc_pr}
 
-\item{reactive_param_plotly_boxplot}{reactive value; argument passed to plotly_boxplot}
+\item{reactive_checkpoint}{reactive_value; check this value before render any plot/executing any calculation}
 }
 \value{
 do not return any values

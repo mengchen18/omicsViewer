@@ -10,7 +10,7 @@ plot_roc_pr_ui <- function(id) {
 #' @param input input
 #' @param output output
 #' @param session session
-#' @param reactive_param_plotly_boxplot reactive value; argument passed to plotly_boxplot
+#' @param reactive_param reactive value; argument pass to draw_roc_pr
 #' @param reactive_checkpoint reactive_value; check this value before render any plot/executing any calculation
 #' @examples 
 #' if (interactive()) {
