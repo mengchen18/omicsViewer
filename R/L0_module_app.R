@@ -134,6 +134,7 @@ app_module <- function(
     # otherwise load from disk    
     req(input$selectFile)
     flink <- file.path(.dir(), input$selectFile)
+    req(file.exists(flink))
     sss <- file.size(flink)
     if (sss > 1e7)
       show_modal_spinner(text = "Loading data ...")
