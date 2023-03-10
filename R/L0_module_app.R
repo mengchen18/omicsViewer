@@ -119,16 +119,21 @@ app_module <- function(
 ) {
   
   ns <- session$ns
-  observe({
+
+  ll <- reactive({
     req(.dir())
-    ll <- list.files(.dir(), pattern = filePattern, ignore.case = TRUE)
-    updateSelectizeInput(session = session, inputId = "selectFile", choices = ll, selected = "")
+    list.files(.dir(), pattern = filePattern, ignore.case = TRUE)
+    })
+
+  observe({
+    req(ll())
+    updateSelectizeInput(session = session, inputId = "selectFile", choices = ll(), selected = "")
   })
   
   reactive_eset <- reactive({
     # try to get global object first
     if (!is.null(ESVObj())) {
-      updateSelectizeInput(session, "selectFile", choices = "ESVObj.RDS", selected = "ESVObj.RDS")
+      updateSelectizeInput(session, "selectFile", choices = c("ESVObj.RDS", ll()), selected = "ESVObj.RDS")
       return( tallGS(ESVObj()) )
     } 
     # otherwise load from disk    
