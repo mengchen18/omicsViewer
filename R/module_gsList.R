@@ -33,7 +33,7 @@ gslist_module <- function(
     req(reactive_pathway())
     if (length(reactive_i()) == 1 && is.logical(reactive_i()) && reactive_i())
       return(reactive_pathway())    
-    if (length(reactive_i()) == 0 || is.na(reactive_i()))
+    if (length(reactive_i()) == 0 || all(is.na(reactive_i())))
       return(reactive_pathway())
     df <- reactive_pathway()[reactive_pathway()$featureId %fin% reactive_i(), ]
     req(is.data.frame(df))
