@@ -165,8 +165,8 @@ app_module <- function(
   })
   
   validEset <- function(expr, pd, fd) {
-    i1 <- identical(rownames(expr), rownames(fd))
-    i2 <- identical(colnames(expr), rownames(pd))
+    i1 <- all(rownames(expr) == rownames(fd))
+    i2 <- all(colnames(expr) == rownames(pd))
     if (!(i1 && i2))
       return(
         list(

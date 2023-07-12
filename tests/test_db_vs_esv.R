@@ -7,7 +7,7 @@ f <- system.file(package = 'omicsViewer', 'extdata/demo.RDS')
 obj <- readRDS(f)
 dd <- tools::R_user_dir("omicsViewer", which="cache")
 dir.create(dd)
-db <- file.path(dd, "temp.db")
+db <- tempfile(tmpdir = dd, fileext = ".db")
 savedPath <- saveOmicsViewerDb(obj, db)
 ok(ut_cmp_identical(is.character(savedPath), TRUE), "save sqlite database")
 

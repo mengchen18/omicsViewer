@@ -257,7 +257,7 @@ L1_data_space_module <- function(
       selectedSamples(tab_pd()) 
     } )
   
-  singleTrue <- function(x) !is.null(x) && is.logical(x) && length(x) == 1 && x
+  singleTrue <- function(x) !is.null(x) && is.logical(x) && length(x) == 1 && any(x)
   observeEvent(tab_fd(), {
     i1 <- length(tab_fd()) < length(tab_rows_fdata())
     i2 <- singleTrue(tab_rows_fdata())

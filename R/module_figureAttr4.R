@@ -169,8 +169,9 @@ attr4selector_module <- function(
     })
   observe({    
     req(vv())
-    req(searchValue())
-    params$highlight <- which(vv() %in% searchValue())
+    if ( is.null(searchValue()) )
+      params$highlight <- NULL else
+        params$highlight <- which(vv() %in% searchValue())
     isolate( params$highlightName <- searchOnCol()$variable )
   })
 
