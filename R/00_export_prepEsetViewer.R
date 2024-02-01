@@ -122,11 +122,19 @@ prepOmicsViewer <- function(
   
   ## ======================= PCA ============================
   if (PCA) {
-    pc <- exprspca(expr, n = ncomp, fillNA =  pca.fillNA)
-    pData <- cbind(pData, pc$samples)
-    fData <- cbind(fData, pc$features)
+    if (pca.fillNA) {
+      pc <- exprspca(expr, n = ncomp, fillNA =  pca.fillNA)
+      pData <- cbind(pData, pc$samples)
+      fData <- cbind(fData, pc$features)
+    }
+    pc <- try( exprspca(expr, n = ncomp, fillNA = FALSE, prefix = "PCA|removeMissing") )
+    if (!inherits(pc, "try-error")) {
+      pData <- cbind(pData, pc$samples)
+      fData <- cbind(fData, pc$features)
+    } else 
+      warning("PCA on missing value removed matrix cannot be done. It's like because 
+              no feature remains after missing value filtering. ")
   }
-  
   
   ## ======================= perform t-test ============================
   if (!is.null(t.test)) {
