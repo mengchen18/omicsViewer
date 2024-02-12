@@ -78,7 +78,7 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
     downloadLink(ns("downloadData"), "Save table")
   })
   
-  formatTab <- function(tab, sel = 0, pageLength = 10) {
+  formatTab <- function(tab, sel = 0, pageLength = pageLength) {
     dt <- DT::datatable( 
       tab,
       selection =  c("single", "multiple")[as.integer(sel)+1],

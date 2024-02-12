@@ -7,6 +7,8 @@ enrichment_analysis_ui <- function(id) {
     # table
     uiOutput(ns("error")),
     # DT::dataTableOutput(ns("stab")),
+    # column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_sample_general"), right_margin = "5"))
+    triselector_ui(ns("tris_ora"), right_margin = "5"),
     dataTableDownload_ui(ns("stab")),
     dataTableDownload_ui(ns("overlapTab"))
     # plotly barplot
@@ -52,23 +54,73 @@ enrichment_analysis_module <- function(
     attr(reactive_featureData(), "GS")
   })
   
-  rii <- reactiveVal()
+  triset <- reactive({
+    trisetter(meta = reactive_featureData(), combine = "none")
+  })
 
-  observe({    
+  v1 <- callModule(
+    triselector_module, id = "tris_ora", reactive_x = triset, label = "Collapse features on"
+    )
+
+  size_bg <- reactiveVal()
+  rii <- reactiveVal()
+  reactive_pathway_collapsed <- reactiveVal( NULL )
+  col_key <- reactiveVal( NULL )
+
+  observe({
+
     req(reactive_i())
-    if ( length(reactive_i()) <= 1)
+    req(reactive_featureData())
+    req(rp <- reactive_pathway())
+    req(v1()$variable)
+
+    if (v1()$variable %in% c("", "Select a variable!")) {
+      size_bg( nrow(reactive_featureData()) )
+      reactive_pathway_collapsed(NULL)
+      rii(reactive_i())
+      col_key( NULL )
+      if ( length(rii()) <= 1 )
+        rii(NULL)
+      if ( length(rii()) <= 3 )
+        rii("notest")
+      return()
+    }
+    
+    cs <- do.call(paste, list(v1(), collapse = "|"))
+    if (!cs %in% colnames(reactive_featureData()))
       return(NULL)
-    if (length(reactive_i()) <=  3)
-      rii("notest") else 
-        rii(reactive_i())    
+    val <- reactive_featureData()[, cs]
+    names(val) <- rownames(reactive_featureData())
+    ck <- val[reactive_i()]
+    col_key( ck )
+
+    # collapse foreground list
+    rii(unique(ck))
+    if ( length(rii()) <= 1)
+      rii(NULL)
+    if (length(rii()) <=  3)
+      rii("notest")
+
+    # collapse pathway
+    rp$featureId <- as.factor( val[ as.character( rp$featureId ) ] )
+    reactive_pathway_collapsed( unique(rp) )
+  
+    # collapse background
+    size_bg( length(unique(val)) )
     })
   
-  oraTab <- reactive({    
+  oraTab <- reactive({
+    req(size_bg())
     req(rii())
     notest <- "No geneset has been tested, please try to include more input feature IDs!" 
     if (rii()[1] == "notest")
       return(notest)
-    tab <- vectORATall(reactive_pathway(), i = rii(), background = nrow(reactive_featureData()))    
+    if (is.null(reactive_pathway_collapsed()))
+      rp <- reactive_pathway() else
+        rp <- reactive_pathway_collapsed()
+
+    ll <<- list(gs = rp, i = rii(), background = size_bg())
+    tab <- vectORATall(rp, i = rii(), background = size_bg())
     if (is.null(tab))
       return(notest)
     ic <- which(vapply(tab, function(x) is.numeric(x) & !is.integer(x), logical(1)))
@@ -93,7 +145,7 @@ enrichment_analysis_module <- function(
       oraTab()
     }), 
     reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
-    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE
+    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE, pageLength = 8
   )
 
   hd <- reactive({
@@ -108,6 +160,8 @@ enrichment_analysis_module <- function(
     # hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
     hid <- i$overlap_ids[[1]]
     req(hid)
+    if (!is.null(ck <- col_key()))
+      hid <- names(ck)[ck %in% hid]
     df1 <- reactive_featureData()[hid, ii, drop = FALSE]
     df1 <- cbind(Overlap = "+", df1)
     apath <- reactive_pathway()[reactive_pathway()$gsId == i$pathway, ]
@@ -127,6 +181,6 @@ enrichment_analysis_module <- function(
     dataTableDownload_module, id = "overlapTab", 
     reactive_table = hd,
     # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
-    prefix = "ORA_overlapGenes_"
+    prefix = "ORA_overlapGenes_", pageLength = 8
   )
 }
