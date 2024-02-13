@@ -67,7 +67,12 @@ enrichment_analysis_module <- function(
   reactive_pathway_collapsed <- reactiveVal( NULL )
   col_key <- reactiveVal( NULL )
 
-  observe({
+  observeEvent(list(
+    reactive_i(),
+    reactive_featureData(),
+    reactive_pathway(),
+    v1()
+    ), {
 
     req(reactive_i())
     req(reactive_featureData())
@@ -110,26 +115,34 @@ enrichment_analysis_module <- function(
     })
   
   oraTab <- reactive({
+  
     req(size_bg())
     req(rii())
+  
     notest <- "No geneset has been tested, please try to include more input feature IDs!" 
+
     if (rii()[1] == "notest")
       return(notest)
+  
     if (is.null(reactive_pathway_collapsed()))
       rp <- reactive_pathway() else
         rp <- reactive_pathway_collapsed()
-
+  
     tab <- vectORATall(rp, i = rii(), background = size_bg())
+  
     if (is.null(tab))
       return(notest)
-    ic <- which(vapply(tab, function(x) is.numeric(x) & !is.integer(x), logical(1)))
-    tab[, ic] <- lapply(tab[, ic], signif, digits = 3)
+  
+    ic <- which(vapply(tab, function(x) is.numeric(x) & !is.integer(x), logical(1)))  
+    tab[, ic] <- lapply(tab[, ic], signif, digits = 3)  
     tab <- tab[which(tab$p.adjusted < 0.1 | tab$p.value < 0.05 | tab$OR >= 3), ]    
-    if (nrow(tab) > 3) {
+  
+    if (nrow(tab) > 3) {    
       hcl <- hclust(jaccardList(tab$overlap_ids))
       cls <- cutree(hcl, h = 0.45)
-      tab$desc <- paste("cluster", cls, tab$desc, sep = "_")
+      tab$desc <- paste("cluster", cls, tab$desc, sep = "_")    
     }    
+  
     tab
   })
   
