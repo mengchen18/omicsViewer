@@ -196,6 +196,15 @@ vectORA.core <- function(n.overlap, n.de, n.gs, n.bkg, unconditional.or = TRUE, 
 }
 
 
-
+#' Calculate Jaccard distance from a list
+#' @param x a list
+#' @return an dist object 
+jaccardList <- function(x) {
+  ax <- unique(unlist(x))
+  m <- sapply(x, function(x1) as.integer(ax %in% x1))
+  ist <- crossprod(m)
+  uni <- apply(m, 2, function(x) colSums(x + m > 0))
+  as.dist(1-ist/uni)
+}
 
 

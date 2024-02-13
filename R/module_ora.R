@@ -119,13 +119,15 @@ enrichment_analysis_module <- function(
       rp <- reactive_pathway() else
         rp <- reactive_pathway_collapsed()
 
-    ll <<- list(gs = rp, i = rii(), background = size_bg())
     tab <- vectORATall(rp, i = rii(), background = size_bg())
     if (is.null(tab))
       return(notest)
     ic <- which(vapply(tab, function(x) is.numeric(x) & !is.integer(x), logical(1)))
     tab[, ic] <- lapply(tab[, ic], signif, digits = 3)
-    tab <- tab[which(tab$p.adjusted < 0.1 | tab$p.value < 0.05 | tab$OR >= 3), ]
+    tab <- tab[which(tab$p.adjusted < 0.1 | tab$p.value < 0.05 | tab$OR >= 3), ]    
+    hcl <- hclust(jaccardList(tab$overlap_ids))
+    cls <- cutree(hcl, h = 0.45)
+    tab$desc <- paste("cluster", cls, tab$desc, sep = "_")
     tab
   })
   
