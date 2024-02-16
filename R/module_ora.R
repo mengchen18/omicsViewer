@@ -139,7 +139,7 @@ enrichment_analysis_module <- function(
   
     if (nrow(tab) > 3) {    
       hcl <- hclust(jaccardList(tab$overlap_ids))
-      cls <- cutree(hcl, h = 0.45)
+      cls <- cutree(hcl, h = 0.5)
       tab$desc <- paste("cluster", cls, tab$desc, sep = "_")    
     }    
   
