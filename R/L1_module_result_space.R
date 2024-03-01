@@ -86,6 +86,11 @@ L1_result_space_module <- function(
     #   reactive_featureData()[[i]]
     #   })
   )
+
+  # dose response
+  v8 <- callModule(
+    dose_response_module, id = "rescurve",  reactive_i = reactive_i, reactive_featureData = reactive_featureData
+  )
   
   # 
   if (length(additionalTabs) > 0) {
@@ -128,6 +133,9 @@ L1_result_space_module <- function(
       optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
       optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))
     }
+
+    if (!is.null(attr(reactive_featureData(), "DoseResponse")))
+      optionalTabs <- c(optionalTabs, list(tabPanel("Response", dose_response_ui(ns("rescurve")))))
     
     if (any(grepl("^StringDB\\|", colnames(reactive_featureData()))))
       optionalTabs <- c(optionalTabs, list(tabPanel("StringDB", string_ui(ns("stringdb")))))

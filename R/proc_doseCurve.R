@@ -9,7 +9,7 @@
 #' @param curveid a numeric vector or factor containing the grouping of the columns in x. 
 #' @param fct.name the function name, e.g. "LL.4()", "LL.3()", "LL.2()" and "LL.5()", 
 #'   which are defined in the \code{drc} package. 
-#' @importFrom drc drm LL.2 LL2.2, LL.3 LL.3u, LL2.3, LL2.3u LL.4 LL2.4 LL.5 LL2.5
+#' @importFrom drc drm LL.2 LL2.2 LL.3 LL.3u LL2.3 LL2.3u LL.4 LL2.4 LL.5 LL2.5
 #' @return a list of \code{drc} object
 #' @export
 
@@ -82,9 +82,15 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
   
   if (is.character(mod$fct))
     mod$fct <- eval( parse(text = mod$fct) )
+  
   nl <- length(unique( mod$origData[, mod$curveVarNam] ))
   cc <- nColors( nl )
-  plot( mod, type = c("confidence"), col = cc, legend = FALSE, ylab = ylab, lty = lty, ...)
+  pl <- try(
+    plot( mod, type = c("confidence"), col = cc, legend = FALSE, ylab = ylab, lty = lty, ...),
+    silent = TRUE
+  )
+  if (inherits(pl, "try-error"))
+    plot( mod, type = "none", col = cc, legend = FALSE, ylab = ylab, lty = lty, ...)
   ya <- par()$yaxp
   abline(h = seq(ya[1], ya[2], length.out = ya[3]+1), lty = 3, col = "gray85")
   plot( mod, type = c("obs"), col = cc, pch = pch, add = TRUE, legend = TRUE, cex = cex)
@@ -97,19 +103,22 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
   e * (2^(1/f) - 1) ^ (1/b)
 }
 
+#' model fitted by drc
+#' @details 
+#' func(x) = c + (d - c) / (1 + (x/e)^b)^f
+#' @param d Minimum asymptote. In a bioassay where you have a standard curve, this can be thought of as the response value at 0 standard concentration.
+#' @param c Maximum asymptote. In an bioassay where you have a standard curve, this can be thought of as the response value for infinite standard concentration.
+#' @param e Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. e is the concentration of analyte where y=(c-d)/2.
+#' @param b Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.
+#' @param f Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.
+.modelFormula <- function(x, b, c = 0, d = 1, e, f = 1) {
+  c + (d - c) / (1 + (x/e)^b)^f
+}
+
 
 #' Extracting parameters from drc models
 #' @param mod a drc object
 #' @param prefix for column header, the column will be named as prefix|curveid|curveparameter
-#' @details
-#' modelFormula <- function(x, b, c, d, e, f) {
-#'   c + (d - c) / (1 + (x/e)^b)^f
-#' }
-#' d - Minimum asymptote. In a bioassay where you have a standard curve, this can be thought of as the response value at 0 standard concentration.
-#' c - Maximum asymptote. In an bioassay where you have a standard curve, this can be thought of as the response value for infinite standard concentration.
-#' e - Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. e is the concentration of analyte where y=(c-d)/2.
-#' b - Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.
-#' f - Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.
 #' @note
 #' when LL2.X is used, e is estimated as log(e), this function will return e in linear scale instead. 
 
@@ -133,7 +142,7 @@ extractParamDC <- function(mod, prefix = "ResponseCurve") {
   mod_id = mod$parNames[[3]]
   mod_par <- c(t(pm))
   
-  uv <- unique(iv <- mod$origData[, mod$curveVarNam])
+  uv <- unique(iv <- mod_id)
   m2 <- sapply(uv, function(i) {
     d <- mod$predres[iv == i, ]
     cc <- cor.test(d[, 1], rowSums(d))
