@@ -15,4 +15,4 @@ biocViews: Software, Visualization, GeneSetEnrichment, DifferentialExpression, M
 BugReports: https://github.com/mengchen18/omicsViewer
 URL: https://github.com/mengchen18/omicsViewer
 Video: https://www.youtube.com/watch?v=0nirB-exquY&list=PLo2m88lJf-RRoLKMY8UEGqCpraKYrX5lk
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3

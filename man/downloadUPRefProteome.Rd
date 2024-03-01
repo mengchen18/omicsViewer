@@ -34,6 +34,6 @@ get uniprot reference proteome IDs
 }
 \section{Functions}{
 \itemize{
-\item \code{getUPRefProteomeID}: get uniprot reference protein IDs
-}}
+\item \code{getUPRefProteomeID()}: get uniprot reference protein IDs
 
+}}
