@@ -3,16 +3,16 @@
 #' @importFrom DT dataTableOutput
 dose_response_ui <- function(id) {
   ns <- NS(id)
-  tagList(
-    # table
-    # uiOutput(ns("error")),
-    # DT::dataTableOutput(ns("stab")),
-    # column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_sample_general"), right_margin = "5"))
-    # triselector_ui(ns("tris_ora"), right_margin = "5"),
-    # dataTableDownload_ui(ns("stab")),
-    # dataTableDownload_ui(ns("overlapTab"))
-    # plotly barplot
-    plotOutput(ns("plot"))
+  fluidRow(
+    column(
+      7, plotOutput(ns("plot"), height = "550px")
+    ),
+    column(
+      5, dataTableDownload_ui(ns("param")), style = "margin-top: 30px;"
+    ),
+    column(
+      12, dataTableDownload_ui(ns("feature"))
+    )
   )
 }
 
@@ -45,21 +45,54 @@ dose_response_ui <- function(id) {
 
 
 dose_response_module <- function(
-  input, output, session, reactive_featureData, reactive_i
+    input, output, session, 
+    reactive_expr, 
+    reactive_phenoData, 
+    reactive_featureData,
+    reactive_i
 ) {
   
   ns <- session$ns
   
-  reactive_dr <- reactive({
-    attr(reactive_featureData(), "DoseResponse")
-  })
-
   dr1 <- reactive({
-    kk <<- reactive_dr()
-    reactive_dr()[[reactive_i()]]
-    })
-
+    req(length(reactive_i()) == 1)
+    req(reactive_featureData())
+    attr(reactive_featureData(), "ResponseCurve")
+  })
+  
+  tabs <- reactive({
+    req(dr1())
+    plotDCMat(
+      expr = reactive_expr(), 
+      pd = reactive_phenoData(), 
+      fd = reactive_featureData(), 
+      featid = reactive_i(),
+      dose.var = dr1()$col_dose, 
+      curve.var = dr1()$col_curveid,
+      only.par = TRUE
+    )
+  })
+  
   output$plot <- renderPlot({
-    plotDC(dr1())
-    })
+    req(dr1())
+    plotDCMat(
+      expr = reactive_expr(), 
+      pd = reactive_phenoData(), 
+      fd = reactive_featureData(), 
+      featid = reactive_i(),
+      dose.var = dr1()$col_dose, 
+      curve.var = dr1()$col_curveid
+    )
+  })
+  
+  output$feature <- DT::renderDT(
+    form
+  )
+  
+  callModule(
+    dataTableDownload_module, id = "feature", reactive_table = reactive(tabs()$featInfo), prefix = "Response_featureInfo_"
+  )
+  callModule(
+    dataTableDownload_module, id = "param", reactive_table = reactive(tabs()$par), prefix = "Response_par_"
+  )
 }

@@ -146,16 +146,16 @@ extractParamDC <- function(mod, prefix = "ResponseCurve") {
   m2 <- sapply(uv, function(i) {
     d <- mod$predres[iv == i, ]
     cc <- cor.test(d[, 1], rowSums(d))
-    c(Pval = cc$p.value, Pseudo.rsq = cc[["estimate"]][[1]]^2)
+    c(Pval = cc$p.value, log.Pval = -log10(cc$p.value), Pseudo.rsq = cc[["estimate"]][[1]]^2)
   })
   colnames(m2) <- uv
   m2 <- rbind(m2, range = pm["c", ] - pm["d", ])
   
   n <- length(uv)
-  mod_parName <- c(mod_parName, rep(c("Pval", "Pseudo.rsq", "range"), each = n))
-  mod_id <- c(mod_id, rep(mod_id[1:n], 3))
+  mod_parName <- c(mod_parName, rep(c("Pval", "log.Pval", "Pseudo.rsq", "range"), each = n))
+  mod_id <- c(mod_id, rep(mod_id[1:n], 4))
   mod_par <- c(mod_par, c(t(m2)))
-
+  
   if (any(mod$parNames[[2]] == "f")) { # calculate EC50
     ec50 <- .e2EC50(pm["b", ], pm["d", ], pm["e", ], pm["f", ])
     mod_parName <- c(mod_parName, rep("ec50", n))
@@ -168,7 +168,8 @@ extractParamDC <- function(mod, prefix = "ResponseCurve") {
     par = mod_par
   )
   rn <- c(b = "b_hill.slope", c = "c_max.response", d = "d_min.response", e = "e_inflection", 
-          f = "f_asym.factor", ec50 = "EC50", Pval = "pval", Pseudo.rsq = "pseudo.rsq", range = "range" )
+          f = "f_asym.factor", ec50 = "EC50", Pval = "pval", log.Pval = "log.pval", 
+          Pseudo.rsq = "pseudo.rsq", range = "range" )
   dfp$parName <- rn[dfp$parName]
   dfp <- dfp[order(dfp$id), ]
   structure(dfp$par, names = paste(prefix, dfp$id, dfp$parName, sep = "|"))
@@ -191,3 +192,99 @@ extractParamDCList <- function(x, prefix = "ResponseCurve") {
   uu <- unique( unlist(sapply(tx, names)) )
   t(sapply(tx, "[", uu))
 }
+
+#' Draw dose response curve given parameters in the omicsViewer object
+#' @description
+#' Draw dose response curve given the feature Data/rowData, phenotype data/colData 
+#' and expression matrix. The function is usually used in shinyApp. 
+#' @param expr expression matrix
+#' @param pd phenotype data or colData
+#' @param fd feature data or rowData
+#' @param featid feature id to be visualized
+#' @param dose.var the column header indicating the dose/time/concentration
+#' @param curve.var the column header indicating the curve ids
+#' @param return.par logical value. If true, no plot generated,
+#'   the function only returns the parameters of models.
+
+plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var, only.par = FALSE) {
+  
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op))
+  
+  v <- grep("ResponseCurve", colnames(fd), value = TRUE, ignore.case = TRUE)
+  vs <- sub("ResponseCurve\\|", "", v)
+  se <- str_split_fixed(vs, pattern = "\\|", n = 2)
+  rd <- data.frame(
+    se, unlist( fd[featid, v] )
+  )
+  colnames(rd) <- c("group", "param", "value")
+  rdl <- split(rd, rd$group)
+  
+  if (only.par) {
+    ll <- list(
+      par = data.frame(
+        param = rdl[[1]]$param, 
+        sapply(rdl, "[[", "value"),
+        check.names = FALSE
+      ),
+      featInfo = fd[featid, ]
+    )
+    return(ll)
+  }
+  
+  cid <- pd[, curve.var]
+  dose <- pd[, dose.var]
+  dd <- data.frame(
+    feat = expr[featid, ],
+    dose = dose,
+    curve = cid
+  )
+  fdl <- split(dd, dd$curve)
+  cc <- nColors( length(fdl) )
+  names(cc) <- unique(unique(rd$group))
+  ###
+  plot(dd$dose, dd$feat, col = cc[dd$curve], pch = 19, 
+       xlab = dose.var, ylab = "Response / abundance")
+  ya <- par()$yaxp
+  abline( h = seq(ya[1], ya[2], length.out = ya[3]+1), lty = 3, col = "gray")
+  
+  lc <- seq( min(dose), max(dose), length.out = 100 )
+  i <- 1
+  leg <- c()
+  gid <- c()
+  
+  for (i in seq_along(fdl)) {
+    d1 <- fdl[[i]]
+    d2 <- rdl[[i]]
+    ss <- structure(d2$value, names = d2$param)
+    c = 0
+    d = 1
+    f = 1
+    b <- ss[["b_hill.slope"]]
+    if (any(grepl("c_max.response", names(ss))))
+      c <- ss[["c_max.response"]]
+    if (any(grepl("d_min.response", names(ss))))
+      d <- ss[["d_min.response"]]
+    e <- ss[["e_inflection"]]
+    if (any(grepl("f_asym.factor", names(ss))))
+      f <- ss[["f_asym.factor"]]
+    lg <- paste(
+      d2$group[[1]],
+      sprintf("p-value=%s", signif(ss[["pval"]], 2)),
+      sprintf("pseudo.rsq=%s", signif(ss[["pseudo.rsq"]], 2)),
+      sprintf("range=%s", signif(ss[["range"]], 2)),
+      sep = ";"
+    )
+    leg <- c(leg, lg)
+    gid <- c(gid, d2$group[[1]])
+    yy <- .modelFormula( lc, b = b, c = c, d = d, e = e, f = f )
+    lines(lc, yy, type = "l", lty = 2, col = cc[d1$curve[1]], lwd = 2)
+  }
+  par(xpd = TRUE)
+  legend(
+    y = par("usr")[4],
+    x = par()$xaxp[1], legend = leg, col = cc[gid], pch = 15,
+    yjust = 0,
+    bty = "n")
+}
+
