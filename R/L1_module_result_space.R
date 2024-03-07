@@ -93,7 +93,11 @@ L1_result_space_module <- function(
     reactive_expr = reactive_expr, 
     reactive_i = reactive_i,
     reactive_phenoData = reactive_phenoData,
-    reactive_featureData = reactive_featureData
+    reactive_featureData = reactive_featureData,
+    reactive_attr_drc = reactive({
+      req(object())
+      attr(object(), "S6.6_drc")
+      })
   )
   
   # 

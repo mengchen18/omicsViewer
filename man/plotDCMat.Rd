@@ -4,7 +4,7 @@
 \alias{plotDCMat}
 \title{Draw dose response curve given parameters in the omicsViewer object}
 \usage{
-plotDCMat(expr, pd, fd, featid, dose.var, curve.var, only.par = FALSE)
+plotDCMat(expr, pd, fd, featid, dose.var, curve.var = NULL, only.par = FALSE)
 }
 \arguments{
 \item{expr}{expression matrix}

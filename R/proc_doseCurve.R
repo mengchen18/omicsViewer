@@ -121,7 +121,6 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
 #' @param prefix for column header, the column will be named as prefix|curveid|curveparameter
 #' @note
 #' when LL2.X is used, e is estimated as log(e), this function will return e in linear scale instead. 
-
 extractParamDC <- function(mod, prefix = "ResponseCurve") {
   
   pm <- mod$parmMat
@@ -144,8 +143,14 @@ extractParamDC <- function(mod, prefix = "ResponseCurve") {
   
   uv <- unique(iv <- mod_id)
   m2 <- sapply(uv, function(i) {
-    d <- mod$predres[iv == i, ]
-    cc <- cor.test(d[, 1], rowSums(d))
+    if (length(uv) == 1 && all(uv == "(Intercept)") && length(unique(mod$dataList$curveid)) == 1)
+      d <- mod$predres else
+        d <- mod$predres[mod$dataList$curveid == i, ]
+    cc <- try(cor.test(d[, 1], rowSums(d)), silent = TRUE)
+    if (inherits(cc, "try-error"))
+      return(
+        c(Pval = NA, log.Pval = NA, Pseudo.rsq = NA)
+      )
     c(Pval = cc$p.value, log.Pval = -log10(cc$p.value), Pseudo.rsq = cc[["estimate"]][[1]]^2)
   })
   colnames(m2) <- uv
@@ -206,7 +211,7 @@ extractParamDCList <- function(x, prefix = "ResponseCurve") {
 #' @param return.par logical value. If true, no plot generated,
 #'   the function only returns the parameters of models.
 
-plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var, only.par = FALSE) {
+plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par = FALSE) {
   
   op <- par(no.readonly = TRUE)
   on.exit(par(op))
@@ -232,7 +237,11 @@ plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var, only.par = FALS
     return(ll)
   }
   
-  cid <- pd[, curve.var]
+  if (is.null(curve.var))
+    cid <- rep("(Intercept)", nrow(pd)) else if (curve.var %in% colnames(pd))
+      cid <- pd[, curve.var] else 
+        cid <- rep("(Intercept)", nrow(pd))
+
   dose <- pd[, dose.var]
   dd <- data.frame(
     feat = expr[featid, ],
