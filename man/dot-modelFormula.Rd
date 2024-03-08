@@ -7,6 +7,8 @@
 .modelFormula(x, b, c = 0, d = 1, e, f = 1)
 }
 \arguments{
+\item{x}{numerical vector of doses/time points/concentrations}
+
 \item{b}{Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.}
 
 \item{c}{Lowest response value.}

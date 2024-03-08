@@ -23,6 +23,7 @@ enrichment_analysis_ui <- function(id) {
 #' @param reactive_i reactive index of rows to be selected (for ORA)
 #' @param reactive_featureData reactive feature data
 #' @importFrom fastmatch fmatch
+#' @importFrom stats cutree
 #' @examples 
 #' #' # source("Git/R/auxi_fgsea.R")
 #' # source("Git/R/auxi_vectORA.R")

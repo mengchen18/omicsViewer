@@ -10,6 +10,7 @@
 #' @param fct.name the function name, e.g. "LL.4()", "LL.3()", "LL.2()" and "LL.5()", 
 #'   which are defined in the \code{drc} package. 
 #' @importFrom drc drm LL.2 LL2.2 LL.3 LL.3u LL2.3 LL2.3u LL.4 LL2.4 LL.5 LL2.5
+#' @importFrom stats as.formula
 #' @return a list of \code{drc} object
 #' @export
 
@@ -71,7 +72,8 @@ drmMat <- function(
 #' @param pch pch in plot function
 #' @param cex cex in plot function
 #' @param logx whether the x-axis should be in log scale
-#' 
+#' @importFrom graphics lines
+#'
 plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = FALSE) {
   
   lx <- ""
@@ -100,6 +102,11 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = F
 }
 
 #' convert e (inflection point) to EC50
+#' @param b Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.
+#' @param d Hihgest response value. 
+#' @param e Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. 
+#'   In models where f = 1 (2-4 parameter models), e is EC50. 
+#' @param f Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.
 #' @note
 #' Only has an effect when using LL.5 and LL2.5 model
 .e2EC50 <- function(b, d, e, f) {
@@ -109,6 +116,7 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = F
 #' model fitted by drc
 #' @details 
 #' func(x) = c + (d - c) / (1 + (x/e)^b)^f
+#' @param x numerical vector of doses/time points/concentrations
 #' @param d Hihgest response value. 
 #' @param c Lowest response value. 
 #' @param e Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. 
@@ -229,7 +237,7 @@ extractParamDCList <- function(x, prefix = "ResponseCurve") {
 #' @param featid feature id to be visualized
 #' @param dose.var the column header indicating the dose/time/concentration
 #' @param curve.var the column header indicating the curve ids
-#' @param return.par logical value. If true, no plot generated,
+#' @param only.par logical value. If true, no plot generated,
 #'   the function only returns the parameters of models.
 #' @param ... other parameters passed to \code{plot} function, except \code{col},
 #'   \code{pch}, \code{xlab}, \code{ylab}

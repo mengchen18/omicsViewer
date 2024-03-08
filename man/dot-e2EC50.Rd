@@ -6,6 +6,16 @@
 \usage{
 .e2EC50(b, d, e, f)
 }
+\arguments{
+\item{b}{Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.}
+
+\item{d}{Hihgest response value.}
+
+\item{e}{Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. 
+In models where f = 1 (2-4 parameter models), e is EC50.}
+
+\item{f}{Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.}
+}
 \description{
 convert e (inflection point) to EC50
 }

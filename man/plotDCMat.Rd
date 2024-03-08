@@ -28,11 +28,11 @@ plotDCMat(
 
 \item{curve.var}{the column header indicating the curve ids}
 
+\item{only.par}{logical value. If true, no plot generated,
+the function only returns the parameters of models.}
+
 \item{...}{other parameters passed to \code{plot} function, except \code{col},
 \code{pch}, \code{xlab}, \code{ylab}}
-
-\item{return.par}{logical value. If true, no plot generated,
-the function only returns the parameters of models.}
 }
 \description{
 Draw dose response curve given the feature Data/rowData, phenotype data/colData 
