@@ -9,11 +9,12 @@
 \arguments{
 \item{b}{Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.}
 
-\item{c}{Maximum asymptote. In an bioassay where you have a standard curve, this can be thought of as the response value for infinite standard concentration.}
+\item{c}{Lowest response value.}
 
-\item{d}{Minimum asymptote. In a bioassay where you have a standard curve, this can be thought of as the response value at 0 standard concentration.}
+\item{d}{Hihgest response value.}
 
-\item{e}{Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. e is the concentration of analyte where y=(c-d)/2.}
+\item{e}{Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. 
+In models where f = 1 (2-4 parameter models), e is EC50.}
 
 \item{f}{Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.}
 }

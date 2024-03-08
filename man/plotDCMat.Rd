@@ -4,7 +4,16 @@
 \alias{plotDCMat}
 \title{Draw dose response curve given parameters in the omicsViewer object}
 \usage{
-plotDCMat(expr, pd, fd, featid, dose.var, curve.var = NULL, only.par = FALSE)
+plotDCMat(
+  expr,
+  pd,
+  fd,
+  featid,
+  dose.var,
+  curve.var = NULL,
+  only.par = FALSE,
+  ...
+)
 }
 \arguments{
 \item{expr}{expression matrix}
@@ -18,6 +27,9 @@ plotDCMat(expr, pd, fd, featid, dose.var, curve.var = NULL, only.par = FALSE)
 \item{dose.var}{the column header indicating the dose/time/concentration}
 
 \item{curve.var}{the column header indicating the curve ids}
+
+\item{...}{other parameters passed to \code{plot} function, except \code{col},
+\code{pch}, \code{xlab}, \code{ylab}}
 
 \item{return.par}{logical value. If true, no plot generated,
 the function only returns the parameters of models.}

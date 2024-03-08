@@ -70,10 +70,13 @@ drmMat <- function(
 #' @param lty lty in plot function
 #' @param pch pch in plot function
 #' @param cex cex in plot function
-#' @param ... other arguments passed to plot function
+#' @param logx whether the x-axis should be in log scale
 #' 
-plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
+plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = FALSE) {
   
+  lx <- ""
+  if (logx)
+    lx <- "x"
   if (!inherits(mod, "drc"))
     stop("mod needs to be an object of drc!")
   
@@ -86,14 +89,14 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
   nl <- length(unique( mod$origData[, mod$curveVarNam] ))
   cc <- nColors( nl )
   pl <- try(
-    plot( mod, type = c("confidence"), col = cc, legend = FALSE, ylab = ylab, lty = lty, ...),
+    plot( mod, type = c("confidence"), col = cc, legend = FALSE, ylab = ylab, lty = lty, log = lx),
     silent = TRUE
   )
   if (inherits(pl, "try-error"))
-    plot( mod, type = "none", col = cc, legend = FALSE, ylab = ylab, lty = lty, ...)
+    plot( mod, type = "none", col = cc, legend = FALSE, ylab = ylab, lty = lty, log = lx)
   ya <- par()$yaxp
   abline(h = seq(ya[1], ya[2], length.out = ya[3]+1), lty = 3, col = "gray85")
-  plot( mod, type = c("obs"), col = cc, pch = pch, add = TRUE, legend = TRUE, cex = cex)
+  plot( mod, type = c("obs"), col = cc, pch = pch, add = TRUE, legend = TRUE, cex = cex, log = lx)
 }
 
 #' convert e (inflection point) to EC50
@@ -106,9 +109,10 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
 #' model fitted by drc
 #' @details 
 #' func(x) = c + (d - c) / (1 + (x/e)^b)^f
-#' @param d Minimum asymptote. In a bioassay where you have a standard curve, this can be thought of as the response value at 0 standard concentration.
-#' @param c Maximum asymptote. In an bioassay where you have a standard curve, this can be thought of as the response value for infinite standard concentration.
-#' @param e Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. e is the concentration of analyte where y=(c-d)/2.
+#' @param d Hihgest response value. 
+#' @param c Lowest response value. 
+#' @param e Inflection point. The inflection point is defined as the point on the curve where the curvature changes direction or signs. 
+#'   In models where f = 1 (2-4 parameter models), e is EC50. 
 #' @param b Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.
 #' @param f Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.
 .modelFormula <- function(x, b, c = 0, d = 1, e, f = 1) {
@@ -121,6 +125,7 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...) {
 #' @param prefix for column header, the column will be named as prefix|curveid|curveparameter
 #' @note
 #' when LL2.X is used, e is estimated as log(e), this function will return e in linear scale instead. 
+
 extractParamDC <- function(mod, prefix = "ResponseCurve") {
   
   pm <- mod$parmMat
@@ -154,7 +159,16 @@ extractParamDC <- function(mod, prefix = "ResponseCurve") {
     c(Pval = cc$p.value, log.Pval = -log10(cc$p.value), Pseudo.rsq = cc[["estimate"]][[1]]^2)
   })
   colnames(m2) <- uv
-  m2 <- rbind(m2, range = pm["c", ] - pm["d", ])
+
+  if (!any(grepl("c", rownames(pm))))
+    pmc  <- 0 else
+      pmc <- pm["c", ]
+
+  if (!any(grepl("d", rownames(pm))))
+    pmd <- 1 else
+      pmd <- pm["d", ]
+
+  m2 <- rbind(m2, range = pmc - pmd)
   
   n <- length(uv)
   mod_parName <- c(mod_parName, rep(c("Pval", "log.Pval", "Pseudo.rsq", "range"), each = n))
@@ -172,11 +186,12 @@ extractParamDC <- function(mod, prefix = "ResponseCurve") {
     id = mod_id,
     par = mod_par
   )
-  rn <- c(b = "b_hill.slope", c = "c_max.response", d = "d_min.response", e = "e_inflection", 
+  rn <- c(b = "b_hill.slope", c = "c_min.response", d = "d_max.response", e = "e_inflection", 
           f = "f_asym.factor", ec50 = "EC50", Pval = "pval", log.Pval = "log.pval", 
           Pseudo.rsq = "pseudo.rsq", range = "range" )
   dfp$parName <- rn[dfp$parName]
   dfp <- dfp[order(dfp$id), ]
+  dfp$par[dfp$parName == "range"] <- dfp$par[dfp$parName == "range"] * sign(dfp$par[dfp$parName == "b_hill.slope"])
   structure(dfp$par, names = paste(prefix, dfp$id, dfp$parName, sep = "|"))
 }
 
@@ -194,8 +209,14 @@ extractParamDCList <- function(x, prefix = "ResponseCurve") {
       return(NA)
     extractParamDC(x, prefix = prefix)
   })
-  uu <- unique( unlist(sapply(tx, names)) )
-  t(sapply(tx, "[", uu))
+  if (all(is.na(tx))) {
+    warning("All fittings were failed!")
+    return(NULL)
+  }
+  uu <- unique( c(unlist(sapply(tx, names), recursive = TRUE) ))
+  res <- t(sapply(tx, "[", uu))
+  colnames(res) <- uu
+  res
 }
 
 #' Draw dose response curve given parameters in the omicsViewer object
@@ -210,8 +231,10 @@ extractParamDCList <- function(x, prefix = "ResponseCurve") {
 #' @param curve.var the column header indicating the curve ids
 #' @param return.par logical value. If true, no plot generated,
 #'   the function only returns the parameters of models.
+#' @param ... other parameters passed to \code{plot} function, except \code{col},
+#'   \code{pch}, \code{xlab}, \code{ylab}
 
-plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par = FALSE) {
+plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par = FALSE, ...) {
   
   op <- par(no.readonly = TRUE)
   on.exit(par(op))
@@ -253,11 +276,11 @@ plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par =
   names(cc) <- unique(unique(rd$group))
   ###
   plot(dd$dose, dd$feat, col = cc[dd$curve], pch = 19, 
-       xlab = dose.var, ylab = "Response / abundance")
+       xlab = dose.var, ylab = "Response / abundance", ...)
   ya <- par()$yaxp
   abline( h = seq(ya[1], ya[2], length.out = ya[3]+1), lty = 3, col = "gray")
   
-  lc <- seq( min(dose), max(dose), length.out = 100 )
+  lc <- seq( min(dose), max(dose), length.out = 1000 )
   i <- 1
   leg <- c()
   gid <- c()
@@ -270,10 +293,10 @@ plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par =
     d = 1
     f = 1
     b <- ss[["b_hill.slope"]]
-    if (any(grepl("c_max.response", names(ss))))
-      c <- ss[["c_max.response"]]
-    if (any(grepl("d_min.response", names(ss))))
-      d <- ss[["d_min.response"]]
+    if (any(grepl("c_min.response", names(ss))))
+      c <- ss[["c_min.response"]]
+    if (any(grepl("d_max.response", names(ss))))
+      d <- ss[["d_max.response"]]
     e <- ss[["e_inflection"]]
     if (any(grepl("f_asym.factor", names(ss))))
       f <- ss[["f_asym.factor"]]

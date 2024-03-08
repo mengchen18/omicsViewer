@@ -4,7 +4,7 @@
 \alias{plotDC}
 \title{Draw dose-response curves}
 \usage{
-plotDC(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...)
+plotDC(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = FALSE)
 }
 \arguments{
 \item{mod}{an \code{drc} object}
@@ -17,7 +17,7 @@ plotDC(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, ...)
 
 \item{cex}{cex in plot function}
 
-\item{...}{other arguments passed to plot function}
+\item{logx}{whether the x-axis should be in log scale}
 }
 \description{
 Draw dose-response curves
