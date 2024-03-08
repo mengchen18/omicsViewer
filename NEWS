@@ -1,7 +1,9 @@
+
+Changes in version 1.7 (2024-03-08)
+new functions added: 
+ - the enriched terms are clustered 
+ - dose response curve function (test)
+
 Changes in version 0.99.0 (2021-12-12)
 + Submitted to Bioconductor
 
-
-1.7.x
-new functions: 
- - the enriched terms are clustered 
