@@ -288,7 +288,7 @@ plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par =
   ya <- par()$yaxp
   abline( h = seq(ya[1], ya[2], length.out = ya[3]+1), lty = 3, col = "gray")
   
-  lc <- seq( min(dose), max(dose), length.out = 1000 )
+  lc <- seq( min(dose, na.rm = TRUE), max(dose, na.rm = TRUE), length.out = 1000 )
   i <- 1
   leg <- c()
   gid <- c()
