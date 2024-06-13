@@ -332,6 +332,9 @@ L1_data_space_module <- function(
 
   hdmat <- reactive({
 
+    # only run when tab is active
+    req(input$eset == "Dynamic heatmap")
+
     req(e0 <- expr())
     req(fd <- fdata())
     req(pd <- pdata())
