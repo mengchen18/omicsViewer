@@ -1,3 +1,6 @@
+Changes in version 1.10
+new features:
+ - dynamic heatmap - zoomed in heatmap upon subsetting features and observations
 
 Changes in version 1.7 (2024-03-08)
 new functions added: 

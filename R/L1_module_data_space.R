@@ -68,6 +68,33 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
         )
       )
     ),
+    tabPanel(
+      "Dynamic heatmap",
+      fluidRow(
+        column(
+          6,             
+          dropdown(
+            inputId = "mydropdown3",
+            label = "Controls",
+            circle = FALSE, status = "default", icon = icon("cog"),
+            width = 700,
+            tooltip = tooltipOptions(title = "Click to update heatmap and check legend!"),
+            margin = "10px",
+            tabsetPanel(
+              tabPanel("Parameters", iheatmapInput(id = ns("dynheatmapViewer"))),
+              tabPanel("Legend", iheatmapLegend(id = ns("dynheatmapViewer")))
+            )
+          )
+        ),
+        column(
+          6, align = "right",
+          iheatmapClear(id = ns("dynheatmapViewer"))
+        ),
+        column(
+          12, iheatmapOutput(id = ns("dynheatmapViewer"))
+        )
+      )
+    ),
     tabPanel("Expression", dataTable_ui(ns("tab_expr"))),
     tabPanel("GSList", gslist_ui(ns("gsList")))
   )
@@ -301,11 +328,59 @@ L1_data_space_module <- function(
     selectedFeatures( status()$eset_selected_features )
   })
 
+############## dynamic heatmap function start ##################
+
+  hdmat <- reactive({
+
+    req(e0 <- expr())
+    req(fd <- fdata())
+    req(pd <- pdata())
+
+    if (length(tab_rows_fdata()) > 2) {
+      fd <- fd[tab_rows_fdata(), ]
+      e0 <- e0[tab_rows_fdata(), ]
+    }
+
+    if (length(tab_rows_pdata()) > 2) {
+      pd <- pd[tab_rows_pdata(), ]
+      e0 <- e0[, tab_rows_pdata()]
+    }
+
+    list(expr = e0, fd = fd, pd = pd)
+    })
+
+  s_dyn_heatmap <- callModule(
+    iheatmapModule, 'dynheatmapViewer', 
+    mat = reactive(hdmat()$expr), pd = reactive(hdmat()$pd), fd = reactive(hdmat()$fd),
+    status = reactive(status()$eset_dyn_heatmap), fill.NA = FALSE
+  )
+
+  observeEvent(s_dyn_heatmap(), {
+
+    if (!is.null(s_dyn_heatmap()$brushed$row)) {
+      selectedFeatures(s_dyn_heatmap()$brushed$row)
+    } else if (!is.null(s_dyn_heatmap()$clicked)) {
+      selectedFeatures(s_dyn_heatmap()$clicked["row"]) # ?? else set to character(0)
+    } else
+      selectedFeatures(character(0))
+
+    if (!is.null(s_dyn_heatmap()$brushed$col)) {
+      selectedSamples(s_dyn_heatmap()$brushed$col)
+    } else if (!is.null(s_dyn_heatmap()$clicked)) {
+      selectedSamples(s_dyn_heatmap()$clicked["col"]) # ?? else set to character(0)
+    } else 
+      selectedSamples(character(0))
+  })
+
+  ############## dynamic heatmap function end ##################
+
   reactive({
+    
     l <- list(
       feature = selectedFeatures(),
       sample = selectedSamples()
     )
+
     sta <- list(
       eset_active_tab = input$eset,
       eset_pdata_tab = attr(tab_pd(), "status"), # -> pdata_tab
