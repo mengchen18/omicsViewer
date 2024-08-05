@@ -62,7 +62,7 @@ L1_result_space_module <- function(
   # session restore finished
   v5 <- callModule(
     sample_general_module, id = "sample_general", 
-    reactive_phenoData = reactive_phenoData, 
+    reactive_phenoData = reactive_phenoData, reactive_expr = reactive_expr,
     reactive_j = reactive_highlight, 
     reactive_status = reactive(status()$analyst_sample_general)
   )

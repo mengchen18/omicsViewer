@@ -18,6 +18,7 @@ sample_general_ui <- function(id) {
 #' @param output output
 #' @param session session
 #' @param reactive_phenoData reactive phenotype data
+#' @param reactive_expr reactive expression data
 #' @param reactive_j index for which row in phenotype data should be highlighted/selected
 #' @param reactive_status saved status to restore
 #' @examples 
@@ -43,13 +44,13 @@ sample_general_ui <- function(id) {
 #' # 
 #' # shinyApp(ui, server)
 #'
-sample_general_module <- function(input, output, session, reactive_phenoData, 
+sample_general_module <- function(input, output, session, reactive_phenoData, reactive_expr,
   reactive_j = reactive(NULL), reactive_status = reactive(NULL)) {
   
   ns <- session$ns
   
   triset <- reactive({
-    trisetter(meta = reactive_phenoData(), combine = "none")
+    trisetter(meta = reactive_phenoData(), expr = reactive_expr(), combine = "pheno")
   })
 
   xax <- reactiveVal()
@@ -60,19 +61,26 @@ sample_general_module <- function(input, output, session, reactive_phenoData,
     reactive_selector3 = reactive(xax()$v3))
   
   attr4select_status <- reactiveVal()
+  reactive_input <- reactive({
+    req(reactive_phenoData())
+    req(reactive_expr())
+    ee <- t(reactive_expr())
+    colnames(ee) <- paste0("Feature|Auto|", colnames(ee))
+    cbind(reactive_phenoData(), ee)
+  })
   attr4select <- callModule(
-    attr4selector_module, id = "a4_gp", reactive_meta = reactive_phenoData, 
+    attr4selector_module, id = "a4_gp", reactive_meta = reactive_input, 
     reactive_triset = triset, reactive_status = attr4select_status
   )
   
   pheno <- reactive({
     req(v1()$variable)
     req(!v1()$variable %in% c("", "Select a variable!"))
-    req(reactive_phenoData())
+    req(reactive_input())
     cs <- do.call(paste, list(v1(), collapse = "|"))
-    if (!cs %in% colnames(reactive_phenoData()))
+    if (!cs %in% colnames(reactive_input()))
       return(NULL)
-    val <- reactive_phenoData()[, cs]
+    val <- reactive_input()[, cs]
     
     if (v1()$analysis == "Surv") {
       type <- "surv"
