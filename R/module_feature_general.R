@@ -79,7 +79,7 @@ feature_general_module <- function(input, output, session,
   
   # selector
   triset <- reactive({
-    ts <- trisetter(expr = reactive_expr(), meta = reactive_phenoData(), combine = "none")
+    ts <- trisetter(expr = reactive_expr(), meta = reactive_phenoData(), combine = "pheno")
     ts[ts[, 1] != "Surv", ]
   })
   
@@ -96,13 +96,21 @@ feature_general_module <- function(input, output, session,
     reactive_triset = triset, reactive_status = attr4select_status
   )
   
+  reactive_input <- reactive({
+    req(reactive_expr())
+    req(reactive_phenoData())
+    e <- t(reactive_expr())
+    colnames(e) <- paste0("Feature|Auto|", colnames(e))
+    cbind(reactive_phenoData(), e)
+    })
+
   # what to do
   pheno <- reactive({
     req(v1())
     cs <- do.call(paste, list(v1(), collapse = "|"))    
-    if (!cs %in% colnames(reactive_phenoData()))
+    if (!cs %in% colnames(reactive_input()))
       return(NULL)
-    reactive_phenoData()[, cs]
+    reactive_input()[, cs]
   })
   pheno_cat <- reactive({ is.factor(pheno()) || is.character(pheno()) })
   pheno_num <- reactive({ is.numeric(pheno()) })
