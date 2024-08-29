@@ -161,7 +161,7 @@ prepOmicsViewer <- function(
   
   # ==================  surv ================== 
   if (!is.null(surv)) {
-    if (is.vector(surv) && length(surv) == nrow(expr)) {
+    if (is.vector(surv) && length(surv) == ncol(expr)) {
       surv <- data.frame( "Surv|all|surv" = surv, 
                           stringsAsFactors = FALSE, 
                           check.names = FALSE)
