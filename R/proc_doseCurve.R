@@ -268,10 +268,12 @@ plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par =
     return(ll)
   }
   
-  if (is.null(curve.var))
-    cid <- rep("(Intercept)", nrow(pd)) else if (curve.var %in% colnames(pd))
-      cid <- pd[, curve.var] else 
-        cid <- rep("(Intercept)", nrow(pd))
+  cid <- rep("(Intercept)", nrow(pd))
+  if (curve.var %in% colnames(pd)) {
+    tmp <- pd[, curve.var]
+    if (length(unique(tmp)) > 1)
+      cid <- tmp
+  }
 
   dose <- pd[, dose.var]
   dd <- data.frame(
