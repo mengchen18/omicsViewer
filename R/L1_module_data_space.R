@@ -122,6 +122,8 @@ L1_data_space_module <- function(
 ) {
   
   ns <- session$ns
+  
+  # ====== calculate correlation matrix and related component =====
 
   cmat <- reactive({
     req(expr())
@@ -153,7 +155,7 @@ L1_data_space_module <- function(
     status = reactive(status()$eset_heatmap)
   )
 
-  # ### feature space
+  # ============ feature space - scatter plot ===========
   # r_feature_fig <- reactiveVal()
   s_feature_fig <- callModule(
     meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr,
@@ -161,16 +163,20 @@ L1_data_space_module <- function(
     reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig)
   )
 
-  # sample space
+  # ============ sample space - scatter plot ============
   # r_sample_fig <- reactiveVal()# DONOT REMOVE
   s_sample_fig <- callModule(
     meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
     reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig)
   )
-
+  
+  # ============ level 1 selection - forward to dynamic heatmap ============
+  
   tab_rows_fdata <- reactiveVal(TRUE)
   tab_rows_pdata <- reactiveVal(TRUE)
   notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
+  
+  ## ===== selection from correlation heatmap - only sample =====
 
   observeEvent(s_cor_heatmap(), {
     if (notNullAndPosLength(s_cor_heatmap()$brushed$col)) {
@@ -180,6 +186,8 @@ L1_data_space_module <- function(
     } else
       tab_rows_pdata(TRUE)    
   })
+  
+  ## ============== selection from heatmap - sample sand feature ========
 
   observeEvent(s_heatmap(), {
     # fdata
@@ -199,6 +207,8 @@ L1_data_space_module <- function(
       tab_rows_pdata(TRUE)
     }
   })
+  
+  ## ============== selection from scatter plots - feature only ========
 
   observeEvent(c(s_feature_fig()), {
     if (notNullAndPosLength(s_feature_fig()$selected)) {
@@ -208,6 +218,8 @@ L1_data_space_module <- function(
     } else
       tab_rows_fdata(TRUE)
   })
+  
+  ## ============= selection from scatter plots - sample only ========
 
   observeEvent(s_sample_fig(), {
     if (notNullAndPosLength(s_sample_fig()$selected)) {
@@ -216,6 +228,41 @@ L1_data_space_module <- function(
       tab_rows_pdata( s_sample_fig()$clicked )
     } else
       tab_rows_pdata(TRUE)
+  })
+  
+  ## ============ selection from feature table - feature only ============
+  ## need one more level of nesting to avoid circular dependency
+  tab_rows_fdata2 <- reactiveVal(TRUE)
+  
+  observeEvent(tab_rows_fdata(), {
+    tab_rows_fdata2( tab_rows_fdata() )
+  })
+  
+  observeEvent(tab_fd(), {
+    if (notNullAndPosLength(tab_fd())) {
+      if ( length(tab_fd()) > 2 )
+        tab_rows_fdata2( tab_fd() ) else
+          tab_rows_fdata2(TRUE)
+    } else
+      tab_rows_fdata2(TRUE)
+  })
+  
+  ## ============ selection from sample table - sample only ============
+  ## need one more level of nesting to avoid circular dependency
+  
+  tab_rows_pdata2 <- reactiveVal(TRUE)
+  
+  observeEvent(tab_rows_pdata(), {
+    tab_rows_pdata2( tab_rows_pdata() )
+  })
+  
+  observeEvent(tab_pd(), {
+    if (notNullAndPosLength(tab_pd())) {
+      if ( length(tab_pd()) > 2 )
+        tab_rows_pdata2( tab_pd() ) else
+          tab_rows_pdata2(TRUE)
+    } else
+      tab_rows_pdata2(TRUE)
   })
 
   ## tables
@@ -310,7 +357,7 @@ L1_data_space_module <- function(
     selectedFeatures( tab_gslist() )
   })
 
-  #### status for snapshot #####
+  # ============= status for snapshot ============
   observe({
     if (!is.null(tb <- status()$eset_active_tab))
       updateNavbarPage(session = session, inputId = "eset", selected = tb)
@@ -338,15 +385,19 @@ L1_data_space_module <- function(
     req(e0 <- expr())
     req(fd <- fdata())
     req(pd <- pdata())
+    if (!isTRUE(tab_rows_fdata2()))
+      req(length(tab_rows_fdata2()) > 2) # at least 3 features
+    if (!isTRUE(tab_rows_pdata()))
+      req(length(tab_rows_pdata()) > 2) # at least 3 samples
 
-    if (length(tab_rows_fdata()) > 2) {
-      fd <- fd[tab_rows_fdata(), ]
-      e0 <- e0[tab_rows_fdata(), ]
+    if (length(tab_rows_fdata2()) > 2) {
+      fd <- fd[tab_rows_fdata2(), ]
+      e0 <- e0[tab_rows_fdata2(), ]
     }
 
-    if (length(tab_rows_pdata()) > 2) {
-      pd <- pd[tab_rows_pdata(), ]
-      e0 <- e0[, tab_rows_pdata()]
+    if (length(tab_rows_pdata2()) > 2) {
+      pd <- pd[tab_rows_pdata2(), ]
+      e0 <- e0[, tab_rows_pdata2()]
     }
 
     list(expr = e0, fd = fd, pd = pd)
@@ -359,20 +410,23 @@ L1_data_space_module <- function(
   )
 
   observeEvent(s_dyn_heatmap(), {
-
+    
     if (!is.null(s_dyn_heatmap()$brushed$row)) {
       selectedFeatures(s_dyn_heatmap()$brushed$row)
     } else if (!is.null(s_dyn_heatmap()$clicked)) {
-      selectedFeatures(s_dyn_heatmap()$clicked["row"]) # ?? else set to character(0)
-    } else
-      selectedFeatures(character(0))
+      selectedFeatures(s_dyn_heatmap()$clicked["row"]) 
+    } # ?? else set to character(0)
+    #else
+      # selectedFeatures(character(0))
 
     if (!is.null(s_dyn_heatmap()$brushed$col)) {
       selectedSamples(s_dyn_heatmap()$brushed$col)
     } else if (!is.null(s_dyn_heatmap()$clicked)) {
-      selectedSamples(s_dyn_heatmap()$clicked["col"]) # ?? else set to character(0)
-    } else 
-      selectedSamples(character(0))
+      selectedSamples(s_dyn_heatmap()$clicked["col"]) 
+    } 
+    # ?? else set to character(0)
+    # else 
+      # selectedSamples(character(0))
   })
 
   ############## dynamic heatmap function end ##################
