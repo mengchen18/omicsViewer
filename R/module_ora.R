@@ -86,9 +86,8 @@ enrichment_analysis_module <- function(
       rii(reactive_i())
       col_key( NULL )
       if ( length(rii()) <= 1 )
-        rii(NULL)
-      if ( length(rii()) <= 3 )
-        rii("notest")
+        rii(NULL) else if ( length(rii()) <= 3 )
+          rii("notest")
       return()
     }
     
@@ -103,9 +102,8 @@ enrichment_analysis_module <- function(
     # collapse foreground list
     rii(unique(ck))
     if ( length(rii()) <= 1)
-      rii(NULL)
-    if (length(rii()) <=  3)
-      rii("notest")
+      rii(NULL) else if (length(rii()) <=  3)
+        rii("notest")
 
     # collapse pathway
     rp$featureId <- as.factor( val[ as.character( rp$featureId ) ] )
@@ -115,7 +113,7 @@ enrichment_analysis_module <- function(
     size_bg( length(unique(val)) )
     })
   
-  oraTab <- reactive({
+  OT <- reactive({
   
     req(size_bg())
     req(rii())
@@ -146,6 +144,13 @@ enrichment_analysis_module <- function(
   
     tab
   })
+  
+  oraTab <- reactiveVal( NULL )
+  observe({
+    if (!is.null(rii()))
+      oraTab( OT() )
+  })
+  
   
   output$errorMsg <- renderText({
     req(is.character(oraTab()))
