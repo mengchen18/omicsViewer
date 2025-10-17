@@ -27,7 +27,7 @@ fgsea1 <- function(gs, stats, gs_desc = NULL, ...) {
     gs <- csc2list(gs)
   } 
   pw <- split(gs$featureId, gs$gsId)
-  params <- list(pathways = pw, stats = stats, ...)
+  params <- list(pathways = pw, stats = stats, nproc = 1, ...)
   res <- do.call(fgseaMultilevel, params)
   if (!is.null(gs_desc)) {
     res$desc <- as.character(gs_desc[res$pathway])
