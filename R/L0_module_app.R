@@ -89,24 +89,58 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   do.call(fluidRow, comp)
 }
 
-#' Application level 0 module
-#' @description Function should only be used for the developers
-#' @param id module id
-#' @param .dir reactive; directory containing the .RDS file of \code{ExpressionSet} or \code{SummarizedExperiment}
-#' @param filePattern file pattern to be displayed.
-#' @param additionalTabs additional tabs added to "Analyst" panel
-#' @param esetLoader function to load the eset object, if an RDS file, should be "readRDS"
-#' @param exprsGetter function to get the expression matrix from eset
-#' @param imputeGetter function to get the imputed expression matrix from eset, only used when exporting imputed data to excel
-#' @param pDataGetter function to get the phenotype data from eset
-#' @param fDataGetter function to get the feature data from eset
-#' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two
-#'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the
-#'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.
-#' @param appName name of the application
-#' @param appVersion version of the application
-#' @param ESVObj the ESV object
-#'   given, the drop down list should be disable in the "ui" component.
+#' omicsViewer Application Server Logic (Level 0)
+#'
+#' @description
+#' Implements the main server-side logic for the omicsViewer Shiny application. Handles data
+#' loading, validation, state management, snapshot functionality, and orchestrates communication
+#' between sub-modules. Uses modern Shiny module pattern with \code{moduleServer}.
+#' Primarily intended for developers extending the application.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID used in
+#'   \code{\link{app_ui}}.
+#' @param .dir Reactive expression. Returns the directory path containing data files
+#'   (ExpressionSet or SummarizedExperiment .RDS files).
+#' @param filePattern Character. Regular expression to filter displayed files.
+#'   Default: \code{".(RDS|db|sqlite|sqlite3)$"} (case-insensitive).
+#' @param additionalTabs List or NULL. Custom analysis modules to add to the application.
+#'   Each element should contain: \code{tabName}, \code{moduleName}, \code{moduleUi}, and
+#'   \code{moduleServer}. Default: NULL (no additional tabs).
+#' @param ESVObj Reactive expression. Returns a pre-loaded ExpressionSet or SummarizedExperiment
+#'   object, bypassing file loading. Default: \code{reactive(NULL)}.
+#' @param esetLoader Function. Loads data objects from disk. Takes file path as input,
+#'   returns ExpressionSet or SummarizedExperiment. Default: \code{readESVObj}.
+#' @param exprsGetter Function. Extracts expression matrix from loaded object.
+#'   Default: \code{getExprs}.
+#' @param imputeGetter Function. Extracts imputed expression matrix (if available) for
+#'   Excel export. Should return NULL if no imputed data. Default: \code{getExprsImpute}.
+#' @param pDataGetter Function. Extracts sample/phenotype metadata. Default: \code{getPData}.
+#' @param fDataGetter Function. Extracts feature metadata. Default: \code{getFData}.
+#' @param defaultAxisGetter Function. Determines default plot axes. Takes object and
+#'   \code{what} ("sx", "sy", "fx", "fy") as arguments. Default: \code{getAx}.
+#' @param appName Character. Application name displayed in UI. Default: "omicsViewer".
+#' @param appVersion Character or package_version. Version shown in UI.
+#'   Default: current package version.
+#'
+#' @details
+#' The module coordinates several key functionalities:
+#' \itemize{
+#'   \item \strong{Data Loading}: Validates file paths, checks file sizes, loads with error handling
+#'   \item \strong{Data Validation}: Ensures rownames/colnames consistency across expression and metadata
+#'   \item \strong{State Management}: Tracks selected features/samples across sub-modules
+#'   \item \strong{Snapshots}: Save and restore analysis states to disk (.ESS files)
+#'   \item \strong{Data Export}: Generate Excel files with expression data, metadata, and gene sets
+#'   \item \strong{Module Coordination}: Manages data space (L1_data_space_module) and
+#'         result space (L1_result_space_module) interactions
+#' }
+#'
+#' Security features include path traversal prevention, file type validation,
+#' and size limits (2GB maximum).
+#'
+#' @return
+#' NULL (invisibly). The module manages reactive state internally and communicates
+#' with child modules. No explicit return value.
+#'
 #' @importFrom Biobase exprs pData fData
 #' @importFrom utils packageVersion
 #' @importFrom DT renderDT DTOutput dataTableProxy
@@ -130,18 +164,22 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'  wilcox.test
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook
 #' @export
+#'
+#' @seealso
+#' \code{\link{app_ui}} for the corresponding UI function.
+#' \code{\link{L1_data_space_module}}, \code{\link{L1_result_space_module}} for sub-modules.
+#' \code{\link{omicsViewer}} for the high-level launcher.
+#'
 #' @examples
 #' if (interactive()) {
 #'   dir <- system.file("extdata", package = "omicsViewer")
+#'   ui <- fluidPage(app_ui("app"))
 #'   server <- function(input, output, session) {
 #'     app_module("app", .dir = reactive(dir))
 #'   }
-#'   ui <- fluidPage(
-#'     app_ui("app")
-#'   )
 #'   shinyApp(ui = ui, server = server)
 #' }
-#' @return do not return any values
+#' @keywords internal
 
 app_module <- function(
   id, .dir, filePattern = ".(RDS|db|sqlite|sqlite3)$", additionalTabs = NULL, ESVObj = reactive(NULL),
