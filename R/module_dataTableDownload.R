@@ -16,11 +16,9 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 }
 
 #' @description utility - dataTable for download shiny module
-#' @description A subset of columns can be shown, specified by reactive_cols. 
-#'   The entire table will be downloaded. 
-#' @param input input
-#' @param output output
-#' @param session session
+#' @description A subset of columns can be shown, specified by reactive_cols.
+#'   The entire table will be downloaded.
+#' @param id module id
 #' @param reactive_table table to show
 #' @param reactive_cols columns to be shown
 #' @param prefix file name prefix
@@ -29,25 +27,27 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #' @param decreasing logical; sort by decreasing or not
 #' @param tab_status table initial status
 #' @importFrom utils write.table
-#' @examples 
+#' @examples
 #' # source("R/module_triselector.R")
 #' # library(shiny)
 #' # library(stringr)
-#' # 
+#' #
 #' # dat <- readRDS("../Dat/exampleEset.RDS")
 #' # pdata <- pData(dat)
-#' # 
+#' #
 #' # ui <- fluidPage(
 #' #   dataTableDownload_ui("dtd")
 #' # )
 #' # server <- function(input, output, session) {
-#  #   callModule(dataTableDownload_module, id = "dtd", reactive_table = reactive(pdata), reactive_cols = reactive(1:6), prefix = "testdownload")
+#' #   dataTableDownload_module("dtd", reactive_table = reactive(pdata), reactive_cols = reactive(1:6), prefix = "testdownload")
 #' # }
 #' # shinyApp(ui, server)
-#' 
-dataTableDownload_module <- function(input, output, session, reactive_table, tab_status = NULL,
+#'
+dataTableDownload_module <- function(id, reactive_table, tab_status = NULL,
   reactive_cols=reactive(NULL), prefix = "", pageLength = 10, sortBy = NULL, decreasing = TRUE) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
 
   rtab <- reactive({
@@ -120,5 +120,7 @@ dataTableDownload_module <- function(input, output, session, reactive_table, tab
     attr(ii, "status") <- input$table_state
     ii
     })
+
+  }) # end moduleServer
 }
 

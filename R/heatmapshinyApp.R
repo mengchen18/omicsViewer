@@ -46,10 +46,10 @@ iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
   )
   
   server <- function(input, output) {
-    callModule(
-      iheatmapModule, 'test', 
-      mat = reactive(x), 
-      pd = reactive(pData), 
+    iheatmapModule(
+      'test',
+      mat = reactive(x),
+      pd = reactive(pData),
       fd = reactive(fData))
   }
   
@@ -175,9 +175,7 @@ iheatmapClear <- function(id) {
 
 
 #' @description iheatmap module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param mat expression matrix
 #' @param pd phenotype data
 #' @param fd feature data
@@ -185,11 +183,13 @@ iheatmapClear <- function(id) {
 #' @param status heatmap states
 #' @importFrom RColorBrewer brewer.pal
 #' @name iheatmap
-#' 
+#'
 iheatmapModule <- function(
-  input, output, session, mat, pd, fd, status = reactive(NULL), fill.NA = TRUE
+  id, mat, pd, fd, status = reactive(NULL), fill.NA = TRUE
   ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   matr <- reactive({
@@ -792,7 +792,7 @@ iheatmapModule <- function(
     tooltip_mouse(res)
   })
 
-  callModule(shinyPlotTooltips, id = "tlp_heatmap", points = tooltip_mouse)
+  shinyPlotTooltips("tlp_heatmap", points = tooltip_mouse)
 
   ############### return ##############
 
@@ -852,5 +852,7 @@ iheatmapModule <- function(
       )
     r
   })
+
+  }) # end moduleServer
 }
 

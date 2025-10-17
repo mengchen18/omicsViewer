@@ -22,62 +22,62 @@ dataTable_ui <- function(id) {
 }
 
 #' @description utility - dataTable shiny module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_data the data to be shown, a tabular objet
 #' @param selector whether a selector should be added to the output
 #' @param columns columns to show
 #' @param tab_status table initial status, reactive object
 #' @param tab_rows rows to be shown
 #' @importFrom stringr str_split_fixed
-#' @examples 
+#' @examples
 #' # library(shiny)
 #' # source("Git/R/module_triselector.R")
-#' # 
+#' #
 #' # dat <- readRDS("Dat/exampleEset.RDS")
 #' # expr <- exprs(dat)
 #' # pdata <- pData(dat)
 #' # fdata <- fData(dat)
-#' # 
+#' #
 #' # ui <- fluidPage(
 #' #   dataTable_ui("dttest")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#' #   callModule(dataTable_module, id = "dttest",  reactive_data = reactive(pdata))
+#' #   dataTable_module("dttest",  reactive_data = reactive(pdata))
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
-#' # 
-#' # 
+#' #
+#' #
 #' # ####
 #' # ui <- fluidPage(
 #' #   dataTable_ui("dttest")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#' #   callModule(dataTable_module, id = "dttest",  reactive_data = reactive(fdata))
+#' #   dataTable_module("dttest",  reactive_data = reactive(fdata))
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
-#' # 
+#' #
 #' # ###
 #' # ui <- fluidPage(
 #' #   dataTable_ui("dttest", selector = FALSE)
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#' #   callModule(dataTable_module, id = "dttest",  reactive_data = reactive(expr), selector = FALSE)
+#' #   dataTable_module("dttest",  reactive_data = reactive(expr), selector = FALSE)
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
-#' 
+#'
 dataTable_module <- function(
-  input, output, session, reactive_data, selector = TRUE, columns = NULL, 
-  tab_status = reactive(NULL), tab_rows = reactive(NULL) 
+  id, reactive_data, selector = TRUE, columns = NULL,
+  tab_status = reactive(NULL), tab_rows = reactive(NULL)
   ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   # 
   selectedRowOrCol <- reactiveVal(TRUE)
@@ -98,13 +98,13 @@ dataTable_module <- function(
     x[selectedRowOrCol(), , drop = FALSE]
   })
   
-  callModule(
-    dataTableDownload_module, id = "downloadTable", reactive_table = rdd, prefix = "viewerTable_"
+  dataTableDownload_module(
+    "downloadTable", reactive_table = rdd, prefix = "viewerTable_"
   )
 
-  cols <- eventReactive(reactive_data(), {    
-    
-    cn <- intersect(columns, colnames(rdd()))    
+  cols <- eventReactive(reactive_data(), {
+
+    cn <- intersect(columns, colnames(rdd()))
     if (length(cn) == 0)
       cn <- grep("^General\\|", colnames(rdd()), ignore.case = TRUE, value = TRUE)
     if (length(cn) == 0)
@@ -115,11 +115,11 @@ dataTable_module <- function(
       optx <- setdiff(colnames(rdd()), cn)
       if (length(optx) > 0)
         opt <- str_split_fixed(optx, pattern = "\\|", n = 3)
-    }      
+    }
     list(shown = cn, opt = opt)
   })
-  
-  addcols <- callModule(triselector_module, id = "select", reactive_x = reactive({
+
+  addcols <- triselector_module("select", reactive_x = reactive({
     req(cols()$opt)
     req(nrow(cols()$opt) > 0)
     cols()$opt
@@ -193,7 +193,7 @@ dataTable_module <- function(
   # outputOptions(output, "table", suspendWhenHidden = FALSE)
   tabproxy <- dataTableProxy(ns("table"))
   
-  eventReactive( list(input$table_rows_selected, input$table_state), {    
+  eventReactive( list(input$table_rows_selected, input$table_state), {
     r <- character(0)
     if (!is.null(tab_rows()))
       r <- tab_rows()
@@ -201,11 +201,13 @@ dataTable_module <- function(
       r <- rownames(rdd())[input$table_rows_selected]
     sta <- input$table_state
     sta$showColumns <- scn()
-    sta$multiSelection <- input$multisel    
-    sta$rows_selected <- input$table_rows_selected    
+    sta$multiSelection <- input$multisel
+    sta$rows_selected <- input$table_rows_selected
     attr(r, "status") <- sta
     r
     })
+
+  }) # end moduleServer
 }
 
 

@@ -1,30 +1,58 @@
 
-#' Start omicsViewer
-#' @param dir directory to the \code{ExpressionSet} or \code{SummarizedExperiment} object. Only give the directory
-#'  in this argument, not the .rds file.
-#' @param additionalTabs additional tabs added to "Analyst" panel
-#' @param filePattern file pattern to be displayed.
-#' @param esetLoader function to load the eset object, if an RDS file, should be "readRDS"
-#' @param exprsGetter function to get the expression matrix from eset
-#' @param pDataGetter function to get the phenotype data from eset
-#' @param fDataGetter function to get the feature data from eset
-#' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
-#'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
-#'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.
-#' @param appName name of the application
-#' @param appVersion version of the application
-#' @param ESVObj the ESV object
+#' Launch the omicsViewer Shiny Application
+#'
+#' @description
+#' Starts an interactive Shiny application for exploring omics data, including visualization
+#' of expression matrices, feature and sample metadata, statistical analyses, and functional
+#' enrichment results. The viewer supports both \code{ExpressionSet} and
+#' \code{SummarizedExperiment} objects.
+#'
+#' @param dir Character. Path to directory containing the \code{ExpressionSet} or
+#'   \code{SummarizedExperiment} object saved as .RDS file. Provide only the directory path,
+#'   not the full file path. The viewer will list all compatible files in this directory.
+#' @param additionalTabs List. Optional custom Shiny modules to add as tabs in the "Analyst" panel.
+#'   Each element should be a list with: \code{tabName} (character), \code{moduleName} (character),
+#'   \code{moduleUi} (UI function), and \code{moduleServer} (server function).
+#' @param filePattern Character. Regular expression pattern to filter files displayed in the
+#'   directory. Default: \code{".(RDS|DB|SQLITE|SQLITE3)$"} (case-insensitive).
+#' @param ESVObj ExpressionSet or SummarizedExperiment. Optional pre-loaded object to view
+#'   directly without file selection. If provided, the file dropdown will show "ESVObj.RDS".
+#' @param esetLoader Function. Custom loader for reading saved objects. Default: \code{readESVObj}.
+#'   Should accept a file path and return an ExpressionSet or SummarizedExperiment object.
+#' @param exprsGetter Function. Extracts expression matrix from loaded object.
+#'   Default: \code{getExprs}. Should return a numeric matrix.
+#' @param pDataGetter Function. Extracts phenotype/sample metadata. Default: \code{getPData}.
+#'   Should return a data.frame with rownames matching sample names.
+#' @param fDataGetter Function. Extracts feature metadata. Default: \code{getFData}.
+#'   Should return a data.frame with rownames matching feature names.
+#' @param defaultAxisGetter Function. Determines default axes for plots. Takes two arguments:
+#'   \code{x} (the loaded object) and \code{what} (one of "sx", "sy", "fx", "fy" for
+#'   sample/feature space x/y axes). Should return column name from metadata.
+#' @param appName Character. Application title displayed in the UI. Default: "omicsViewer".
+#' @param appVersion Character or package_version. Version number displayed in UI.
+#'   Default: current package version.
+#'
 #' @export
 #' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
 #' @importFrom S4Vectors DataFrame
 #' @importFrom SummarizedExperiment SummarizedExperiment
+#'
 #' @examples
-#' 1
-#' ## To start the shiny app: 
-#' # omicsViewer(
-#' #  system.file("extdata", package = "omicsViewer")
-#' # )
-#' @return do not return values
+#' if (interactive()) {
+#'   # Basic usage with example data
+#'   omicsViewer(system.file("extdata", package = "omicsViewer"))
+#'
+#'   # With pre-loaded object
+#'   packdir <- system.file("extdata", package = "omicsViewer")
+#'   eset <- readRDS(file.path(packdir, "exampleEset.RDS"))
+#'   omicsViewer(packdir, ESVObj = eset)
+#' }
+#'
+#' @return NULL (invisibly). Launches the Shiny application. The app runs until stopped by the user.
+#'
+#' @seealso
+#' \code{\link{prepOmicsViewer}} for preparing data objects for visualization.
+#' \code{\link{app_module}} for the main application module (developers only).
 #' 
 omicsViewer <- function(
   dir, additionalTabs = NULL, filePattern = ".(RDS|DB|SQLITE|SQLITE3)$", ESVObj = NULL,
@@ -41,8 +69,8 @@ omicsViewer <- function(
     server = function(input, output, session, aTabs = additionalTabs,
                       f_eset = esetLoader, f_exprs = exprsGetter, f_pd = pDataGetter, f_fd = fDataGetter,
                       axg = defaultAxisGetter) {
-      callModule(
-        app_module, id = "app", .dir = reactive(dir), additionalTabs = aTabs, filePattern = filePattern,
+      app_module(
+        "app", .dir = reactive(dir), additionalTabs = aTabs, filePattern = filePattern,
         esetLoader = f_eset, exprsGetter = f_exprs, pDataGetter = f_pd, fDataGetter = f_fd,
         defaultAxisGetter = axg, appName = appName, appVersion = appVersion, ESVObj = reactive(ESVObj)
         )

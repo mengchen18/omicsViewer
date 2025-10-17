@@ -16,23 +16,26 @@ dose_response_ui <- function(id) {
   )
 }
 
-#' @description Utility enrichment analysis shiny module
-#' @param input input
-#' @param output output
-#' @param session session
-#' @param reactive_i reactive index of rows to be selected (for ORA)
+#' @description Utility dose response shiny module
+#' @param id module id
+#' @param reactive_expr reactive expression matrix
+#' @param reactive_phenoData reactive phenotype data
 #' @param reactive_featureData reactive feature data
+#' @param reactive_i reactive index of rows to be selected
+#' @param reactive_attr_drc reactive dose response curve attributes
 #' @importFrom fastmatch fmatch
 
 dose_response_module <- function(
-    input, output, session, 
-    reactive_expr, 
-    reactive_phenoData, 
+    id,
+    reactive_expr,
+    reactive_phenoData,
     reactive_featureData,
     reactive_i,
     reactive_attr_drc
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   dr1 <- reactive({
@@ -71,10 +74,12 @@ dose_response_module <- function(
     )
   })
   
-  callModule(
-    dataTableDownload_module, id = "feature", reactive_table = reactive(tabs()$featInfo), prefix = "Response_featureInfo_"
+  dataTableDownload_module(
+    "feature", reactive_table = reactive(tabs()$featInfo), prefix = "Response_featureInfo_"
   )
-  callModule(
-    dataTableDownload_module, id = "param", reactive_table = reactive(tabs()$par), prefix = "Response_par_"
+  dataTableDownload_module(
+    "param", reactive_table = reactive(tabs()$par), prefix = "Response_par_"
   )
+
+  }) # end moduleServer
 }

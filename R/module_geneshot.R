@@ -23,9 +23,12 @@ geneshot_ui <- function(id) {
 }
 
 geneshot_module <- function(
-  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, object,
+  id, pdata, fdata, expr, feature_selected, sample_selected, object,
   reactive_status = reactive(NULL)
 ) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   # select stats from feature data
   triset <- reactive({
@@ -35,10 +38,10 @@ geneshot_module <- function(
   })
 
   xax <- reactiveVal()
-  v1 <- callModule(
-    triselector_module, id = "geneNameCol", reactive_x = triset, label = "Map ID",
-    reactive_selector1 = reactive(xax()$v1), 
-    reactive_selector2 = reactive(xax()$v2), 
+  v1 <- triselector_module(
+    "geneNameCol", reactive_x = triset, label = "Map ID",
+    reactive_selector1 = reactive(xax()$v1),
+    reactive_selector2 = reactive(xax()$v2),
     reactive_selector3 = reactive(xax()$v3)
   )
   
@@ -88,15 +91,14 @@ geneshot_module <- function(
     df
     })  
 
-  rifRow <- callModule(
-    dataTableDownload_module,    
-    id = "autorif", reactive_table = reactive({req(gtab()); gtab()}), prefix = "autoRIF", pageLength = 10)
-  
+  rifRow <- dataTableDownload_module(
+    "autorif", reactive_table = reactive({req(gtab()); gtab()}), prefix = "autoRIF", pageLength = 10)
+
   ##
   output$plt <- plotly::renderPlotly({
     req(df <- gtab())
     fig <- plotly_scatter(
-      x = df$n, y = df$perc, xlab = "# of publication", ylab = "Publications with Search Term(s) / Total Publications", 
+      x = df$n, y = df$perc, xlab = "# of publication", ylab = "Publications with Search Term(s) / Total Publications",
       color = df$selected, size = 10, tooltips=df$gene, shape = "select"
     )
     fig <- plotly::layout(fig$fig, annotations = outliersLabs()) #rif()$outliers)
@@ -135,4 +137,5 @@ geneshot_module <- function(
     reactiveValuesToList(rv)
     })
 
+  }) # end moduleServer
 }

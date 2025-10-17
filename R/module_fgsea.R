@@ -15,34 +15,35 @@ enrichment_fgsea_ui <- function(id) {
 }
 
 #' @description Utility - fgsea shiny module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_featureData reactive feature data
+#' @param reactive_status reactive status for restoring saved sessions
 #' @importFrom stringr str_split_fixed
 #' @importFrom DT renderDataTable datatable
 #' @importFrom fastmatch fmatch
-#' @examples 
+#' @examples
 #' # library(shiny)
 #' # source("Git/R/module_triselector.R")
 #' # source("Git/R/auxi_fgsea.R")
 #' # source("Git/R/module_barplotGsea.R")
-#' # 
-#' 
+#' #
+#'
 # dat <- readRDS("inst/extdata/demo.RDS")
 # obj <- tallGS(dat)
 # fd <- fData(obj)
-# 
+#
 # ui <- fluidPage(
 #   enrichment_fgsea_ui("fgsea")
 # )
 # server <- function(input, output, session) {
-#   callModule(enrichment_fgsea_module, id = "fgsea", reactive_featureData = reactive(fd) )
+#   enrichment_fgsea_module("fgsea", reactive_featureData = reactive(fd) )
 # }
 # shinyApp(ui, server)
 
-enrichment_fgsea_module <- function(input, output, session, reactive_featureData, reactive_status = reactive(NULL)) {
-  
+enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = reactive(NULL)) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   # select stats
@@ -53,10 +54,10 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
   })
 
   xax <- reactiveVal()
-  v1 <- callModule(
-    triselector_module, id = "tris_fgsea", reactive_x = triset, label = "Input variable",
-    reactive_selector1 = reactive(xax()$v1), 
-    reactive_selector2 = reactive(xax()$v2), 
+  v1 <- triselector_module(
+    "tris_fgsea", reactive_x = triset, label = "Input variable",
+    reactive_selector1 = reactive(xax()$v1),
+    reactive_selector2 = reactive(xax()$v2),
     reactive_selector3 = reactive(xax()$v3)
     )
   
@@ -98,10 +99,10 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     )
   })
   
-  vi <- callModule(
-    dataTableDownload_module, id = "stab", 
-    reactive_table = reactive(tab()$table), 
-    reactive_cols = reactive(setdiff(colnames(tab()$table), "leadingEdge")), 
+  vi <- dataTableDownload_module(
+    "stab",
+    reactive_table = reactive(tab()$table),
+    reactive_cols = reactive(setdiff(colnames(tab()$table), "leadingEdge")),
     prefix = "fgsea_"
   )
   
@@ -138,6 +139,8 @@ enrichment_fgsea_module <- function(input, output, session, reactive_featureData
     })
 
   reactive(list(xax = v1()))
+
+  }) # end moduleServer
 }
 
-# 
+#

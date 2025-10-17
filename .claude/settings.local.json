@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for file in R/module_doseResponse.R R/module_string.R R/module_geneshot.R R/module_gsList.R R/module_meta_scatter.R)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)",
+      "Bash(for file in R/module_string.R R/module_geneshot.R R/module_gsList.R R/module_meta_scatter.R)",
+      "Bash(Rscript:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

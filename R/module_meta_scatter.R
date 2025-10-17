@@ -56,11 +56,14 @@ meta_scatter_ui <- function(id) {
 #' # shinyApp(ui, server)
 #' 
 meta_scatter_module <- function(
-  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), 
+  id, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL),
   combine = c("pheno", "feature"), source = "plotlyscattersource",
   reactive_x = reactive(NULL), reactive_y = reactive(NULL),
   reactive_status = reactive(NULL)
 ) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   triset <- reactive( {
@@ -88,31 +91,31 @@ meta_scatter_module <- function(
     yax(r)
   })  
 
-  v1 <- callModule(triselector_module, id = "tris_main_scatter1", reactive_x = triset, label = "X-axis", 
-                   reactive_selector1 = reactive(xax()$v1), 
-                   reactive_selector2 = reactive(xax()$v2), 
+  v1 <- triselector_module("tris_main_scatter1", reactive_x = triset, label = "X-axis",
+                   reactive_selector1 = reactive(xax()$v1),
+                   reactive_selector2 = reactive(xax()$v2),
                    reactive_selector3 = reactive(xax()$v3))
-  v2 <- callModule(triselector_module, id = "tris_main_scatter2", reactive_x = triset, label = "Y-axis",
-                   reactive_selector1 = reactive(yax()$v1), 
-                   reactive_selector2 = reactive(yax()$v2), 
+  v2 <- triselector_module("tris_main_scatter2", reactive_x = triset, label = "Y-axis",
+                   reactive_selector1 = reactive(yax()$v1),
+                   reactive_selector2 = reactive(yax()$v2),
                    reactive_selector3 = reactive(yax()$v3))
-  
+
   pre_vol <- reactiveVal(FALSE)
   # pre_vol <- reactive({
   observe({
     vv <- c("v1", "v2", "v3")
     if (all(vv %in% names(xax())) && all(vv %in% names(yax()))) {
-      if (xax()$v1 == "ttest" && 
-          yax()$v1 == "ttest" && 
-          xax()$v3 == "mean.diff" && 
+      if (xax()$v1 == "ttest" &&
+          yax()$v1 == "ttest" &&
+          xax()$v3 == "mean.diff" &&
           yax()$v3 %in% c("log.fdr", "log.pvalue"))
         pre_vol(TRUE)
-    }    
+    }
   })
-  
+
   attr4select_status <- reactiveVal()
-  attr4select <- callModule(
-    attr4selector_module, id = "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr, 
+  attr4select <- attr4selector_module(
+    "a4selector", reactive_meta = reactive_meta, reactive_expr = reactive_expr,
     reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status
   )
 
@@ -166,11 +169,11 @@ meta_scatter_module <- function(
   showRegLine <- reactiveVal(FALSE)
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()
-  v_scatter <- callModule(
-    plotly_scatter_module, id = "main_scatterOutput", reactive_param_plotly_scatter = scatter_vars,
+  v_scatter <- plotly_scatter_module(
+    "main_scatterOutput", reactive_param_plotly_scatter = scatter_vars,
     reactive_regLine = showRegLine, htest_var1 = htestV1, htest_var2 = htestV2)
   observe({
-    showRegLine(v_scatter()$regline) 
+    showRegLine(v_scatter()$regline)
     })
   
   selVal <- reactiveVal(
@@ -301,4 +304,6 @@ meta_scatter_module <- function(
   #############################################
 
   selVal
+
+  }) # end moduleServer
 }

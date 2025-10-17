@@ -9,9 +9,7 @@ survival_ui <- function(id) {
 }
 
 #' @description Utility survival KM module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_resp reponse value, in the format 1, 345, 345+, 23, 45, 355+
 #' @param reactive_strata strata variable
 #' @param reactive_checkpoint checkpoint
@@ -21,31 +19,33 @@ survival_ui <- function(id) {
 #' #' # library(shiny)
 #' # library(survminer)
 #' # library(survival)
-#' # 
+#' #
 #' # ui <- fluidPage(
 #' #   survival_ui("surv")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#   callModule(survival_module, id = 'surv', reactive_resp = reactive(t), reactive_strata = reactive#' (strata))
+#   survival_module('surv', reactive_resp = reactive(t), reactive_strata = reactive#' (strata))
 #' # }
-#' # 
+#' #
 #' # # significant
 #' # v <- runif(n = 1000, 1, 1000)
 #' # t <- paste0(v, sample(c("", "+"), replace = TRUE, size = 1000))
 #' # strata <- c("a", "b")[as.integer(v < 500)+1]
 #' # shinyApp(ui, server)
-#' # 
+#' #
 #' # # insignificant
 #' # v <- runif(n = 1000, 1, 1000)
 #' # t <- paste0(v, sample(c("", "+"), replace = TRUE, size = 1000))
 #' # strata <- sample(c("a", "b"), replace = TRUE, size = 1000)
 #' # shinyApp(ui, server)
-#' 
+#'
 survival_module <- function(
-  input, output, session, reactive_resp, reactive_strata, reactive_checkpoint = reactive(TRUE)
+  id, reactive_resp, reactive_strata, reactive_checkpoint = reactive(TRUE)
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   dat <- reactive({
@@ -84,8 +84,10 @@ survival_module <- function(
     }
     
     ggsurvplot(fit, data = df, risk.table = TRUE, conf.int = TRUE, pval = lab, surv.median.line = "hv")
-    
+
   })
+
+  }) # end moduleServer
 }
 
 

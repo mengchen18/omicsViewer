@@ -6,18 +6,18 @@ gslist_ui <- function(id) {
   dataTableDownload_ui(ns("stab"))
 }
 
-#' @description Utility enrichment analysis shiny module
-#' @param input input
-#' @param output output
-#' @param session session
-#' @param reactive_i reactive index of rows to be selected (for ORA)
+#' @description Utility gene set list shiny module
+#' @param id module id
 #' @param reactive_featureData reactive feature data
+#' @param reactive_i reactive index of rows to be selected
 #' @importFrom fastmatch fmatch
 
 gslist_module <- function(
-  input, output, session, reactive_featureData, reactive_i
+  id, reactive_featureData, reactive_i
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   reactive_pathway <- reactive({    
@@ -40,14 +40,16 @@ gslist_module <- function(
     df
     })
   
-  ii <- callModule(
-    dataTableDownload_module, id = "stab", reactive_table = reactive({
+  ii <- dataTableDownload_module(
+    "stab", reactive_table = reactive({
       tab()[, setdiff(colnames(tab()), "featureId")]
       }), prefix = "gslist_", pageLength = 25
   )
 
-  reactive({    
+  reactive({
     req(ii())
     as.character( tab()$featureId[ii()] )
     })
+
+  }) # end moduleServer
 }

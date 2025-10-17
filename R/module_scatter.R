@@ -267,8 +267,17 @@ plotly_scatter <- function(
       modeBarButtonsToAdd = modeBarAdd
     )
   
-  return(list(fig = toWebGL(fig), data = df))
-  # return(list(fig = fig, data = df))
+  # Try to convert to WebGL for performance, but fall back to regular plotly if it fails
+  # Note: Some trace types (e.g., markers with custom symbols) may not support WebGL
+  fig_webgl <- tryCatch(
+    toWebGL(fig),
+    error = function(e) {
+      warning("Could not convert plot to WebGL, using standard rendering: ", e$message)
+      fig
+    }
+  )
+
+  return(list(fig = fig_webgl, data = df))
 }
 
 
@@ -352,13 +361,11 @@ plotly_scatter_ui <- function(id, height = "400px") {
 
 #' Shiny module for scatter plot using plotly - Module
 #' @description Function should only be used for the developers
-#' @param input input
-#' @param output output
-#' @param session sesion
+#' @param id module id
 #' @param reactive_param_plotly_scatter reactive parammeters for plotly_scatter
 #' @param reactive_regLine logical show or hide the regression line
 #' @param reactive_checkpoint checkpoint
-#' @param htest_var1 when the plot is a beeswarmplot, two groups could be selected for two group comparison, this 
+#' @param htest_var1 when the plot is a beeswarmplot, two groups could be selected for two group comparison, this
 #'   argument gives the default value. Mainly used for restoring the saved session.
 #' @param htest_var2 see above
 #' @importFrom fastmatch '%fin%'
@@ -367,22 +374,22 @@ plotly_scatter_ui <- function(id, height = "400px") {
 #' @examples
 #' if (interactive()) {
 #'   library(shiny)
-#'   
+#'
 #'   # two random variables
 #'   x <- rnorm(30)
 #'   y <- x + rnorm(30, sd = 0.5)
-#'   
+#'
 #'   # variables mapped to color, shape and size
-#'   cc <- sample(letters[1:4], replace = TRUE, size = 30) 
+#'   cc <- sample(letters[1:4], replace = TRUE, size = 30)
 #'   shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
 #'   sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
-#'   
+#'
 #'   ui <- fluidPage(
 #'     plotly_scatter_ui("test_scatter")
 #'   )
-#'   
+#'
 #'   server <- function(input, output, session) {
-#'     v <- callModule(plotly_scatter_module, id = "test_scatter",
+#'     v <- plotly_scatter_module("test_scatter",
 #'                     # reactive_checkpoint = reactive(FALSE),
 #'                     reactive_param_plotly_scatter = reactive(list(
 #'                       x = x, y = y,
@@ -394,31 +401,31 @@ plotly_scatter_ui <- function(id, height = "400px") {
 #'     observe(print(v()))
 #'   }
 #'   shinyApp(ui, server)
-#'   
-#'   
-#'   
+#'
+#'
+#'
 #'   # example beeswarm horizontal
 #'   x <- rnorm(30)
 #'   y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
 #'   shinyApp(ui, server)
-#'   
+#'
 #'   # example beeswarm vertical
 #'   x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
 #'   y <- rnorm(30)
 #'   shinyApp(ui, server)
-#'   
-#'   # return values 
+#'
+#'   # return values
 #'   x <- c(5, 6, 3, 4, 1, 2)
 #'   y <- c(5, 6, 3, 4, 1, 2)
 #'   ui <- fluidPage(
 #'     plotly_scatter_ui("test_scatter")
 #'   )
 #'   server <- function(input, output, session) {
-#'     v <- callModule(plotly_scatter_module, id = "test_scatter",
+#'     v <- plotly_scatter_module("test_scatter",
 #'                     reactive_param_plotly_scatter = reactive(list(
 #'                       x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
 #'                     )))
-#'     
+#'
 #'     observe(print(v()))
 #'   }
 #'   shinyApp(ui, server)
@@ -426,9 +433,11 @@ plotly_scatter_ui <- function(id, height = "400px") {
 #' @return an reactive object containing the information of selected, brushed points.
 
 plotly_scatter_module <- function(
-  input, output, session, reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
+  id, reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
   reactive_checkpoint = reactive(TRUE), htest_var1 = reactive(NULL), htest_var2 = reactive(NULL)
   ) {
+
+  moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
   
@@ -614,6 +623,8 @@ plotly_scatter_module <- function(
       htest_V2 = input$group2
     )
   })
+
+  }) # end moduleServer
 }
 
 

@@ -101,13 +101,11 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 }
 
 #' @description Application level 1 module - data space
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param expr reactive value; expression matrix
 #' @param pdata reactive value; phenotype data
 #' @param fdata reactive value; feature data
-#' @param cormat reactive value; correlation matrix. if not given, calculated on the fly. 
+#' @param cormat reactive value; correlation matrix. if not given, calculated on the fly.
 #' @param reactive_x_s pre-selected x axis for sample space
 #' @param reactive_y_s pre-selected y axis for sample space
 #' @param reactive_x_f pre-selected x axis for feature space
@@ -115,12 +113,14 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 #' @param status intial status
 
 L1_data_space_module <- function(
-  input, output, session, expr, pdata, fdata, 
+  id, expr, pdata, fdata,
   reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
   reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
   cormat = reactive(NULL), status = reactive(NULL)
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   # ====== calculate correlation matrix and related component =====
@@ -144,29 +144,29 @@ L1_data_space_module <- function(
       stop("Incorrect dimension of cormat!")    
     })
 
-  s_cor_heatmap <- callModule(
-    iheatmapModule, 'corheatmapViewer', mat = cmat, pd = pdata, fd = pdata,
+  s_cor_heatmap <- iheatmapModule(
+    'corheatmapViewer', mat = cmat, pd = pdata, fd = pdata,
     status = reactive(status()$eset_cor_heatmap), fill.NA = FALSE
   )
   
   # # heatmap
-  s_heatmap <- callModule(
-    iheatmapModule, 'heatmapViewer', mat = expr, pd = pdata, fd = fdata, 
+  s_heatmap <- iheatmapModule(
+    'heatmapViewer', mat = expr, pd = pdata, fd = fdata,
     status = reactive(status()$eset_heatmap)
   )
 
   # ============ feature space - scatter plot ===========
   # r_feature_fig <- reactiveVal()
-  s_feature_fig <- callModule(
-    meta_scatter_module, id = "feature_space", reactive_meta = fdata, reactive_expr = expr,
+  s_feature_fig <- meta_scatter_module(
+    "feature_space", reactive_meta = fdata, reactive_expr = expr,
     combine = "feature", source = "scatter_meta_feature", reactive_x = reactive_x_f,
     reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig)
   )
 
   # ============ sample space - scatter plot ============
   # r_sample_fig <- reactiveVal()# DONOT REMOVE
-  s_sample_fig <- callModule(
-    meta_scatter_module, id = "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
+  s_sample_fig <- meta_scatter_module(
+    "sample_space", reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
     reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig)
   )
   
@@ -266,16 +266,16 @@ L1_data_space_module <- function(
   })
 
   ## tables
-  tab_pd <- callModule(
-    dataTable_module, id = "tab_pheno",  reactive_data = pdata,
+  tab_pd <- dataTable_module(
+    "tab_pheno", reactive_data = pdata,
     tab_status = reactive(status()$eset_pdata_tab), tab_rows = tab_rows_pdata
   )
-  tab_fd <- callModule(
-    dataTable_module, id = "tab_feature",  reactive_data = fdata,
+  tab_fd <- dataTable_module(
+    "tab_feature", reactive_data = fdata,
     tab_status = reactive(status()$eset_fdata_tab), tab_rows = tab_rows_fdata
   )
-  tab_expr <- callModule(
-    dataTable_module, id = "tab_expr",  reactive_data = reactive({
+  tab_expr <- dataTable_module(
+    "tab_expr", reactive_data = reactive({
       req(expr())
       cbind(data.frame(feature = rownames(expr()), expr()))
     }), tab_status = reactive(status()$eset_exprs_tab),
@@ -348,8 +348,8 @@ L1_data_space_module <- function(
     })
 
   # GS List
-  tab_gslist <- callModule(
-    gslist_module, id = "gsList", reactive_i = tab_rows_fdata, reactive_featureData = fdata
+  tab_gslist <- gslist_module(
+    "gsList", reactive_i = tab_rows_fdata, reactive_featureData = fdata
   )
 
   observeEvent(tab_gslist(), {
@@ -403,8 +403,8 @@ L1_data_space_module <- function(
     list(expr = e0, fd = fd, pd = pd)
     })
 
-  s_dyn_heatmap <- callModule(
-    iheatmapModule, 'dynheatmapViewer', 
+  s_dyn_heatmap <- iheatmapModule(
+    'dynheatmapViewer',
     mat = reactive(hdmat()$expr), pd = reactive(hdmat()$pd), fd = reactive(hdmat()$fd),
     status = reactive(status()$eset_dyn_heatmap), fill.NA = FALSE
   )
@@ -458,5 +458,7 @@ L1_data_space_module <- function(
     attr(l, "status") <- sta
     l
   })
+
+  }) # end moduleServer
 }
 

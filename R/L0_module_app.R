@@ -1,23 +1,57 @@
-#' Application level 0 UI
-#' @description Function should only be used for the developers
-#' @param id id
-#' @param showDropList logical; whether to show the dropdown list to select RDS file, if the 
-#'   ESVObj is given, this should be set to "FALSE"
-#' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
+#' omicsViewer Application UI (Level 0)
+#'
+#' @description
+#' Generates the user interface for the main omicsViewer application. This function creates
+#' a responsive layout with data exploration panels, snapshot functionality, and data export
+#' capabilities. Primarily intended for developers extending the application.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID used in
+#'   \code{\link{app_module}}.
+#' @param showDropList Logical. Whether to display the file selection dropdown menu.
+#'   Set to FALSE when providing data directly via \code{ESVObj} parameter in
+#'   \code{\link{app_module}}. Default: TRUE.
+#' @param activeTab Character. Initial tab to display when data is loaded. Options:
+#'   \itemize{
+#'     \item "Feature" - Feature space scatter plot
+#'     \item "Feature table" - Feature metadata table
+#'     \item "Sample" - Sample space scatter plot
+#'     \item "Sample table" - Sample metadata table
+#'     \item "Cor" - Correlation heatmap
+#'     \item "Heatmap" - Expression heatmap
+#'     \item "Dynamic heatmap" - Interactive heatmap with selection
+#'     \item "Expression" - Expression matrix table
+#'     \item "GSList" - Gene set membership table
+#'   }
+#'   Default: "Feature".
+#'
+#' @return
+#' A \code{fluidRow} containing the complete UI structure, including:
+#' \itemize{
+#'   \item File selection dropdown (if \code{showDropList = TRUE})
+#'   \item Data summary display
+#'   \item Export and snapshot buttons
+#'   \item Two-column layout with data space (left) and analysis space (right)
+#' }
+#'
 #' @export
+#' @importFrom shinyjs useShinyjs hidden
+#'
+#' @seealso
+#' \code{\link{app_module}} for the corresponding server logic.
+#' \code{\link{omicsViewer}} for the high-level application launcher.
+#'
 #' @examples
 #' if (interactive()) {
 #'   dir <- system.file("extdata", package = "omicsViewer")
-#'   server <- function(input, output, session) {
-#'     callModule(app_module, id = "app", dir = reactive(dir))
-#'   }
 #'   ui <- fluidPage(
-#'     app_ui("app")
+#'     app_ui("app", showDropList = TRUE, activeTab = "Feature")
 #'   )
+#'   server <- function(input, output, session) {
+#'     app_module("app", .dir = reactive(dir))
+#'   }
 #'   shinyApp(ui = ui, server = server)
 #' }
-#' @return a list of UI components
-#' @importFrom shinyjs useShinyjs hidden
+#' @keywords internal
 
 app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
   ns <- NS(id)
@@ -57,9 +91,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 
 #' Application level 0 module
 #' @description Function should only be used for the developers
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param .dir reactive; directory containing the .RDS file of \code{ExpressionSet} or \code{SummarizedExperiment}
 #' @param filePattern file pattern to be displayed.
 #' @param additionalTabs additional tabs added to "Analyst" panel
@@ -68,9 +100,9 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @param imputeGetter function to get the imputed expression matrix from eset, only used when exporting imputed data to excel
 #' @param pDataGetter function to get the phenotype data from eset
 #' @param fDataGetter function to get the feature data from eset
-#' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two 
-#'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
-#'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively. 
+#' @param defaultAxisGetter function to get the default axes to be visualized. It should be a function with two
+#'   arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the
+#'   sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.
 #' @param appName name of the application
 #' @param appVersion version of the application
 #' @param ESVObj the ESV object
@@ -80,7 +112,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @importFrom DT renderDT DTOutput dataTableProxy
 #' @importFrom grDevices colorRampPalette
 #' @importFrom graphics abline axis barplot image mtext par plot text
-#' @importFrom stats 
+#' @importFrom stats
 #'  as.dendrogram
 #'  as.dist
 #'  as.hclust
@@ -102,7 +134,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' if (interactive()) {
 #'   dir <- system.file("extdata", package = "omicsViewer")
 #'   server <- function(input, output, session) {
-#'     callModule(app_module, id = "app", dir = reactive(dir))
+#'     app_module("app", .dir = reactive(dir))
 #'   }
 #'   ui <- fluidPage(
 #'     app_ui("app")
@@ -112,12 +144,14 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #' @return do not return any values
 
 app_module <- function(
-  input, output, session, .dir, filePattern = ".(RDS|db|sqlite|sqlite3)$", additionalTabs = NULL, ESVObj = reactive(NULL),
-  esetLoader = readESVObj, exprsGetter = getExprs, pDataGetter = getPData, fDataGetter = getFData, 
+  id, .dir, filePattern = ".(RDS|db|sqlite|sqlite3)$", additionalTabs = NULL, ESVObj = reactive(NULL),
+  esetLoader = readESVObj, exprsGetter = getExprs, pDataGetter = getPData, fDataGetter = getFData,
   imputeGetter = getExprsImpute, defaultAxisGetter = getAx,
   appName = "omicsViewer", appVersion = packageVersion("omicsViewer")
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
 
   ll <- reactive({
@@ -338,35 +372,35 @@ app_module <- function(
   })
 
   # v1 <- reactiveVal()
-  v1 <- callModule(
-    L1_data_space_module, id = "dataspace", expr = expr, pdata = pdata, fdata = fdata,
+  v1 <- L1_data_space_module(
+    "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
     status = esv_status, cormat = cormat
-  )  
-  
+  )
+
   sameValues <- function(a, b) {
-    if (is.null(a) || is.null(b)) 
-      return(FALSE)    
-    all(sort(a) == sort(b)) 
+    if (is.null(a) || is.null(b))
+      return(FALSE)
+    all(sort(a) == sort(b))
     }
   ri <- reactiveVal()
   observeEvent( v1(), {
-    ri( c(v1()$feature) ) 
+    ri( c(v1()$feature) )
     })
   observeEvent( expr(), ri(NULL) )
-  
+
   rh <- reactiveVal()
   observeEvent( v1(), {
     rh( c( v1()$sample ) )
     })
   observeEvent( expr(), rh(NULL) )
 
-  v2 <- callModule(L1_result_space_module, id = "resultspace",
+  v2 <- L1_result_space_module("resultspace",
                    reactive_expr = expr,
                    reactive_phenoData = pdata,
                    reactive_featureData = fdata,
-                   reactive_i = ri, 
-                   reactive_highlight = rh, 
+                   reactive_i = ri,
+                   reactive_highlight = rh,
                    additionalTabs = additionalTabs,
                    object = reactive_eset,
                    status = esv_status)
@@ -502,8 +536,10 @@ app_module <- function(
     df <- savedSS()
     unlink(file.path(.dir(), df[i, 2]))
     df <- df[-i, , drop = FALSE]
-    savedSS(df)    
+    savedSS(df)
     })
+
+  }) # end moduleServer
 }
 
 

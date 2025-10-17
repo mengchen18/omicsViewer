@@ -53,38 +53,38 @@ factorIndependency_ui <- function(id) {
 }
 
 #' @description utility - factorIndependency shiny module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param x x, char vector
 #' @param y y, char vector, same length as x
 #' @param reactive_checkpoint checkpoint
 #' @examples
 #' 1 #
 #' # library(shiny)
-#' # 
+#' #
 #' # ui <- fluidPage(
 #' #   factorIndependency_ui("cti")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
 #' #   x0 <- reactive( sample(c('A', "B"), size = 30, replace = TRUE) )
 #' #   y0 <- reactive( sample(c('a', "b", "c"), size = 30, replace = TRUE) )
-#' #   callModule(factorIndependency_module, id = "cti", x = x0, y = y0)
+#' #   factorIndependency_module("cti", x = x0, y = y0)
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
-#' # 
-#' # 
+#' #
+#' #
 #' # t1 <- sample(c('A', "B"), size = 30, replace = TRUE)
 #' # t2 <- sample(c('a', "b", "c"), size = 30, replace = TRUE)
 #' # u <- factorIndependency(t1, t2)
 #' # u <- u$cont.table
 
 factorIndependency_module <- function(
-  input, output, session, x, y, reactive_checkpoint = reactive(TRUE)
+  id, x, y, reactive_checkpoint = reactive(TRUE)
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   stats <- reactive({
@@ -125,11 +125,13 @@ factorIndependency_module <- function(
   output$p.table.output <- DT::renderDataTable({
     req(stats())
     DT::datatable(stats()$p.table,
-                  options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), 
+                  options = list(searching = FALSE, lengthChange = FALSE, dom = 't'),
                   rownames = FALSE, class = "compact",
                   caption = "Significance test of the independence"
     )
   })
+
+  }) # end moduleServer
 }
 
 

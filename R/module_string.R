@@ -24,10 +24,10 @@ string_ui <- function(id) {
 }
 
 #' @description Utility string module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_ids ids passed to stringDB
+#' @param reactive_status reactive status for restoring
+#' @param active reactive logical indicating if active
 #' @importFrom networkD3 renderForceNetwork forceNetworkOutput
 #' @examples
 #' #' # # # ####################
@@ -36,21 +36,23 @@ string_ui <- function(id) {
 #' # dat <- readRDS("Dat/exampleEset.RDS")
 #' # fd <- Biobase::fData(dat)
 # ids <- fd$`General|All|Protein ID`[which(fd$`t-test|RE_BR|pval` < 0.05 & fd$`t-test|RE_BR|md` > #' 0.5)]
-#' # 
+#' #
 #' # ui <- fluidPage(
 #' #   string_ui("str")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#' #   callModule(string_module, id = "str", reactive_ids = reactive(ids))
+#' #   string_module("str", reactive_ids = reactive(ids))
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
-#' 
+#'
 string_module <- function(
-  input, output, session, reactive_ids, reactive_status = reactive(NULL), active = reactive(FALSE)
+  id, reactive_ids, reactive_status = reactive(NULL), active = reactive(FALSE)
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   overflow <- reactive({
@@ -114,15 +116,15 @@ string_module <- function(
     stringD3Net(ntwk = nk(), gsa = gs(), i = highlightP(), label = input$showLabel)
   })
   
-  tt <- callModule(
-    dataTableDownload_module, id = "strtab", reactive_table = eventReactive(gs(), {
+  tt <- dataTableDownload_module(
+    "strtab", reactive_table = eventReactive(gs(), {
       req(!nores())
-      req(!overflow())      
+      req(!overflow())
       req(nrow(gs()) > 0)
       gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
     }), prefix = "FeatureTable_"
   )
-  
+
   observe({
     req(tt())
     highlightP(tt())
@@ -141,8 +143,10 @@ string_module <- function(
     })
 
   reactive({
-    list( tax = input$tax, showLabel = input$showLabel ) # nk = nk(), gs = gs(), 
+    list( tax = input$tax, showLabel = input$showLabel ) # nk = nk(), gs = gs(),
     })
+
+  }) # end moduleServer
 }
 
 

@@ -17,14 +17,12 @@ enrichment_analysis_ui <- function(id) {
 }
 
 #' @description Utility enrichment analysis shiny module
-#' @param input input
-#' @param output output
-#' @param session session
-#' @param reactive_i reactive index of rows to be selected (for ORA)
+#' @param id module id
 #' @param reactive_featureData reactive feature data
+#' @param reactive_i reactive index of rows to be selected (for ORA)
 #' @importFrom fastmatch fmatch
 #' @importFrom stats cutree
-#' @examples 
+#' @examples
 #' #' # source("Git/R/auxi_fgsea.R")
 #' # source("Git/R/auxi_vectORA.R")
 #' # source("Git/R/module_barplotGsea.R")
@@ -37,8 +35,7 @@ enrichment_analysis_ui <- function(id) {
 #   enrichment_analysis_ui("ea")
 # )
 # server <- function(input, output, session) {
-#   callModule(
-#     enrichment_analysis_module, id = "ea",
+#   enrichment_analysis_module("ea",
 #     reactive_featureData = reactive(fd), reactive_i = reactive(selected_ids)
 #   )
 # }
@@ -46,9 +43,11 @@ enrichment_analysis_ui <- function(id) {
 
 
 enrichment_analysis_module <- function(
-  input, output, session, reactive_featureData, reactive_i
+  id, reactive_featureData, reactive_i
 ) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   reactive_pathway <- reactive({
@@ -59,8 +58,8 @@ enrichment_analysis_module <- function(
     trisetter(meta = reactive_featureData(), combine = "none")
   })
 
-  v1 <- callModule(
-    triselector_module, id = "tris_ora", reactive_x = triset, label = "Collapse features on"
+  v1 <- triselector_module(
+    "tris_ora", reactive_x = triset, label = "Collapse features on"
     )
 
   size_bg <- reactiveVal()
@@ -161,13 +160,13 @@ enrichment_analysis_module <- function(
     verbatimTextOutput(ns("errorMsg"))
   )
   
-  vi <- callModule(
-    dataTableDownload_module, id = "stab", 
+  vi <- dataTableDownload_module(
+    "stab",
     reactive_table = reactive({
       req(is.data.frame(oraTab()))
       oraTab()
-    }), 
-    reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
+    }),
+    reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ),
     prefix = "ORA_", sortBy = "p.value", decreasing = FALSE, pageLength = 8
   )
 
@@ -200,10 +199,12 @@ enrichment_analysis_module <- function(
     df1
     })
 
-  vi2 <- callModule(
-    dataTableDownload_module, id = "overlapTab", 
+  vi2 <- dataTableDownload_module(
+    "overlapTab",
     reactive_table = hd,
-    # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ), 
+    # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ),
     prefix = "ORA_overlapGenes_", pageLength = 8
   )
+
+  }) # end moduleServer
 }

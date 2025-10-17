@@ -14,14 +14,12 @@ sample_general_ui <- function(id) {
 }
 
 #' @description Utility sample general module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_phenoData reactive phenotype data
 #' @param reactive_expr reactive expression data
 #' @param reactive_j index for which row in phenotype data should be highlighted/selected
 #' @param reactive_status saved status to restore
-#' @examples 
+#' @examples
 #' #' # library(shiny)
 #' # #
 #' # source("Git/R/module_triselector.R")
@@ -30,23 +28,25 @@ sample_general_ui <- function(id) {
 #' # source("Git/R/module_survival.R")
 #' # source("Git/R/module_figureAttr4.R")
 #' # source("Git/R/auxi_figureAttr4.R")
-#' # 
+#' #
 #' # dat <- readRDS("Dat/exampleEset.RDS")
 #' # pd <- pData(dat)
-#' # 
+#' #
 #' # ui <- fluidPage(
 #' #   sample_general_ui("sample_general")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#   callModule(sample_general_module, id = "sample_general", reactive_phenoData = reactive(pd), #' reactive_j = reactive(sample(rownames(pd), size = 20)) )
+#   sample_general_module("sample_general", reactive_phenoData = reactive(pd), #' reactive_j = reactive(sample(rownames(pd), size = 20)) )
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
 #'
-sample_general_module <- function(input, output, session, reactive_phenoData, reactive_expr,
+sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   reactive_j = reactive(NULL), reactive_status = reactive(NULL)) {
-  
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   triset <- reactive({
@@ -54,12 +54,12 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
 
   xax <- reactiveVal()
-  v1 <- callModule(
-    triselector_module, id = "tris_sample_general", reactive_x = triset, label = "Link selection to",
-    reactive_selector1 = reactive(xax()$v1), 
-    reactive_selector2 = reactive(xax()$v2), 
+  v1 <- triselector_module(
+    "tris_sample_general", reactive_x = triset, label = "Link selection to",
+    reactive_selector1 = reactive(xax()$v1),
+    reactive_selector2 = reactive(xax()$v2),
     reactive_selector3 = reactive(xax()$v3))
-  
+
   attr4select_status <- reactiveVal()
   reactive_input <- reactive({
     req(reactive_phenoData())
@@ -68,8 +68,8 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
     colnames(ee) <- paste0("Feature|Auto|", colnames(ee))
     cbind(reactive_phenoData(), ee)
   })
-  attr4select <- callModule(
-    attr4selector_module, id = "a4_gp", reactive_meta = reactive_input, 
+  attr4select <- attr4selector_module(
+    "a4_gp", reactive_meta = reactive_input,
     reactive_triset = triset, reactive_status = attr4select_status
   )
   
@@ -119,21 +119,21 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   })
   
   ## beeswarm
-  # showRegLine <- reactiveVal(FALSE)  
+  # showRegLine <- reactiveVal(FALSE)
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()
-  vs_scatter <- callModule(
-    plotly_scatter_module, id = "sample_general_beeswarm", 
+  vs_scatter <- plotly_scatter_module(
+    "sample_general_beeswarm",
     reactive_param_plotly_scatter = reactive({
       req(reactive_j())
       req(pheno()$value)
       tooltips <- attr4select$tooltips
       if (is.null(tooltips))
-        tooltips <- rownames(reactive_phenoData())      
+        tooltips <- rownames(reactive_phenoData())
       l <- list(
-        x = select(), 
+        x = select(),
         y = pheno()$value,
-        xlab = "", 
+        xlab = "",
         ylab = do.call(paste, list(v1(), collapse = "|")),
         tooltips = tooltips
       )
@@ -143,23 +143,23 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
       l$highlight <- attr4select$highlight
       l$highlightName <- attr4select$highlightName
       l
-    }), 
+    }),
     reactive_regLine = reactive(FALSE), # showRegLine,
     reactive_checkpoint = reactive(pheno()$type == "beeswarm"),
     htest_var1 = htestV1, htest_var2 = htestV2)
-  
+
   # cont table stats
-  callModule(factorIndependency_module, id = "sample_general_contab", 
+  factorIndependency_module("sample_general_contab",
              x = select, y = reactive(pheno()$value),
              reactive_checkpoint = reactive(pheno()$type == "table")
   )
-  
+
   ## survival
-  callModule(survival_module, id = 'sample_general_surv', 
+  survival_module('sample_general_surv',
              reactive_resp = reactive(pheno()$value), reactive_strata = select,
              reactive_checkpoint = reactive(pheno()$type == "surv")
   )
-  
+
   ## table
   metatab <- reactive({
     req(reactive_j())
@@ -171,9 +171,9 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
     colnames(tab) <- sub('General\\|All\\|', "", colnames(tab))
     tab
   })
-  
-  callModule(
-    dataTableDownload_module, id = "msatab", reactive_table = metatab, prefix = "SampleTable_"
+
+  dataTableDownload_module(
+    "msatab", reactive_table = metatab, prefix = "SampleTable_"
   )
 
 
@@ -211,4 +211,6 @@ sample_general_module <- function(input, output, session, reactive_phenoData, re
   reactive(
     reactiveValuesToList(rv)
     )
+
+  }) # end moduleServer
 }

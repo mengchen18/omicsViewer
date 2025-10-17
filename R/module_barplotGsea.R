@@ -107,7 +107,7 @@ plotly_barplot <- function(
   # Only convert line trace to WebGL (trace 0), not bar traces
   # Bar traces don't have WebGL equivalents and will generate warnings
   tryCatch(
-    toWebGL(fig, 0),
+    toWebGL(fig),
     error = function(e) fig
   )
 }
@@ -125,16 +125,14 @@ plotly_barplot_ui <- function(id) {
 }
 
 #' @description utility - barplot shiny module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param ... other parameters passed to plotly_barplot function, except source
-#' @examples 
+#' @examples
 #' 1
 #' # library(shiny)
 #' # dat <- readRDS("Dat/exampleEset.RDS")
 #' # fd <- fData(dat)
-#' # 
+#' #
 #' # # # examples
 #' # ui <- fluidPage(
 #' #   plotly_barplot_ui("tx")
@@ -144,22 +142,26 @@ plotly_barplot_ui <- function(id) {
 #' #   # n <- 100
 #' #   s_x <- fd$`t-test|OV_BR|md`
 #' #   s_n <- rownames(fd)
-#' #   v <- callModule(plotly_barplot_module, id = "tx",
+#' #   v <- plotly_barplot_module("tx",
 #' #              x = s_x, names = s_n, highlight <- c(5, 6, 9, 10, NA) , sort = "inc")
 #' #   observe(print(v()))
 #' # }
 #' # shinyApp(ui, server)
-#' 
-plotly_barplot_module <- function(input, output, session, ...) {
-  
+#'
+plotly_barplot_module <- function(id, ...) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   output$plot <- renderPlotly(
     do.call(plotly_barplot, args = list(..., source = ns("barplotly")))
   )
-  
+
   reactive(
     event_data("plotly_click", source = ns('barplotly') )
   )
+
+  }) # end moduleServer
 }
 
 

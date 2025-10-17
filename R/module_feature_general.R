@@ -25,10 +25,8 @@ feature_general_ui <- function(id) {
   )
 }
 
-#' @description utility - feature general ui
-#' @param input input
-#' @param output output
-#' @param session session
+#' @description utility - feature general module
+#' @param id module id
 #' @param reactive_expr reactive expression matrix
 #' @param reactive_i reactive row index to be highlighted
 #' @param reactive_highlight reactive col index to be highlighted
@@ -38,7 +36,7 @@ feature_general_ui <- function(id) {
 #' @importFrom DT renderDataTable
 #' @importFrom reshape2 melt
 #' @importFrom shinyWidgets radioGroupButtons updateRadioGroupButtons
-#' @examples 
+#' @examples
 #' #' # library(shiny)
 #' # library(shinyBS)
 #' # library(Biobase)
@@ -50,14 +48,14 @@ feature_general_ui <- function(id) {
 #' # source("Git/R/module_boxplot.R")
 #' # source("Git/R/module_figureAttr4.R")
 #' # source("Git/R/auxi_figureAttr4.R")
-#' # 
-#' # 
+#' #
+#' #
 #' # ui <- fluidPage(
 #' #   feature_general_ui("tres")
 #' # )
-#' # 
+#' #
 #' # server <- function(input, output, session) {
-#' #   v <- callModule(feature_general_module, id = "tres",
+#' #   v <- feature_general_module("tres",
 #' #                   reactive_expr = reactive(exprs(dat)),
 #' #                   # reactive_i = reactive(c(5, 6, 7)),
 #' #                   reactive_i = reactive(c( 7)),
@@ -65,16 +63,19 @@ feature_general_ui <- function(id) {
 #' #                   reactive_phenoData = reactive(pData(dat)),
 #' #                   reactive_featureData = reactive(fData(dat)))
 #' # }
-#' # 
+#' #
 #' # shinyApp(ui, server)
 
 
-feature_general_module <- function(input, output, session, 
-                                   reactive_expr, reactive_i = reactive(NULL), 
+feature_general_module <- function(id,
+                                   reactive_expr, reactive_i = reactive(NULL),
                                    reactive_highlight = reactive(NULL),
-                                   reactive_phenoData, 
+                                   reactive_phenoData,
                                    reactive_featureData,
                                    reactive_status = reactive(NULL)) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   # selector
@@ -84,15 +85,15 @@ feature_general_module <- function(input, output, session,
   })
   
   xax <- reactiveVal()
-  v1 <- callModule(
-    triselector_module, id = "tris_feature_general", reactive_x = triset, label = "Link to variable", 
-    reactive_selector1 = reactive(xax()$v1), 
-    reactive_selector2 = reactive(xax()$v2), 
+  v1 <- triselector_module(
+    "tris_feature_general", reactive_x = triset, label = "Link to variable",
+    reactive_selector1 = reactive(xax()$v1),
+    reactive_selector2 = reactive(xax()$v2),
     reactive_selector3 = reactive(xax()$v3))
 
   attr4select_status <- reactiveVal()
-  attr4select <- callModule(
-    attr4selector_module, id = "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr, 
+  attr4select <- attr4selector_module(
+    "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr,
     reactive_triset = triset, reactive_status = attr4select_status
   )
   
@@ -149,23 +150,23 @@ feature_general_module <- function(input, output, session,
     })
 
   # boxplot:
-  #  - no phenoData selected 
+  #  - no phenoData selected
   #  - multi feature selected - numerical phenoData selected - boxplot with external
-  callModule(plotly_boxplot_module, id = "feature_general_boxplotly",
+  plotly_boxplot_module("feature_general_boxplotly",
              reactive_param_plotly_boxplot = reactive({
                req(reactive_expr())
                ylab <- rownames(reactive_expr())[reactive_i()]
-               if (length(ylab) > 1) 
+               if (length(ylab) > 1)
                 ylab <- "Abundance of selected features" else if (length(ylab) == 0)
                   ylab <- "Relative abundance" else if (is.na(ylab))
-                    ylab <- "Relative abundance" 
+                    ylab <- "Relative abundance"
                ylab.extvar <- do.call(paste, list(v1(), collapse = "|"))
                list(
-                 x = reactive_expr(), i = reactive_i(), 
-                 highlight = rh(), 
+                 x = reactive_expr(), i = reactive_i(),
+                 highlight = rh(),
                  extvar = pheno(),
                  ylab = ylab, ylab.extvar = ylab.extvar)
-             }), 
+             }),
              reactive_checkpoint = showBoxplot
   )
   
@@ -214,23 +215,23 @@ feature_general_module <- function(input, output, session,
   showRegLine <- reactiveVal(FALSE)
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()
-  v_scatter <- callModule(plotly_scatter_module, id = "feature_general_scatter",
+  v_scatter <- plotly_scatter_module("feature_general_scatter",
                           reactive_param_plotly_scatter = scatter_vars,
                           reactive_checkpoint = showScatter,
-                          reactive_regLine = reactive( showRegLine()))    
+                          reactive_regLine = reactive( showRegLine()))
   observe({
-    showRegLine(v_scatter()$regline) 
+    showRegLine(v_scatter()$regline)
     })
-  
+
   ## beeswarm:
   # - single feature selected - categorical phenoData selected
   # - multi feature selected - categorical phenoData selected
-  v_beeswarm <- callModule(plotly_scatter_module, id = "feature_general_beeswarm",
-                           reactive_param_plotly_scatter = scatter_vars, 
+  v_beeswarm <- plotly_scatter_module("feature_general_beeswarm",
+                           reactive_param_plotly_scatter = scatter_vars,
                            reactive_checkpoint = showBeeswarm,
                            htest_var1 = htestV1, htest_var2 = htestV2)
 
-  callModule(plot_roc_pr_module, id = "feature_general_roc_pr",
+  plot_roc_pr_module("feature_general_roc_pr",
     reactive_param = scatter_vars, reactive_checkpoint = showBeeswarm)
   
   metatab <- reactive({
@@ -243,9 +244,9 @@ feature_general_module <- function(input, output, session,
     colnames(tab) <- sub('General\\|All\\|', "", colnames(tab))
     tab
   })
-  
-  callModule(
-    dataTableDownload_module, id = "mtab", reactive_table = metatab, prefix = "FeatureTable_"
+
+  dataTableDownload_module(
+    "mtab", reactive_table = metatab, prefix = "FeatureTable_"
   )
 
   ## save and restore status
@@ -289,4 +290,5 @@ feature_general_module <- function(input, output, session,
     reactiveValuesToList(rv)
     })
 
+  }) # end moduleServer
 }

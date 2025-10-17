@@ -211,9 +211,7 @@ shinyPlotTooltipsUI <- function(id) {
 }
 
 #' @description Tooltips for shiny plot, Module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param points legend
 #' @details modified from https://stackoverflow.com/questions/39346273/how-to-place-shiny-panel-near-the-pointer-mouse/50623683
 #' @name tooltipsShinyPlot
@@ -225,32 +223,36 @@ shinyPlotTooltipsUI <- function(id) {
 #' # shinyPlotTooltipsUI("stp"),
 #' # plotOutput( "myplot", hover = hoverOpts(id ="myplot_hover") )
 #' # ))
-#' 
+#'
 #' # server <- shinyServer(function(input, output, session) {
-#'   
+#'
 #' # output$myplot <- renderPlot({
 #' # ggplot(mtcars) + geom_point(aes(mpg,cyl))
 #' # })
-#' 
+#'
 #' ## Create reactive variable
 #' #points <- reactive({
 #' # req(input$myplot_hover)
 #' # unlist(nearPoints(mtcars, input$myplot_hover, maxpoints=1))
 #' # })
-#'   
-#' # callModule(shinyPlotTooltips, id = "stp", points = points)
+#'
+#' # shinyPlotTooltips("stp", points = points)
 #' # })
-#' 
+#'
 #' # shinyApp(ui, server)
-#' 
-shinyPlotTooltips <- function(input, output, session, points) {
-  
-  output$hover_info <- renderText({ 
+#'
+shinyPlotTooltips <- function(id, points) {
+
+  moduleServer(id, function(input, output, session) {
+
+  output$hover_info <- renderText({
     req(points())
-    session$sendCustomMessage(type = 'placeDraggable', message = list()) 
+    session$sendCustomMessage(type = 'placeDraggable', message = list())
     paste0(
-      '<p style="background-color:rgb(250,250,250); padding:5px; border-radius:3px; border: 2px solid #CCC">', 
+      '<p style="background-color:rgb(250,250,250); padding:5px; border-radius:3px; border: 2px solid #CCC">',
       points(), '</p>'
       )
     })
+
+  }) # end moduleServer
 }

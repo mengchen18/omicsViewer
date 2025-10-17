@@ -10,9 +10,7 @@ L1_result_space_ui <- function(id) {
 }
 
 #' @description Utility L1 result space ui
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_expr expression matrix
 #' @param reactive_phenoData phentype data
 #' @param reactive_featureData feature data
@@ -23,63 +21,66 @@ L1_result_space_ui <- function(id) {
 #' @param status intial status
 
 L1_result_space_module <- function(
-  input, output, session, 
+  id,
   reactive_expr, reactive_phenoData, reactive_featureData,
-  reactive_i = reactive(NULL),  
+  reactive_i = reactive(NULL),
   reactive_highlight = reactive(NULL),
   additionalTabs = NULL,
-  object  = NULL, status = reactive(NULL)
+  object = NULL, status = reactive(NULL)
 ) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   
   # session restore finished
-  v <- callModule(feature_general_module, id = "feature_general", 
-                  reactive_expr = reactive_expr, 
+  v <- feature_general_module("feature_general",
+                  reactive_expr = reactive_expr,
                   reactive_i = reactive_i,
                   reactive_highlight = reactive_highlight,
                   reactive_phenoData = reactive_phenoData,
-                  reactive_featureData = reactive_featureData, 
+                  reactive_featureData = reactive_featureData,
                   reactive_status = reactive(status()$analyst_feature_general))
   
   # session restore finished
-  v2 <- callModule(enrichment_fgsea_module, id = "fgsea", 
+  v2 <- enrichment_fgsea_module("fgsea",
                    reactive_featureData = reactive_featureData,
                    reactive_status = reactive(status()$analyst_fgsea))
   
-  v3 <- callModule(enrichment_analysis_module, id = "ora", 
+  v3 <- enrichment_analysis_module("ora",
                    reactive_i = reactive_i, reactive_featureData = reactive_featureData
                    )
   
   # session restore finished
-  v4 <- callModule(
-    string_module, id = "stringdb", reactive_ids = reactive({
+  v4 <- string_module(
+    "stringdb", reactive_ids = reactive({
       i <- grep("^StringDB\\|", colnames(reactive_featureData()))
       reactive_featureData()[reactive_i(), i[1]]
-    }), reactive_status = reactive(status()$analyst_stringdb), 
+    }), reactive_status = reactive(status()$analyst_stringdb),
     active = reactive( status()$analyst_active_tab == "StringDB")
     )
   
   # session restore finished
-  v5 <- callModule(
-    sample_general_module, id = "sample_general", 
+  v5 <- sample_general_module(
+    "sample_general",
     reactive_phenoData = reactive_phenoData, reactive_expr = reactive_expr,
-    reactive_j = reactive_highlight, 
+    reactive_j = reactive_highlight,
     reactive_status = reactive(status()$analyst_sample_general)
   )
 
   # session restore finished
-  v6 <- callModule(
-    geneshot_module, id = "geneshotTab", 
-    fdata = reactive_featureData, 
+  v6 <- geneshot_module(
+    "geneshotTab",
+    fdata = reactive_featureData,
     feature_selected = reactive_i,
     reactive_status = reactive( status()$analyst_gene_shot )
     )
   
-  v7 <- callModule(
-    ptmotif_module, id = "ptm", 
-    fdata = reactive_featureData, 
+  v7 <- ptmotif_module(
+    "ptm",
+    fdata = reactive_featureData,
     feature_selected = reactive_i
-    #, 
+    #,
     # background = reactive( attr(object(), "ptm.seq.window") )
     # background = reactive({
     #   i <- grep("^PTMSeq\\|", colnames(reactive_featureData()))
@@ -88,9 +89,9 @@ L1_result_space_module <- function(
   )
 
   # dose response
-  v8 <- callModule(
-    dose_response_module, id = "rescurve",  
-    reactive_expr = reactive_expr, 
+  v8 <- dose_response_module(
+    "rescurve",
+    reactive_expr = reactive_expr,
     reactive_i = reactive_i,
     reactive_phenoData = reactive_phenoData,
     reactive_featureData = reactive_featureData,
@@ -100,12 +101,12 @@ L1_result_space_module <- function(
       })
   )
   
-  # 
+  #
   if (length(additionalTabs) > 0) {
     for (lo in additionalTabs){
-      callModule(
-        lo$moduleServer, id = lo$moduleName,
-        pdata = reactive_phenoData, fdata = reactive_featureData, expr = reactive_expr, 
+      lo$moduleServer(
+        lo$moduleName,
+        pdata = reactive_phenoData, fdata = reactive_featureData, expr = reactive_expr,
         feature_selected = reactive_i, sample_selected = reactive_highlight, object = object
       )
     }
@@ -162,7 +163,7 @@ L1_result_space_module <- function(
 
   reactive({
     list(
-      analyst_active_tab = input$analyst, 
+      analyst_active_tab = input$analyst,
       analyst_feature_general = v(),
       analyst_sample_general = v5(),
       analyst_gene_shot = v6(),
@@ -170,4 +171,6 @@ L1_result_space_module <- function(
       analyst_stringdb = v4()
       )
     })
+
+  }) # end moduleServer
 }

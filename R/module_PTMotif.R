@@ -33,14 +33,17 @@ ptmotif_ui <- function(id) {
 }
 
 ptmotif_module <- function(
-  input, output, session, pdata, fdata, expr, feature_selected, sample_selected, background
+  id, pdata, fdata, expr, feature_selected, sample_selected, background
 ) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
 
-  triset <- reactive({    
-    req(fdata())    
-    i <- grep("^SeqLogo\\|", colnames(fdata()), value = TRUE)    
-    req( length(i) > 0 )    
+  triset <- reactive({
+    req(fdata())
+    i <- grep("^SeqLogo\\|", colnames(fdata()), value = TRUE)
+    req( length(i) > 0 )
     str_split_fixed(i, "\\|", n = 3)
     })
 
@@ -53,10 +56,10 @@ ptmotif_module <- function(
       ))
     })
 
-  v1 <- callModule(
-    triselector_module, id = "tris_seqlogo", reactive_x = triset, label = 'Sequence',
-    reactive_selector1 = reactive(xax()$v1), 
-    reactive_selector2 = reactive(xax()$v2), 
+  v1 <- triselector_module(
+    "tris_seqlogo", reactive_x = triset, label = 'Sequence',
+    reactive_selector1 = reactive(xax()$v1),
+    reactive_selector2 = reactive(xax()$v2),
     reactive_selector3 = reactive(xax()$v3)
     )
 
@@ -192,31 +195,28 @@ ptmotif_module <- function(
     data.frame(Name = rownames(x), x, stringsAsFactors = FALSE)
   }
 
-  callModule(
-    dataTableDownload_module,    
-    id = "seqtable", reactive_table = reactive({
+  dataTableDownload_module(
+    "seqtable", reactive_table = reactive({
       fg <- foregroundSeqs()
       fg <- fg[which(nchar(fg)>0)]
       do.call(rbind, strsplit(fg, "|"))
     }), prefix = "motif", pageLength = 10)
 
-  callModule(
-    dataTableDownload_module,    
-    id = "seqtable_fg", reactive_table = reactive(mat2df(fg.pfm())), prefix = "seqLogoPFM_foreground", pageLength = 10)
+  dataTableDownload_module(
+    "seqtable_fg", reactive_table = reactive(mat2df(fg.pfm())), prefix = "seqLogoPFM_foreground", pageLength = 10)
 
-  callModule(
-    dataTableDownload_module,    
-    id = "seqtable_bg", reactive_table = reactive(mat2df(bg.pfm())), prefix = "seqLogoPFM_background", pageLength = 10)
+  dataTableDownload_module(
+    "seqtable_bg", reactive_table = reactive(mat2df(bg.pfm())), prefix = "seqLogoPFM_background", pageLength = 10)
 
-  callModule(
-    dataTableDownload_module,    
-    id = "seqtable_rat", reactive_table = reactive(mat2df(logo())), prefix = "seqLogoPFM_ratio", pageLength = 10)
+  dataTableDownload_module(
+    "seqtable_rat", reactive_table = reactive(mat2df(logo())), prefix = "seqLogoPFM_ratio", pageLength = 10)
 
-  
-  # motifTab <- callModule(
-  #   dataTableDownload_module,    
-  #   id = "tbl", reactive_table = reactive({
+
+  # motifTab <- dataTableDownload_module(
+  #   "tbl", reactive_table = reactive({
   #     req(mot())
   #     mot()
   #   }), prefix = "motif", pageLength = 10)
+
+  }) # end moduleServer
 }

@@ -44,15 +44,13 @@ attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
 }
 
 #' @description Utility - extended figure control shiny module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id module id
 #' @param reactive_meta reactive meta info, usually phenotype data or feature data of ExpressoinSet
 #' @param reactive_expr expression matrix
 #' @param reactive_triset reactive value, a matrix of nx3 use for triselector
 #' @param pre_volcano logical; whether select areas using volcano cutoff
-#' @param reactive_status the status of scatter plot, e.g. color variable, shape variable, etc. 
-#' @examples 
+#' @param reactive_status the status of scatter plot, e.g. color variable, shape variable, etc.
+#' @examples
 #' #' # library(shiny)
 #' # library(shinyjs)
 #' # library(Biobase)
@@ -66,20 +64,23 @@ attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
 #' # # ts <- stringr::str_split_fixed(colnames(pd), pattern = "\\|", n = 3)
 #' # ui <- fluidPage(
 #' #   attr4selector_ui("a4test")
-#' # ) 
+#' # )
 #' # server <- function(input, output, session) {
-#   k <- callModule(attr4selector_module, id = "a4test", reactive_meta=reactive(pd), #' reactive_expr=reactive(expr), reactive_triset = reactive(ts))
+#   k <- attr4selector_module("a4test", reactive_meta=reactive(pd), #' reactive_expr=reactive(expr), reactive_triset = reactive(ts))
 #' #   # observe(
 #' #   #   print(k())
 #' #   # )
-#' # }#' 
+#' # }#'
 #' # shinyApp(ui, server)
-#' 
+#'
 attr4selector_module <- function(
-  input, output, session, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL), 
+  id, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL),
   reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE),
   reactive_status = reactive(NULL)
 ) {
+
+  moduleServer(id, function(input, output, session) {
+
   ns <- session$ns
   params <- reactiveValues(highlight = NULL, highlightName = NULL, color = NULL, shape = NULL, size = NULL, tooltips = NULL, cutoff = NULL)
 
@@ -103,15 +104,15 @@ attr4selector_module <- function(
   searchOnCol_s2 <- reactiveVal()
   searchOnCol_s3 <- reactiveVal()
 
-  selectColor <- callModule(triselector_module, id = "selectColorUI", reactive_x = reactive_triset, label = "Color",
+  selectColor <- triselector_module("selectColorUI", reactive_x = reactive_triset, label = "Color",
     reactive_selector1 = selectColor_s1, reactive_selector2 = selectColor_s2, reactive_selector3 = selectColor_s3)#, suspendWhenHidden = FALSE)
-  selectShape <- callModule(triselector_module, id = "selectShapeUI", reactive_x = reactive_triset, label = "Shape",
+  selectShape <- triselector_module("selectShapeUI", reactive_x = reactive_triset, label = "Shape",
     reactive_selector1 = selectShape_s1, reactive_selector2 = selectShape_s2, reactive_selector3 = selectShape_s3)#, suspendWhenHidden = FALSE)
-  selectSize <- callModule(triselector_module, id = "selectSizeUI", reactive_x = reactive_triset, label = "Size",
+  selectSize <- triselector_module("selectSizeUI", reactive_x = reactive_triset, label = "Size",
     reactive_selector1 = selectSize_s1, reactive_selector2 = selectSize_s2, reactive_selector3 = selectSize_s3)#, suspendWhenHidden = FALSE)
-  selectTooltip <- callModule(triselector_module, id = "selectTooltipUI", reactive_x = reactive_triset, label = "Tooltips",
+  selectTooltip <- triselector_module("selectTooltipUI", reactive_x = reactive_triset, label = "Tooltips",
     reactive_selector1 = selectTooltip_s1, reactive_selector2 = selectTooltip_s2, reactive_selector3 = selectTooltip_s3)#, suspendWhenHidden = FALSE)
-  searchOnCol <- callModule(triselector_module, id = "selectSearchCol", reactive_x = reactive_triset, label = "Search",
+  searchOnCol <- triselector_module("selectSearchCol", reactive_x = reactive_triset, label = "Search",
     reactive_selector1 = searchOnCol_s1, reactive_selector2 = searchOnCol_s2, reactive_selector3 = searchOnCol_s3)#, suspendWhenHidden = FALSE)
 
   vv <- reactive( varSelector(searchOnCol(), expr = reactive_expr(), meta = reactive_meta()) )
@@ -278,9 +279,11 @@ attr4selector_module <- function(
   observe({
     if (is.null(s <- reactive_status()))
       return(NULL)
-    pre_search(s$searchValue)     
+    pre_search(s$searchValue)
   })
 
   params
+
+  }) # end moduleServer
 }
 
