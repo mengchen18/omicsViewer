@@ -47,9 +47,23 @@ drmMat <- function(
     feature = NA
   )
   colnames(df)[1] <- fitvar.name
-  
+
   form <- as.formula(sprintf("feature ~ %s", fitvar.name))
-  fct <- eval(parse(text = fct.name))
+
+  # Use switch statement instead of eval(parse()) for security
+  fct <- switch(fct.name,
+    "LL.4()" = LL.4(),
+    "LL.3()" = LL.3(),
+    "LL.3u()" = LL.3u(),
+    "LL.2()" = LL.2(),
+    "LL.5()" = LL.5(),
+    "LL2.2()" = LL2.2(),
+    "LL2.3()" = LL2.3(),
+    "LL2.3u()" = LL2.3u(),
+    "LL2.4()" = LL2.4(),
+    "LL2.5()" = LL2.5(),
+    stop("Invalid fct.name. Must be one of: LL.2(), LL.3(), LL.3u(), LL.4(), LL.5(), LL2.2(), LL2.3(), LL2.3u(), LL2.4(), LL2.5()")
+  )
   
   l <- apply(x, 1, function(x1, dat) {
     dat$feature <- x1
@@ -84,9 +98,23 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = F
   
   op <- par(no.readonly = TRUE)
   on.exit(op)
-  
-  if (is.character(mod$fct))
-    mod$fct <- eval( parse(text = mod$fct) )
+
+  # Convert character fct name to actual function using switch
+  if (is.character(mod$fct)) {
+    mod$fct <- switch(mod$fct,
+      "LL.4()" = LL.4(),
+      "LL.3()" = LL.3(),
+      "LL.3u()" = LL.3u(),
+      "LL.2()" = LL.2(),
+      "LL.5()" = LL.5(),
+      "LL2.2()" = LL2.2(),
+      "LL2.3()" = LL2.3(),
+      "LL2.3u()" = LL2.3u(),
+      "LL2.4()" = LL2.4(),
+      "LL2.5()" = LL2.5(),
+      stop("Invalid fct name: ", mod$fct)
+    )
+  }
   
   nl <- length(unique( mod$origData[, mod$curveVarNam] ))
   cc <- nColors( nl )

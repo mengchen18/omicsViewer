@@ -194,14 +194,7 @@ attr4selector_module <- function(
   # observeEvent(input$actSelect, {
   # observeEvent(input$scorner, {    
   observe({
-    req( !is.null(input$scorner) && nchar(input$scorner) != 0 )      
-
-    # if (grepl("feature_space", ns("xx"))) {
-    #   print("xxxxxxxxxx")
-    #   print( input$scorner ) 
-    #   print( input$xcut ) 
-    #   print( input$ycut ) 
-    # }    
+    req( !is.null(input$scorner) && nchar(input$scorner) != 0 )
 
     acorner( input$scorner )
     i_xcut( input$xcut )

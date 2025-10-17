@@ -72,7 +72,7 @@ plotly_barplot <- function(
     txt <- tooltips else
       txt <- names
   
-  if (!is.null(highlight)) {
+  if (!is.null(highlight) && length(highlight) > 0) {
     y <- data$x[highlight]
     y <- sign(y)*pmax(abs(y), st)
     fig <- add_bars(fig, x = data$xpos[highlight], y = y, type = "bar", name = highlight_legend,
@@ -83,7 +83,7 @@ plotly_barplot <- function(
       )
   }
   
-  if (!is.null(background)) {
+  if (!is.null(background) && length(background) > 0) {
     y <- data$x[background]
     y <- sign(y)*pmax(abs(y), st)
     fig <- add_bars(fig, x = data$xpos[background], y = y, type = "bar", name = background_legend,
@@ -103,7 +103,13 @@ plotly_barplot <- function(
       height = 700
     )
   )
-  toWebGL(fig)
+
+  # Only convert line trace to WebGL (trace 0), not bar traces
+  # Bar traces don't have WebGL equivalents and will generate warnings
+  tryCatch(
+    toWebGL(fig, 0),
+    error = function(e) fig
+  )
 }
 
 

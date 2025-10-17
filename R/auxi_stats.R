@@ -171,7 +171,16 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
       stop("Didn't find var: ", paste(v, collapse = "-"))
     
     tv <- apply(x, 1, function(xx) {
-      t <- try(t.test(xx[i1], xx[i2], var.equal = TRUE, ...), silent = TRUE) # 
+      t <- tryCatch(
+        t.test(xx[i1], xx[i2], var.equal = TRUE, ...),
+        error = function(e) {
+          # Log error for debugging without exposing to end user
+          if (getOption("omicsViewer.debug", FALSE)) {
+            message("t-test failed: ", e$message)
+          }
+          return(structure(list(class = "error", message = e$message), class = "error"))
+        }
+      )
       if (!is(t, "htest"))
         return(c(pvalue = NA, mean.diff = NA))
       if (length(t$estimate) == 1)

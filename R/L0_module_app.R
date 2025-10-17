@@ -135,17 +135,80 @@ app_module <- function(
     if (!is.null(ESVObj())) {
       updateSelectizeInput(session, "selectFile", choices = c("ESVObj.RDS", ll()), selected = "ESVObj.RDS")
       return( tallGS(ESVObj()) )
-    } 
-    # otherwise load from disk    
+    }
+    # otherwise load from disk
     req(input$selectFile)
+
+    # Comprehensive input validation for file loading
+    # 1. Validate file path - prevent directory traversal
+    if (grepl("\\.\\.", input$selectFile) || grepl("/", input$selectFile) || grepl("\\\\", input$selectFile)) {
+      showNotification("Invalid file name - path traversal not allowed", type = "error", duration = 10)
+      return(NULL)
+    }
+
     flink <- file.path(.dir(), input$selectFile)
-    req(file.exists(flink))
+
+    # 2. Check file existence
+    if (!file.exists(flink)) {
+      showNotification("File not found", type = "error", duration = 5)
+      return(NULL)
+    }
+
+    # 3. Validate file extension
+    allowed_ext <- c(".RDS", ".rds", ".db", ".sqlite", ".sqlite3")
+    file_ext <- tolower(tools::file_ext(flink))
+    if (!paste0(".", file_ext) %in% tolower(allowed_ext)) {
+      showNotification(
+        sprintf("Invalid file type. Allowed: %s", paste(allowed_ext, collapse = ", ")),
+        type = "error",
+        duration = 10
+      )
+      return(NULL)
+    }
+
+    # 4. Check file size and warn if too large
     sss <- file.size(flink)
+    max_size <- 2e9  # 2GB limit
+    if (sss > max_size) {
+      showNotification(
+        sprintf("File too large (%.1f GB). Maximum size is %.1f GB. Consider using database format.",
+                sss/1e9, max_size/1e9),
+        type = "error",
+        duration = NULL
+      )
+      return(NULL)
+    }
+
+    # 5. Show progress for large files
     if (sss > 1e7)
       show_modal_spinner(text = "Loading data ...")
-    v <- esetLoader(flink)
+
+    # 6. Load with error handling
+    v <- tryCatch(
+      esetLoader(flink),
+      error = function(e) {
+        if (sss > 1e7) remove_modal_spinner()
+        showNotification(
+          sprintf("Error loading file: %s", e$message),
+          type = "error",
+          duration = NULL
+        )
+        return(NULL)
+      },
+      warning = function(w) {
+        message("Warning during file loading: ", w$message)
+      }
+    )
+
     if (sss > 1e7)
       remove_modal_spinner()
+
+    # 7. Validate loaded object
+    if (is.null(v)) {
+      showNotification("Failed to load data - file may be corrupted", type = "error", duration = 10)
+      return(NULL)
+    }
+
     v
   })
   

@@ -99,10 +99,9 @@ The left side visualize the ExpressionSet, it contains the following tabs:
 
 * **ORA** represents *Over-Representation Analysis*, this tab will be shown if the gene set information is given in the feature data. This tab shows which gene sets are over-represented in the selected features. 
 
-* **fGSEA** the results of [fGSEA](http://bioconductor.org/packages/release/bioc/html/fgsea.html). Please note the result of *fgsea* does not depend on the feature selected, instead, the user needs to give a ranking statistic, which is usually stored in the feature data. 
+* **fGSEA** the results of [fGSEA](http://bioconductor.org/packages/release/bioc/html/fgsea.html). Please note the result of *fgsea* does not depend on the feature selected, instead, the user needs to give a ranking statistic, which is usually stored in the feature data.
 
 * **StringDB** This tab appears when there is a column in the feature data that can be used to query [string database](https://string-db.org/). When a subset of features is selected from the left panel, these features will be used to query Enrichment analysis and network analysis will be performed. 
-This tab appears when there is a column in the feature data that can be used to query [string database](https://string-db.org/). When a subset of features is selected from the left panel, these features will be used to query Enrichment analysis and network analysis will be performed. 
 
 * **Geneshot** [Geneshot](https://maayanlab.cloud/geneshot/) is web service used to retrieve 
 genes related to a biomedical term. Unlike GSA, the term-related genes are RANKED, mainly according to 

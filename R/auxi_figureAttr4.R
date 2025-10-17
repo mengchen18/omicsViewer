@@ -96,15 +96,47 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
 
 #' @description convert text to number
 #' @param x a number or a string can be calculated
-#' 
+#'
 text2num <- function(x) {
   if (is.null(x))
     return(NULL)
-  x0 <-  try(eval(parse(text = x)), silent = TRUE)
-  if (!is.numeric(x0)) {
-    warning("text2num: cannot convert x to num!")
+
+  # First try direct numeric conversion
+  x0 <- suppressWarnings(as.numeric(x))
+  if (!is.na(x0) && is.numeric(x0)) {
+    return(x0)
+  }
+
+  # For expressions like "-log10(0.01)", use a safe whitelist approach
+  # Only allow specific mathematical patterns
+  if (!grepl("^-?[0-9.+*/() elogE-]+$", x)) {
+    warning("text2num: invalid input format - only numeric values and basic math expressions allowed!")
     return(NULL)
   }
+
+  # Try to evaluate as numeric expression in a restricted environment
+  x0 <- tryCatch(
+    {
+      # Create a restricted environment with only basic math functions
+      safe_env <- new.env(parent = baseenv())
+      safe_env$log <- log
+      safe_env$log10 <- log10
+      safe_env$log2 <- log2
+      safe_env$exp <- exp
+      safe_env$sqrt <- sqrt
+      safe_env$abs <- abs
+      result <- eval(parse(text = x), envir = safe_env)
+      if (!is.numeric(result)) {
+        stop("Result is not numeric")
+      }
+      result
+    },
+    error = function(e) {
+      warning("text2num: cannot convert x to num: ", e$message)
+      return(NULL)
+    }
+  )
+
   x0
 }
 

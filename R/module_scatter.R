@@ -95,11 +95,11 @@
 
 plotly_scatter <- function(
   x, y, xlab = "", ylab = "ylab", color = "", shape = "", size = 10, tooltips=NULL, # shape = "circle", color = "defaultColor",
-  regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15), 
+  regressionLine = FALSE, source = "scatterplotlysource", sizeRange = c(5, 15),
   highlight = NULL, highlightName = "Highlighted", inSelection = NA,
   vline = NULL, hline = NULL, rect = NULL, drawButtonId = NULL
 ) {
-  options(stringsAsFactors = FALSE)
+  # Note: stringsAsFactors = FALSE is default in R >= 4.0
   
   i1 <- (is.factor(x) || is.character(x) || is.logical(x)) && is.numeric(y) # beeswarm vertical
   i2 <- (is.factor(y) || is.character(y) || is.logical(y)) && is.numeric(x) # beeswarm horizontal
@@ -162,8 +162,8 @@ plotly_scatter <- function(
     tlp <- paste0("<b>", tooltips[df$index], "</b><br>", tlp)
   df$tlp <- tlp
   
-  df$shape[is.na(df$shape)] <- "_NA_"
-  df$color[is.na(df$color)] <- "_NA_"
+  df$shape[is.na(df$shape) | df$shape == "" | df$shape == "NA"] <- "_NA_"
+  df$color[is.na(df$color) | df$color == "" | df$color == "NA"] <- "_NA_"
   df$size[is.na(df$size)] <- min(df$size, na.rm = TRUE)
   if (!is.null(highlight)) {
     df$highlight <- FALSE
@@ -429,8 +429,7 @@ plotly_scatter_module <- function(
   input, output, session, reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
   reactive_checkpoint = reactive(TRUE), htest_var1 = reactive(NULL), htest_var2 = reactive(NULL)
   ) {
-  
-  options(warn = -1)
+
   ns <- session$ns
   
   hm <- reactive({
