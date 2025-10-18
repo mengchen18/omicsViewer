@@ -2,7 +2,7 @@
 % Please edit documentation in R/00_export_prepEsetViewer.R
 \name{prepOmicsViewer}
 \alias{prepOmicsViewer}
-\title{Prepare object to be viewed by omicsViewer}
+\title{Prepare Omics Data for Visualization with omicsViewer}
 \usage{
 prepOmicsViewer(
   expr,
@@ -21,41 +21,95 @@ prepOmicsViewer(
 )
 }
 \arguments{
-\item{expr}{expression matrix where the rows are feature and columns are samples, 
-matrix should be log10 transformed and have unique row and column names}
+\item{expr}{Numeric matrix. Expression data with features in rows and samples in columns.
+Should be log-transformed (e.g., log2 or log10). Row and column names must be unique.
+Missing values (NA) are permitted if \code{pca.fillNA} or \code{ttest.fillNA} are TRUE.}
 
-\item{pData}{phenotype data}
+\item{pData}{Data.frame. Sample/phenotype metadata with one row per sample. Row names must
+match column names of \code{expr}. Should contain grouping variables for statistical tests.}
 
-\item{fData}{feature data}
+\item{fData}{Data.frame. Feature metadata with one row per feature. Row names must match
+row names of \code{expr}. Can include gene symbols, descriptions, database IDs, etc.}
 
-\item{PCA}{pca}
+\item{PCA}{Logical. Whether to perform Principal Component Analysis. Default: TRUE.
+Results are added to both sample and feature metadata.}
 
-\item{ncomp}{number of components to keep}
+\item{ncomp}{Integer. Number of principal components to compute. Default: minimum of 8
+or the number of samples. Ignored if \code{PCA = FALSE}.}
 
-\item{pca.fillNA}{logical, whether the NA should be filled with a constant in PCA.}
+\item{pca.fillNA}{Logical. If TRUE, missing values in \code{expr} are imputed before PCA
+by replacing with minimum value * 0.9. Default: TRUE. Two PCAs are performed:
+one with imputation and one without (if possible).}
 
-\item{t.test}{will be passed to the \code{compare} argument in \code{\link{multi.t.test}}}
+\item{t.test}{Matrix or NULL. Definition of t-tests to perform. Should be an n×3 matrix where
+each row specifies: [column_name, group1, group2]. The column should exist in \code{pData}.
+Example: \code{rbind(c("Treatment", "Drug", "Control"), c("Genotype", "WT", "KO"))}.
+Results are added as columns to \code{fData}. NULL = no t-tests.}
 
-\item{ttest.fillNA}{logical, whether the NA should be filled with a constant in t-test.}
+\item{ttest.fillNA}{Logical. Whether to impute missing values before t-tests.
+Default: FALSE (features with NAs are excluded from testing).}
 
-\item{...}{arguments passed to \code{\link{t.test}}, such as \code{paired}.}
+\item{...}{Additional arguments passed to \code{\link{t.test}}, such as \code{paired = TRUE}
+for paired t-tests or \code{var.equal = TRUE} for equal variance assumption.}
 
-\item{gs}{gene-set data, please refer to examples for more details about the format}
+\item{gs}{Gene set annotations in one of two formats:
+\itemize{
+  \item Data.frame with columns: \code{featureId} (indices), \code{gsId} (gene set IDs),
+        \code{weight} (optional weights). See \code{\link{gsAnnotIdList}}.
+  \item Matrix or sparse matrix (dgCMatrix) with features in rows and gene sets in columns.
+        Values indicate membership (0/1 or weights).
+}
+NULL = no gene set annotations. Enables ORA and GSEA analyses in viewer.}
 
-\item{stringDB}{the IDs that can be used in the STRING database (https://string-db.org/) query.}
+\item{stringDB}{Character vector of length \code{nrow(expr)}. Protein/gene identifiers
+compatible with STRING database queries (e.g., Ensembl protein IDs, gene names).
+NULL = STRING network analysis disabled.}
 
-\item{surv}{survival data, please refer to examples for more details about the format}
+\item{surv}{Survival data in one of three formats:
+\itemize{
+  \item Vector of length \code{ncol(expr)}: single survival time with censoring indicated
+        by "+" suffix (e.g., "120+", "45").
+  \item Matrix/data.frame: multiple survival endpoints with samples in rows. Column names
+        will be prefixed with "Surv|all|". Values must be numeric with optional "+" suffix.
+}
+NULL = no survival analysis.}
 
-\item{SummarizedExperiment}{logical; whether to return an object of class \code{SummarizedExperiment}. 
-If set to FALSE, the function will return an \code{ExpressionSet} object.}
+\item{SummarizedExperiment}{Logical. If TRUE, returns a \code{SummarizedExperiment} object;
+if FALSE, returns an \code{ExpressionSet}. Default: TRUE.}
 }
 \value{
+A \code{SummarizedExperiment} or \code{ExpressionSet} object ready for visualization with
+\code{\link{omicsViewer}}. The object includes:
+\itemize{
+  \item Expression matrix (and optionally imputed matrix)
+  \item Enhanced metadata with PCA results, t-test statistics, rankings
+  \item Gene set annotations (as attributes)
+  \item Default axis selections (as attributes: "sx", "sy", "fx", "fy")
+}
+
 an object of \code{ExpressionSet} or \code{SummarizedExperiment} that can be visualized using
 \code{omicsViewer}
 }
 \description{
-This is a convenience function to prepare the data to be visualized using \code{\link{omicsViewer}}.
-  The result of PCA and t-test could be included directly.
+A comprehensive data preparation function that processes expression matrices and associated
+metadata for interactive visualization with \code{\link{omicsViewer}}. Automatically performs
+dimensionality reduction (PCA), statistical testing (t-tests), and integrates gene set
+annotations, STRING database IDs, and survival data.
+}
+\details{
+The function performs the following processing steps:
+\enumerate{
+  \item Validates dimensions and ensures unique row/column names
+  \item Standardizes column names by prefixing with data type (e.g., "General|All|")
+  \item Performs PCA on expression data (with and without imputation)
+  \item Conducts statistical tests (t-tests) between specified groups
+  \item Computes feature rankings across samples
+  \item Integrates gene set, STRING, and survival annotations
+  \item Sets sensible default axes for visualization
+}
+
+All metadata columns are prefixed with standardized headers following the pattern
+"Category|Subcategory|Variable" to organize variables in the viewer interface.
 }
 \examples{
 packdir <- system.file("extdata", package = "omicsViewer")
@@ -106,4 +160,9 @@ attr(d, "sy") <- "PCA|All|PC2("
 # saveRDS(d, file = "dtest.RDS")
 ##  to open the viewer
 # omicsViewer("./")
+}
+\seealso{
+\code{\link{omicsViewer}} for launching the viewer.
+\code{\link{multi.t.test}} for details on t-test implementation.
+\code{\link{gsAnnotIdList}} for gene set annotation formatting.
 }

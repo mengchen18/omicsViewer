@@ -5,9 +5,7 @@
 \title{The three-step selector - the module function}
 \usage{
 triselector_module(
-  input,
-  output,
-  session,
+  id,
   reactive_x,
   reactive_selector1 = reactive(NULL),
   reactive_selector2 = reactive(NULL),
@@ -16,11 +14,7 @@ triselector_module(
 )
 }
 \arguments{
-\item{input}{input}
-
-\item{output}{output}
-
-\item{session}{session}
+\item{id}{module id}
 
 \item{reactive_x}{an nx3 matrix}
 
@@ -36,30 +30,30 @@ triselector_module(
 an reactive object containing the selected values
 }
 \description{
-The selector is used to select columns of phenotype and feature data. 
+The selector is used to select columns of phenotype and feature data.
 Function should only be used for the developers.
 }
 \examples{
 if (interactive()) {
   library(shiny)
   library(Biobase)
-  
+
   file <- system.file("extdata/demo.RDS", package = "omicsViewer")
   dat <- readRDS(file)
   fData <- fData(dat)
   triset <- stringr::str_split_fixed(colnames(fData), '\\\\|', n= 3)
-  
+
   ui <- fluidPage(
     triselector_ui("tres"),
     triselector_ui("tres2")
   )
   server <- function(input, output, session) {
-    v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset),
+    v1 <- triselector_module("tres", reactive_x = reactive(triset),
                      reactive_selector1 = reactive("ttest"),
                      reactive_selector2 = reactive("RE_vs_ME"),
                      reactive_selector3 = reactive("mean.diff")
     )
-    v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
+    v2 <- triselector_module("tres2", reactive_x = reactive(triset),
                      reactive_selector1 = reactive("ttest"),
                      reactive_selector2 = reactive("RE_vs_ME"),
                      reactive_selector3 = reactive("log.fdr"))
@@ -68,7 +62,7 @@ if (interactive()) {
       print(v1())
     })
   }
-  
+
   shinyApp(ui, server)
 }
 }

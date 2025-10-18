@@ -5,9 +5,7 @@
 \title{Shiny module for scatter plot using plotly - Module}
 \usage{
 plotly_scatter_module(
-  input,
-  output,
-  session,
+  id,
   reactive_param_plotly_scatter,
   reactive_regLine = reactive(FALSE),
   reactive_checkpoint = reactive(TRUE),
@@ -16,11 +14,7 @@ plotly_scatter_module(
 )
 }
 \arguments{
-\item{input}{input}
-
-\item{output}{output}
-
-\item{session}{sesion}
+\item{id}{module id}
 
 \item{reactive_param_plotly_scatter}{reactive parammeters for plotly_scatter}
 
@@ -28,7 +22,7 @@ plotly_scatter_module(
 
 \item{reactive_checkpoint}{checkpoint}
 
-\item{htest_var1}{when the plot is a beeswarmplot, two groups could be selected for two group comparison, this 
+\item{htest_var1}{when the plot is a beeswarmplot, two groups could be selected for two group comparison, this
 argument gives the default value. Mainly used for restoring the saved session.}
 
 \item{htest_var2}{see above}
@@ -44,22 +38,22 @@ Function should only be used for the developers
 \examples{
 if (interactive()) {
   library(shiny)
-  
+
   # two random variables
   x <- rnorm(30)
   y <- x + rnorm(30, sd = 0.5)
-  
+
   # variables mapped to color, shape and size
-  cc <- sample(letters[1:4], replace = TRUE, size = 30) 
+  cc <- sample(letters[1:4], replace = TRUE, size = 30)
   shape <- sample(c("S1", "S2", "S3"), replace = TRUE, size = 30)
   sz <- sample(c(10, 20, 30, replace = TRUE, size = 30))
-  
+
   ui <- fluidPage(
     plotly_scatter_ui("test_scatter")
   )
-  
+
   server <- function(input, output, session) {
-    v <- callModule(plotly_scatter_module, id = "test_scatter",
+    v <- plotly_scatter_module("test_scatter",
                     # reactive_checkpoint = reactive(FALSE),
                     reactive_param_plotly_scatter = reactive(list(
                       x = x, y = y,
@@ -71,31 +65,31 @@ if (interactive()) {
     observe(print(v()))
   }
   shinyApp(ui, server)
-  
-  
-  
+
+
+
   # example beeswarm horizontal
   x <- rnorm(30)
   y <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
   shinyApp(ui, server)
-  
+
   # example beeswarm vertical
   x <- sample(c("x", "y", "z"), size = 30, replace = TRUE)
   y <- rnorm(30)
   shinyApp(ui, server)
-  
-  # return values 
+
+  # return values
   x <- c(5, 6, 3, 4, 1, 2)
   y <- c(5, 6, 3, 4, 1, 2)
   ui <- fluidPage(
     plotly_scatter_ui("test_scatter")
   )
   server <- function(input, output, session) {
-    v <- callModule(plotly_scatter_module, id = "test_scatter",
+    v <- plotly_scatter_module("test_scatter",
                     reactive_param_plotly_scatter = reactive(list(
                       x = x, y = y, tooltips = paste("A", 1:6), highlight = 2:4
                     )))
-    
+
     observe(print(v()))
   }
   shinyApp(ui, server)

@@ -2,22 +2,12 @@
 % Please edit documentation in R/module_roc_pr.R
 \name{plot_roc_pr_module}
 \alias{plot_roc_pr_module}
-\title{Shiny module for boxplot using plotly - Module}
+\title{Shiny module for ROC/PR plot - Module}
 \usage{
-plot_roc_pr_module(
-  input,
-  output,
-  session,
-  reactive_param,
-  reactive_checkpoint = reactive(TRUE)
-)
+plot_roc_pr_module(id, reactive_param, reactive_checkpoint = reactive(TRUE))
 }
 \arguments{
-\item{input}{input}
-
-\item{output}{output}
-
-\item{session}{session}
+\item{id}{module id}
 
 \item{reactive_param}{reactive value; argument pass to draw_roc_pr}
 
@@ -27,23 +17,22 @@ plot_roc_pr_module(
 do not return any values
 }
 \description{
-Shiny module for boxplot using plotly - Module
+Shiny module for ROC/PR plot - Module
 }
 \examples{
 if (interactive()) {
   library(shiny)
-  
+
   ui <- fluidPage(
     sliderInput("ngrp", label = "Number of groups", min = 2, max = 5, value = 2),
     plot_roc_pr_ui("testplot")
   )
-  
+
   server <- function(input, output, session) {
     ng <- reactive(
       sample(letters[1:input$ngrp], size = 100, replace = TRUE)
     )
-    callModule(
-      plot_roc_pr_module, id = "testplot",
+    plot_roc_pr_module("testplot",
       reactive_param = reactive(list(
         x = ng(),
         y = rnorm(100)

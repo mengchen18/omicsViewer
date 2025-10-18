@@ -5,19 +5,13 @@
 \title{Shiny module for boxplot using plotly - Module}
 \usage{
 plotly_boxplot_module(
-  input,
-  output,
-  session,
+  id,
   reactive_param_plotly_boxplot,
   reactive_checkpoint = reactive(TRUE)
 )
 }
 \arguments{
-\item{input}{input}
-
-\item{output}{output}
-
-\item{session}{session}
+\item{id}{module id}
 
 \item{reactive_param_plotly_boxplot}{reactive value; argument passed to plotly_boxplot}
 
@@ -31,26 +25,26 @@ Shiny module for boxplot using plotly - Module
 }
 \examples{
 if (interactive()) {
-  
+
   library(shiny)
-  
+
   ui <- fluidPage(
     plotly_boxplot_ui("testplotly")
   )
-  
+
   server <- function(input, output, session) {
-    
+
     x <- cbind(matrix(rnorm(10000, mean = 3), 1000, 10), matrix(rnorm(20000), 1000, 20))
     x[sample(1:length(x), size = 0.3*length(x))] <- NA
     rownames(x) <- paste("R", 1:nrow(x), sep = "")
     colnames(x) <- paste("C", 1:ncol(x), sep = "")
-    callModule(plotly_boxplot_module, id = "testplotly",
+    plotly_boxplot_module("testplotly",
                reactive_param_plotly_boxplot = reactive(list(
                  x = x# , i  = c(4, 20, 80)# , highlight = c(1, 4, 5, 20), extvar = 1:30
                ))
     )
   }
-  
+
   shinyApp(ui, server)
 }
 }

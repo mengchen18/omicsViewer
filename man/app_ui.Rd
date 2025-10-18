@@ -2,33 +2,60 @@
 % Please edit documentation in R/L0_module_app.R
 \name{app_ui}
 \alias{app_ui}
-\title{Application level 0 UI}
+\title{omicsViewer Application UI (Level 0)}
 \usage{
 app_ui(id, showDropList = TRUE, activeTab = "Feature")
 }
 \arguments{
-\item{id}{id}
+\item{id}{Character. Namespace ID for the Shiny module. Must match the ID used in
+\code{\link{app_module}}.}
 
-\item{showDropList}{logical; whether to show the dropdown list to select RDS file, if the 
-ESVObj is given, this should be set to "FALSE"}
+\item{showDropList}{Logical. Whether to display the file selection dropdown menu.
+Set to FALSE when providing data directly via \code{ESVObj} parameter in
+\code{\link{app_module}}. Default: TRUE.}
 
-\item{activeTab}{one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"}
+\item{activeTab}{Character. Initial tab to display when data is loaded. Options:
+\itemize{
+  \item "Feature" - Feature space scatter plot
+  \item "Feature table" - Feature metadata table
+  \item "Sample" - Sample space scatter plot
+  \item "Sample table" - Sample metadata table
+  \item "Cor" - Correlation heatmap
+  \item "Heatmap" - Expression heatmap
+  \item "Dynamic heatmap" - Interactive heatmap with selection
+  \item "Expression" - Expression matrix table
+  \item "GSList" - Gene set membership table
+}
+Default: "Feature".}
 }
 \value{
-a list of UI components
+A \code{fluidRow} containing the complete UI structure, including:
+\itemize{
+  \item File selection dropdown (if \code{showDropList = TRUE})
+  \item Data summary display
+  \item Export and snapshot buttons
+  \item Two-column layout with data space (left) and analysis space (right)
+}
 }
 \description{
-Function should only be used for the developers
+Generates the user interface for the main omicsViewer application. This function creates
+a responsive layout with data exploration panels, snapshot functionality, and data export
+capabilities. Primarily intended for developers extending the application.
 }
 \examples{
 if (interactive()) {
   dir <- system.file("extdata", package = "omicsViewer")
-  server <- function(input, output, session) {
-    callModule(app_module, id = "app", dir = reactive(dir))
-  }
   ui <- fluidPage(
-    app_ui("app")
+    app_ui("app", showDropList = TRUE, activeTab = "Feature")
   )
+  server <- function(input, output, session) {
+    app_module("app", .dir = reactive(dir))
+  }
   shinyApp(ui = ui, server = server)
 }
 }
+\seealso{
+\code{\link{app_module}} for the corresponding server logic.
+\code{\link{omicsViewer}} for the high-level application launcher.
+}
+\keyword{internal}

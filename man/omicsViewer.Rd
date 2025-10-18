@@ -2,7 +2,7 @@
 % Please edit documentation in R/00_export_runExpressionSetViewer.R
 \name{omicsViewer}
 \alias{omicsViewer}
-\title{Start omicsViewer}
+\title{Launch the omicsViewer Shiny Application}
 \usage{
 omicsViewer(
   dir,
@@ -19,41 +19,63 @@ omicsViewer(
 )
 }
 \arguments{
-\item{dir}{directory to the \code{ExpressionSet} or \code{SummarizedExperiment} object. Only give the directory
-in this argument, not the .rds file.}
+\item{dir}{Character. Path to directory containing the \code{ExpressionSet} or
+\code{SummarizedExperiment} object saved as .RDS file. Provide only the directory path,
+not the full file path. The viewer will list all compatible files in this directory.}
 
-\item{additionalTabs}{additional tabs added to "Analyst" panel}
+\item{additionalTabs}{List. Optional custom Shiny modules to add as tabs in the "Analyst" panel.
+Each element should be a list with: \code{tabName} (character), \code{moduleName} (character),
+\code{moduleUi} (UI function), and \code{moduleServer} (server function).}
 
-\item{filePattern}{file pattern to be displayed.}
+\item{filePattern}{Character. Regular expression pattern to filter files displayed in the
+directory. Default: \code{".(RDS|DB|SQLITE|SQLITE3)$"} (case-insensitive).}
 
-\item{ESVObj}{the ESV object}
+\item{ESVObj}{ExpressionSet or SummarizedExperiment. Optional pre-loaded object to view
+directly without file selection. If provided, the file dropdown will show "ESVObj.RDS".}
 
-\item{esetLoader}{function to load the eset object, if an RDS file, should be "readRDS"}
+\item{esetLoader}{Function. Custom loader for reading saved objects. Default: \code{readESVObj}.
+Should accept a file path and return an ExpressionSet or SummarizedExperiment object.}
 
-\item{exprsGetter}{function to get the expression matrix from eset}
+\item{exprsGetter}{Function. Extracts expression matrix from loaded object.
+Default: \code{getExprs}. Should return a numeric matrix.}
 
-\item{pDataGetter}{function to get the phenotype data from eset}
+\item{pDataGetter}{Function. Extracts phenotype/sample metadata. Default: \code{getPData}.
+Should return a data.frame with rownames matching sample names.}
 
-\item{fDataGetter}{function to get the feature data from eset}
+\item{fDataGetter}{Function. Extracts feature metadata. Default: \code{getFData}.
+Should return a data.frame with rownames matching feature names.}
 
-\item{defaultAxisGetter}{function to get the default axes to be visualized. It should be a function with two 
-arguments: x - the object loaded to the viewer; what - one of "sx", "sy", "fx" and "fy", representing the 
-sample space x-axis, sample space y-axis, feature space x-axis and feature space y-axis respectively.}
+\item{defaultAxisGetter}{Function. Determines default axes for plots. Takes two arguments:
+\code{x} (the loaded object) and \code{what} (one of "sx", "sy", "fx", "fy" for
+sample/feature space x/y axes). Should return column name from metadata.}
 
-\item{appName}{name of the application}
+\item{appName}{Character. Application title displayed in the UI. Default: "omicsViewer".}
 
-\item{appVersion}{version of the application}
+\item{appVersion}{Character or package_version. Version number displayed in UI.
+Default: current package version.}
 }
 \value{
-do not return values
+NULL (invisibly). Launches the Shiny application. The app runs until stopped by the user.
 }
 \description{
-Start omicsViewer
+Starts an interactive Shiny application for exploring omics data, including visualization
+of expression matrices, feature and sample metadata, statistical analyses, and functional
+enrichment results. The viewer supports both \code{ExpressionSet} and
+\code{SummarizedExperiment} objects.
 }
 \examples{
-1
-## To start the shiny app: 
-# omicsViewer(
-#  system.file("extdata", package = "omicsViewer")
-# )
+if (interactive()) {
+  # Basic usage with example data
+  omicsViewer(system.file("extdata", package = "omicsViewer"))
+
+  # With pre-loaded object
+  packdir <- system.file("extdata", package = "omicsViewer")
+  eset <- readRDS(file.path(packdir, "exampleEset.RDS"))
+  omicsViewer(packdir, ESVObj = eset)
+}
+
+}
+\seealso{
+\code{\link{prepOmicsViewer}} for preparing data objects for visualization.
+\code{\link{app_module}} for the main application module (developers only).
 }

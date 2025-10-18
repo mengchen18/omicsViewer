@@ -32,12 +32,12 @@ if (interactive()) {
     triselector_ui("tres2")
   )
   server <- function(input, output, session) {
-    v1 <- callModule(triselector_module, id = "tres", reactive_x = reactive(triset),
+    v1 <- triselector_module("tres", reactive_x = reactive(triset),
                      reactive_selector1 = reactive("ttest"),
                      reactive_selector2 = reactive("RE_vs_ME"),
                      reactive_selector3 = reactive("mean.diff")
     )
-    v2 <- callModule(triselector_module, id = "tres2", reactive_x = reactive(triset),
+    v2 <- triselector_module("tres2", reactive_x = reactive(triset),
                      reactive_selector1 = reactive("ttest"),
                      reactive_selector2 = reactive("RE_vs_ME"),
                      reactive_selector3 = reactive("log.fdr"))
