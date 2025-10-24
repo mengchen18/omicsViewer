@@ -85,7 +85,7 @@ iheatmapInput <- function(id, scaleOn = "row") {
         ),
         hr(),
         # clustering row/distance/linkage
-        selectInput(ns("rowSortBy"), "Sorting rows by", choices = NULL, selectize = TRUE, multiple = FALSE, server = TRUE),
+        selectInput(ns("rowSortBy"), "Sorting rows by", choices = NULL, selectize = TRUE, multiple = FALSE),
         conditionalPanel(
           sprintf("input['%s'] == 'hierarchical cluster'", ns("rowSortBy")), 
           selectInput(ns("clusterRowDist"), "Distance", 
@@ -109,7 +109,7 @@ iheatmapInput <- function(id, scaleOn = "row") {
         selectInput(ns("annotCol"), label = "Column annotations", choices = NULL, multiple = TRUE),
         
         # column annotations
-        selectInput(ns("annotRow"), label = "Row annotations", choices = NULL, multiple = TRUE, server = TRUE),
+        selectInput(ns("annotRow"), label = "Row annotations", choices = NULL, multiple = TRUE),
         
         # column annotations
         selectInput(ns("tooltipInfo"), label = "Tooltips", choices = NULL, multiple = TRUE),
@@ -247,7 +247,7 @@ iheatmapModule <- function(
     })
   observe({
     req(pd())
-    updateSelectInput(session, "annotRow", choices = fdColWithGS())
+    updateSelectizeInput(session, "annotRow", choices = fdColWithGS(), server = TRUE)
     }) 
   observe({
     req(pd())
@@ -259,7 +259,7 @@ iheatmapModule <- function(
     ss <- clsRow()
     if (ss == "none" && cs[[1]] != "none")
       ss <- cs[[1]]
-    updateSelectInput( session, "rowSortBy", choices = cs, selected = ss )
+    updateSelectizeInput( session, "rowSortBy", choices = cs, selected = ss, server = TRUE )
     })
   observe({
     req(pd())
@@ -291,9 +291,9 @@ iheatmapModule <- function(
     if (is.null(status()))
       return(NULL)
     updateSelectInput(session, "annotCol", selected = null2empty(status()$annotCol) )
-    updateSelectInput(session, "annotRow", selected  = null2empty(status()$annotRow) )
+    updateSelectizeInput(session, "annotRow", selected  = null2empty(status()$annotRow) )
     updateSelectInput(session, "colSortBy", selected  = status()$colSortBy)
-    updateSelectInput(session, "rowSortBy", selected  = status()$rowSortBy)
+    updateSelectizeInput(session, "rowSortBy", selected  = status()$rowSortBy)
     updateSelectInput(session, "tooltipInfo", selected  = null2empty(status()$tooltipInfo) )
     updateSelectInput(session, "heatmapColors", selected  = status()$heatmapColors)
     updateSelectInput(session, "scale", selected  = status()$scale)
