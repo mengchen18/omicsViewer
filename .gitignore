@@ -41,3 +41,4 @@ local
 *.seed
 *.settings
 *.tm_properties
+*claude*

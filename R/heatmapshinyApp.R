@@ -85,7 +85,7 @@ iheatmapInput <- function(id, scaleOn = "row") {
         ),
         hr(),
         # clustering row/distance/linkage
-        selectInput(ns("rowSortBy"), "Sorting rows by", choices = NULL, selectize = TRUE, multiple = FALSE),
+        selectInput(ns("rowSortBy"), "Sorting rows by", choices = NULL, selectize = TRUE, multiple = FALSE, server = TRUE),
         conditionalPanel(
           sprintf("input['%s'] == 'hierarchical cluster'", ns("rowSortBy")), 
           selectInput(ns("clusterRowDist"), "Distance", 
@@ -109,7 +109,7 @@ iheatmapInput <- function(id, scaleOn = "row") {
         selectInput(ns("annotCol"), label = "Column annotations", choices = NULL, multiple = TRUE),
         
         # column annotations
-        selectInput(ns("annotRow"), label = "Row annotations", choices = NULL, multiple = TRUE),
+        selectInput(ns("annotRow"), label = "Row annotations", choices = NULL, multiple = TRUE, server = TRUE),
         
         # column annotations
         selectInput(ns("tooltipInfo"), label = "Tooltips", choices = NULL, multiple = TRUE),
