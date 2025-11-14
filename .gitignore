@@ -42,3 +42,4 @@ local
 *.settings
 *.tm_properties
 *claude*
+.claude/*
