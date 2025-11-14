@@ -5,23 +5,29 @@
 feature_general_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    tags$h3("Variable Selection and Plot Type", class = "sr-only", `aria-label` = "Controls for selecting statistical test results and choosing between beeswarm boxplot or ROC curve visualization"),
     fluidRow(
       column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_feature_general"), right_margin = "5")),
       column(11, uiOutput(ns("feature_general_plot"))),
       column(
-        1, 
+        1,
         attr4selector_ui(ns("a4_gf"), circle = FALSE, right = TRUE),
         radioGroupButtons(
               inputId = ns("internal_radio"),
               label = " ",
               size = "xs",
               choices = c("Bees", "Curve"),
-              direction = "vertical", 
+              direction = "vertical",
               status = "success"
-            )
+            ) %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-plot-type-selector"))
         )
     ),
-    dataTableDownload_ui(ns("mtab"))
+    tags$h3("Statistical Results Table", class = "sr-only", `aria-label` = "Table showing statistical test results including p-values, effect sizes, and group comparisons for selected features"),
+    dataTableDownload_ui(ns("mtab")),
+    # Hidden text summary for AI browsers and screen readers
+    div(class = "sr-only", `aria-live` = "polite", `aria-atomic` = "true",
+        uiOutput(ns("plotSummary")))
   )
 }
 
@@ -275,6 +281,52 @@ feature_general_module <- function(id,
     if (!is.null(s <- reactive_status()))
       showRegLine(s$showRegLine) 
     })
+
+  ## Hidden plot summary for AI browsers ##
+  output$plotSummary <- renderUI({
+    plot_type <- input$internal_radio
+
+    if (is.null(plot_type)) {
+      return(NULL)
+    }
+
+    summary_text <- if (plot_type == "Bees") {
+      # Beeswarm/boxplot summary
+      n_features <- length(reactive_i())
+      n_samples <- ncol(reactive_expr())
+      n_highlighted <- if (!is.null(reactive_highlight())) length(reactive_highlight()) else 0
+
+      var_name <- if (!is.null(v1()) && !is.null(v1()$variable)) {
+        v1()$variable
+      } else {
+        "selected variable"
+      }
+
+      parts <- c(
+        sprintf("Boxplot showing expression distribution across %d samples.", n_samples)
+      )
+
+      if (n_features > 0) {
+        parts <- c(parts, sprintf("%d feature(s) highlighted in the plot.", n_features))
+      }
+
+      if (n_highlighted > 0) {
+        parts <- c(parts, sprintf("%d sample(s) highlighted.", n_highlighted))
+      }
+
+      if (!is.null(pheno()) && length(pheno()) > 0) {
+        parts <- c(parts, sprintf("External variable %s overlaid on plot.", var_name))
+      }
+
+      paste(parts, collapse = " ")
+
+    } else {
+      # ROC/PR curve summary
+      "ROC and precision-recall curves showing classification performance for binary outcome."
+    }
+
+    tags$p(summary_text)
+  })
 
   ## return status ##
   rv <- reactiveValues()

@@ -3,11 +3,18 @@
 enrichment_fgsea_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    tags$h3("Ranking Variable Selection", class = "sr-only", `aria-label` = "Select the ranking statistic for gene set enrichment analysis such as t-statistic, log fold change, or p-value"),
     triselector_ui(ns("tris_fgsea"), right_margin = "5"),
+    tags$h3("Enrichment Score Visualization", class = "sr-only", `aria-label` = "Bar plot showing normalized enrichment scores with leading edge genes highlighted when a pathway is selected"),
     shinycssloaders::withSpinner(
-      plotlyOutput(ns("bplot")), type = 8, color = "green"
-      ),
-    dataTableDownload_ui(ns("stab"))
+      plotlyOutput(ns("bplot")),
+      type = 8, color = "green"
+    ),
+    tags$h3("Detailed Results Table", class = "sr-only", `aria-label` = "Table with enrichment scores, p-values, FDR, pathway size, and leading edge genes for all gene sets"),
+    dataTableDownload_ui(ns("stab")),
+    # Hidden text summary for AI browsers
+    div(class = "sr-only", `aria-live` = "polite", `aria-atomic` = "true",
+        uiOutput(ns("plotSummary")))
   )
 }
 

@@ -35,20 +35,25 @@ geneshot_ui <- function(id) {
   tagList(
     fluidRow(
       column(
-        width = 8, 
-        textInput(ns("term"), label = NULL, value = "", width = "100%", 
-          placeholder = "Search any term here, multiple separated by (;) ...")
+        width = 8,
+        textInput(ns("term"), label = NULL, value = "", width = "100%",
+          placeholder = "Search any term here, multiple separated by (;) ...") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-search-input"))
         ),
       column(
         width = 4, align = "right",
-        actionButton(ns("submit"), label = "Search related genes!", width = "100%")
+        actionButton(ns("submit"), label = "Search related genes!", width = "100%") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-search-button"))
         ),
       column(
         width = 11, triselector_ui(ns("geneNameCol")))
-      ),    
+      ),
     plotly::plotlyOutput(ns("plt")),
     tags$br(),
-    dataTableDownload_ui(ns("autorif"))
+    dataTableDownload_ui(ns("autorif")),
+    # Hidden text summary for AI browsers
+    div(class = "sr-only", `aria-live` = "polite", `aria-atomic` = "true",
+        uiOutput(ns("searchSummary")))
   )
 }
 

@@ -28,16 +28,22 @@
 meta_scatter_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    tags$h3("Plot Controls and Variable Selection", class = "sr-only", `aria-label` = "Controls for customizing scatter plot appearance including color, shape, size mapping and selecting X and Y axis variables"),
     fluidRow(
-      column(1, 
+      column(1,
         attr4selector_ui(ns("a4selector")),
-        actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs")
-        ), # style = "margin-top: 20px;", 
-      column(11, 
+        actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-clear-selection-button"))
+      ), # style = "margin-top: 20px;",
+      column(11,
              triselector_ui(ns("tris_main_scatter1")),
              triselector_ui(ns("tris_main_scatter2")))
     ),
-    plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT)
+    tags$h3("Interactive Scatter Plot Visualization", class = "sr-only", `aria-label` = "Scatter plot with lasso and box selection tools, regression line option, and corner selection for volcano plots"),
+    plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT),
+    # Hidden text summary for AI browsers and screen readers
+    div(class = "sr-only", `aria-live` = "polite", `aria-atomic` = "true",
+        uiOutput(ns("plotSummary")))
   )
 }
 
@@ -333,6 +339,56 @@ meta_scatter_module <- function(
     ))
   })
   #############################################
+
+  # Generate hidden text summary for AI browsers and screen readers
+  output$plotSummary <- renderUI({
+    req(scatter_vars())
+    vars <- scatter_vars()
+
+    # Calculate basic statistics
+    x_vals <- vars$x
+    y_vals <- vars$y
+    n_points <- length(x_vals)
+
+    # Build summary text
+    summary_parts <- c(
+      sprintf("Scatter plot visualization with %d data points.", n_points),
+      sprintf("X-axis: %s.", vars$xlab %||% "Variable"),
+      sprintf("Y-axis: %s.", vars$ylab %||% "Variable")
+    )
+
+    # Add numeric range info for numeric axes
+    if (is.numeric(x_vals)) {
+      summary_parts <- c(summary_parts,
+        sprintf("X-axis range: %.3g to %.3g.", min(x_vals, na.rm = TRUE), max(x_vals, na.rm = TRUE)))
+    }
+    if (is.numeric(y_vals)) {
+      summary_parts <- c(summary_parts,
+        sprintf("Y-axis range: %.3g to %.3g.", min(y_vals, na.rm = TRUE), max(y_vals, na.rm = TRUE)))
+    }
+
+    # Add correlation for numeric-numeric plots
+    if (is.numeric(x_vals) && is.numeric(y_vals)) {
+      cor_result <- tryCatch({
+        cor.test(x_vals, y_vals, use = "complete.obs")
+      }, error = function(e) NULL)
+
+      if (!is.null(cor_result)) {
+        summary_parts <- c(summary_parts,
+          sprintf("Pearson correlation: r = %.3f, p-value = %.3g.",
+                  cor_result$estimate, cor_result$p.value))
+      }
+    }
+
+    # Add selection info
+    sel <- selVal()
+    if (length(sel$selected) > 0) {
+      summary_parts <- c(summary_parts,
+        sprintf("%d points currently selected.", length(sel$selected)))
+    }
+
+    tags$p(paste(summary_parts, collapse = " "))
+  })
 
   selVal
 

@@ -43,21 +43,24 @@ triselector_ui <- function(id, right_margin = "20") {
   ns <- NS(id)
   tagList(
     fluidRow(
-      column(2, offset = 0, align = "right", 
-             style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px', 
+      column(2, offset = 0, align = "right",
+             style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px',
              uiOutput(ns("groupLabel"))
       ),
-      column(3, offset = 0, style='padding:2px;', 
-        selectInput(inputId = ns("analysis"), label = NULL, choices = NULL, selectize = TRUE, width = "100%")),
-      column(4, offset = 0, style='padding:2px;', 
-        selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE, width = "100%")),
-      column(3, offset = 0, style=rmar, #'padding:2px;', 
-        selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE, width = "100%"))
+      column(3, offset = 0, style='padding:2px;',
+        selectInput(inputId = ns("analysis"), label = NULL, choices = NULL, selectize = TRUE, width = "100%") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-analysis-selector"))),
+      column(4, offset = 0, style='padding:2px;',
+        selectInput(inputId = ns("subset"), label = NULL, choices = NULL, selectize = TRUE, width = "100%") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-subset-selector"))),
+      column(3, offset = 0, style=rmar, #'padding:2px;',
+        selectInput(inputId = ns("variable"), label = NULL, choices = NULL, selectize = TRUE, width = "100%") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-variable-selector")))
       # column(3, offset = 0, style='padding:2px;'
         # pickerInput(inputId = ns("analysis"), label = NULL, choices = NULL, options = list(`live-search` = TRUE))),
-      # column(4, offset = 0, style='padding:2px;', 
+      # column(4, offset = 0, style='padding:2px;',
         # pickerInput(inputId = ns("subset"), label = NULL, choices = NULL, options = list(`live-search` = TRUE))),
-      # column(3, offset = 0, style="padding-left:2px; padding-right:20px; padding-top:2px; padding-bottom:2px", #'padding:2px;', 
+      # column(3, offset = 0, style="padding-left:2px; padding-right:20px; padding-top:2px; padding-bottom:2px", #'padding:2px;',
         # pickerInput(inputId = ns("variable"), label = NULL, choices = NULL, options = list(`live-search` = TRUE)))
     )
   )

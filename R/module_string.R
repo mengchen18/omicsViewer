@@ -30,21 +30,31 @@
 string_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    tags$h3("Query Configuration", class = "sr-only", `aria-label` = "Input for organism taxonomy code and run button to query STRING database. Maximum 300 proteins allowed"),
     fluidRow(
       column(
         4, offset = 0, style='padding-left:15px; padding-right:2px; padding-top:0px; padding-bottom:0px',
-        textInputIcon(inputId = ns("tax"), label = NULL, value = "9606", icon = list("Taxomony Code"))),
+        textInputIcon(inputId = ns("tax"), label = NULL, value = "9606", icon = list("Taxomony Code")) %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-taxonomy-input"))),
       column(
         6, offset = 0, style='padding-left:2px; padding-right:2px; padding-top:0px; padding-bottom:0px',
-        verbatimTextOutput(ns("error.msg"))),
+        verbatimTextOutput(ns("error.msg")) %>%
+          tagAppendAttributes(`aria-live` = "assertive")),
       column(
         2, offset = 0, style='padding-left:15px; padding-right:2px; padding-top:0px; padding-bottom:0px',
-        actionButton(ns("run"), "Run!"))
+        actionButton(ns("run"), "Run!") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-run-analysis-button")))
     ),
     uiOutput(ns("noresRet")),
+    tags$h3("Interaction Results Table", class = "sr-only", `aria-label` = "Table of protein-protein interactions from STRING database with confidence scores and evidence types"),
     dataTableDownload_ui(ns("strtab")),
-    checkboxInput(ns("showLabel"), label = "Show labels", value = FALSE),
-    forceNetworkOutput(ns("network"))    
+    tags$h3("Network Visualization", class = "sr-only", `aria-label` = "Interactive force-directed network graph showing protein interactions with node labels toggle"),
+    checkboxInput(ns("showLabel"), label = "Show labels", value = FALSE) %>%
+      tagAppendAttributes(`data-testid` = paste0(id, "-show-labels-toggle")),
+    forceNetworkOutput(ns("network")),
+    # Hidden text summary for AI browsers
+    div(class = "sr-only", `aria-live` = "polite", `aria-atomic` = "true",
+        uiOutput(ns("networkSummary")))
   )
 }
 

@@ -58,30 +58,99 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 
   comp <- list(
     useShinyjs(),
+    # CSS for hiding sr-only elements (screen reader and AI browser only)
+    tags$head(
+      tags$style(HTML("
+        .sr-only {
+          position: absolute !important;
+          width: 1px !important;
+          height: 1px !important;
+          padding: 0 !important;
+          margin: -1px !important;
+          overflow: hidden !important;
+          clip: rect(0, 0, 0, 0) !important;
+          white-space: nowrap !important;
+          border: 0 !important;
+        }
+        .sr-only-focusable:focus {
+          position: static !important;
+          width: auto !important;
+          height: auto !important;
+          overflow: visible !important;
+          clip: auto !important;
+          white-space: normal !important;
+        }
+      "))
+    ),
+    # JSON-LD schema for AI browsers and machine readability
+    tags$head(
+      tags$script(
+        type = "application/ld+json",
+        HTML('{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "omicsViewer",
+          "description": "Interactive visualization and analysis platform for omics data (proteomics, transcriptomics, genomics). Supports multi-dimensional data exploration, statistical testing, pathway enrichment, and network analysis.",
+          "applicationCategory": "Bioinformatics",
+          "applicationSubCategory": "Omics Data Analysis",
+          "operatingSystem": "Web browser",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "featureList": [
+            "2D scatter plots with correlation analysis and regression lines for feature and sample metadata",
+            "Interactive boxplots with statistical tests (t-test, ANOVA, Kruskal-Wallis) for group comparisons",
+            "Gene set over-representation analysis (ORA) using hypergeometric test",
+            "Fast gene set enrichment analysis (fGSEA) with leading edge identification",
+            "Protein-protein interaction network visualization via STRING database integration",
+            "Literature-based gene association discovery through Geneshot API",
+            "Post-translational modification (PTM) motif enrichment analysis",
+            "Dose-response curve fitting with EC50/IC50 estimation using 4-parameter logistic model",
+            "Kaplan-Meier survival analysis with log-rank test",
+            "ROC and precision-recall curve generation for binary classification",
+            "Correlation heatmaps with hierarchical clustering",
+            "Expression heatmaps with dendrogram and sample grouping",
+            "Dynamic heatmap with interactive row selection and subsetting",
+            "Contingency table analysis with chi-square and Fisher exact tests",
+            "Searchable data tables for features, samples, expression values, and gene sets",
+            "State snapshot management for reproducible analysis workflows",
+            "Data export to Excel format with all annotations"
+          ],
+          "softwareRequirements": "Modern web browser with JavaScript enabled",
+          "permissions": "No special permissions required"
+        }')
+      )
+    ),
     style = "background:white;",
     absolutePanel(
-      top = 5, right = 20, style = "z-index: 9999;", width = 115, 
-      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL),
-      actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro"))
+      top = 5, right = 20, style = "z-index: 9999;", width = 115,
+      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL) %>%
+        tagAppendAttributes(`data-testid` = "app-download-dataset-button"),
+      actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro")) %>%
+        tagAppendAttributes(`data-testid` = "app-snapshot-button",
+                           title = "Manage snapshots")
     ),
     shinyjs::hidden(
       div(id = ns("contents"),
         column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
         column(6, L1_result_space_ui(ns("resultspace")))
         )
-      )    
+      )
     )
 
   if (showDropList) {
     l2 <- list(
       shinycssloaders::withSpinner(
         uiOutput(ns("summary")), hide.ui = FALSE, type = 8, color = "green"
-        ),      
+        ),
       br(),
       absolutePanel(
         top = 8, right = 140, style = "z-index: 9999;",
-        selectizeInput( inputId = ns("selectFile"), label = NULL, choices = NULL, 
-          width = "500px", options = list(placeholder = "Select a dataset here") )
+        selectizeInput( inputId = ns("selectFile"), label = NULL, choices = NULL,
+          width = "500px", options = list(placeholder = "Select a dataset here") ) %>%
+          tagAppendAttributes(`data-testid` = "app-dataset-selector")
 
       ))
     comp <- c(l2, comp)

@@ -123,34 +123,50 @@ L1_result_space_module <- function(
     
     titleTabs <- list(
       title = "Analysis", id = ns("analyst"),
-      theme = shinytheme("spacelab"), 
-      tabPanel("Feature", feature_general_ui(ns("feature_general")))     
+      theme = shinytheme("spacelab"),
+      tabPanel("Feature",
+        tags$h2("Feature Analysis", class = "sr-only", `aria-label` = "Statistical analysis and visualization of selected features including boxplots with group comparisons and ROC curves for binary outcomes"),
+        feature_general_ui(ns("feature_general")))
     )
     sampleAnalyst <- list(
-      tabPanel("Sample", sample_general_ui(ns("sample_general")))
+      tabPanel("Sample",
+        tags$h2("Sample Analysis", class = "sr-only", `aria-label` = "Statistical analysis of selected samples including group comparisons, contingency tables, and Kaplan-Meier survival curves"),
+        sample_general_ui(ns("sample_general")))
       )
-    
+
     ### geneshot
     geneshot <- list(
-      tabPanel("Geneshot", geneshot_ui(ns("geneshotTab")))
+      tabPanel("Geneshot",
+        tags$h2("Geneshot Literature Search", class = "sr-only", `aria-label` = "Literature-based gene discovery using PubMed co-mention analysis to find genes associated with search terms"),
+        geneshot_ui(ns("geneshotTab")))
       )
     ### end
-    
+
     optionalTabs <- list()
-    
+
     if (!is.null(attr(reactive_featureData(), "GS"))) {
-      optionalTabs <- c(optionalTabs, list(tabPanel('ORA', enrichment_analysis_ui(ns("ora")))))
-      optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA", enrichment_fgsea_ui(ns("fgsea")))))
+      optionalTabs <- c(optionalTabs, list(tabPanel('ORA',
+        tags$h2("Over-Representation Analysis", class = "sr-only", `aria-label` = "Gene set over-representation analysis using hypergeometric test to identify enriched pathways and functional categories"),
+        enrichment_analysis_ui(ns("ora")))))
+      optionalTabs <- c(optionalTabs, list(tabPanel("fGSEA",
+        tags$h2("Fast Gene Set Enrichment Analysis", class = "sr-only", `aria-label` = "Ranked gene set enrichment analysis computing normalized enrichment scores and identifying leading edge genes"),
+        enrichment_fgsea_ui(ns("fgsea")))))
     }
-    
+
     if (any(grepl("^ResponseCurve\\|", colnames(reactive_featureData()))))
-      optionalTabs <- c(optionalTabs, list(tabPanel("Response", dose_response_ui(ns("rescurve")))))
-    
+      optionalTabs <- c(optionalTabs, list(tabPanel("Response",
+        tags$h2("Dose-Response Curves", class = "sr-only", `aria-label` = "Dose-response curve fitting with EC50 and IC50 estimation using 4-parameter logistic regression model"),
+        dose_response_ui(ns("rescurve")))))
+
     if (any(grepl("^StringDB\\|", colnames(reactive_featureData()))))
-      optionalTabs <- c(optionalTabs, list(tabPanel("StringDB", string_ui(ns("stringdb")))))
-    
+      optionalTabs <- c(optionalTabs, list(tabPanel("StringDB",
+        tags$h2("STRING Protein Interaction Network", class = "sr-only", `aria-label` = "Protein-protein interaction network from STRING database showing physical and functional associations"),
+        string_ui(ns("stringdb")))))
+
     if (any(grepl("^SeqLogo\\|", colnames(reactive_featureData()))))
-      optionalTabs <- c(optionalTabs, list(tabPanel("SeqLogo", ptmotif_ui(ns("ptm")))))
+      optionalTabs <- c(optionalTabs, list(tabPanel("SeqLogo",
+        tags$h2("Post-Translational Modification Motifs", class = "sr-only", `aria-label` = "PTM motif enrichment analysis identifying overrepresented amino acid sequence patterns around modification sites"),
+        ptmotif_ui(ns("ptm")))))
     
     ######
     if (length(additionalTabs) > 0) {

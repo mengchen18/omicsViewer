@@ -9,16 +9,26 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
   navbarPage(
     "Data", id = ns("eset"),
     selected = activeTab,
-    theme = shinytheme("spacelab"), 
-    tabPanel('Feature', meta_scatter_ui(ns('feature_space'))),
-    tabPanel("Feature table", dataTable_ui(ns("tab_feature")))    ,
-    tabPanel("Sample", meta_scatter_ui(ns("sample_space"))),
-    tabPanel("Sample table", dataTable_ui(ns("tab_pheno"))),
+    theme = shinytheme("spacelab"),
+    tabPanel('Feature',
+      tags$h2("Feature Scatter Plot", class = "sr-only", `aria-label` = "2D scatter plot visualization of feature metadata with correlation analysis and interactive selection"),
+      meta_scatter_ui(ns('feature_space'))),
+    tabPanel("Feature table",
+      tags$h2("Feature Metadata Table", class = "sr-only", `aria-label` = "Searchable table of feature annotations including gene names, protein IDs, statistical test results, and functional classifications"),
+      dataTable_ui(ns("tab_feature"))),
+    tabPanel("Sample",
+      tags$h2("Sample Scatter Plot", class = "sr-only", `aria-label` = "2D scatter plot visualization of sample metadata with group comparisons and interactive selection"),
+      meta_scatter_ui(ns("sample_space"))),
+    tabPanel("Sample table",
+      tags$h2("Sample Metadata Table", class = "sr-only", `aria-label` = "Searchable table of sample annotations including experimental conditions, phenotypes, and clinical variables"),
+      dataTable_ui(ns("tab_pheno"))),
     tabPanel(
       "Cor",
+      tags$h2("Correlation Heatmap", class = "sr-only", `aria-label` = "Interactive correlation matrix heatmap showing pairwise correlations between samples with hierarchical clustering dendrogram"),
+      tags$h3("Heatmap Controls", class = "sr-only"),
       fluidRow(
         column(
-          6,             
+          6,
           dropdown(
             inputId = "mydropdown2",
             label = "Controls",
@@ -36,6 +46,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
           6, align = "right",
           iheatmapClear(id = ns("corheatmapViewer"))
         ),
+        tags$h3("Heatmap Visualization", class = "sr-only"),
         column(
           12, iheatmapOutput(id = ns("corheatmapViewer"))
         )
@@ -43,9 +54,11 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     ),
     tabPanel(
       "Heatmap",
+      tags$h2("Expression Heatmap", class = "sr-only", `aria-label` = "Interactive expression heatmap showing feature abundance across samples with hierarchical clustering and customizable color scales"),
+      tags$h3("Heatmap Controls", class = "sr-only"),
       fluidRow(
         column(
-          6,             
+          6,
           dropdown(
             inputId = "mydropdown",
             label = "Controls",
@@ -63,6 +76,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
           6, align = "right",
           iheatmapClear(id = ns("heatmapViewer"))
         ),
+        tags$h3("Heatmap Visualization", class = "sr-only"),
         column(
           12, iheatmapOutput(id = ns("heatmapViewer"))
         )
@@ -70,9 +84,11 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     ),
     tabPanel(
       "Dynamic heatmap",
+      tags$h2("Dynamic Heatmap with Selection", class = "sr-only", `aria-label` = "Interactive expression heatmap with row selection capabilities for subsetting features based on expression patterns"),
+      tags$h3("Heatmap Controls", class = "sr-only"),
       fluidRow(
         column(
-          6,             
+          6,
           dropdown(
             inputId = "mydropdown3",
             label = "Controls",
@@ -90,13 +106,18 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
           6, align = "right",
           iheatmapClear(id = ns("dynheatmapViewer"))
         ),
+        tags$h3("Heatmap Visualization", class = "sr-only"),
         column(
           12, iheatmapOutput(id = ns("dynheatmapViewer"))
         )
       )
     ),
-    tabPanel("Expression", dataTable_ui(ns("tab_expr"))),
-    tabPanel("GSList", gslist_ui(ns("gsList")))
+    tabPanel("Expression",
+      tags$h2("Expression Matrix Table", class = "sr-only", `aria-label` = "Searchable table showing quantitative expression values for all features across all samples"),
+      dataTable_ui(ns("tab_expr"))),
+    tabPanel("GSList",
+      tags$h2("Gene Set Membership Table", class = "sr-only", `aria-label` = "Table showing which features belong to which gene sets or functional categories for pathway enrichment analysis"),
+      gslist_ui(ns("gsList")))
   )
 }
 

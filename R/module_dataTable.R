@@ -6,13 +6,17 @@ dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
     fluidRow(
-      # column(2, dropdown( 
+      # column(2, dropdown(
       #   margin = "25px", status = "default", icon = icon("cog"), width = "700px",
       #   tooltip = tooltipOptions(title = "Add more columns to the table!"),
       #    )),
-      column(3, actionButton(ns("clear"), "Show all")),
-      column(6, align = "center", 
-             shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px")
+      column(3,
+        actionButton(ns("clear"), "Show all") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-clear-filter-button"))
+      ),
+      column(6, align = "center",
+        shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px") %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-multiselect-toggle"))
       ),
       column(3, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
     ),
@@ -151,12 +155,17 @@ dataTable_module <- function(
       x[is.na(x)] <- ""
       x
     })
-    dt <- DT::datatable( 
+    dt <- DT::datatable(
       tab,
       selection =  list(mode = c("single", "multiple")[as.integer(sel)+1], selected = tab_status()$rows_selected, target = "row"),
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
+      caption = htmltools::tags$caption(
+        style = "caption-side: top; text-align: left; font-weight: normal; padding: 5px 0;",
+        sprintf("Data table with %d rows and %d columns. Use column filters to search and sort data.",
+                nrow(tab), ncol(tab))
+      ),
       options = list(
         scrollX = TRUE, pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE, dom = 'tip',
         columnDefs = list(list(

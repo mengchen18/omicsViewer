@@ -4,9 +4,13 @@
 enrichment_analysis_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    uiOutput(ns("error")),
+    uiOutput(ns("error")) %>%
+      tagAppendAttributes(`aria-live` = "assertive", `aria-atomic` = "true"),
+    tags$h3("Gene Set Collection Selection", class = "sr-only", `aria-label` = "Select gene set database for over-representation analysis such as GO, KEGG, or custom gene sets"),
     triselector_ui(ns("tris_ora"), right_margin = "5"),
+    tags$h3("Enrichment Results", class = "sr-only", `aria-label` = "Table showing enriched gene sets with p-values, FDR, odds ratios, and overlap statistics from hypergeometric test"),
     dataTableDownload_ui(ns("stab")),
+    tags$h3("Gene Overlap Details", class = "sr-only", `aria-label` = "Detailed list of overlapping genes between selected features and enriched gene set with annotations"),
     dataTableDownload_ui(ns("overlapTab"))
   )
 }
