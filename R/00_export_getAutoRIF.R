@@ -20,16 +20,51 @@
 #' a <- getAutoRIF("mtor signaling")
 #' @return a \code{data.frame} of 4 columns: gene, n, perc, rank. 
 
-getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {  
+getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
+
+  # Input validation
+  if (is.null(term) || length(term) == 0 || all(nchar(trimws(term)) == 0)) {
+    return(NULL)
+  }
+
   term <- gsub(" ", "%20", term)
   term <- paste(term, collapse = ",")
   GENESHOT_URL <- 'https://maayanlab.cloud/geneshot/api/search'
   payload <- list("rif" = rif, "term" = term)
-  r <- httr::POST(GENESHOT_URL, body = payload , encode = "json")
-  r <- httr::content(r)
-  v <- vapply(r$gene_count, unlist, numeric(2))
 
-  if (length(v) == 0) 
+  # Use safe POST wrapper
+  result <- safe_POST(
+    url = GENESHOT_URL,
+    body = payload,
+    encode = "json",
+    timeout = 30,
+    api_name = "Geneshot"
+  )
+
+  # Check if request failed
+  if (!result$success) {
+    message("Geneshot API error: ", result$error)
+    return(NULL)
+  }
+
+  # Extract response data
+  r <- result$data
+
+  # Validate response structure
+  if (is.null(r) || !is.list(r) || is.null(r$gene_count)) {
+    message("Geneshot returned unexpected data format.")
+    return(NULL)
+  }
+
+  # Extract gene count data
+  v <- tryCatch({
+    vapply(r$gene_count, unlist, numeric(2))
+  }, error = function(e) {
+    message("Error parsing Geneshot results: ", conditionMessage(e))
+    return(matrix(nrow = 0, ncol = 0))
+  })
+
+  if (length(v) == 0)
     return(NULL)
 
   df <- data.frame(
@@ -39,8 +74,10 @@ getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
     stringsAsFactors = FALSE
   )
   df$rank <- df$n * df$perc
+
   if (filter)
     df <- df[df$n > min(ceiling(nrow(df)/AUTORIF_THRESHOLD_DIVISOR), AUTORIF_MIN_THRESHOLD), ]
+
   attr(df, "term") <- r$search_term
   attr(df, "pubmedID_count") <- r$pubmedID_count
   df

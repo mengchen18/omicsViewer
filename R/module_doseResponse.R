@@ -1,5 +1,27 @@
-#' @description Utility enrichment analysis shiny ui
-#' @param id id
+#' Dose Response Curve UI Function
+#'
+#' @description
+#' Creates the user interface for the dose response curve visualization module.
+#' Displays dose-response curves with fitted parameters and feature information
+#' in a multi-panel layout.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID
+#'   used in \code{\link{dose_response_module}}.
+#'
+#' @return
+#' A \code{fluidRow} containing:
+#' \itemize{
+#'   \item Plot panel: Dose-response curve visualization
+#'   \item Parameter table: Fitted curve parameters (hill slope, EC50, etc.)
+#'   \item Feature table: Selected feature information
+#' }
+#'
+#' @family analysis modules
+#' @seealso
+#' \code{\link{dose_response_module}} for the corresponding server logic.
+#' \code{\link{plotDCMat}} for the underlying plotting function.
+#'
+#' @keywords internal
 #' @importFrom DT dataTableOutput
 dose_response_ui <- function(id) {
   ns <- NS(id)
@@ -16,13 +38,48 @@ dose_response_ui <- function(id) {
   )
 }
 
-#' @description Utility dose response shiny module
-#' @param id module id
-#' @param reactive_expr reactive expression matrix
-#' @param reactive_phenoData reactive phenotype data
-#' @param reactive_featureData reactive feature data
-#' @param reactive_i reactive index of rows to be selected
-#' @param reactive_attr_drc reactive dose response curve attributes
+#' Dose Response Curve Server Function
+#'
+#' @description
+#' Server logic for the dose response curve visualization module. Fits
+#' dose-response curves using the drc package and displays fitted parameters
+#' and plots for selected features.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID
+#'   used in \code{\link{dose_response_ui}}.
+#'
+#' @param reactive_expr Reactive expression. Returns a numeric matrix with
+#'   features as rows and samples as columns containing expression/response values.
+#'
+#' @param reactive_phenoData Reactive expression. Returns a data.frame of
+#'   sample metadata including dose and curve ID columns.
+#'
+#' @param reactive_featureData Reactive expression. Returns a data.frame of
+#'   feature metadata with features as rows.
+#'
+#' @param reactive_i Reactive expression. Returns a single integer index
+#'   indicating which feature row to display. Must have length 1.
+#'
+#' @param reactive_attr_drc Reactive expression. Returns a named character vector
+#'   with elements "dose_col" and "curveid_col" specifying the column names
+#'   in phenoData for dose values and curve identifiers.
+#'
+#' @details
+#' The module fits 4-parameter or 5-parameter log-logistic curves to the
+#' dose-response data and extracts parameters including EC50, hill slope,
+#' minimum and maximum responses. Only single feature selection is supported.
+#'
+#' @return
+#' NULL (invisibly). The module displays plots and tables but does not return
+#' a reactive value.
+#'
+#' @family analysis modules
+#' @seealso
+#' \code{\link{dose_response_ui}} for the corresponding UI function.
+#' \code{\link{plotDCMat}} for the plotting function.
+#' \code{\link{drmMat}} for curve fitting.
+#'
+#' @keywords internal
 #' @importFrom fastmatch fmatch
 
 dose_response_module <- function(

@@ -37,16 +37,27 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
 #' @importFrom httr GET content
 
 stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
-  
+
+  # Input validation
+  if (is.null(genes) || length(genes) == 0) {
+    return("Error: No genes provided for STRING network query.")
+  }
+
   string_api_url <- "https://string-db.org/api"
   output_format <- "tsv"
   method <- "network"
+
+  # Clean gene list
   if (inherits(genes, "list"))
     genes <- na.omit(unlist(genes))
   genes <- gsub("#|%", "", genes)
-  
+
+  if (length(genes) == 0) {
+    return("Error: No valid genes after cleaning.")
+  }
+
   request_url <- paste(string_api_url, output_format, method, sep = "/")
-  
+
   params <- list(
     "identifiers" = paste(genes, collapse = "%0d"),
     "species" = taxid,
@@ -57,13 +68,30 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
     vapply(names(params), function(x) paste(x, params[[x]], sep = "="), FUN.VALUE = character(1)),
     collapse = "&"
   )
-  results <- GET( paste(request_url, params, sep = "?") )
-  dd <- httr::content(results)
-  dd <- unique(dd)
-  if (!is.data.frame(dd)) {
-    message('stringdb does not return valid results, return NULL!')
-    return(dd)
+
+  # Use safe GET wrapper
+  result <- safe_GET(
+    url = paste(request_url, params, sep = "?"),
+    timeout = 30,
+    api_name = "STRING Network"
+  )
+
+  # Check if request failed
+  if (!result$success) {
+    message("STRING Network API error: ", result$error)
+    return(result$error)
   }
+
+  # Extract and validate data
+  dd <- result$data
+  dd <- unique(dd)
+
+  validation <- validate_api_response(dd, expected_type = "data.frame", api_name = "STRING Network")
+  if (!validation$valid) {
+    message("STRING Network validation error: ", validation$error)
+    return(validation$error)
+  }
+
   as.data.frame(dd)
 }
 
@@ -81,13 +109,19 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
 #' # getStringId(gg)
 
 getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
+
+  # Input validation
+  if (is.null(genes) || length(genes) == 0) {
+    return("Error: No genes provided for STRING ID mapping.")
+  }
+
   string_api_url <- "https://string-db.org/api"
   output_format <- "tsv"
   method <- "get_string_ids"
-  
+
   params <- list(
     "identifiers" = paste(genes, collapse = "%0d"),
-    "species" = taxid, # species NCBI identifier 
+    "species" = taxid, # species NCBI identifier
     "limit" = 1, # only one (best) identifier per input protein
     "echo_query" = 1, # see your input identifiers in the output
     "caller_identity" = caller # your app name
@@ -97,9 +131,21 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
     collapse = "&"
   )
   request_url <-  paste(string_api_url, output_format, method, sep = "/")
-  ## Call STRING
-  results <- httr::GET( paste(request_url, params, sep = "?") )
-  httr::content(results)
+
+  # Use safe GET wrapper
+  result <- safe_GET(
+    url = paste(request_url, params, sep = "?"),
+    timeout = 30,
+    api_name = "STRING ID Mapping"
+  )
+
+  # Check if request failed
+  if (!result$success) {
+    message("STRING ID Mapping API error: ", result$error)
+    return(result$error)
+  }
+
+  result$data
 }
 
 #' @description Performing gene set analysis using string-db
@@ -118,17 +164,22 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
 #' # u <- stringGSA(gg)
 
 stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "omicsViewer") {
-  
+
+  # Input validation
+  if (is.null(genes) || length(genes) == 0) {
+    return("Error: No genes provided for STRING enrichment analysis.")
+  }
+
   string_api_url <- "https://string-db.org/api"
   output_format <- "tsv"
   method <- "enrichment"
   request_url <- paste(string_api_url, output_format, method, sep = "/")
-  
+
   params <- list(
-    "species" = taxid, 
+    "species" = taxid,
     "caller_identity" = caller
   )
-  
+
   if (!is.null(background)) {
     if (!backgroundStringId) {
       g <- getStringId(genes, taxid = taxid)
@@ -141,19 +192,35 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
       genes <- intersect(genes, background)
     }
     if (length(genes) == 0)
-      stop("No genes exist in the current background!")
+      return("Error: No genes exist in the current background!")
     params$background_string_identifiers <- paste(g$stringId, collapse = "%0d")
   }
-  
-  params$identifiers <- paste(genes, collapse = "%0d") 
-  
-  # call string
-  response <- httr::GET(url = request_url, query = params) 
-  dd <- httr::content(response) 
-  if (!is.data.frame(dd)) {
-    message('stringdb does not return valid results, return NULL!')
-    return(dd)
+
+  params$identifiers <- paste(genes, collapse = "%0d")
+
+  # Use safe GET wrapper
+  result <- safe_GET(
+    url = request_url,
+    query = params,
+    timeout = 30,
+    api_name = "STRING Enrichment"
+  )
+
+  # Check if request failed
+  if (!result$success) {
+    message("STRING Enrichment API error: ", result$error)
+    return(result$error)
   }
+
+  # Extract and validate data
+  dd <- result$data
+
+  validation <- validate_api_response(dd, expected_type = "data.frame", api_name = "STRING Enrichment")
+  if (!validation$valid) {
+    message("STRING Enrichment validation error: ", validation$error)
+    return(validation$error)
+  }
+
   as.data.frame(dd)
 }
 

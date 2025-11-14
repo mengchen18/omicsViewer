@@ -1,17 +1,73 @@
-#' @description Utility enrichment analysis shiny ui
-#' @param id id
+#' Gene Set List UI Function
+#'
+#' @description
+#' Creates the user interface for the gene set membership display module.
+#' Shows which gene sets contain the selected features with downloadable results.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID
+#'   used in \code{\link{gslist_module}}.
+#'
+#' @return
+#' A \code{tagList} containing a data table with download functionality showing
+#' gene set memberships for selected features.
+#'
+#' @family enrichment modules
+#' @seealso
+#' \code{\link{gslist_module}} for the corresponding server logic.
+#'
+#' @keywords internal
 #' @importFrom DT dataTableOutput
+#'
 gslist_ui <- function(id) {
   ns <- NS(id)
   dataTableDownload_ui(ns("stab"))
 }
 
-#' @description Utility gene set list shiny module
-#' @param id module id
-#' @param reactive_featureData reactive feature data
-#' @param reactive_i reactive index of rows to be selected
+#' Gene Set List Server Function
+#'
+#' @description
+#' Server logic for the gene set membership display module. Retrieves and
+#' displays gene set annotations for selected features from the feature data
+#' attributes.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID
+#'   used in \code{\link{gslist_ui}}.
+#'
+#' @param reactive_featureData Reactive expression. Returns a data.frame of
+#'   feature metadata with a "GS" attribute containing gene set membership
+#'   information. The "GS" attribute should be a data.frame with columns:
+#'   \itemize{
+#'     \item featureId: Feature identifiers
+#'     \item gsId: Gene set identifiers
+#'     \item Additional annotation columns (optional)
+#'   }
+#'
+#' @param reactive_i Reactive expression. Returns feature IDs or indices to
+#'   display. Can be:
+#'   \itemize{
+#'     \item Character vector of feature IDs
+#'     \item Integer vector of feature indices
+#'     \item Logical scalar TRUE (show all features)
+#'     \item NULL or NA (show all features)
+#'   }
+#'
+#' @details
+#' The module extracts gene set annotations from the "GS" attribute of
+#' feature data and filters to show only selected features. Gene sets are
+#' displayed with associated feature annotations from columns starting with
+#' "General|".
+#'
+#' @return
+#' A reactive expression returning a character vector of feature IDs for
+#' the selected table row, or NULL if no row is selected.
+#'
+#' @family enrichment modules
+#' @seealso
+#' \code{\link{gslist_ui}} for the corresponding UI function.
+#'
+#' @keywords internal
 #' @importFrom fastmatch fmatch
-
+#'
 gslist_module <- function(
   id, reactive_featureData, reactive_i
 ) {

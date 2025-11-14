@@ -1,7 +1,30 @@
-#' @description Utility - scatter plot for meta shiny ui
-#' @param id id
+#' Meta Scatter Plot UI Function
+#'
+#' @description
+#' Creates the user interface for the metadata scatter plot visualization module.
+#' Provides interactive scatter plots with advanced selection tools including
+#' corner selection for volcano plots.
+#'
+#' @param id Character. Namespace ID for the Shiny module. Must match the ID
+#'   used in \code{\link{meta_scatter_module}}.
+#'
+#' @return
+#' A \code{tagList} containing:
+#' \itemize{
+#'   \item Figure attribute selector (color, shape, size controls)
+#'   \item Clear selection button
+#'   \item X-axis and Y-axis variable selectors
+#'   \item Interactive plotly scatter plot with lasso/box selection
+#' }
+#'
+#' @family visualization modules
+#' @seealso
+#' \code{\link{meta_scatter_module}} for the corresponding server logic.
+#' \code{\link{plotly_scatter_module}} for the scatter plot implementation.
+#'
+#' @keywords internal
 #' @importFrom shinyWidgets actionBttn
-#' 
+#'
 meta_scatter_ui <- function(id) {
   ns <- NS(id)
   tagList(

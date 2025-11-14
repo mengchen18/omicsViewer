@@ -4,7 +4,12 @@
 \alias{correlationAnalysis}
 \title{Correlating a expression matrix with phenotypical variables}
 \usage{
-correlationAnalysis(x, pheno, min.value = 12, prefix = "Cor")
+correlationAnalysis(
+  x,
+  pheno,
+  min.value = MIN_SAMPLES_CORRELATION,
+  prefix = "Cor"
+)
 }
 \arguments{
 \item{x}{an expression matrix, rows are the features (e.g. proteins), 
