@@ -175,19 +175,21 @@ meta_scatter_module <- function(
 
   # Rectangle for corner selection (volcano plot)
   rectval <- reactive({
-    # Force dependency on clear button
+    # Recalculate when clear button clicked
     clear_counter()
 
     # Return NULL if no cutoff selected or "None" corner
     if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") {
       return(NULL)
     }
-
+    
     # Force dependency on axis changes
     v1()
     v2()
 
     # Calculate rectangle based on coordinates and cutoff
+    # Note: xycoord() already depends on v1() and v2(), so we don't need
+    # to touch them explicitly - reactive graph handles transitive dependencies
     coords <- xycoord()
     if (is.null(coords)) return(NULL)
 
@@ -236,12 +238,19 @@ meta_scatter_module <- function(
     sbc(FALSE)
   })
   
+  # Workaround: Track previous selection to prevent redundant updates
+  # Plotly events can fire even when selection hasn't actually changed,
+  # causing unnecessary reactive chain invalidations. We store the previous
+  # selection and only update selVal when it truly changes.
   clientSideSelection <- reactiveVal(character(0))
   observeEvent( v_scatter(), {
     l <- get_names()
     u_c <- l[v_scatter()$clicked]
     u_s <- l[v_scatter()$selected]
+
+    # Only update if selection actually changed
     req( !identical( tmp <- c(u_c, u_s),  clientSideSelection() ) )
+
     clientSideSelection(tmp)
     selVal( list(
       clicked = u_c,
@@ -249,12 +258,6 @@ meta_scatter_module <- function(
     ) )
     sbc(FALSE)
   })
-  
-  emptyValues <- function(...) {
-    l <- list(...)
-    j <- vapply(l, function(x) is.null(x) || length(x) == 0, logical(1))
-    all(j)
-  }
 
   returnCornerSelection <- reactiveVal(TRUE)    
   observeEvent( rectval(), {          
