@@ -221,9 +221,9 @@ plotly_scatter <- function(
     )
     # marker = list(size = ~ size, sizes = c(10, 50), sizemode = 'diameter') # this not warnings but doesn't work well
     if (regressionLine) {
-      
+
       mod <- lm(df$y ~ df$x)
-      prd <- predict(mod, newdata = data.frame(x), interval = 'confidence')
+      prd <- predict(mod, newdata = data.frame(x = df$x), interval = 'confidence')
       df <- cbind(df, prd)
       # set.seed(8610)
       fig <- add_trace(

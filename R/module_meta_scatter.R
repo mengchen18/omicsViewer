@@ -87,14 +87,25 @@ meta_scatter_module <- function(
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  
+
+  # Helper: Get feature/sample names based on combine mode
+  get_names <- function() {
+    if (combine == "pheno") {
+      colnames(reactive_expr())
+    } else {
+      rownames(reactive_expr())
+    }
+  }
+
   triset <- reactive( {
     ts <- trisetter(expr = reactive_expr(), meta = reactive_meta(), combine = combine[1])
     ts[ts[, 1] != "Surv", ]
   } )
-  
+
+  # Axis config: Parse pipe-separated strings into list(v1, v2, v3)
+  # Use reactiveVal pattern (not pure reactive) to prevent multiple invalidations
   xax <- reactiveVal()
-  observeEvent(reactive_x(), {    
+  observe({
     r <- list()
     if (!is.null(reactive_x())) {
       l <- strsplit(reactive_x(), "\\|")[[1]]
@@ -102,14 +113,14 @@ meta_scatter_module <- function(
     }
     xax(r)
   })
-  
+
   yax <- reactiveVal()
   observe({
     r <- list()
     if (!is.null(reactive_y())) {
       l <- strsplit(reactive_y(), "\\|")[[1]]
       r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
-    } 
+    }
     yax(r)
   })  
 
@@ -122,16 +133,18 @@ meta_scatter_module <- function(
                    reactive_selector2 = reactive(yax()$v2),
                    reactive_selector3 = reactive(yax()$v3))
 
-  pre_vol <- reactiveVal(FALSE)
-  observe({
-    vv <- c("v1", "v2", "v3")
-    if (all(vv %in% names(xax())) && all(vv %in% names(yax()))) {
-      if (xax()$v1 == "ttest" &&
-          yax()$v1 == "ttest" &&
-          xax()$v3 == "mean.diff" &&
-          yax()$v3 %in% c("log.fdr", "log.pvalue"))
-        pre_vol(TRUE)
-    }
+  # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from ttest)
+  pre_vol <- reactive({
+    # Check if selections are valid
+    if (is.null(v1()) || is.null(v2())) return(FALSE)
+    if (is.null(v1()$analysis) || is.null(v2()$analysis)) return(FALSE)
+    if (is.null(v1()$variable) || is.null(v2()$variable)) return(FALSE)
+
+    # Check for volcano plot pattern
+    v1()$analysis == "ttest" &&
+      v2()$analysis == "ttest" &&
+      v1()$variable == "mean.diff" &&
+      v2()$variable %in% c("log.fdr", "log.pvalue")
   })
 
   attr4select_status <- reactiveVal()
@@ -154,19 +167,31 @@ meta_scatter_module <- function(
     list( x = x, y = y )
   })
 
-  rectval <- reactiveVal(NULL)
-  observe({    
-    req(xycoord())    
-    rectval( line_rect(l = attr4select$cutoff, xycoord())$rect )
-  })
-  
+  # Track clear button clicks
+  clear_counter <- reactiveVal(0)
   observeEvent(input$clear, {
-    pre_vol(FALSE)
-    rectval( NULL )
+    clear_counter(clear_counter() + 1)
   })
-  observeEvent(list(v1(), v2()), {
-    if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") 
-      rectval(NULL)
+
+  # Rectangle for corner selection (volcano plot)
+  rectval <- reactive({
+    # Force dependency on clear button
+    clear_counter()
+
+    # Return NULL if no cutoff selected or "None" corner
+    if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") {
+      return(NULL)
+    }
+
+    # Force dependency on axis changes
+    v1()
+    v2()
+
+    # Calculate rectangle based on coordinates and cutoff
+    coords <- xycoord()
+    if (is.null(coords)) return(NULL)
+
+    line_rect(l = attr4select$cutoff, coords)$rect
   })
   
   scatter_vars <- reactive({
@@ -212,19 +237,17 @@ meta_scatter_module <- function(
   })
   
   clientSideSelection <- reactiveVal(character(0))
-  observeEvent( v_scatter(), { 
-    if (combine == "pheno") 
-      l <- colnames(reactive_expr()) else
-        l <- rownames(reactive_expr())
-      u_c <- l[v_scatter()$clicked]
-      u_s <- l[v_scatter()$selected]
-      req( !identical( tmp <- c(u_c, u_s),  clientSideSelection() ) )
-      clientSideSelection(tmp)
-      selVal( list(
-        clicked = u_c,
-        selected = u_s
-      ) )
-      sbc(FALSE)
+  observeEvent( v_scatter(), {
+    l <- get_names()
+    u_c <- l[v_scatter()$clicked]
+    u_s <- l[v_scatter()$selected]
+    req( !identical( tmp <- c(u_c, u_s),  clientSideSelection() ) )
+    clientSideSelection(tmp)
+    selVal( list(
+      clicked = u_c,
+      selected = u_s
+    ) )
+    sbc(FALSE)
   })
   
   emptyValues <- function(...) {
@@ -244,14 +267,12 @@ meta_scatter_module <- function(
       selVal(list(
         clicked = character(0),
         selected = character(0)
-      )) 
+      ))
       return(NULL)
     }
     req( cc <- xycoord() )
-    if (combine == "pheno")
-      l <- colnames(reactive_expr()) else
-        l <- rownames(reactive_expr())
-    
+    l <- get_names()
+
     i <- lapply(rec, function(r1) {
       which( cc$x > r1["x0"] & cc$x < r1["x1"] & cc$y > r1["y0"] & cc$y < r1["y1"] )
     })
@@ -281,45 +302,33 @@ meta_scatter_module <- function(
     })
 
   ############## status restore ###############
+  # Consolidate all status restoration into single observer
   observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
-    xax(NULL)
+    s <- reactive_status()
+    if (is.null(s)) return()
+
+    # Restore axis selections
     xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
-    })
-  observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
-    yax(NULL)
     yax(list(v1 = s$yax[[1]], v2 = s$yax[[2]], v3 = s$yax[[3]]))
-    })
-  observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
+
+    # Restore attribute selector status
     attr4select_status(NULL)
-    attr4select_status(s$attr4)    
-    })
+    attr4select_status(s$attr4)
 
-  observeEvent(reactive_status(), {    
-    if (!is.null(s <- reactive_status()))
-      showRegLine(s$showRegLine) 
-      })
+    # Restore regression line setting
+    showRegLine(s$showRegLine)
 
-  observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
-    htestV1( s$htestV1 )
-    htestV2( s$htestV2 )
-    })  
-  observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
-    returnCornerSelection( s$selectByCorner )
-    selVal( list(
+    # Restore hypothesis test variables
+    htestV1(s$htestV1)
+    htestV2(s$htestV2)
+
+    # Restore selection state
+    returnCornerSelection(s$selectByCorner)
+    selVal(list(
       clicked = s$selection_clicked,
       selected = s$selection_selected
-      ))
-    })
+    ))
+  })
   #############################################
 
   selVal
