@@ -46,6 +46,3 @@ plot_roc_pr_module <- function(id, reactive_param, reactive_checkpoint = reactiv
 
   }) # end moduleServer
 }
-
-
-

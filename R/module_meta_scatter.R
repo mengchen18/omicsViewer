@@ -37,8 +37,7 @@ meta_scatter_ui <- function(id) {
              triselector_ui(ns("tris_main_scatter1")),
              triselector_ui(ns("tris_main_scatter2")))
     ),
-    plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT)#,
-    # actionButton(ns("clear"), "Clear selection and box")
+    plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT)
   )
 }
 
@@ -124,7 +123,6 @@ meta_scatter_module <- function(
                    reactive_selector3 = reactive(yax()$v3))
 
   pre_vol <- reactiveVal(FALSE)
-  # pre_vol <- reactive({
   observe({
     vv <- c("v1", "v2", "v3")
     if (all(vv %in% names(xax())) && all(vv %in% names(yax()))) {
@@ -186,9 +184,7 @@ meta_scatter_module <- function(
     l$inSelection <- NA
     l
   })
-  
-  # scatter plot:
-  #  - single feature selected - numerical phenoData selected
+
   showRegLine <- reactiveVal(FALSE)
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()

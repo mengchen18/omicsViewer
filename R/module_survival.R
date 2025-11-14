@@ -47,7 +47,7 @@ survival_module <- function(
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  
+
   dat <- reactive({
     req(reactive_checkpoint())
     y <- reactive_resp()
@@ -89,6 +89,3 @@ survival_module <- function(
 
   }) # end moduleServer
 }
-
-
-

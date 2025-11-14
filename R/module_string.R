@@ -120,10 +120,9 @@ string_module <- function(
   })
   
   nk <- reactiveVal()
-  # nk <- eventReactive( input$run, {
   observeEvent( input$run, {
     show_modal_spinner(text = "Querying STRING network ...")
-    r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid())
+    r <- stringNetwork(genes = reactive_ids(), taxid = input$tax))
     remove_modal_spinner()
 
     # Check for API errors
@@ -155,7 +154,6 @@ string_module <- function(
   
   gs <- reactiveVal()
   gs <- eventReactive( input$run, {
-  # observeEvent(input$run, {
     req(!overflow())
     show_modal_spinner(text = "Querying STRING enrichment database ...")
     tab <- stringGSA(genes = reactive_ids(), taxid = input$tax)
@@ -184,7 +182,6 @@ string_module <- function(
     colnames(tab) <- c(
       "category", "term", "gene number", "background number",
       "TaxonId", "inputGenes", "preferredNames", "p value", "fdr", "description")
-    # gs(tab)
     tab
   })
 
@@ -224,12 +221,9 @@ string_module <- function(
     highlightP(tt())
   })
 
-  # return and restore session
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    # nk(s$nk)
-    # gs(s$gs)
     updateTextInputIcon(session, "tax", value = s$tax)
     updateCheckboxInput(session, "showLabel", value = s$showLabel)
     if (active())
@@ -237,8 +231,8 @@ string_module <- function(
     })
 
   reactive({
-    list( tax = input$tax, showLabel = input$showLabel ) # nk = nk(), gs = gs(),
-    })
+    list(tax = input$tax, showLabel = input$showLabel)
+  })
 
   }) # end moduleServer
 }

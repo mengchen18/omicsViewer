@@ -440,7 +440,7 @@ plotly_scatter_module <- function(
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  
+
   hm <- reactive({
     x <- reactive_param_plotly_scatter()$x
     y <- reactive_param_plotly_scatter()$y
@@ -449,8 +449,8 @@ plotly_scatter_module <- function(
     i3 <- is.numeric(y) && is.numeric(x) # scatter
     list( scatter = i3, beeswarm = i1 || i2, beeswarm.vertical = i1)
   })
-  
-  ################## dynamic UI for significance test ###################
+
+
   choices <- reactive({
     req(reactive_checkpoint())
     req(hm()$beeswarm)
@@ -514,16 +514,13 @@ plotly_scatter_module <- function(
     )
     DT::datatable( df , options = list(searching = FALSE, lengthChange = FALSE, dom = 't'), rownames = FALSE, class = "compact")
   })
-  
-  ################## dynamic UI for tickbox ###################
+
   output$regTickBox <- renderUI({
     req(reactive_checkpoint())
     req(hm()$scatter)
     checkboxInput(ns("showRegLine"), "Regression line", reactive_regLine())
   })
-  
-  ################## render plot ###################
-  # update source
+
   reactive_param_plotly_scatter_src <- reactive({
     x <- reactive_param_plotly_scatter()
     src <- ifelse ( !is.null(x$source), x$source, 'scatterplotly')
@@ -532,87 +529,36 @@ plotly_scatter_module <- function(
   })
   
   plotter <- reactive({
-    
+
     req(reactive_checkpoint())
-    
-    # if beeswarm, return the object without need of input$showRegLine 
+
     if (!hm()$scatter) {
       return(
         do.call(plotly_scatter, args = c(
-          reactive_param_plotly_scatter_src(), regressionLine = FALSE #, drawButtonId = ns("testComp")
+          reactive_param_plotly_scatter_src(), regressionLine = FALSE
         ))
       )
     }
     req(!is.null(input$showRegLine))
     do.call(plotly_scatter, args = c(
-      reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine #, drawButtonId = ns("testComp")
+      reactive_param_plotly_scatter_src(), regressionLine = input$showRegLine
     ))
   })
   output$plotly.scatter.output <- renderPlotly({
     req( plotter()$fig )
-    plotter()$fig 
+    plotter()$fig
   })
-  
-  # add a button to save figure data for later editting
-  # disabled currently
-  # #################### add plot data ####################
-  # figureId <- eventReactive(input$testComp, {
-  #   avl <- ls(envir = .GlobalEnv, pattern = "^.__plotData__", all.names = TRUE)
-  #   if (length(avl) == 0) {
-  #     nplot <- 1
-  #   } else {
-  #     dup <- vapply(avl, function(name) {
-  #       ob <- get(name, envir = .GlobalEnv)
-  #       identical(ob, plotter()$data)
-  #     }, logical(1))
-  #     if (any(dup)) return("duplicated")
-  #     plotcum <- as.integer(sub("^.__plotData__", "0", avl))
-  #     nplot <- max(plotcum)+1
-  #   }
-  #   paste0(".__plotData__", nplot)
-  # })
-
-  # observeEvent(figureId(), {
-  #   if (figureId() == "duplicated") {
-  #     showModal(modalDialog(
-  #       "Figure data has been added!", footer = modalButton("Dismiss")
-  #     ))
-  #   } else {      
-  #     showModal( modalDialog(
-  #         "Figure name",
-  #         textInput(inputId = ns("fname"), label = "Figure name", placeholder = "Give figure name"),
-  #         actionButton(inputId = ns("savefname"), label = "Save for later editting!"),
-  #         easyClose = TRUE,
-  #         footer = NULL
-  #       )
-  #     )
-  #   }
-  # })
-
-  # observeEvent(input$savefname, {
-  #   req(figureId())
-  #   fid <- ifelse(nchar(input$fname) == 0, "Unnamed figure", input$fname)
-  #   fata <- plotter()$data
-  #   attr(fata, "name") <- fid
-  #   attr(fata, "type") <- "scatter"
-  #   assign(figureId(), fata, envir = .GlobalEnv)
-  #   showModal(modalDialog(
-  #     "Figure data has been added!", footer = modalButton("Dismiss"), easyClose = TRUE
-  #   ))
-  # })  
-  
-  ################## return selected ###################
 
   rr <- reactive({
     id <- plotter()$data$index
-    
+
     selected <- event_data("plotly_selected", source = reactive_param_plotly_scatter_src()$source)
     selected <- sort(id[fastmatch::'%fin%'(plotter()$data$xyid,  paste(selected$x, selected$y))])
-    
+
     clicked <- event_data("plotly_click", source = reactive_param_plotly_scatter_src()$source )
     clicked <- sort(id[fastmatch::'%fin%'(plotter()$data$xyid, paste(clicked$x, clicked$y))])
     list(selected = selected, clicked = clicked)
-    })
+  })
 
   reactive({
     list(
@@ -626,5 +572,3 @@ plotly_scatter_module <- function(
 
   }) # end moduleServer
 }
-
-

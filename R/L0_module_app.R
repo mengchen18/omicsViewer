@@ -409,7 +409,6 @@ app_module <- function(
     HTML(txt)
   })
 
-  # v1 <- reactiveVal()
   v1 <- L1_data_space_module(
     "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
@@ -459,7 +458,6 @@ app_module <- function(
 
   savedSS <- reactiveVal()
   observe({
-    # req(input$selectFile)
     req(.dir())
     if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
       fs <- "ESVObj.RDS" else
@@ -533,8 +531,7 @@ app_module <- function(
       )
     })
 
-  observeEvent(input$snapshot_save, {    
-    # req(input$selectFile)
+  observeEvent(input$snapshot_save, {
     if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
       fs <- "ESVObj.RDS" else
         fs <- input$selectFile    

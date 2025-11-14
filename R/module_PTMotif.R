@@ -6,30 +6,7 @@ ptmotif_ui <- function(id) {
   tagList(
     triselector_ui(ns("tris_seqlogo")),
     uiOutput(ns("msg_ui"))
-    )
-    # tabsetPanel(
-    #   tabPanel("Selected seqs", dataTableDownload_ui(ns("seqtable"))),
-    #   tabPanel("PFM selected", dataTableDownload_ui(ns("seqtable_fg"))),
-    #   tabPanel("PFM all", dataTableDownload_ui(ns("seqtable_bg"))),
-    #   tabPanel("PFM selected/all", dataTableDownload_ui(ns("seqtable_rat")))#,
-      # tabPanel("Motifx", fluidRow(
-      #   column(
-      #     width = 3, textInput(ns("cent.res"), label = "Center residue", width = "100%", value = "all AA", placeholder = "e.g. all AA, STY, ST")
-      #   ),
-      #   column(
-      #     width = 3, sliderInput(ns("min.seqs"), label = "Minimum seqs", min = 3, max = 50, value = 10, width = "100%")
-      #   ),
-      #   column(
-      #     width = 3, textInput(ns("pval.cut"), label = "P-value cutoff", value = 1e-6, width = "100%")
-      #   ),
-      #   column(
-      #     width = 3, offset = 0, style='padding-left:5px; padding-right:5px; padding-top:25px; padding-bottom:5px',
-      #     actionButton(ns("submit"), label = "Run", width = "100%")
-      #   )),
-      #   dataTableDownload_ui(ns("tbl"))
-      #   )
-    #   )
-    # )
+  )
 }
 
 ptmotif_module <- function(
@@ -138,38 +115,12 @@ ptmotif_module <- function(
     aaFreq(foregroundSeqs())
     })
 
-  logo <- reactive({    
-    req(bg.pfm())    
+  logo <- reactive({
+    req(bg.pfm())
     req(fg.pfm())
     motifRF(fg.pfm = fg.pfm(), bg.pfm = bg.pfm())
   })
-  
-  # mot <- eventReactive(input$submit, {
-  #   fg.seq <- foregroundSeqs()
-  #   midpos <- (nchar(fg.seq[1])+1)/2
-    
-  #   ctres <- trimws(input$cent.res)
-  #   if (ctres == "all AA")
-  #     ctres <- LETTERS
-  #   fg.seq <- fg.seq[substr(fg.seq, midpos, midpos) %in% strsplit(ctres, split = "|")[[1]]]
-  #   req( length(fg.seq) >= input$min.seqs )
-  #   pc <- try(as.numeric(input$pval.cut))
-  #   req(is.numeric(pc))
-  #   show_modal_spinner(text = "Calculating ...")
-  #   tab <- motifx(
-  #     fg.seqs = fg.seq, bg.seqs = bg.seqs(), central.res = input$cent.res, min.seqs = input$min.seqs, pval.cutoff = pc
-  #     )
-  #   if (is.null(tab))
-  #     tab <- data.frame(
-  #       motif = character(0), score = numeric(0), fg.matches = numeric(0), fg.size = numeric(0),
-  #       bg.matches = numeric(0), bg.size = numeric(0), fold.increase = numeric(0),
-  #       stringsAsFactors = FALSE
-  #     )
-  #   remove_modal_spinner()
-  #   tab
-  # })
-  
-  ##
+
   output$plt <- renderPlot({
     req( logo() )
     ggseqlogo::ggseqlogo( data = logo() ) + geom_vline(
@@ -210,13 +161,6 @@ ptmotif_module <- function(
 
   dataTableDownload_module(
     "seqtable_rat", reactive_table = reactive(mat2df(logo())), prefix = "seqLogoPFM_ratio", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
-
-
-  # motifTab <- dataTableDownload_module(
-  #   "tbl", reactive_table = reactive({
-  #     req(mot())
-  #     mot()
-  #   }), prefix = "motif", pageLength = 10)
 
   }) # end moduleServer
 }

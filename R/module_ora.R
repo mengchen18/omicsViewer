@@ -4,15 +4,10 @@
 enrichment_analysis_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    # table
     uiOutput(ns("error")),
-    # DT::dataTableOutput(ns("stab")),
-    # column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_sample_general"), right_margin = "5"))
     triselector_ui(ns("tris_ora"), right_margin = "5"),
     dataTableDownload_ui(ns("stab")),
     dataTableDownload_ui(ns("overlapTab"))
-    # plotly barplot
-    # plotlyOutput(ns("bplot"))
   )
 }
 
@@ -98,17 +93,14 @@ enrichment_analysis_module <- function(
     ck <- val[reactive_i()]
     col_key( ck )
 
-    # collapse foreground list
     rii(unique(ck))
     if ( length(rii()) <= 1)
       rii(NULL) else if (length(rii()) <=  3)
         rii("notest")
 
-    # collapse pathway
     rp$featureId <- as.factor( val[ as.character( rp$featureId ) ] )
     reactive_pathway_collapsed( unique(rp) )
-  
-    # collapse background
+
     size_bg( length(unique(val)) )
     })
   
@@ -177,9 +169,7 @@ enrichment_analysis_module <- function(
     ii <- grep("^General", colnames(reactive_featureData()), ignore.case = TRUE)
     if (length(ii) == 0)
       ii <- seq_len( min(3, ncol(reactive_featureData())) )
-    i <- oraTab()[i, ]        
-    # positive_ids <- i$overlap_ids[[1]]
-    # hid <- fmatch(positive_ids, rownames(reactive_pathway_mat()))
+    i <- oraTab()[i, ]
     hid <- i$overlap_ids[[1]]
     req(hid)
     if (!is.null(ck <- col_key()))
@@ -188,9 +178,6 @@ enrichment_analysis_module <- function(
     df1 <- cbind(Overlap = "+", df1)
     apath <- reactive_pathway()[reactive_pathway()$gsId == i$pathway, ]
     aid <- setdiff(apath$featureId, hid)
-    # pathway_name <- as.character(i$pathway)
-    # aid <- which(reactive_pathway_mat()[, pathway_name] != 0)
-    # aid <- setdiff(aid, hid)
     if (length(aid) > 0) {
       df2 <- reactive_featureData()[aid, ii, drop = FALSE]
       df2 <- cbind(Overlap = "", df2)
@@ -202,7 +189,6 @@ enrichment_analysis_module <- function(
   vi2 <- dataTableDownload_module(
     "overlapTab",
     reactive_table = hd,
-    # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ),
     prefix = "ORA_overlapGenes_", pageLength = ENRICHMENT_TABLE_PAGE_LENGTH
   )
 

@@ -33,7 +33,6 @@
 geneshot_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    # select variable
     fluidRow(
       column(
         width = 8, 
@@ -117,7 +116,7 @@ geneshot_module <- function(
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  # select stats from feature data
+
   triset <- reactive({
     fd <- fdata()
     cn <- colnames(fd)[!vapply(fd, is.numeric, logical(1)) & !grepl("^GS\\|", colnames(fd))]
@@ -227,18 +226,14 @@ geneshot_module <- function(
       return()
     xax(NULL)
     xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
-    # gtab(s$table)
-    # outliersLabs(s$outliers)
-    rif( s$rif )
+    rif(s$rif)
     updateTextInput(session, inputId = "term", value = s$term)
     })
 
-  ##
   rv <- reactiveValues()
-  observe( rv$xax <- v1() )
-  observe( rv$rif <- rif() )
-  # observe( rv$outliers <- rif()$outliers )
-  observe( rv$term <- input$term )
+  observe(rv$xax <- v1())
+  observe(rv$rif <- rif())
+  observe(rv$term <- input$term)
 
   reactive({
     reactiveValuesToList(rv)

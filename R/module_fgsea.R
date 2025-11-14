@@ -3,13 +3,10 @@
 enrichment_fgsea_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    # select variable
     triselector_ui(ns("tris_fgsea"), right_margin = "5"),
-    # plotly barplot
     shinycssloaders::withSpinner(
       plotlyOutput(ns("bplot")), type = 8, color = "green"
       ),
-    # table
     dataTableDownload_ui(ns("stab"))
   )
 }
@@ -45,8 +42,7 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  
-  # select stats
+
   triset <- reactive({
     fd <- reactive_featureData()
     cn <- colnames(fd)[vapply(fd, is.numeric, logical(1)) & !grepl("^GS\\|", colnames(fd))]
@@ -109,10 +105,10 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
   output$bplot <- renderPlotly({
     
     hid <- bid <- NULL
-    
+
+
     if (!is.null(i <- vi() ) && length(vi()) > 0) {
       i <- tab()$table[i, ]
-      # hid <- fmatch(i$leadingEdge[[1]], tab()$statsNames)
       hid <- i$leadingEdge[[1]]
       bid <- setdiff(tab()$pathway_mat$featureId[tab()$pathway_mat$gsId == i$pathway], hid)
       if (length(bid) == 0)
@@ -127,10 +123,9 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
       background = bid, background_color = "gray", background_width = 2, background_legend = "background", 
       ylab = "Rankding stats", xlab = '', sort = "dec", source = ns("plotlybarchart")
     )
-    
+
   })
 
-  # save status and restore
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
@@ -142,5 +137,3 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
 
   }) # end moduleServer
 }
-
-#
