@@ -99,8 +99,23 @@ plotly_scatter <- function(
   highlight = NULL, highlightName = "Highlighted", inSelection = NA,
   vline = NULL, hline = NULL, rect = NULL, drawButtonId = NULL
 ) {
+  # Input validation
+  if (is.null(x) || is.null(y)) {
+    stop("plotly_scatter: both x and y are required")
+  }
+
+  if (length(x) != length(y)) {
+    stop(sprintf("plotly_scatter: x and y must have same length (%d vs %d)",
+                 length(x), length(y)))
+  }
+
+  if (length(x) == 0) {
+    message("plotly_scatter: x and y have length 0, returning NULL")
+    return(NULL)
+  }
+
   # Note: stringsAsFactors = FALSE is default in R >= 4.0
-  
+
   i1 <- (is.factor(x) || is.character(x) || is.logical(x)) && is.numeric(y) # beeswarm vertical
   i2 <- (is.factor(y) || is.character(y) || is.logical(y)) && is.numeric(x) # beeswarm horizontal
   i3 <- is.numeric(y) && is.numeric(x) # scatter

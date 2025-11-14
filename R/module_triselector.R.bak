@@ -118,23 +118,10 @@ triselector_module <- function(id,
 
   ns <- session$ns
 
-  # Validate reactive_x input - silently handle NULL during startup
+  # Validate reactive_x input
   validated_x <- reactive({
-    # Allow NULL during initial app startup
-    if (is.null(reactive_x())) {
-      return(NULL)
-    }
-
-    # Perform validation
-    validation <- validate_triselector_input(
-      reactive_x(),
-      name = "triselector input",
-      allow_null = TRUE
-    )
-
-    # Only show error notifications after app has initialized
-    # (prevents error spam during startup)
-    if (!validation$valid && length(names(input)) > 0) {
+    validation <- validate_triselector_input(reactive_x, name = "triselector input")
+    if (!validation$valid) {
       showNotification(
         validation$message,
         type = "error",
@@ -142,13 +129,7 @@ triselector_module <- function(id,
       )
       return(NULL)
     }
-
-    # Return validated data or NULL
-    if (validation$valid) {
-      reactive_x()
-    } else {
-      NULL
-    }
+    reactive_x()
   })
 
   output$groupLabel <- renderUI({
@@ -171,11 +152,11 @@ triselector_module <- function(id,
     updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
   
-  observeEvent(list(names(input), validated_x()), {
-    req(vx <- validated_x())
+  observeEvent(list(names(input), reactive_x()), {
+    req(reactive_x())
     if (length(names(input)) == 0)
       return(NULL)
-    cc <- unique(vx[, 1])
+    cc <- unique(reactive_x()[, 1])
     if (input$analysis %in% cc)
       ss <- input$analysis else if (!is.null(reactive_selector1()))
         ss <- reactive_selector1() else
@@ -186,9 +167,9 @@ triselector_module <- function(id,
   
   # bug fix
   observeEvent(input$analysis, {
-    req(vx <- validated_x())
+    req(reactive_x())
     req (input$analysis == "")
-    cc <- unique(vx[, 1])
+    cc <- unique(reactive_x()[, 1])
     if (is.null(reactive_selector1()))
       ss <- cc[1] else
         ss <- reactive_selector1()    
@@ -198,10 +179,10 @@ triselector_module <- function(id,
   
   # updat selectize input when reactive_x is given
   observe({
-    req(vx <- validated_x())
+    req(reactive_x())
     input$analysis
     req(input$analysis)
-    cc <- unique(vx[vx[, 1] == input$analysis, 2])
+    cc <- unique(reactive_x()[reactive_x()[, 1] == input$analysis, 2])
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
     # updatePickerInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
   })
@@ -211,9 +192,9 @@ triselector_module <- function(id,
     input$subset
     req(input$analysis)
     req(input$subset)
-    req(vx <- validated_x())
+    req(reactive_x())
     
-    cc <- vx[, 3][vx[, 1] == input$analysis & vx[, 2] == input$subset]
+    cc <- reactive_x()[, 3][reactive_x()[, 1] == input$analysis & reactive_x()[, 2] == input$subset]
     cc <- c("Select a variable!", cc)
     preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
       if (inherits(preselected, "try-error"))

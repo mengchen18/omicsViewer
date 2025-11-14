@@ -121,8 +121,37 @@ string_module <- function(
   
   nk <- reactiveVal()
   observeEvent( input$run, {
+    # Validate inputs before API call
+    ids <- reactive_ids()
+    validation <- validate_character_vector(
+      ids,
+      name = "selected features",
+      min_length = 1,
+      max_length = STRING_MAX_GENES,
+      allow_empty = FALSE
+    )
+
+    if (!validation$valid) {
+      showNotification(
+        validation$message,
+        type = "error",
+        duration = 10
+      )
+      return()
+    }
+
+    # Validate taxonomy ID
+    if (is.null(input$tax) || nchar(input$tax) == 0) {
+      showNotification(
+        "Taxonomy ID is required",
+        type = "error",
+        duration = 5
+      )
+      return()
+    }
+
     show_modal_spinner(text = "Querying STRING network ...")
-    r <- stringNetwork(genes = reactive_ids(), taxid = input$tax))
+    r <- stringNetwork(genes = ids, taxid = input$tax)
     remove_modal_spinner()
 
     # Check for API errors

@@ -135,8 +135,30 @@ geneshot_module <- function(
   
   rif <- reactiveVal()
   observeEvent(input$submit, {
+    # Validate input terms
+    if (is.null(input$term) || nchar(trimws(input$term)) == 0) {
+      showNotification(
+        "Please enter at least one search term",
+        type = "warning",
+        duration = 5
+      )
+      return()
+    }
+
+    terms <- trimws(strsplit(input$term, ";")[[1]])
+    terms <- terms[nchar(terms) > 0]  # Remove empty terms
+
+    if (length(terms) == 0) {
+      showNotification(
+        "No valid search terms provided",
+        type = "warning",
+        duration = 5
+      )
+      return()
+    }
+
     show_modal_spinner(text = "Querying Geneshot database ...")
-    res <- getAutoRIF(trimws(strsplit(input$term, ";")[[1]]), filter = TRUE)
+    res <- getAutoRIF(terms, filter = TRUE)
     remove_modal_spinner()
 
     # Check for errors or empty results
