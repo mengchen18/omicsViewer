@@ -41,10 +41,11 @@ draw_roc_pr <- function(value, label) {
   value <- value[i]
   label <- label[i]
   nlab <- length(unique(label))
-  if (nlab == 1 || nlab > 12) {
-    message("label should have 2 - 12 unique values!")
+  if (nlab < MIN_ROC_PR_LABELS || nlab > MAX_ROC_PR_LABELS) {
+    message(sprintf("label should have %d - %d unique values!", MIN_ROC_PR_LABELS, MAX_ROC_PR_LABELS))
     plot(0, col = NA, xlab = "", ylab = "", axes = FALSE)
-    mtext(text = "label should have 2 - 12 unique values!", side = 3, line = -5)
+    mtext(text = sprintf("label should have %d - %d unique values!", MIN_ROC_PR_LABELS, MAX_ROC_PR_LABELS),
+          side = 3, line = -5)
     return()
   }
   

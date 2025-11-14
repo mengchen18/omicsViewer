@@ -23,8 +23,8 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
   lab <- ifelse(label, 1, 0)
   forceNetwork(Links = links, Nodes = nd, Source = "source", linkColour = "gray",
                Target = "target", Value = "value", NodeID = "name", charge = -5,
-               Group = "group", colourScale = colorfunc, 
-               opacity = 0.7, fontSize = 12, opacityNoHover = lab,
+               Group = "group", colourScale = colorfunc,
+               opacity = STRING_NETWORK_OPACITY, fontSize = STRING_NETWORK_FONT_SIZE, opacityNoHover = lab,
                zoom = TRUE, legend = TRUE)
 }
 
@@ -48,9 +48,9 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
   request_url <- paste(string_api_url, output_format, method, sep = "/")
   
   params <- list(
-    "identifiers" = paste(genes, collapse = "%0d"), 
-    "species" = taxid, 
-    "required_score" = 500,
+    "identifiers" = paste(genes, collapse = "%0d"),
+    "species" = taxid,
+    "required_score" = STRING_REQUIRED_SCORE,
     "caller_identity" = caller
   )
   params <- paste(

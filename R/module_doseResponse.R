@@ -5,10 +5,10 @@ dose_response_ui <- function(id) {
   ns <- NS(id)
   fluidRow(
     column(
-      7, plotOutput(ns("plot"), height = "550px")
+      7, plotOutput(ns("plot"), height = DOSE_RESPONSE_PLOT_HEIGHT)
     ),
     column(
-      5, dataTableDownload_ui(ns("param")), style = "margin-top: 30px;"
+      5, dataTableDownload_ui(ns("param")), style = paste0("margin-top: ", DOSE_RESPONSE_TABLE_MARGIN_TOP, ";")
     ),
     column(
       12, dataTableDownload_ui(ns("feature"))

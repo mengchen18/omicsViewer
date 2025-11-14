@@ -56,21 +56,22 @@ string_module <- function(
   ns <- session$ns
   
   overflow <- reactive({
-    length(reactive_ids()) > 300
+    length(reactive_ids()) > STRING_MAX_GENES
   })
-  
+
   output$error.msg <- renderText({
-    sprintf("%s features selected [MAX 300 FEATURES ALLOWED!]", length(reactive_ids()))
+    sprintf("%s features selected [MAX %d FEATURES ALLOWED!]",
+            length(reactive_ids()), STRING_MAX_GENES)
   })
   
   nk <- reactiveVal()
   # nk <- eventReactive( input$run, {
   observeEvent( input$run, {
-    r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid()) 
+    r <- stringNetwork(genes = reactive_ids(), taxid = input$tax)# reactive_taxid())
     if (is.data.frame(r)) {
-      if (nrow(r) > 999) {
+      if (nrow(r) > STRING_MAX_NETWORK_EDGES) {
         r <- r[order(r$score, decreasing = TRUE), ]
-        r <- r[seq_len(999), ]
+        r <- r[seq_len(STRING_MAX_NETWORK_EDGES), ]
       }
     }
     nk(r)

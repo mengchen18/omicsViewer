@@ -43,3 +43,4 @@ local
 *.tm_properties
 *claude*
 .claude/*
+todo.md

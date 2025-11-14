@@ -14,7 +14,7 @@ meta_scatter_ui <- function(id) {
              triselector_ui(ns("tris_main_scatter1")),
              triselector_ui(ns("tris_main_scatter2")))
     ),
-    plotly_scatter_ui(ns("main_scatterOutput"), height = "666px")#,
+    plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT)#,
     # actionButton(ns("clear"), "Clear selection and box")
   )
 }

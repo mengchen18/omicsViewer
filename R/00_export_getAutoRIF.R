@@ -40,7 +40,7 @@ getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
   )
   df$rank <- df$n * df$perc
   if (filter)
-    df <- df[df$n > min(ceiling(nrow(df)/200), 3), ]
+    df <- df[df$n > min(ceiling(nrow(df)/AUTORIF_THRESHOLD_DIVISOR), AUTORIF_MIN_THRESHOLD), ]
   attr(df, "term") <- r$search_term
   attr(df, "pubmedID_count") <- r$pubmedID_count
   df

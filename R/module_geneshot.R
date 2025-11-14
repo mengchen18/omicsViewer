@@ -54,7 +54,7 @@ geneshot_module <- function(
     if (!is.null(res) && nrow(res) > 0) {
       res$selected <- ""
       res <- res[order(res$rank, decreasing = TRUE), ]
-      dft <- res[seq_len(min(nrow(res), 20)), ]
+      dft <- res[seq_len(min(nrow(res), GENESHOT_TOP_RESULTS)), ]
       outliers <- list(
         x = dft$n,
         y = dft$perc,
@@ -92,7 +92,7 @@ geneshot_module <- function(
     })  
 
   rifRow <- dataTableDownload_module(
-    "autorif", reactive_table = reactive({req(gtab()); gtab()}), prefix = "autoRIF", pageLength = 10)
+    "autorif", reactive_table = reactive({req(gtab()); gtab()}), prefix = "autoRIF", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
 
   ##
   output$plt <- plotly::renderPlotly({

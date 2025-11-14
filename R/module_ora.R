@@ -167,7 +167,7 @@ enrichment_analysis_module <- function(
       oraTab()
     }),
     reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ),
-    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE, pageLength = 8
+    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE, pageLength = ENRICHMENT_TABLE_PAGE_LENGTH
   )
 
   hd <- reactive({
@@ -203,7 +203,7 @@ enrichment_analysis_module <- function(
     "overlapTab",
     reactive_table = hd,
     # reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ),
-    prefix = "ORA_overlapGenes_", pageLength = 8
+    prefix = "ORA_overlapGenes_", pageLength = ENRICHMENT_TABLE_PAGE_LENGTH
   )
 
   }) # end moduleServer

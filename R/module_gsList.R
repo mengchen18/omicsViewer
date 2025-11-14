@@ -43,7 +43,7 @@ gslist_module <- function(
   ii <- dataTableDownload_module(
     "stab", reactive_table = reactive({
       tab()[, setdiff(colnames(tab()), "featureId")]
-      }), prefix = "gslist_", pageLength = 25
+      }), prefix = "gslist_", pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE
   )
 
   reactive({

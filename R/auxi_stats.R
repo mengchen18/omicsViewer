@@ -30,7 +30,7 @@
 #'   \code{logP} - log transformed p-values
 #'   \code{range} - the range of values in expression matrix used in the analysis
 
-correlationAnalysis <- function(x, pheno, min.value = 12, prefix = "Cor") {
+correlationAnalysis <- function(x, pheno, min.value = MIN_SAMPLES_CORRELATION, prefix = "Cor") {
   
   if (is.data.frame(pheno)) {
     cn <- colnames(pheno)

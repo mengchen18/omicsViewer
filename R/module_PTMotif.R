@@ -102,8 +102,8 @@ ptmotif_module <- function(
     if (!is.null( errText() ))
       verbatimTextOutput(ns("errorMsg")) else
       tabsetPanel(
-        tabPanel("Ratio selected/all", 
-          plotOutput(ns("plt"), height = "300px"),
+        tabPanel("Ratio selected/all",
+          plotOutput(ns("plt"), height = PTMOTIF_PLOT_HEIGHT),
           tabsetPanel(
             tabPanel("Selected seqs", dataTableDownload_ui(ns("seqtable"))),
             tabPanel("Position weighted matrix", dataTableDownload_ui(ns("seqtable_rat")))            
@@ -200,16 +200,16 @@ ptmotif_module <- function(
       fg <- foregroundSeqs()
       fg <- fg[which(nchar(fg)>0)]
       do.call(rbind, strsplit(fg, "|"))
-    }), prefix = "motif", pageLength = 10)
+    }), prefix = "motif", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
 
   dataTableDownload_module(
-    "seqtable_fg", reactive_table = reactive(mat2df(fg.pfm())), prefix = "seqLogoPFM_foreground", pageLength = 10)
+    "seqtable_fg", reactive_table = reactive(mat2df(fg.pfm())), prefix = "seqLogoPFM_foreground", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
 
   dataTableDownload_module(
-    "seqtable_bg", reactive_table = reactive(mat2df(bg.pfm())), prefix = "seqLogoPFM_background", pageLength = 10)
+    "seqtable_bg", reactive_table = reactive(mat2df(bg.pfm())), prefix = "seqLogoPFM_background", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
 
   dataTableDownload_module(
-    "seqtable_rat", reactive_table = reactive(mat2df(logo())), prefix = "seqLogoPFM_ratio", pageLength = 10)
+    "seqtable_rat", reactive_table = reactive(mat2df(logo())), prefix = "seqLogoPFM_ratio", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
 
 
   # motifTab <- dataTableDownload_module(

@@ -158,7 +158,7 @@ dataTable_module <- function(
       filter = "top",
       class="table-bordered compact nowrap",
       options = list(
-        scrollX = TRUE, pageLength = 25, dom = 'tip',
+        scrollX = TRUE, pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE, dom = 'tip',
         columnDefs = list(list(
           targets = ci-1,
           render = DT::JS(
