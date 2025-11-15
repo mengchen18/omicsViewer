@@ -53,6 +53,8 @@ minimum and maximum responses. Only single feature selection is supported.
 \code{\link{drmMat}} for curve fitting.
 
 Other analysis modules: 
+\code{\link{batch_comparison_module}()},
+\code{\link{batch_comparison_ui}()},
 \code{\link{dose_response_ui}()}
 }
 \concept{analysis modules}

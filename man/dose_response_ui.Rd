@@ -28,6 +28,8 @@ in a multi-panel layout.
 \code{\link{plotDCMat}} for the underlying plotting function.
 
 Other analysis modules: 
+\code{\link{batch_comparison_module}()},
+\code{\link{batch_comparison_ui}()},
 \code{\link{dose_response_module}()}
 }
 \concept{analysis modules}
