@@ -30,6 +30,15 @@
 string_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About STRING Protein-Protein Interaction Network"),
+      tags$p("STRING (Search Tool for the Retrieval of Interacting Genes/Proteins) is a database of known and predicted protein-protein interactions. This module queries the STRING database to build an interaction network for your selected proteins, showing how they might work together in biological processes."),
+      tags$h4("When to use STRING"),
+      tags$p("Use this analysis when you want to understand how your proteins of interest interact with each other, identify protein complexes, or discover hub proteins that connect many others. This is especially useful for interpreting proteomics data or understanding the molecular machinery involved in a biological process."),
+      tags$h4("How to interpret results"),
+      tags$p("The network visualization shows proteins as nodes and interactions as edges connecting them. The interaction table lists all protein pairs with confidence scores (0-1, higher is better) and evidence types (experimental, database, text mining, etc.). Connected clusters of proteins often represent functional modules or complexes. You can also see pathway enrichment results to understand what biological processes the network is involved in.")
+    ),
     tags$h3("Query Configuration", class = "sr-only", `aria-label` = "Input for organism taxonomy code and run button to query STRING database. Maximum 300 proteins allowed"),
     fluidRow(
       column(

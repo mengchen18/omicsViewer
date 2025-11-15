@@ -12,19 +12,59 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     theme = shinytheme("spacelab"),
     tabPanel('Feature',
       tags$h2("Feature Scatter Plot", class = "sr-only", `aria-label` = "2D scatter plot visualization of feature metadata with correlation analysis and interactive selection"),
+      div(class = "sr-only",
+        tags$h4("About Feature Scatter Plot"),
+        tags$p("Feature scatter plots visualize relationships between two feature-level variables (e.g., fold change vs. p-value for volcano plots, or PCA coordinates). Each point represents one gene/protein. This view helps identify interesting features, assess data quality, and select features for downstream analysis."),
+        tags$h4("When to use this view"),
+        tags$p("Use feature scatter plots to explore statistical test results, visualize dimensionality reduction (PCA, t-SNE), create volcano plots, or examine correlations between feature annotations. Click and drag to select features of interest for analysis in the right panel."),
+        tags$h4("How to interpret"),
+        tags$p("Points represent individual features. Colors and shapes can encode additional variables. Use the lasso or box selection tools to select features. Regression lines show trends. Correlation coefficient indicates strength of linear relationship.")
+      ),
       meta_scatter_ui(ns('feature_space'))),
     tabPanel("Feature table",
       tags$h2("Feature Metadata Table", class = "sr-only", `aria-label` = "Searchable table of feature annotations including gene names, protein IDs, statistical test results, and functional classifications"),
+      div(class = "sr-only",
+        tags$h4("About Feature Metadata Table"),
+        tags$p("The feature table displays all annotations for genes/proteins in your dataset. Each row represents one feature with columns for identifiers, statistical results, functional annotations, and gene set memberships. This is your primary reference for feature information."),
+        tags$h4("When to use this view"),
+        tags$p("Use the feature table to search for specific genes, sort by statistical significance, filter by fold change thresholds, or review detailed annotations. Export functionality allows you to save filtered results for reports or further analysis."),
+        tags$h4("How to navigate"),
+        tags$p("Use the search box to find specific genes. Click column headers to sort. Use filters to subset data. The table is fully interactive and updates based on your selections in other views.")
+      ),
       dataTable_ui(ns("tab_feature"))),
     tabPanel("Sample",
       tags$h2("Sample Scatter Plot", class = "sr-only", `aria-label` = "2D scatter plot visualization of sample metadata with group comparisons and interactive selection"),
+      div(class = "sr-only",
+        tags$h4("About Sample Scatter Plot"),
+        tags$p("Sample scatter plots visualize relationships between sample-level variables or show sample distributions in reduced dimensions (PCA, t-SNE, UMAP). Each point represents one sample/patient. This view reveals sample clustering, batch effects, and relationships between clinical variables."),
+        tags$h4("When to use this view"),
+        tags$p("Use sample scatter plots to assess data quality, identify outliers, visualize experimental groups, explore PCA results, or examine correlations between clinical variables. Select samples to highlight them across all visualizations."),
+        tags$h4("How to interpret"),
+        tags$p("Points represent individual samples. Clustering indicates similarity. Colors typically show experimental groups or phenotypes. Distance between points reflects dissimilarity in the plotted variables.")
+      ),
       meta_scatter_ui(ns("sample_space"))),
     tabPanel("Sample table",
       tags$h2("Sample Metadata Table", class = "sr-only", `aria-label` = "Searchable table of sample annotations including experimental conditions, phenotypes, and clinical variables"),
+      div(class = "sr-only",
+        tags$h4("About Sample Metadata Table"),
+        tags$p("The sample table displays all clinical and experimental annotations for samples in your dataset. Each row represents one sample with columns for identifiers, experimental conditions, phenotypes, and other metadata. This is your primary reference for sample information."),
+        tags$h4("When to use this view"),
+        tags$p("Use the sample table to review experimental design, verify sample annotations, identify samples with specific characteristics, or export metadata for external analysis. This is essential for validating groupings and understanding your cohort."),
+        tags$h4("How to navigate"),
+        tags$p("Search for specific samples or conditions. Sort by any column. Filter to find samples matching criteria. All tables are interactive and synchronize with other views.")
+      ),
       dataTable_ui(ns("tab_pheno"))),
     tabPanel(
       "Cor",
       tags$h2("Correlation Heatmap", class = "sr-only", `aria-label` = "Interactive correlation matrix heatmap showing pairwise correlations between samples with hierarchical clustering dendrogram"),
+      div(class = "sr-only",
+        tags$h4("About Correlation Heatmap"),
+        tags$p("The correlation heatmap displays pairwise correlations between all samples in your dataset. Hierarchical clustering organizes samples with similar expression profiles together, revealing sample relationships, experimental groupings, and potential batch effects. This is a key quality control and exploratory visualization."),
+        tags$h4("When to use this view"),
+        tags$p("Use the correlation heatmap to assess overall data quality, identify outlier samples, validate experimental groupings, detect batch effects, or explore sample relationships. Strong blocks in the heatmap indicate groups of similar samples."),
+        tags$h4("How to interpret"),
+        tags$p("Color intensity indicates correlation strength (darker = stronger). The dendrogram shows hierarchical relationships. Samples cluster based on expression similarity. Well-designed experiments show clear blocks corresponding to biological groups.")
+      ),
       tags$h3("Heatmap Controls", class = "sr-only"),
       fluidRow(
         column(
@@ -55,6 +95,14 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     tabPanel(
       "Heatmap",
       tags$h2("Expression Heatmap", class = "sr-only", `aria-label` = "Interactive expression heatmap showing feature abundance across samples with hierarchical clustering and customizable color scales"),
+      div(class = "sr-only",
+        tags$h4("About Expression Heatmap"),
+        tags$p("The expression heatmap displays abundance values for features (rows) across samples (columns). Hierarchical clustering groups similar features and samples together, revealing expression patterns, co-regulated genes, and sample groupings. This is essential for exploring large-scale expression patterns."),
+        tags$h4("When to use this view"),
+        tags$p("Use the expression heatmap to visualize patterns in your selected features, identify co-expressed gene clusters, validate sample groupings, or create publication-quality figures. Customize colors, clustering, and annotations through the controls panel."),
+        tags$h4("How to interpret"),
+        tags$p("Each row is a feature, each column is a sample. Color indicates expression level (red = high, blue = low by default). Dendrograms show clustering relationships. Blocks of similar color indicate coordinated expression patterns across features or samples.")
+      ),
       tags$h3("Heatmap Controls", class = "sr-only"),
       fluidRow(
         column(
@@ -85,6 +133,14 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     tabPanel(
       "Dynamic heatmap",
       tags$h2("Dynamic Heatmap with Selection", class = "sr-only", `aria-label` = "Interactive expression heatmap with row selection capabilities for subsetting features based on expression patterns"),
+      div(class = "sr-only",
+        tags$h4("About Dynamic Heatmap"),
+        tags$p("The dynamic heatmap allows interactive row selection to subset features based on expression patterns. Click individual rows or drag to select multiple features showing interesting patterns. Selected features are automatically updated in the analysis panel for downstream investigation."),
+        tags$h4("When to use this view"),
+        tags$p("Use the dynamic heatmap when you want to identify and select features with specific expression patterns, such as genes upregulated in certain samples, co-expressed gene clusters, or features showing gradual changes across conditions. This enables pattern-based feature selection for detailed analysis."),
+        tags$h4("How to interact"),
+        tags$p("Click rows to select individual features. Shift-click or drag to select multiple rows. Selected features are highlighted and become the active feature set for all downstream analyses. Use this to drill down into specific expression patterns.")
+      ),
       tags$h3("Heatmap Controls", class = "sr-only"),
       fluidRow(
         column(
@@ -114,9 +170,25 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
     ),
     tabPanel("Expression",
       tags$h2("Expression Matrix Table", class = "sr-only", `aria-label` = "Searchable table showing quantitative expression values for all features across all samples"),
+      div(class = "sr-only",
+        tags$h4("About Expression Matrix Table"),
+        tags$p("The expression matrix table displays raw quantitative values for all features across all samples. Each row represents a feature (gene/protein) and each column represents a sample. This is the numerical data underlying all visualizations and analyses in the application."),
+        tags$h4("When to use this view"),
+        tags$p("Use the expression matrix when you need to examine specific numerical values, verify data for particular features or samples, export raw data for external analysis, or validate visualization results. This provides direct access to your quantitative measurements."),
+        tags$h4("How to navigate"),
+        tags$p("Search for specific features or samples. Sort columns to find highest/lowest values. Export functionality allows you to download the data matrix. Values shown are as imported, with any transformations or normalizations applied.")
+      ),
       dataTable_ui(ns("tab_expr"))),
     tabPanel("GSList",
       tags$h2("Gene Set Membership Table", class = "sr-only", `aria-label` = "Table showing which features belong to which gene sets or functional categories for pathway enrichment analysis"),
+      div(class = "sr-only",
+        tags$h4("About Gene Set Membership Table"),
+        tags$p("The gene set list shows which features belong to which functional categories, pathways, or custom gene sets. This table is used by enrichment analysis tools (ORA, fGSEA) to test for over-representation or enrichment. Each row links a feature to its gene set memberships."),
+        tags$h4("When to use this view"),
+        tags$p("Use the gene set list to understand which pathways or functional categories your features are annotated to, verify gene set assignments before enrichment analysis, or explore the breadth of functional annotations available in your dataset."),
+        tags$h4("How to interpret"),
+        tags$p("Each row shows a feature and its associated gene sets. Features may belong to multiple gene sets. The format is typically 'GeneSet|Database|Term'. This annotation enables pathway enrichment analysis to identify biological themes in your data.")
+      ),
       gslist_ui(ns("gsList")))
   )
 }

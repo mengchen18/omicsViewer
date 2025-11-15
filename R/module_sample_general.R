@@ -4,6 +4,15 @@
 sample_general_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Sample Group Analysis"),
+      tags$p("This module provides comprehensive statistical analysis to compare and visualize sample groups or patient cohorts. It offers multiple analysis types including beeswarm plots for continuous variables, contingency table analysis for categorical variables, and survival analysis for time-to-event data. This is the sample-centric complement to the feature analysis module."),
+      tags$h4("When to use sample analysis"),
+      tags$p("Use this module when you want to analyze relationships between sample metadata variables, compare patient groups, test associations between clinical variables, or perform survival analysis stratified by sample characteristics. This is essential for understanding sample clustering, identifying clinical correlations, and validating patient groupings."),
+      tags$h4("How to interpret results"),
+      tags$p("The visualization type depends on your selected variables: beeswarm plots show distributions of continuous variables across groups with statistical tests, contingency tables show relationships between categorical variables with chi-square or Fisher's exact test, and survival curves show time-to-event outcomes stratified by groups with log-rank test. The results table provides detailed statistical metrics appropriate for each analysis type.")
+    ),
     fluidRow(
       column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_sample_general"), right_margin = "5")),
       uiOutput(ns("sample_general_plot"))

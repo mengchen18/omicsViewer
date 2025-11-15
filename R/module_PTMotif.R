@@ -1,9 +1,18 @@
 #' @importFrom shinybusy show_modal_spinner remove_modal_spinner
 #' @importFrom ggplot2 geom_vline
 ptmotif_ui <- function(id) {
-  
+
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Post-Translational Modification (PTM) Motif Analysis"),
+      tags$p("PTM motif analysis identifies enriched sequence patterns surrounding post-translational modification sites (e.g., phosphorylation, acetylation, ubiquitination) in your selected proteins. This analysis uses sequence logo visualization to show the consensus amino acid sequence motif and performs statistical testing to determine if certain motifs are over-represented in your dataset compared to background."),
+      tags$h4("When to use PTM motif analysis"),
+      tags$p("Use this analysis when you have identified PTM sites (typically from mass spectrometry) and want to understand which kinases, enzymes, or regulatory mechanisms might be responsible for those modifications. This helps identify active signaling pathways and regulatory networks. It's particularly valuable for phosphoproteomics data to predict kinase-substrate relationships."),
+      tags$h4("How to interpret results"),
+      tags$p("The sequence logo shows the consensus motif with letter height indicating amino acid frequency at each position relative to the PTM site (position 0). Larger letters indicate more conserved positions. The enrichment statistics show whether your selected PTM sites have a different motif pattern compared to all PTM sites in the dataset. Significant enrichment suggests specific kinases or regulatory proteins are active in your experimental condition.")
+    ),
     triselector_ui(ns("tris_seqlogo")),
     uiOutput(ns("msg_ui"))
   )

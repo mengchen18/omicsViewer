@@ -42,8 +42,17 @@ factorIndependency <- function(x, y) {
 #' 
 factorIndependency_ui <- function(id) {
   ns <- NS(id)
-  
+
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Contingency Table Analysis"),
+      tags$p("Contingency table analysis tests whether two categorical variables are independent or associated. This module performs chi-square test and Fisher's exact test to determine if the distribution of one categorical variable differs across levels of another. It displays count tables, standardized residuals, and statistical test results to help identify significant associations."),
+      tags$h4("When to use contingency table analysis"),
+      tags$p("Use this analysis when you have two categorical variables (e.g., treatment group and response status, mutation status and cancer subtype, gene expression category and patient outcome) and want to test if they are related. This is fundamental for understanding associations between clinical factors, validating patient stratifications, and identifying predictive biomarkers."),
+      tags$h4("How to interpret results"),
+      tags$p("The count table shows observed frequencies for each combination of categories. Standardized residuals (Pearson residuals) indicate which cells contribute most to the chi-square statistic - values beyond ±2 suggest significant deviation from expected frequencies under independence. The p-value table shows results from both chi-square test (for larger samples) and Fisher's exact test (more accurate for small samples). P-values less than 0.05 indicate significant association. For 2x2 tables, odds ratios quantify the strength of association.")
+    ),
     wellPanel(
       uiOutput(ns("error")),
       DT::dataTableOutput(ns("count.table.output")),

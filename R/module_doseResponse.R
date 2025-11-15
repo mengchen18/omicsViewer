@@ -25,15 +25,26 @@
 #' @importFrom DT dataTableOutput
 dose_response_ui <- function(id) {
   ns <- NS(id)
-  fluidRow(
-    column(
-      7, plotOutput(ns("plot"), height = DOSE_RESPONSE_PLOT_HEIGHT)
+  tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Dose-Response Curve Analysis"),
+      tags$p("Dose-response analysis models the relationship between drug/compound concentration and biological response using a 4-parameter logistic curve. This analysis fits sigmoid curves to your data and estimates key pharmacological parameters including EC50 (half-maximal effective concentration), IC50 (half-maximal inhibitory concentration), Hill slope, and maximum/minimum response values."),
+      tags$h4("When to use dose-response analysis"),
+      tags$p("Use this analysis when you have measured responses across multiple concentrations of a compound or treatment. This is essential for drug discovery, toxicology studies, and understanding concentration-dependent biological effects. It helps determine the potency of compounds and compare their effectiveness."),
+      tags$h4("How to interpret results"),
+      tags$p("The curve plot shows the fitted sigmoid relationship between concentration (x-axis, usually log-scale) and response (y-axis). EC50/IC50 represents the concentration producing 50% of maximum effect - lower values indicate higher potency. The Hill slope indicates the steepness of the curve. The parameter table shows fitted values with their confidence intervals. Top and bottom parameters represent the maximum and minimum response plateaus.")
     ),
-    column(
-      5, dataTableDownload_ui(ns("param")), style = paste0("margin-top: ", DOSE_RESPONSE_TABLE_MARGIN_TOP, ";")
-    ),
-    column(
-      12, dataTableDownload_ui(ns("feature"))
+    fluidRow(
+      column(
+        7, plotOutput(ns("plot"), height = DOSE_RESPONSE_PLOT_HEIGHT)
+      ),
+      column(
+        5, dataTableDownload_ui(ns("param")), style = paste0("margin-top: ", DOSE_RESPONSE_TABLE_MARGIN_TOP, ";")
+      ),
+      column(
+        12, dataTableDownload_ui(ns("feature"))
+      )
     )
   )
 }

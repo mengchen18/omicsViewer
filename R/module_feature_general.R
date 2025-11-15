@@ -5,6 +5,15 @@
 feature_general_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Feature Statistical Analysis"),
+      tags$p("This module performs comprehensive statistical analysis to compare selected features (genes/proteins) across different sample groups. It provides multiple visualization options including beeswarm boxplots for distribution comparison and ROC/PR curves for classification performance evaluation."),
+      tags$h4("When to use this analysis"),
+      tags$p("Use this module when you want to test if a feature shows significant differences between groups (e.g., disease vs. control, treatment vs. untreated). The beeswarm plot is ideal for visualizing distributions and identifying outliers, while ROC/PR curves help assess how well a feature can distinguish between two classes."),
+      tags$h4("How to interpret results"),
+      tags$p("For boxplots: The box shows the interquartile range (25th to 75th percentile), the line inside is the median, and individual points show data distributions. P-values indicate statistical significance of group differences. For ROC curves: Area Under Curve (AUC) near 1.0 indicates excellent classification, 0.5 is random chance. The curve shows trade-off between sensitivity and specificity at different thresholds.")
+    ),
     tags$h3("Variable Selection and Plot Type", class = "sr-only", `aria-label` = "Controls for selecting statistical test results and choosing between beeswarm boxplot or ROC curve visualization"),
     fluidRow(
       column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_feature_general"), right_margin = "5")),

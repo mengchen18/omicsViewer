@@ -33,6 +33,15 @@
 geneshot_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Geneshot Literature Search"),
+      tags$p("Geneshot is a search engine that finds genes and proteins associated with arbitrary text queries by mining the scientific literature. It ranks genes by how frequently they co-occur with your search terms in PubMed abstracts and other biomedical texts."),
+      tags$h4("When to use Geneshot"),
+      tags$p("Use Geneshot when you want to discover genes related to a disease, phenotype, biological process, or any concept of interest. It's particularly useful for literature-based hypothesis generation, finding candidate genes for follow-up studies, or understanding which genes are most studied in relation to your topic of interest."),
+      tags$h4("How to interpret results"),
+      tags$p("Genes are ranked by their association score with your search terms. The scatter plot shows publication count (x-axis) versus percentage of publications mentioning your search terms (y-axis). Genes in the upper right are both well-studied and highly associated with your query. The plus symbol (+) in the 'selected' column indicates genes that overlap with your currently selected features in the app.")
+    ),
     fluidRow(
       column(
         width = 8,

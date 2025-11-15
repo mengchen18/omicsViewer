@@ -3,6 +3,15 @@
 enrichment_fgsea_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Fast Gene Set Enrichment Analysis (fGSEA)"),
+      tags$p("fGSEA is a computational method that determines whether predefined gene sets show statistically significant, concordant differences between two biological states. Unlike ORA which only uses a cutoff, fGSEA uses the entire ranked list of genes, making it more sensitive to subtle but coordinated changes in gene expression across a pathway."),
+      tags$h4("When to use fGSEA"),
+      tags$p("Use fGSEA when you have a ranked list of all genes/proteins (e.g., ranked by fold change or t-statistic) and want to identify which gene sets are enriched at the top or bottom of your ranking. This is especially useful when there are no clear cutoffs or when you want to detect pathway-level changes that might not be apparent from individual gene changes."),
+      tags$h4("How to interpret results"),
+      tags$p("The Normalized Enrichment Score (NES) indicates the degree of enrichment: positive NES means the gene set is enriched at the top of your ranked list, negative NES means enrichment at the bottom. The p-value and FDR indicate statistical significance. The leading edge genes are the core subset of genes driving the enrichment signal. The bar plot visualizes NES values, with longer bars indicating stronger enrichment.")
+    ),
     tags$h3("Ranking Variable Selection", class = "sr-only", `aria-label` = "Select the ranking statistic for gene set enrichment analysis such as t-statistic, log fold change, or p-value"),
     triselector_ui(ns("tris_fgsea"), right_margin = "5"),
     tags$h3("Enrichment Score Visualization", class = "sr-only", `aria-label` = "Bar plot showing normalized enrichment scores with leading edge genes highlighted when a pathway is selected"),
