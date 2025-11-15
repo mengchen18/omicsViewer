@@ -215,13 +215,13 @@ triselector_module <- function(id,
     req(input$analysis)
     req(input$subset)
     req(vx <- validated_x())
-    
+
     cc <- vx[, 3][vx[, 1] == input$analysis & vx[, 2] == input$subset]
     cc <- c("Select a variable!", cc)
     preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
       if (inherits(preselected, "try-error"))
         preselected <- NULL
-    updateSelectInput(session, inputId = "variable", choices = cc, selected = preselected)
+    updateSelectizeInput(session, inputId = "variable", choices = cc, selected = preselected, server = TRUE)
     # updatePickerInput(session, inputId = "variable", choices = cc, selected = preselected)
   })
   
