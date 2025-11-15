@@ -4,6 +4,15 @@
 enrichment_analysis_ui <- function(id) {
   ns <- NS(id)
   tagList(
+    # Module description for AI browsers and screen readers
+    div(class = "sr-only", id = ns("module-help"),
+      tags$h4("About Over-Representation Analysis (ORA)"),
+      tags$p("Over-Representation Analysis identifies gene sets, pathways, and functional categories that are statistically enriched in your selected features. It uses the hypergeometric test to determine if your selected genes/proteins overlap with known biological gene sets more than would be expected by chance."),
+      tags$h4("When to use ORA"),
+      tags$p("Use this analysis when you have a list of interesting features (e.g., significantly changed genes, top-ranked proteins) and want to discover which biological processes, molecular functions, cellular components, or pathways are associated with them. This helps interpret your results in a biological context."),
+      tags$h4("How to interpret results"),
+      tags$p("The results table shows enriched gene sets ranked by p-value. Lower p-values indicate stronger enrichment. The FDR (False Discovery Rate) column provides multiple-testing corrected p-values - typically FDR < 0.05 is considered significant. The 'overlap' column shows how many of your selected features belong to each gene set, and the 'odds ratio' indicates the strength of enrichment.")
+    ),
     uiOutput(ns("error")) %>%
       tagAppendAttributes(`aria-live` = "assertive", `aria-atomic` = "true"),
     tags$h3("Gene Set Collection Selection", class = "sr-only", `aria-label` = "Select gene set database for over-representation analysis such as GO, KEGG, or custom gene sets"),
