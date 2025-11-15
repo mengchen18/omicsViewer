@@ -167,7 +167,7 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     tab <- tab[, grep("^General\\|", colnames(tab)), drop = FALSE]
     tab <- tab[reactive_j(), , drop = FALSE]
     ic <- vapply(tab, is.numeric, logical(1)) & vapply(tab, is.integer, logical(1))
-    tab[ic] <- lapply(tab[ic], signif, digits = 2)
+    #tab[ic] <- lapply(tab[ic], signif, digits = 2)
     colnames(tab) <- sub('General\\|All\\|', "", colnames(tab))
     tab
   })
