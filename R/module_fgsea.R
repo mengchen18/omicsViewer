@@ -82,7 +82,7 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
   
   # run fgsea
   tab <- reactive({
-    req( ! v1()$variable %in% c("Select a variable!", ""))
+    req( ! v1()$variable %in% c("--select--", ""))
     scc <- paste(v1(), collapse = "|")
     req(scc %in% colnames(reactive_featureData()))
     stats <- reactive_featureData()[, scc]

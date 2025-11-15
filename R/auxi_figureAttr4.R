@@ -48,10 +48,10 @@ varSelector <- function(x, expr, meta, alternative = NULL) {
   if (is.null(x))
     return(NULL)
     
-  if (x$variable %in% c("Select a variable!", "")) {
+  if (x$variable %in% c("--select--", "")) {
     if (is.null(alternative))
       return(NULL)
-    if (alternative %in% c("", "Select a variable!"))
+    if (alternative %in% c("", "--select--"))
       return(NULL)
     return(alternative)
   }

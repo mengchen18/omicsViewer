@@ -87,7 +87,7 @@ enrichment_analysis_module <- function(
     req(rp <- reactive_pathway())
     req(v1()$variable)
 
-    if (v1()$variable %in% c("", "Select a variable!")) {
+    if (v1()$variable %in% c("", "--select--")) {
       size_bg( nrow(reactive_featureData()) )
       reactive_pathway_collapsed(NULL)
       rii(reactive_i())

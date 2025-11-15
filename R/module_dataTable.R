@@ -134,7 +134,7 @@ dataTable_module <- function(
     scn(cols()$shown)
   )
   observeEvent(addcols(), {
-    req(!addcols()$variable %in% c("", "Select a variable!"))
+    req(!addcols()$variable %in% c("", "--select--"))
     oc <- scn()
     nc <- unique(c(oc, paste(addcols(), collapse = "|")))
     nc <- intersect(nc, colnames(rdd()))

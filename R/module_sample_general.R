@@ -96,7 +96,7 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   
   pheno <- reactive({
     req(v1()$variable)
-    req(!v1()$variable %in% c("", "Select a variable!"))
+    req(!v1()$variable %in% c("", "--select--"))
     req(reactive_input())
     cs <- do.call(paste, list(v1(), collapse = "|"))
     if (!cs %in% colnames(reactive_input()))

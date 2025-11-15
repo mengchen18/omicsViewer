@@ -217,7 +217,7 @@ triselector_module <- function(id,
     req(vx <- validated_x())
 
     cc <- vx[, 3][vx[, 1] == input$analysis & vx[, 2] == input$subset]
-    cc <- c("Select a variable!", cc)
+    cc <- c("--select--", cc)
     preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
       if (inherits(preselected, "try-error"))
         preselected <- NULL

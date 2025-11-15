@@ -162,8 +162,8 @@ meta_scatter_module <- function(
   xycoord <- reactive({
     req(v1()$variable)
     req(v2()$variable)
-    req(!v1()$variable %in% c("Select a variable!", ""))
-    req(!v2()$variable %in% c("Select a variable!", ""))
+    req(!v1()$variable %in% c("--select--", ""))
+    req(!v2()$variable %in% c("--select--", ""))
     x <- varSelector(v1(), reactive_expr(), reactive_meta())
     y <- varSelector(v2(), reactive_expr(), reactive_meta())
     req(x)
