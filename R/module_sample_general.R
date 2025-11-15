@@ -14,11 +14,23 @@ sample_general_ui <- function(id) {
       tags$p("The visualization type depends on your selected variables: beeswarm plots show distributions of continuous variables across groups with statistical tests, contingency tables show relationships between categorical variables with chi-square or Fisher's exact test, and survival curves show time-to-event outcomes stratified by groups with log-rank test. The results table provides detailed statistical metrics appropriate for each analysis type.")
     ),
     fluidRow(
+      shinydashboard::box(
+        batch_comparison_ui(ns("batch_comp")),
+        height = "490px",
+        width = 12
+      ),
       column(12, style = "margin-top: 0px;", triselector_ui(ns("tris_sample_general"), right_margin = "5")),
-      uiOutput(ns("sample_general_plot"))
-    ),
-    # DT::dataTableOutput(ns('mtab'))
-    dataTableDownload_ui(ns("msatab"))
+      shinydashboard::box(
+        dataTableDownload_ui(ns("msatab")) ,
+        height = "500px",
+        width = 5
+      ),
+      shinydashboard::box(
+        uiOutput(ns("sample_general_plot")),
+        height = "500px",
+        width = 7
+      )
+    )
   )
 }
 
@@ -185,6 +197,44 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     "msatab", reactive_table = metatab, prefix = "SampleTable_"
   )
 
+  ## batch comparison module
+  # Convert reactive_j (row names) to indices for batch_comparison_module
+  reactive_i_samples <- reactive({
+    req(reactive_j())
+    req(reactive_phenoData())
+    which(rownames(reactive_phenoData()) %in% reactive_j())
+  })
+
+  # Call batch comparison module
+  batch_comp_selected <- batch_comparison_module(
+    "batch_comp",
+    reactive_expr = reactive_expr,
+    reactive_phenoData = reactive_phenoData,
+    reactive_featureData = reactive(NULL),  # No feature data available in this context
+    reactive_i_samples = reactive_i_samples
+  )
+
+  # Update triselector when a row is selected from batch comparison
+  observeEvent(batch_comp_selected(), {
+    selected <- batch_comp_selected()
+    req(!is.null(selected))
+
+    if (selected$source == "phenotype") {
+      # Parse variable_name to extract category|subcategory|variable
+      var_name <- selected$data$variable_name
+      parts <- strsplit(var_name, "\\|")[[1]]
+
+      if (length(parts) >= 3) {
+        xax(NULL)  # Clear first to trigger reactivity
+        xax(list(v1 = parts[1], v2 = parts[2], v3 = parts[3]))
+      }
+    } else if (selected$source == "features") {
+      # For features: set to "Feature" -> "Auto" -> [feature_name]
+      feature_name <- selected$data$feature_name
+      xax(NULL)  # Clear first to trigger reactivity
+      xax(list(v1 = "Feature", v2 = "Auto", v3 = feature_name))
+    }
+  })
 
   ## save and restore status
   observeEvent(reactive_status(), {

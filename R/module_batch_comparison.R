@@ -125,7 +125,7 @@ batch_comparison_module <- function(
         # Need 2-12 levels with sufficient observations
         vals <- values[!is.na(values)]
         n_levels <- length(unique(vals))
-        if (n_levels >= 2 && n_levels <= 12) {
+        if (n_levels >= 2 && n_levels <= 12 && n_levels < length(vals)) {
           # Check that we have at least 2 observations
           if (length(vals) >= 2) {
             return("categorical")
@@ -434,27 +434,20 @@ batch_comparison_module <- function(
     # Output: Phenotype results UI
     output$phenotype_results <- renderUI({
       if (!input$show_phenotype) return(NULL)
-
-      tagList(
-        h3("Phenotype Variables Comparison"),
-        dataTableDownload_ui(ns("phenotype_table"))
-      )
+      dataTableDownload_ui(ns("phenotype_table"))
     })
 
     # Output: Features results UI
     output$features_results <- renderUI({
       if (!input$show_features) return(NULL)
-
-      tagList(
-        h3("Features/Expression Comparison"),
-        dataTableDownload_ui(ns("features_table"))
-      )
+      dataTableDownload_ui(ns("features_table"))
     })
 
     # Render phenotype table and capture selection
     phenotype_selection <- dataTableDownload_module(
       "phenotype_table",
       reactive_table = phenotype_results,
+      pageLength = 8,
       prefix = "batch_comparison_phenotype_"
     )
 
@@ -462,6 +455,7 @@ batch_comparison_module <- function(
     features_selection <- dataTableDownload_module(
       "features_table",
       reactive_table = features_results,
+      pageLength = 8,
       prefix = "batch_comparison_features_"
     )
 
