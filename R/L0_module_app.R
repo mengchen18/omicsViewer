@@ -58,6 +58,23 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 
   comp <- list(
     useShinyjs(),
+    # Skip navigation links for keyboard users and AI browsers
+    tags$a(
+      href = paste0("#", ns("main-content")),
+      class = "sr-only sr-only-focusable",
+      `data-testid` = "skip-to-main",
+      "Skip to main content"
+    ),
+    tags$a(
+      href = paste0("#", ns("data-panel")),
+      class = "sr-only sr-only-focusable",
+      "Skip to data exploration"
+    ),
+    tags$a(
+      href = paste0("#", ns("analysis-panel")),
+      class = "sr-only sr-only-focusable",
+      "Skip to analysis tools"
+    ),
     # CSS for hiding sr-only elements (screen reader and AI browser only)
     tags$head(
       tags$style(HTML("
@@ -132,12 +149,26 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
         tagAppendAttributes(`data-testid` = "app-snapshot-button",
                            title = "Manage snapshots")
     ),
-    shinyjs::hidden(
-      div(id = ns("contents"),
-        column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab)),
-        column(6, L1_result_space_ui(ns("resultspace")))
+    # Main content area with semantic HTML
+    tags$main(
+      role = "main",
+      id = ns("main-content"),
+      `aria-label` = "Main application content",
+      shinyjs::hidden(
+        div(id = ns("contents"),
+          tags$section(
+            `aria-label` = "Data exploration panel",
+            id = ns("data-panel"),
+            column(6, L1_data_space_ui(ns('dataspace'), activeTab = activeTab))
+          ),
+          tags$section(
+            `aria-label` = "Analysis panel",
+            id = ns("analysis-panel"),
+            column(6, L1_result_space_ui(ns("resultspace")))
+          )
         )
       )
+    )
     )
 
   if (showDropList) {
@@ -145,13 +176,23 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
       shinycssloaders::withSpinner(
         uiOutput(ns("summary")), hide.ui = FALSE, type = 8, color = "green"
         ),
+      # Aria-live region for loading status announcements
+      div(
+        class = "sr-only",
+        `aria-live` = "polite",
+        `aria-atomic` = "true",
+        uiOutput(ns("loadingStatus"))
+      ),
       br(),
-      absolutePanel(
-        top = 8, right = 140, style = "z-index: 9999;",
-        selectizeInput( inputId = ns("selectFile"), label = NULL, choices = NULL,
-          width = "500px", options = list(placeholder = "Select a dataset here") ) %>%
-          tagAppendAttributes(`data-testid` = "app-dataset-selector")
-
+      # Navigation element for dataset selection
+      tags$nav(
+        `aria-label` = "Dataset selection",
+        absolutePanel(
+          top = 8, right = 140, style = "z-index: 9999;",
+          selectizeInput( inputId = ns("selectFile"), label = NULL, choices = NULL,
+            width = "500px", options = list(placeholder = "Select a dataset here") ) %>%
+            tagAppendAttributes(`data-testid` = "app-dataset-selector")
+        )
       ))
     comp <- c(l2, comp)
     }
@@ -468,14 +509,28 @@ app_module <- function(
   output$summary <- renderUI({
     if (! vEset()) {
       txt <- sprintf(
-      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup></h3>', 
+      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup></h3>',
       appName, paste0("v", appVersion))
     } else {
     txt <- sprintf(
-      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>', 
+      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>',
       appName, paste0("v", appVersion), nrow(expr()), ncol(expr()))
     }
     HTML(txt)
+  })
+
+  # Loading status for screen readers and AI browsers
+  output$loadingStatus <- renderUI({
+    if (!is.null(reactive_eset()) && vEset()) {
+      tags$span(sprintf(
+        "Dataset loaded successfully: %s features and %s samples",
+        nrow(expr()), ncol(expr())
+      ))
+    } else if (!is.null(input$selectFile) && nchar(input$selectFile) > 0) {
+      tags$span("Loading dataset, please wait...")
+    } else {
+      tags$span("No dataset selected. Please select a dataset to begin.")
+    }
   })
 
   v1 <- L1_data_space_module(

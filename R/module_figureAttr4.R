@@ -125,8 +125,9 @@ attr4selector_module <- function(
     updateCheckboxInput(session, "showSearchBox", value = !is.null(vv()))
   )
 
-  val_xcut <- reactive({ text2num(input$xcut) })
-  val_ycut <- reactive({ text2num(input$ycut) })
+  # Debounced text inputs to avoid unnecessary reactive updates while typing
+  val_xcut <- reactive({ text2num(input$xcut) }) %>% debounce(500)
+  val_ycut <- reactive({ text2num(input$ycut) }) %>% debounce(500)
 
   observeEvent(list(val_xcut(), val_ycut()), {    
     if (is.numeric(val_xcut()) && is.null(val_ycut())) {
