@@ -1,4 +1,4 @@
-#' @description Utility L1 result space ui
+#' @title Utility L1 result space ui
 #' @param id id
 #' @importFrom shinythemes shinytheme
 L1_result_space_ui <- function(id) {
@@ -9,7 +9,7 @@ L1_result_space_ui <- function(id) {
   )
 }
 
-#' @description Utility L1 result space ui
+#' @title Utility L1 result space ui
 #' @param id module id
 #' @param reactive_expr expression matrix
 #' @param reactive_phenoData phentype data

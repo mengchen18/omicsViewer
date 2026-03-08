@@ -1,35 +1,38 @@
-#' @description Drawing network given network and gene set result
-#' @param ntwk network result, often returned by "stringNetwork" function. 
+#' @title Drawing network given network and gene set result
+#' @param ntwk network result, often returned by "stringNetwork" function.
 #' @param gsa gene set result, often returned by "stringGSA" function
 #' @param i row index of gsa, which should be highlighted in the network
 #' @param label whether the point should be labelled in the network
 #' @importFrom fastmatch fmatch
 #' @importFrom networkD3 forceNetwork JS
 stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
-  
-  nd <- data.frame(name = unique(unlist(ntwk[, c('preferredName_A', 'preferredName_B')])), 
-                   stringsAsFactors = FALSE)
+  nd <- data.frame(
+    name = unique(unlist(ntwk[, c("preferredName_A", "preferredName_B")])),
+    stringsAsFactors = FALSE
+  )
   rownames(nd) <- nd$name
   nd$group <- 1
   i <- strsplit(gsa$preferredNames[i], ",")[[1]]
   nd$group[nd$name %in% i] <- 2
   links <- data.frame(
-    source = fmatch(ntwk$preferredName_A, nd$name)-1,
-    target = fmatch(ntwk$preferredName_B, nd$name)-1,
-    value = (ntwk$score-0.4)^2*10
+    source = fmatch(ntwk$preferredName_A, nd$name) - 1,
+    target = fmatch(ntwk$preferredName_B, nd$name) - 1,
+    value = (ntwk$score - 0.4)^2 * 10
   )
-  
+
   colorfunc <- networkD3::JS('colorfunc = function(i) { return i == 1 ? "#64A0C8" : "#E37222" };')
   lab <- ifelse(label, 1, 0)
-  forceNetwork(Links = links, Nodes = nd, Source = "source", linkColour = "gray",
-               Target = "target", Value = "value", NodeID = "name", charge = -5,
-               Group = "group", colourScale = colorfunc,
-               opacity = STRING_NETWORK_OPACITY, fontSize = STRING_NETWORK_FONT_SIZE, opacityNoHover = lab,
-               zoom = TRUE, legend = TRUE)
+  forceNetwork(
+    Links = links, Nodes = nd, Source = "source", linkColour = "gray",
+    Target = "target", Value = "value", NodeID = "name", charge = -5,
+    Group = "group", colourScale = colorfunc,
+    opacity = STRING_NETWORK_OPACITY, fontSize = STRING_NETWORK_FONT_SIZE, opacityNoHover = lab,
+    zoom = TRUE, legend = TRUE
+  )
 }
 
 
-#' @description Retrieve string network
+#' @title Retrieve string network
 #' @description get string network
 #' @param genes the gene ids
 #' @param taxid taxonomy ids
@@ -37,7 +40,6 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
 #' @importFrom httr GET content
 
 stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
-
   # Input validation
   if (is.null(genes) || length(genes) == 0) {
     return("Error: No genes provided for STRING network query.")
@@ -48,8 +50,9 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
   method <- "network"
 
   # Clean gene list
-  if (inherits(genes, "list"))
+  if (inherits(genes, "list")) {
     genes <- na.omit(unlist(genes))
+  }
   genes <- gsub("#|%", "", genes)
 
   if (length(genes) == 0) {
@@ -96,20 +99,18 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
 }
 
 
-#' @description Mapping ids to string ids
+#' @title Mapping ids to string ids
 #' @description the string ids can be used as background in the string enrichment analysis
 #' @param genes a character vector of gene ids
 #' @param taxid taxonomy ids
 #' @param caller your identifier for string-db.org
 #' @note https://string-db.org/cgi/help.pl?subpage=api%23mapping-identifiers
 #' @importFrom httr GET content
-#' @examples 
+#' @examples
 #' 1
 #' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
 #' # getStringId(gg)
-
 getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
-
   # Input validation
   if (is.null(genes) || length(genes) == 0) {
     return("Error: No genes provided for STRING ID mapping.")
@@ -130,7 +131,7 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
     vapply(names(params), function(x) paste(x, params[[x]], sep = "="), FUN.VALUE = character(1)),
     collapse = "&"
   )
-  request_url <-  paste(string_api_url, output_format, method, sep = "/")
+  request_url <- paste(string_api_url, output_format, method, sep = "/")
 
   # Use safe GET wrapper
   result <- safe_GET(
@@ -148,11 +149,11 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
   result$data
 }
 
-#' @description Performing gene set analysis using string-db
+#' @title Performing gene set analysis using string-db
 #' @param genes a character vector of gene ids
 #' @param taxid taxonomy ids (species NCBI identifier)
 #' @param background the background genes
-#' @param backgroundStringId logical value, whether the identifier given in background is 
+#' @param backgroundStringId logical value, whether the identifier given in background is
 #'   already stringid, only used when background != NULL. You can use \code{\link{getStringId}}
 #'   to convet your id to string id.
 #' @param caller your identifier for string-db.org
@@ -162,9 +163,7 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
 #' 1
 #' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
 #' # u <- stringGSA(gg)
-
 stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "omicsViewer") {
-
   # Input validation
   if (is.null(genes) || length(genes) == 0) {
     return("Error: No genes provided for STRING enrichment analysis.")
@@ -183,16 +182,18 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
   if (!is.null(background)) {
     if (!backgroundStringId) {
       g <- getStringId(genes, taxid = taxid)
-      if (inherits(g, "character"))
+      if (inherits(g, "character")) {
         return(g)
+      }
       sg <- g$stringId
       genes <- intersect(genes, g$queryItem)
     } else {
       sg <- background
       genes <- intersect(genes, background)
     }
-    if (length(genes) == 0)
+    if (length(genes) == 0) {
       return("Error: No genes exist in the current background!")
+    }
     params$background_string_identifiers <- paste(g$stringId, collapse = "%0d")
   }
 
@@ -223,9 +224,3 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
 
   as.data.frame(dd)
 }
-
-
-                      
-                      
-                      
-                      

@@ -1,4 +1,4 @@
-#' @description Application level 1 ui - data space
+#' @title Application level 1 ui - data space
 #' @param id id
 #' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
 #' @importFrom shinythemes shinytheme
@@ -218,7 +218,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
   )
 }
 
-#' @description Application level 1 module - data space
+#' @title Application level 1 module - data space
 #' @param id module id
 #' @param expr reactive value; expression matrix
 #' @param pdata reactive value; phenotype data

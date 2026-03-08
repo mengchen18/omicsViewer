@@ -29,7 +29,8 @@ batch_comparison_ui <- function(id) {
   ns <- NS(id)
   tagList(
     # Module description for AI browsers and screen readers
-    div(class = "sr-only", id = ns("module-help"),
+    div(
+      class = "sr-only", id = ns("module-help"),
       tags$h4("About Batch Comparison Analysis"),
       tags$p("Batch comparison analysis automatically tests all phenotype variables or all molecular features for differences between your selected and unselected sample groups. This comprehensive approach applies appropriate statistical tests based on variable types (numeric, categorical, or survival data) and corrects for multiple testing using FDR. It provides a systematic way to identify which clinical variables or molecular features significantly differ between your sample groups."),
       tags$h4("When to use batch comparison"),
@@ -86,19 +87,17 @@ batch_comparison_ui <- function(id) {
 #' \code{\link{batch_comparison_ui}} for the corresponding UI function.
 #'
 #' @keywords internal
-#' @importFrom stats wilcox.test fisher.test p.adjust
+#' @importFrom stats wilcox.test fisher.test p.adjust pchisq coef
 #' @importFrom survival survdiff survfit coxph Surv
 #'
 batch_comparison_module <- function(
-    id,
-    reactive_expr,
-    reactive_phenoData,
-    reactive_featureData,
-    reactive_i_samples
+  id,
+  reactive_expr,
+  reactive_phenoData,
+  reactive_featureData,
+  reactive_i_samples
 ) {
-
   moduleServer(id, function(input, output, session) {
-
     ns <- session$ns
 
     # Helper function: Detect variable type
@@ -177,8 +176,10 @@ batch_comparison_module <- function(
     # Helper function: Compare categorical variable
     compareCategoricalVar <- function(values_selected, values_unselected) {
       # Create grouping vector
-      groups <- c(rep("selected", length(values_selected)),
-                  rep("unselected", length(values_unselected)))
+      groups <- c(
+        rep("selected", length(values_selected)),
+        rep("unselected", length(values_unselected))
+      )
       all_values <- c(values_selected, values_unselected)
 
       # Remove NAs
@@ -199,15 +200,18 @@ batch_comparison_module <- function(
       tab <- table(all_values, groups)
 
       # Fisher's exact test
-      test_result <- tryCatch({
-        fisher.test(tab)
-      }, error = function(e) {
-        # If table too large, use simulation
-        tryCatch(
-          fisher.test(tab, simulate.p.value = TRUE, B = 1e5),
-          error = function(e2) NULL
-        )
-      })
+      test_result <- tryCatch(
+        {
+          fisher.test(tab)
+        },
+        error = function(e) {
+          # If table too large, use simulation
+          tryCatch(
+            fisher.test(tab, simulate.p.value = TRUE, B = 1e5),
+            error = function(e2) NULL
+          )
+        }
+      )
 
       if (is.null(test_result)) {
         p_val <- NA
@@ -233,9 +237,13 @@ batch_comparison_module <- function(
     compareSurvivalVar <- function(surv_selected, surv_unselected) {
       # Combine survival objects
       surv_combined <- c(surv_selected, surv_unselected)
-      groups <- factor(c(rep("selected", length(surv_selected)),
-                         rep("unselected", length(surv_unselected))),
-                       levels = c("unselected", "selected"))
+      groups <- factor(
+        c(
+          rep("selected", length(surv_selected)),
+          rep("unselected", length(surv_unselected))
+        ),
+        levels = c("unselected", "selected")
+      )
 
       # Log-rank test
       test_result <- tryCatch(
@@ -250,10 +258,13 @@ batch_comparison_module <- function(
       }
 
       # Hazard ratio using Cox proportional hazards
-      hazard_ratio <- tryCatch({
-        cox_model <- survival::coxph(surv_combined ~ groups)
-        exp(coef(cox_model)[1])
-      }, error = function(e) NA)
+      hazard_ratio <- tryCatch(
+        {
+          cox_model <- survival::coxph(surv_combined ~ groups)
+          exp(coef(cox_model)[1])
+        },
+        error = function(e) NA
+      )
 
       list(
         test_method = "Log-rank",
@@ -276,7 +287,7 @@ batch_comparison_module <- function(
         var_type <- detectVarType(col_name, values_all, pd)
 
         if (var_type == "exclude") {
-          next  # Skip this variable
+          next # Skip this variable
         }
 
         # Perform appropriate test
@@ -301,11 +312,11 @@ batch_comparison_module <- function(
 
         # Add effect size column based on variable type
         if (var_type == "numeric") {
-          row_data$effect_size = result$mean_diff
+          row_data$effect_size <- result$mean_diff
         } else if (var_type == "categorical") {
-          row_data$effect_size = result$odds_ratio
+          row_data$effect_size <- result$odds_ratio
         } else if (var_type == "survival") {
-          row_data$effect_size = result$hazard_ratio
+          row_data$effect_size <- result$hazard_ratio
         }
 
         results_list[[col_name]] <- row_data
@@ -433,13 +444,17 @@ batch_comparison_module <- function(
 
     # Output: Phenotype results UI
     output$phenotype_results <- renderUI({
-      if (!input$show_phenotype) return(NULL)
+      if (!input$show_phenotype) {
+        return(NULL)
+      }
       dataTableDownload_ui(ns("phenotype_table"))
     })
 
     # Output: Features results UI
     output$features_results <- renderUI({
-      if (!input$show_features) return(NULL)
+      if (!input$show_features) {
+        return(NULL)
+      }
       dataTableDownload_ui(ns("features_table"))
     })
 
@@ -468,7 +483,7 @@ batch_comparison_module <- function(
       sel <- phenotype_selection()
       if (!is.null(sel) && length(sel) > 0) {
         # Get the actual row data
-        row_idx <- sel[1]  # Get first selected row
+        row_idx <- sel[1] # Get first selected row
         row_data <- phenotype_results()[row_idx, ]
 
         last_selected(list(
@@ -485,7 +500,7 @@ batch_comparison_module <- function(
       sel <- features_selection()
       if (!is.null(sel) && length(sel) > 0) {
         # Get the actual row data
-        row_idx <- sel[1]  # Get first selected row
+        row_idx <- sel[1] # Get first selected row
         row_data <- features_results()[row_idx, ]
 
         last_selected(list(
@@ -495,13 +510,12 @@ batch_comparison_module <- function(
         ))
       }
     })
-    
+
     observe(last_selected())
 
     # Return reactive containing last selected row info
     return(reactive({
       last_selected()
     }))
-
   }) # end moduleServer
 }
