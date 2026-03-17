@@ -53,9 +53,7 @@ meta_scatter_ui <- function(id) {
 }
 
 #' @title Utility - scatter plot for meta shiny module
-#' @param input input
-#' @param output output
-#' @param session session
+#' @param id Character. Namespace ID for the Shiny module.
 #' @param reactive_meta reactive meta data, phenotype data or feature data
 #' @param reactive_expr reactive expression data
 #' @param combine how to combine the expression and meta data, pheno or feature?
@@ -63,30 +61,6 @@ meta_scatter_ui <- function(id) {
 #' @param reactive_x reactive value for pre-selected x-aixs
 #' @param reactive_y reactive value for pre-selected y-aixs
 #' @param reactive_status the status of scatter plot, e.g. x-, y-axis, color variable, shape variable, etc.
-#' #' # library(shiny)
-#' # library(Biobase)
-#' # dat <- readRDS("Dat/exampleEset.RDS")
-#' # source("Git/R/module_triselector.R")
-#' # source("Git/R/module_barplot.R")
-#' # source("Git/R/module_scatter.R")
-#' # source("Git/R/module_boxplot.R")
-#' #
-#' #
-#' # ui <- fluidPage(
-#' #   meta_scatter_ui("test_meta_scatter")
-#' # )
-#' #
-#' # server <- function(input, output, session) {
-#' #   callModule(meta_scatter_module, id = "test_meta_scatter",
-#' #              reactive_meta = reactive(pData(dat)),
-#' #              combine = c("pheno", "feature")[1],
-#' #              # reactive_meta=reactive(fData(dat)),
-#' #              # combine = c("pheno", "feature")[2],
-#' #              reactive_expr = reactive(exprs(dat))
-#' #   )
-#' # }
-#' #
-#' # shinyApp(ui, server)
 #'
 meta_scatter_module <- function(
   id, reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
