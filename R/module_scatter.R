@@ -185,7 +185,7 @@ plotly_scatter <- function(
     df$highlight[which(df$index %in% highlight)] <- TRUE
   }
   
-  df <- df[!(is.na(df$x) | is.na(df$y)), ]
+  df <- df[is.finite(df$x) & is.finite(df$y), ]
   df <- df[order(df$x, decreasing = FALSE), ] ## DF reordered, should be carefully with returned values
   df$xyid <- paste(df$x, df$y)
   if (nrow(df) == 0)
@@ -239,7 +239,7 @@ plotly_scatter <- function(
         fill = 'tonexty', fillcolor='rgba(0,100,80,0.2)', hoverinfo='skip', showlegend = FALSE
       )
       t <- list(size = 12)
-      ct <- cor.test(x, y)
+      ct <- cor.test(df$x, df$y)
       p <- signif(ct$p.value, digits = 2)
       r <- signif(ct$estimate, digits = 2)
       fig <- plotly::layout(fig, title = list(text = sprintf("R = %s; p-value = %s", r, p), font = t))
@@ -282,17 +282,7 @@ plotly_scatter <- function(
       modeBarButtonsToAdd = modeBarAdd
     )
   
-  # Try to convert to WebGL for performance, but fall back to regular plotly if it fails
-  # Note: Some trace types (e.g., markers with custom symbols) may not support WebGL
-  fig_webgl <- tryCatch(
-    toWebGL(fig),
-    error = function(e) {
-      warning("Could not convert plot to WebGL, using standard rendering: ", e$message)
-      fig
-    }
-  )
-
-  return(list(fig = fig_webgl, data = df))
+  return(list(fig = fig, data = df))
 }
 
 
@@ -366,6 +356,14 @@ plotly_scatter <- function(
 plotly_scatter_ui <- function(id, height = "400px") {
   ns <- NS(id)
   tagList(
+    tags$script(HTML(sprintf(
+      "$(document).ready(function() {
+         var canvas = document.createElement('canvas');
+         var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+         Shiny.setInputValue('%s', !!(gl && gl instanceof WebGLRenderingContext));
+       });",
+      ns("webgl_supported")
+    ))),
     uiOutput(ns('htest')),
     uiOutput(ns("regTickBox")),
     shinycssloaders::withSpinner(
@@ -560,8 +558,9 @@ plotly_scatter_module <- function(
     ))
   })
   output$plotly.scatter.output <- renderPlotly({
-    req( plotter()$fig )
-    plotter()$fig
+    req(plotter()$fig)
+    fig <- plotter()$fig
+    if (isTRUE(input$webgl_supported)) toWebGL(fig) else fig
   })
 
   rr <- reactive({
