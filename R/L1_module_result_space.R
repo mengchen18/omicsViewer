@@ -47,8 +47,10 @@ L1_result_space_module <- function(
       reactive_status = reactive(status()$analyst_fgsea)
     )
 
+    # session restore finished
     v3 <- enrichment_analysis_module("ora",
-      reactive_i = reactive_i, reactive_featureData = reactive_featureData
+      reactive_i = reactive_i, reactive_featureData = reactive_featureData,
+      reactive_status = reactive(status()$analyst_ora)
     )
 
     # session restore finished
@@ -77,10 +79,12 @@ L1_result_space_module <- function(
       reactive_status = reactive(status()$analyst_gene_shot)
     )
 
+    # session restore finished
     v7 <- ptmotif_module(
       "ptm",
       fdata = reactive_featureData,
-      feature_selected = reactive_i
+      feature_selected = reactive_i,
+      reactive_status = reactive(status()$analyst_ptm)
       # ,
       # background = reactive( attr(object(), "ptm.seq.window") )
       # background = reactive({
@@ -204,7 +208,9 @@ L1_result_space_module <- function(
         analyst_sample_general = v5(),
         analyst_gene_shot = v6(),
         analyst_fgsea = v2(),
-        analyst_stringdb = v4()
+        analyst_stringdb = v4(),
+        analyst_ora = tryCatch(v3(), error = function(e) NULL),
+        analyst_ptm = tryCatch(v7(), error = function(e) NULL)
       )
     })
   }) # end moduleServer

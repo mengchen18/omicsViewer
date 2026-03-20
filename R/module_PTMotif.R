@@ -19,7 +19,8 @@ ptmotif_ui <- function(id) {
 }
 
 ptmotif_module <- function(
-  id, pdata, fdata, expr, feature_selected, sample_selected, background
+  id, pdata, fdata, expr, feature_selected, sample_selected, background,
+  reactive_status = reactive(NULL)
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -170,6 +171,15 @@ ptmotif_module <- function(
 
   dataTableDownload_module(
     "seqtable_rat", reactive_table = reactive(mat2df(logo())), prefix = "seqLogoPFM_ratio", pageLength = DEFAULT_TABLE_PAGE_LENGTH)
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+  })
+
+  reactive(list(xax = v1()))
 
   }) # end moduleServer
 }

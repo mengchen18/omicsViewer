@@ -286,9 +286,16 @@ feature_general_module <- function(id,
     htestV2( s$htestV2 )
     })  
 
-  observeEvent(reactive_status(), {    
+  observeEvent(reactive_status(), {
     if (!is.null(s <- reactive_status()))
-      showRegLine(s$showRegLine) 
+      showRegLine(s$showRegLine)
+    })
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    if (!is.null(s$plotType))
+      updateRadioGroupButtons(session, "internal_radio", selected = s$plotType)
     })
 
   ## Hidden plot summary for AI browsers ##
@@ -342,6 +349,7 @@ feature_general_module <- function(id,
   observe( rv$xax <- v1() )
   observe( rv$showRegLine <- showRegLine() )
   observe( rv$attr4 <- attr4select$status )
+  observe( rv$plotType <- input$internal_radio )
   observe({
     rv$htestV1 <- v_beeswarm()$htestV1
     rv$htestV2 <- v_beeswarm()$htestV2

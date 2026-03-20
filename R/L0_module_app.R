@@ -681,12 +681,18 @@ app_module <- function(
 
   esv_status <- reactiveVal()
   observeEvent(selectedSS(), {
-    req(nrow(df <- savedSS()) > 0)    
+    req(nrow(df <- savedSS()) > 0)
     if (length(i <- selectedSS()) == 0)
       return(NULL)
-    removeModal()  
-    esv_status(NULL)  
-    esv_status( readRDS(file.path(.dir(), df[i, 2])) )    
+    removeModal()
+    esv_status(NULL)
+    ss <- readRDS(file.path(.dir(), df[i, 2]))
+    esv_status(ss)
+    # restore feature/sample selection from snapshot
+    if (!is.null(ss$active_feature))
+      ri(ss$active_feature)
+    if (!is.null(ss$active_sample))
+      rh(ss$active_sample)
     })
 
   observeEvent(deleteSS(), {

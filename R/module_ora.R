@@ -51,7 +51,7 @@ enrichment_analysis_ui <- function(id) {
 
 
 enrichment_analysis_module <- function(
-  id, reactive_featureData, reactive_i
+  id, reactive_featureData, reactive_i, reactive_status = reactive(NULL)
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -66,8 +66,12 @@ enrichment_analysis_module <- function(
     trisetter(meta = reactive_featureData(), combine = "none")
   })
 
+  xax <- reactiveVal()
   v1 <- triselector_module(
-    "tris_ora", reactive_x = triset, label = "Collapse features on"
+    "tris_ora", reactive_x = triset, label = "Collapse features on",
+    reactive_selector1 = reactive(xax()$v1),
+    reactive_selector2 = reactive(xax()$v2),
+    reactive_selector3 = reactive(xax()$v3)
     )
 
   size_bg <- reactiveVal()
@@ -204,6 +208,15 @@ enrichment_analysis_module <- function(
     reactive_table = hd,
     prefix = "ORA_overlapGenes_", pageLength = ENRICHMENT_TABLE_PAGE_LENGTH
   )
+
+  observeEvent(reactive_status(), {
+    if (is.null(s <- reactive_status()))
+      return()
+    xax(NULL)
+    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+  })
+
+  reactive(list(xax = v1()))
 
   }) # end moduleServer
 }

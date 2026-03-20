@@ -357,7 +357,7 @@ plotly_scatter_ui <- function(id, height = "400px") {
   ns <- NS(id)
   tagList(
     tags$script(HTML(sprintf(
-      "$(document).ready(function() {
+      "$(document).on('shiny:connected', function() {
          var canvas = document.createElement('canvas');
          var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
          Shiny.setInputValue('%s', !!(gl && gl instanceof WebGLRenderingContext));

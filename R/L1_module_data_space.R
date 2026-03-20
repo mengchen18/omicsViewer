@@ -507,9 +507,8 @@ L1_data_space_module <- function(
     })
 
     na2null <- function(x) {
-      if (is.null(x) || is.na(x) || length(x) == 0) {
-        return(NULL)
-      }
+      if (is.null(x) || length(x) == 0) return(NULL)
+      if (length(x) == 1 && is.na(x)) return(NULL)
       x
     }
     observe({
@@ -589,6 +588,8 @@ L1_data_space_module <- function(
         eset_fdata_fig = attr(s_feature_fig(), "status"), # -> fdata_fig
         eset_pdata_fig = attr(s_sample_fig(), "status"), # -> pdata_fig
         eset_heatmap = attr(s_heatmap(), "status"),
+        eset_cor_heatmap = tryCatch(attr(s_cor_heatmap(), "status"), error = function(e) NULL),
+        eset_dyn_heatmap = tryCatch(attr(s_dyn_heatmap(), "status"), error = function(e) NULL),
         eset_fdata_tabrows = tab_rows_fdata(),
         eset_pdata_tabrows = tab_rows_pdata(),
         eset_selected_samples = c(selectedSamples()),
