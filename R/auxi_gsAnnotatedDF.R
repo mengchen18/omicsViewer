@@ -86,6 +86,9 @@ totall <- function(gsmat) {
 #' @importFrom Biobase fData
 tallGS <- function(obj) {
   fd <- Biobase::fData(obj)
+  # Column subsetting can drop arbitrary metadata attributes.
+  fdQuickViews <- attr(fd, "quickViews")
+  fdShortcuts <- attr(fd, "shortcut")
   scn <- str_split_fixed(colnames(fd), "\\|", n = 3)
   ir <- which(scn[, 1] == "GS")
   gscsc <- attr(fd, "GS")
@@ -94,6 +97,10 @@ tallGS <- function(obj) {
     colnames(igs) <- make.names(scn[ir, 3])
     gs <- totall(igs)
     fd <- fd[, -ir]
+    if (!is.null(fdQuickViews))
+      attr(fd, "quickViews") <- fdQuickViews
+    if (!is.null(fdShortcuts))
+      attr(fd, "shortcut") <- fdShortcuts
     attr(fd, "GS") <- gs
   } else if (inherits(gscsc, c("dgCMatrix", "lgCMatrix"))) {
     gs <- csc2list(gscsc)

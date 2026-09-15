@@ -13,6 +13,7 @@ prepOmicsViewer(
   pca.fillNA = TRUE,
   t.test = NULL,
   ttest.fillNA = FALSE,
+  correlation = TRUE,
   ...,
   gs = NULL,
   stringDB = NULL,
@@ -49,6 +50,10 @@ Results are added as columns to \code{fData}. NULL = no t-tests.}
 \item{ttest.fillNA}{Logical. Whether to impute missing values before t-tests.
 Default: FALSE (features with NAs are excluded from testing).}
 
+\item{correlation}{Logical. If TRUE, numeric variables in \code{pData} are correlated with
+all feature rows using \code{\link{correlationAnalysis}}. Default: TRUE. Results are added
+as \code{Cor|<phenotype>|<statistic>} columns to \code{fData}.}
+
 \item{...}{Additional arguments passed to \code{\link{t.test}}, such as \code{paired = TRUE}
 for paired t-tests or \code{var.equal = TRUE} for equal variance assumption.}
 
@@ -82,9 +87,10 @@ A \code{SummarizedExperiment} or \code{ExpressionSet} object ready for visualiza
 \code{\link{omicsViewer}}. The object includes:
 \itemize{
   \item Expression matrix (and optionally imputed matrix)
-  \item Enhanced metadata with PCA results, t-test statistics, rankings
+  \item Enhanced metadata with PCA, t-test, and correlation results, rankings
   \item Gene set annotations (as attributes)
   \item Default axis selections (as attributes: "sx", "sy", "fx", "fy")
+  \item Quick-view shortcut metadata on \code{pData} and \code{fData}
 }
 
 an object of \code{ExpressionSet} or \code{SummarizedExperiment} that can be visualized using
@@ -93,8 +99,8 @@ an object of \code{ExpressionSet} or \code{SummarizedExperiment} that can be vis
 \description{
 A comprehensive data preparation function that processes expression matrices and associated
 metadata for interactive visualization with \code{\link{omicsViewer}}. Automatically performs
-dimensionality reduction (PCA), statistical testing (t-tests), and integrates gene set
-annotations, STRING database IDs, and survival data.
+dimensionality reduction (PCA), statistical testing (t-tests), correlation analysis,
+and integrates gene set annotations, STRING database IDs, and survival data.
 }
 \details{
 The function performs the following processing steps:
@@ -103,6 +109,7 @@ The function performs the following processing steps:
   \item Standardizes column names by prefixing with data type (e.g., "General|All|")
   \item Performs PCA on expression data (with and without imputation)
   \item Conducts statistical tests (t-tests) between specified groups
+  \item Correlates numeric phenotype variables with feature expression
   \item Computes feature rankings across samples
   \item Integrates gene set, STRING, and survival annotations
   \item Sets sensible default axes for visualization
@@ -164,5 +171,6 @@ attr(d, "sy") <- "PCA|All|PC2("
 \seealso{
 \code{\link{omicsViewer}} for launching the viewer.
 \code{\link{multi.t.test}} for details on t-test implementation.
+\code{\link{correlationAnalysis}} for details on correlation implementation.
 \code{\link{gsAnnotIdList}} for gene set annotation formatting.
 }

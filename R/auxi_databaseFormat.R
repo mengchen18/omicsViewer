@@ -224,6 +224,8 @@ getPData <- function(x) {
   } else if (inherits(x, "ExpressionSet")) {
     mat <- pData(x)
   }
+  # TODO: SQLite persistence/restoration of quickViews is a known gap and will
+  # be addressed with the broader stateful-UI work.
   mat
 }
 
@@ -241,6 +243,8 @@ getFData <- function(x) {
   } else if (inherits(x, "ExpressionSet")) {
     mat <- fData(x)
   }
+  # TODO: SQLite persistence/restoration of quickViews is a known gap and will
+  # be addressed with the broader stateful-UI work.
   mat
 }
 

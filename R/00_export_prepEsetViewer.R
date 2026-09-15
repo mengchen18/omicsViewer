@@ -3,8 +3,8 @@
 #' @description
 #' A comprehensive data preparation function that processes expression matrices and associated
 #' metadata for interactive visualization with \code{\link{omicsViewer}}. Automatically performs
-#' dimensionality reduction (PCA), statistical testing (t-tests), and integrates gene set
-#' annotations, STRING database IDs, and survival data.
+#' dimensionality reduction (PCA), statistical testing (t-tests), correlation analysis,
+#' and integrates gene set annotations, STRING database IDs, and survival data.
 #'
 #' @param expr Numeric matrix. Expression data with features in rows and samples in columns.
 #'   Should be log-transformed (e.g., log2 or log10). Row and column names must be unique.
@@ -24,6 +24,9 @@
 #'   each row specifies: [column_name, group1, group2]. The column should exist in \code{pData}.
 #'   Example: \code{rbind(c("Treatment", "Drug", "Control"), c("Genotype", "WT", "KO"))}.
 #'   Results are added as columns to \code{fData}. NULL = no t-tests.
+#' @param correlation Logical. If TRUE, numeric variables in \code{pData} are correlated with
+#'   all feature rows using \code{\link{correlationAnalysis}}. Default: TRUE. Results are added
+#'   as \code{Cor|<phenotype>|<statistic>} columns to \code{fData}.
 #' @param ttest.fillNA Logical. Whether to impute missing values before t-tests.
 #'   Default: FALSE (features with NAs are excluded from testing).
 #' @param gs Gene set annotations in one of two formats:
@@ -55,9 +58,10 @@
 #' \code{\link{omicsViewer}}. The object includes:
 #' \itemize{
 #'   \item Expression matrix (and optionally imputed matrix)
-#'   \item Enhanced metadata with PCA results, t-test statistics, rankings
+#'   \item Enhanced metadata with PCA, t-test, and correlation results, rankings
 #'   \item Gene set annotations (as attributes)
 #'   \item Default axis selections (as attributes: "sx", "sy", "fx", "fy")
+#'   \item Quick-view shortcut metadata on \code{pData} and \code{fData}
 #' }
 #'
 #' @details
@@ -67,6 +71,7 @@
 #'   \item Standardizes column names by prefixing with data type (e.g., "General|All|")
 #'   \item Performs PCA on expression data (with and without imputation)
 #'   \item Conducts statistical tests (t-tests) between specified groups
+#'   \item Correlates numeric phenotype variables with feature expression
 #'   \item Computes feature rankings across samples
 #'   \item Integrates gene set, STRING, and survival annotations
 #'   \item Sets sensible default axes for visualization
@@ -81,6 +86,7 @@
 #' @seealso
 #' \code{\link{omicsViewer}} for launching the viewer.
 #' \code{\link{multi.t.test}} for details on t-test implementation.
+#' \code{\link{correlationAnalysis}} for details on correlation implementation.
 #' \code{\link{gsAnnotIdList}} for gene set annotation formatting.
 #'
 #' @examples 
@@ -138,11 +144,15 @@
 prepOmicsViewer <- function(
   expr, pData, fData, 
   PCA = TRUE, ncomp = min(8, ncol(expr)), pca.fillNA = TRUE,
-  t.test = NULL, ttest.fillNA = FALSE, ..., 
+  t.test = NULL, ttest.fillNA = FALSE, correlation = TRUE, ...,
   gs = NULL, stringDB = NULL, surv = NULL, 
   SummarizedExperiment = TRUE) {
   
   p0 <- pData
+  ## cbind below drops arbitrary attributes; preserve user-defined quick views
+  ## and validate them after the standard metadata columns have been created.
+  pQuick <- get_quick_views(pData)
+  fQuick <- get_quick_views(fData)
   ## ======================= check dimension and names  ============================
   de <- dim(expr)
   if (nrow(pData) != de[2])
@@ -205,6 +215,22 @@ prepOmicsViewer <- function(
   if (!is.null(t.test)) {
     tres <- multi.t.test(x = expr, pheno = p0, compare = t.test, fillNA = ttest.fillNA, ...)
     fData <- cbind(fData, tres)
+  }
+
+  ## ======================= correlation analysis ============================
+  if (correlation) {
+    numericPheno <- p0[, vapply(p0, is.numeric, logical(1)), drop = FALSE]
+    if (ncol(numericPheno) > 0) {
+      cres <- tryCatch(
+        correlationAnalysis(x = as.matrix(expr), pheno = numericPheno),
+        error = function(e) {
+          warning("Correlation analysis failed: ", conditionMessage(e))
+          NULL
+        }
+      )
+      if (!is.null(cres) && ncol(cres) > 0)
+        fData <- cbind(fData, cres)
+    }
   }
   
   ## ======================= ranking ==========================
@@ -280,6 +306,30 @@ prepOmicsViewer <- function(
   fy2 <- grep("PCA\\|All\\|PC2\\(", colnames(fData), value = TRUE)
   px <- grep("PCA\\|All\\|PC1\\(", colnames(pData), value = TRUE)
   py <- grep("PCA\\|All\\|PC2\\(", colnames(pData), value = TRUE)
+
+  if (!is.null(fQuick)) {
+    attr(fData, "quickViews") <- fQuick
+  }
+  if (!is.null(pQuick)) {
+    attr(pData, "quickViews") <- pQuick
+  }
+
+  # Persist explicit shortcuts for all standard analyses. Custom shortcuts are
+  # retained and deduplicated against automatically generated PCA, volcano,
+  # and correlation views.
+  # Quick-view axes are never gene-set memberships. Remove the GS attribute for
+  # this validation so trisetter() can accept both long data.frames and the
+  # sparse matrices still used internally by prepOmicsViewer().
+  fDataForQuickViews <- fData
+  attr(fDataForQuickViews, "GS") <- NULL
+  attr(fData, "quickViews") <- prepare_quick_views(
+    fDataForQuickViews,
+    triset = trisetter(expr = expr, meta = fDataForQuickViews, combine = "feature")
+  )
+  attr(pData, "quickViews") <- prepare_quick_views(
+    pData,
+    triset = trisetter(expr = expr, meta = pData, combine = "pheno")
+  )
 
   exprsWithAttr <- function(x, fillNA = FALSE, environment = FALSE, attrs = c("rowDendrogram", "colDendrogram")) {
     if (environment)

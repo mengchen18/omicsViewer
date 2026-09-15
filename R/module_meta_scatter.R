@@ -13,7 +13,9 @@
 #' \itemize{
 #'   \item Figure attribute selector (color, shape, size controls)
 #'   \item Clear selection button
-#'   \item X-axis and Y-axis variable selectors
+#'   \item A compact Quick view / Custom visualization mode switch
+#'   \item Quick-view badges for common X/Y axis combinations
+#'   \item X-axis and Y-axis variable selectors for custom visualizations
 #'   \item Interactive plotly scatter plot with lasso/box selection
 #' }
 #'
@@ -23,7 +25,7 @@
 #' \code{\link{plotly_scatter_module}} for the scatter plot implementation.
 #'
 #' @keywords internal
-#' @importFrom shinyWidgets actionBttn
+#' @importFrom shinyWidgets actionBttn radioGroupButtons
 #'
 meta_scatter_ui <- function(id) {
   ns <- NS(id)
@@ -38,8 +40,31 @@ meta_scatter_ui <- function(id) {
       ), # style = "margin-top: 20px;",
       column(
         11,
-        triselector_ui(ns("tris_main_scatter1")),
-        triselector_ui(ns("tris_main_scatter2"))
+        radioGroupButtons(
+          inputId = ns("axisMode"),
+          label = NULL,
+          choices = c("Quick view" = "quick", "Custom visualization" = "custom"),
+          selected = "quick",
+          status = "primary",
+          size = "sm",
+          justified = TRUE,
+          individual = FALSE,
+          width = "100%"
+        ),
+        hr(style = "margin: 8px 0;"),
+        tabsetPanel(
+          id = ns("axisModeTabs"),
+          type = "hidden",
+          tabPanelBody(
+            value = "quick",
+            quick_badges_ui(ns("quickViews"))
+          ),
+          tabPanelBody(
+            value = "custom",
+            triselector_ui(ns("tris_main_scatter1")),
+            triselector_ui(ns("tris_main_scatter2"))
+          )
+        )
       )
     ),
     tags$h3("Interactive Scatter Plot Visualization", class = "sr-only", `aria-label` = "Scatter plot with lasso and box selection tools, regression line option, and corner selection for volcano plots"),
@@ -85,9 +110,27 @@ meta_scatter_module <- function(
       ts[ts[, 1] != "Surv", ]
     })
 
+    quick_views <- reactive({
+      prepare_quick_views(reactive_meta(), triset())
+    })
+
+    activeQuickView <- reactive({
+      active_quick_view(quick_views(), v1(), v2())
+    })
+
+    quickBadge <- quick_badges_module(
+      "quickViews",
+      views = quick_views,
+      activeId = activeQuickView
+    )
+
+    # Axis requests are versioned so a badge can restore an axis combination
+    # after the user manually changed the triselectors.
+    axisRequest <- reactiveVal(0)
+
     # Axis config: Parse pipe-separated strings into list(v1, v2, v3)
     # Use reactiveVal pattern (not pure reactive) to prevent multiple invalidations
-    xax <- reactiveVal()
+    xax <- reactiveVal(list())
     observe({
       r <- list()
       if (!is.null(reactive_x())) {
@@ -95,9 +138,12 @@ meta_scatter_module <- function(
         r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
       }
       xax(r)
+      # isolate prevents this observer from taking a dependency on the
+      # reactiveVal it updates, which would otherwise invalidate itself.
+      axisRequest(isolate(axisRequest()) + 1)
     })
 
-    yax <- reactiveVal()
+    yax <- reactiveVal(list())
     observe({
       r <- list()
       if (!is.null(reactive_y())) {
@@ -105,20 +151,38 @@ meta_scatter_module <- function(
         r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
       }
       yax(r)
+      axisRequest(isolate(axisRequest()) + 1)
     })
 
     v1 <- triselector_module("tris_main_scatter1",
       reactive_x = triset, label = "X-axis",
-      reactive_selector1 = reactive(xax()$v1),
-      reactive_selector2 = reactive(xax()$v2),
-      reactive_selector3 = reactive(xax()$v3)
+      reactive_selector1 = reactive({ axisRequest(); xax()$v1 }),
+      reactive_selector2 = reactive({ axisRequest(); xax()$v2 }),
+      reactive_selector3 = reactive({ axisRequest(); xax()$v3 })
     )
     v2 <- triselector_module("tris_main_scatter2",
       reactive_x = triset, label = "Y-axis",
-      reactive_selector1 = reactive(yax()$v1),
-      reactive_selector2 = reactive(yax()$v2),
-      reactive_selector3 = reactive(yax()$v3)
+      reactive_selector1 = reactive({ axisRequest(); yax()$v1 }),
+      reactive_selector2 = reactive({ axisRequest(); yax()$v2 }),
+      reactive_selector3 = reactive({ axisRequest(); yax()$v3 })
     )
+
+    observeEvent(quickBadge()$trigger, {
+      qv <- quickBadge()$view
+      req(nrow(qv) == 1)
+      req(xx <- .quick_view_axis(qv$x))
+      req(yy <- .quick_view_axis(qv$y))
+
+      xax(xx)
+      yax(yy)
+      axisRequest(isolate(axisRequest()) + 1)
+    }, ignoreInit = TRUE)
+
+    # Keep the compact mode switch and the header-less tab panel in sync. The
+    # tab panel switches content immediately without adding another tab bar.
+    observeEvent(input$axisMode, {
+      updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
+    }, ignoreInit = TRUE)
 
     # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from ttest)
     pre_vol <- reactive({

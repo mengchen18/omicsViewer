@@ -15,7 +15,9 @@ A \code{tagList} containing:
 \itemize{
   \item Figure attribute selector (color, shape, size controls)
   \item Clear selection button
-  \item X-axis and Y-axis variable selectors
+  \item A compact Quick view / Custom visualization mode switch
+  \item Quick-view badges for common X/Y axis combinations
+  \item X-axis and Y-axis variable selectors for custom visualizations
   \item Interactive plotly scatter plot with lasso/box selection
 }
 }
