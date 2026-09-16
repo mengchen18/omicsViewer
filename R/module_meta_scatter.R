@@ -25,7 +25,7 @@
 #' \code{\link{plotly_scatter_module}} for the scatter plot implementation.
 #'
 #' @keywords internal
-#' @importFrom shinyWidgets actionBttn radioGroupButtons
+#' @importFrom shinyWidgets actionBttn radioGroupButtons updateRadioGroupButtons
 #'
 meta_scatter_ui <- function(id) {
   ns <- NS(id)
@@ -95,6 +95,7 @@ meta_scatter_module <- function(
 ) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    notNullAndPositiveLength <- function(x) !is.null(x) && length(x) > 0
 
     # Helper: Get feature/sample names based on combine mode
     get_names <- function() {
@@ -268,7 +269,18 @@ meta_scatter_module <- function(
       l$highlight <- attr4select$highlight
       l$highlightName <- attr4select$highlightName
       l$rect <- rectval()
-      l$inSelection <- NA
+      # Plotly owns the visible box/lasso until the plot is redrawn. Reading
+      # selVal() as a reactive dependency here turns a user selection into a
+      # plot invalidation, which redraws the figure and erases that selection
+      # box. Isolate the semantic IDs: they are only used to carry selection
+      # emphasis into a redraw caused by an actual plotting parameter change
+      # (for example, axis, color, or snapshot restoration).
+      selected_ids <- isolate(selVal()$selected)
+      l$inSelection <- if (notNullAndPositiveLength(selected_ids)) {
+        which(get_names() %in% selected_ids)
+      } else {
+        NA
+      }
       l
     })
 
@@ -350,20 +362,25 @@ meta_scatter_module <- function(
     })
 
     ############## status save ###############
-    observe({
-      sv <- selVal()
-      attr(sv, "status") <- list(
-        xax = v1(),
-        yax = v2(),
+    # Derive snapshot state when it is read. Besides avoiding the historical
+    # circular reactiveVal update, this ensures a Save click evaluates the
+    # current axis/selector controls rather than an observer's last write.
+    scatter_status <- reactive({
+      safe_state_value <- function(value) {
+        tryCatch(value, shiny.silent.error = function(e) NULL,
+                 error = function(e) NULL)
+      }
+      current <- isolate(selVal())
+      list(
+        axisMode = input$axisMode,
+        xax = safe_state_value(v1()),
+        yax = safe_state_value(v2()),
         showRegLine = showRegLine(),
-        attr4 = attr4select$status,
-        htestV1 = v_scatter()$htest_V1,
-        htestV2 = v_scatter()$htest_V2,
-        selection_clicked = sv$clicked,
-        selection_selected = sv$selected,
+        attr4 = safe_state_value(attr4select$status),
+        selection_clicked = current$clicked,
+        selection_selected = current$selected,
         selectByCorner = sbc()
       )
-      selVal(sv)
     })
 
     ############## status restore ###############
@@ -373,6 +390,17 @@ meta_scatter_module <- function(
       if (is.null(s)) {
         return()
       }
+
+      # Restore compact/custom mode first so the corresponding controls are visible.
+      axis_mode <- if (is.null(s$axisMode)) "quick" else s$axisMode
+      if (!axis_mode %in% c("quick", "custom"))
+        axis_mode <- "quick"
+      updateRadioGroupButtons(
+        session, "axisMode",
+        choices = c("Quick view" = "quick", "Custom visualization" = "custom"),
+        selected = axis_mode
+      )
+      updateTabsetPanel(session, "axisModeTabs", selected = axis_mode)
 
       # Restore axis selections
       xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
@@ -385,11 +413,8 @@ meta_scatter_module <- function(
       # Restore regression line setting
       showRegLine(s$showRegLine)
 
-      # Restore hypothesis test variables
-      htestV1(s$htestV1)
-      htestV2(s$htestV2)
-
-      # Restore selection state
+      # Computed hypothesis-test output is intentionally not restored; it is
+      # recalculated from the restored widget and selection state.
       returnCornerSelection(s$selectByCorner)
       selVal(list(
         clicked = s$selection_clicked,
@@ -461,6 +486,14 @@ meta_scatter_module <- function(
       tags$p(paste(summary_parts, collapse = " "))
     })
 
-    selVal
+    reactive({
+      current <- selVal()
+      sta <- scatter_status()
+      # Keep an explicit list member as a robust fallback; some reactive
+      # consumers historically lost attributes when forwarding module values.
+      current$state <- sta
+      attr(current, "status") <- sta
+      current
+    })
   }) # end moduleServer
 }

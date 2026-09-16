@@ -280,13 +280,6 @@ feature_general_module <- function(id,
     })
 
   observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
-    htestV1( s$htestV1 )
-    htestV2( s$htestV2 )
-    })  
-
-  observeEvent(reactive_status(), {
     if (!is.null(s <- reactive_status()))
       showRegLine(s$showRegLine)
     })
@@ -350,11 +343,6 @@ feature_general_module <- function(id,
   observe( rv$showRegLine <- showRegLine() )
   observe( rv$attr4 <- attr4select$status )
   observe( rv$plotType <- input$internal_radio )
-  observe({
-    rv$htestV1 <- v_beeswarm()$htestV1
-    rv$htestV2 <- v_beeswarm()$htestV2
-    })
-
   reactive({
     reactiveValuesToList(rv)
     })

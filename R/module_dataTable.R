@@ -148,6 +148,24 @@ dataTable_module <- function(
     triselector_ui(ns("select"))
     })
   
+  tabStatus <- reactive({
+    st <- tab_status()
+    if (!is.list(st)) return(NULL)
+    st
+  })
+
+  selectedRows <- reactive({
+    st <- tabStatus()
+    if (is.null(st))
+      return(NULL)
+    if (is.null(st$selected_rows) || length(st$selected_rows) == 0)
+      return(st$rows_selected)
+    rn <- rownames(rdd())
+    if (is.null(rn))
+      return(st$rows_selected)
+    match(as.character(st$selected_rows), rn)
+  })
+
   formatTab <- function(tab, sel) {    
     ci <- unname(which(vapply(tab, inherits, c('factor', "character"), FUN.VALUE = logical(1))))
     if (length(ci) > 0)
@@ -157,7 +175,7 @@ dataTable_module <- function(
     })
     dt <- DT::datatable(
       tab,
-      selection =  list(mode = c("single", "multiple")[as.integer(sel)+1], selected = tab_status()$rows_selected, target = "row"),
+      selection = list(mode = c("single", "multiple")[as.integer(sel)+1], selected = selectedRows(), target = "row"),
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
@@ -167,7 +185,7 @@ dataTable_module <- function(
                 nrow(tab), ncol(tab))
       ),
       options = list(
-        scrollX = TRUE, pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE, dom = 'tip',
+        scrollX = TRUE, dom = 'tip',
         columnDefs = list(list(
           targets = ci-1,
           render = DT::JS(
@@ -176,19 +194,22 @@ dataTable_module <- function(
             "'<span title=\"' + data + '\">' + data.substr(0, 50) + '...</span>' : data;",
             "}")
         )),
-        stateSave = TRUE,  stateDuration = -1,
-        searchCols = getSearchCols(tab_status()), order = getOrderCols(tab_status()),
-        displayStart = tab_status()$start
+        # Server snapshots are authoritative; do not restore browser-local state.
+        searchCols = getSearchCols(tabStatus()), order = getOrderCols(tabStatus()),
+        displayStart = tabStatus()$start,
+        pageLength = restore_table_page_length(tabStatus()$length, pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE)
         )
     )
     DT::formatStyle(dt, columns = seq_len(ncol(tab)), fontSize = '90%')
   }
 
-  observeEvent(tab_status(), {
-    if (!is.null( i <- tab_status()$showColumns ))
-      scn (i)
-    updateSwitchInput(session, "multisel", value = tab_status()$multiSelection)    
-    }) 
+  observeEvent(tabStatus(), {
+    if (is.null(tabStatus()))
+      return(NULL)
+    if (!is.null(i <- tabStatus()$showColumns))
+      scn(i)
+    updateSwitchInput(session, "multisel", value = tabStatus()$multiSelection)
+  })
   
   output$table <- DT::renderDataTable({
     req(scn())
@@ -208,10 +229,15 @@ dataTable_module <- function(
       r <- tab_rows()
     if (notNullAndPosLength(input$table_rows_selected))
       r <- rownames(rdd())[input$table_rows_selected]
-    sta <- input$table_state
+    sta <- data_table_widget_state(input$table_state)
+    if (is.null(sta))
+      sta <- list()
     sta$showColumns <- scn()
     sta$multiSelection <- input$multisel
     sta$rows_selected <- input$table_rows_selected
+    rn <- rownames(rdd())
+    if (!is.null(rn) && notNullAndPosLength(input$table_rows_selected))
+      sta$selected_rows <- unique(rn[input$table_rows_selected])
     attr(r, "status") <- sta
     r
     })

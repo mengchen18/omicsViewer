@@ -536,7 +536,7 @@ app_module <- function(
   v1 <- L1_data_space_module(
     "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
-    status = esv_status, cormat = cormat
+    status = reactive(esv_status()$panels$data_space), cormat = cormat
   )
 
   sameValues <- function(a, b) {
@@ -564,7 +564,7 @@ app_module <- function(
                    reactive_highlight = rh,
                    additionalTabs = additionalTabs,
                    object = reactive_eset,
-                   status = esv_status)
+                   status = reactive(esv_status()$panels$result_space))
 
   # =======================================================
   # =======================================================
@@ -580,23 +580,75 @@ app_module <- function(
     dir(dd)
     })
 
-  savedSS <- reactiveVal()
+  # =====================================================================
+  # Semantic, versioned snapshot state
+  # =====================================================================
+  esv_status <- reactiveVal(NULL)
+
+  current_dataset_id <- reactive({
+    if (!is.null(ESVObj()))
+      return("ESVObj.RDS")
+    if (is.null(input$selectFile) || !nzchar(input$selectFile))
+      return("ESVObj.RDS")
+    input$selectFile
+  })
+
+  # Dataset changes invalidate all previous panel state. Child modules receive
+  # NULL first and the restored object second, making restoration transactional
+  # at the top-level state boundary.
+  dataset_signature <- reactive({
+    req(reactive_eset())
+    paste(current_dataset_id(), dataset_fingerprint(reactive_eset(), id = current_dataset_id()))
+  })
+  observeEvent(dataset_signature(), {
+    esv_status(NULL)
+    ri(NULL)
+    rh(NULL)
+  })
+
+  savedSS <- reactiveVal(
+    data.frame(name = character(), link = character(), schema = integer(),
+               created_at = character(), package_version = character(),
+               stringsAsFactors = FALSE)
+  )
+  snapshot_refresh <- reactiveVal(0L)
+
   observe({
     req(.dir())
-    if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
-      fs <- "ESVObj.RDS" else
-        fs <- input$selectFile
+    snapshot_refresh()
+    dsid <- sanitize_snapshot_name(current_dataset_id(), fallback = "ESVObj.RDS")
+    prefix <- paste0("ESVSnapshot_", dsid, "_")
+    ff <- list.files(.dir(), pattern = "\\.ESS$", ignore.case = TRUE)
+    ff <- ff[startsWith(ff, prefix)]
 
-    fl <- paste0("ESVSnapshot_", fs, "_")
-    ff <- list.files(.dir(), pattern = fl)
-    if (length(ff) == 0)
+    if (length(ff) == 0) {
+      savedSS(data.frame(name = character(), link = character(), schema = integer(),
+                         created_at = character(), package_version = character(),
+                         stringsAsFactors = FALSE))
       return(NULL)
-    r <- sub(fl, "", ff)
-    r <- sub(".ESS$", "", r)
-    df <- data.frame("name" = r, link = ff, stringsAsFactors = FALSE, check.names = FALSE)    
-    savedSS(df)
-    })
-  
+    }
+
+    # Read compact metadata only; large panel payloads stay on disk.
+    meta <- lapply(ff, function(f) tryCatch({
+      x <- readRDS(file.path(.dir(), f))
+      list(
+        schema = if (is.null(x$schema_version)) NA_integer_ else as.integer(x$schema_version),
+        created_at = x$created_at %.or_default% NA_character_,
+        package_version = x$package_version %.or_default% NA_character_
+      )
+    }, error = function(e) list(schema = NA_integer_, created_at = NA_character_,
+                                package_version = NA_character_)))
+
+    savedSS(data.frame(
+      name = sub("\\.ESS$", "", sub(prefix, "", ff)),
+      link = ff,
+      schema = vapply(meta, function(x) x$schema, integer(1)),
+      created_at = vapply(meta, function(x) x$created_at, character(1)),
+      package_version = vapply(meta, function(x) x$package_version, character(1)),
+      stringsAsFactors = FALSE
+    ))
+  })
+
   shinyInput <- function(FUN, len, id, ...) {
     inputs <- c()
     for (i in len) {
@@ -606,36 +658,78 @@ app_module <- function(
   }
 
   output$tab_saveSS <- renderDT({
-    req( nrow(dt <- savedSS()) > 0 )    
+    req(nrow(dt <- savedSS()) > 0)
     dt$delete <- shinyInput(
-      actionButton, dt$name, 'deletess_', label = "Delete", onclick = sprintf('Shiny.setInputValue(\"%s\",  this.id)', ns("deletess_button")) 
+      actionButton, dt$name, "deletess_", label = "Delete",
+      onclick = sprintf('Shiny.setInputValue("%s", this.id)', ns("deletess_button"))
+    )
+    dt$info <- ifelse(
+      is.na(dt$schema),
+      "legacy",
+      paste0(
+        "v", dt$schema,
+        ifelse(is.na(dt$created_at), "", paste0(" | ", dt$created_at)),
+        ifelse(is.na(dt$package_version), "", paste0(" | ", dt$package_version))
       )
+    )
     DT::datatable(
-      dt[, c(1, 3), drop = FALSE], rownames = FALSE, colnames = c(NULL, NULL, NULL), 
-      selection = list(mode = "single", target = "cell", selectable = -cbind(seq_len(nrow(dt)), 1)), escape = FALSE,
+      dt[, c("name", "info", "delete"), drop = FALSE],
+      rownames = FALSE, colnames = c("Name", "Metadata", ""),
+      selection = list(mode = "single", target = "cell",
+                       selectable = -cbind(seq_len(nrow(dt)), 3)),
+      escape = FALSE,
       options = list(
-        dom = "t", autoWidth = FALSE, style="compact-hover", scrollY = "450px", 
-        paging = FALSE, columns = list(list(width = "85%"), list(width = "15%"))
-        )
+        dom = "t", autoWidth = FALSE, style = "compact-hover", scrollY = "450px",
+        paging = FALSE,
+        columns = list(list(width = "40%"), list(width = "42%"), list(width = "18%"))
       )
-    })  
+    )
+  })
 
   selectedSS <- reactiveVal()
-  observe({    
+  observe({
     ss <- input$tab_saveSS_cells_selected
-    if (length(ss) == 0 || ss[2] > 0)
+    if (length(ss) == 0 || ss[2] > 1)
       return(NULL)
-    selectedSS( ss[1])
-    })
+    selectedSS(ss[1])
+  })
 
   observeEvent(list(v1(), v2()), {
-    selectedSS( NULL )
-    })
+    selectedSS(NULL)
+  })
 
   deleteSS <- reactiveVal()
   observeEvent(input$deletess_button, {
-    selectedRow <- sub("deletess_", "", input$deletess_button)
+    selectedRow <- sub("deletess_", "", input$deletess_button, fixed = TRUE)
     deleteSS(selectedRow)
+  })
+
+  observeEvent(deleteSS(), {
+    req(nrow(df <- savedSS()) > 0)
+    req(i <- match(deleteSS(), df$name))
+    showModal(modalDialog(
+      title = "Delete snapshot",
+      sprintf("Delete snapshot %s? This cannot be undone.", df$name[i]),
+      footer = tagList(
+        actionButton(ns("snapshot_delete_cancel"), "Cancel"),
+        actionButton(ns("snapshot_delete_confirm"), "Delete", class = "btn-danger")
+      ),
+      easyClose = TRUE
+    ))
+  })
+
+  observeEvent(input$snapshot_delete_cancel, {
+    removeModal()
+    deleteSS(NULL)
+  })
+
+  observeEvent(input$snapshot_delete_confirm, {
+    req(nrow(df <- savedSS()) > 0)
+    req(i <- match(deleteSS(), df$name))
+    unlink(file.path(.dir(), df$link[i]))
+    removeModal()
+    deleteSS(NULL)
+    snapshot_refresh(snapshot_refresh() + 1L)
   })
 
   observeEvent(input$snapshot, {
@@ -644,65 +738,99 @@ app_module <- function(
         title = NULL,
         fluidRow(
           column(9, textInput(ns("snapshot_name"), label = "Save new snapshot", placeholder = "snapshot name", width = "100%")),
-          column(3, style = "padding-top:25px", actionButton(ns("snapshot_save"), label = "Save")),
-          ),        
+          column(3, style = "padding-top:25px", actionButton(ns("snapshot_save"), label = "Save"))
+        ),
         hr(),
         strong("Load saved snapshots:"),
         DTOutput(ns("tab_saveSS")),
         footer = NULL,
         easyClose = TRUE
-        )
       )
-    })
+    )
+  })
 
   observeEvent(input$snapshot_save, {
-    if (is.null(input$selectFile) || nchar(input$selectFile) == 0)
-      fs <- "ESVObj.RDS" else
-        fs <- input$selectFile    
+    req(vEset())
+    req(reactive_eset())
+    name <- sanitize_snapshot_name(input$snapshot_name, fallback = paste0("snapshot-", format(Sys.time(), "%Y%m%d-%H%M%S")))
 
     df <- savedSS()
-    if (!is.null(df)) {
-      if (input$snapshot_name %in% df$name) {              
-        showModal(modalDialog(
-          title = "FAILED!",  
-          "Snapshot with this name already exists, please give a different name."
-          ))
-        return(NULL)
-      }
+    if (name %in% df$name) {
+      showNotification(sprintf("Snapshot name %s is already in use.", name), type = "error")
+      return(NULL)
     }
-    obj <- c(attr(v1(), "status"), v2(), active_feature = list(ri()), active_sample = list(rh()))
-    flink <- file.path(.dir(), paste0("ESVSnapshot_", fs, "_", input$snapshot_name, ".ESS"))
-    saveRDS(obj, flink)
-    df <- rbind(df, data.frame(name = input$snapshot_name, link = basename(flink)), stringsAsFactors = FALSE)
-    dt <- df[order(df$name), ]
-    savedSS(dt)
-    removeModal()
-    })
 
-  esv_status <- reactiveVal()
+    flink <- file.path(.dir(), snapshot_file_name(name, dataset_id = current_dataset_id(), fallback = name))
+    if (file.exists(flink)) {
+      showNotification("A snapshot file with this name already exists.", type = "error")
+      return(NULL)
+    }
+
+    # Child state reactives can contain unmet req() conditions while optional
+    # panels initialize (notably in testServer/headless sessions). Treat those
+    # silent validation results as empty panel state rather than losing the
+    # snapshot; genuine errors still abort below.
+    data_status <- tryCatch(
+      attr(v1(), "status"),
+      shiny.silent.error = function(e) list(),
+      error = function(e) stop(e)
+    )
+    result_status <- tryCatch(
+      v2(),
+      shiny.silent.error = function(e) list(),
+      error = function(e) stop(e)
+    )
+    obj <- build_app_state(
+      dataset = reactive_eset(),
+      dataset_id = current_dataset_id(),
+      data_status = data_status,
+      result_status = result_status,
+      selected_features = ri(),
+      selected_samples = rh(),
+      label = name
+    )
+    write_app_state(obj, flink)
+    snapshot_refresh(snapshot_refresh() + 1L)
+    removeModal()
+    showNotification(sprintf("Snapshot %s saved.", name), type = "message", duration = 3)
+  })
+
   observeEvent(selectedSS(), {
+    req(vEset())
     req(nrow(df <- savedSS()) > 0)
     if (length(i <- selectedSS()) == 0)
       return(NULL)
-    removeModal()
-    esv_status(NULL)
-    ss <- readRDS(file.path(.dir(), df[i, 2]))
-    esv_status(ss)
-    # restore feature/sample selection from snapshot
-    if (!is.null(ss$active_feature))
-      ri(ss$active_feature)
-    if (!is.null(ss$active_sample))
-      rh(ss$active_sample)
-    })
 
-  observeEvent(deleteSS(), {
-    req(nrow( df <- savedSS() ) > 0 )
-    req( i <- match( deleteSS(), df$name ))
-    df <- savedSS()
-    unlink(file.path(.dir(), df[i, 2]))
-    df <- df[-i, , drop = FALSE]
-    savedSS(df)
+    removeModal()
+    ss <- tryCatch(readRDS(file.path(.dir(), df$link[i])), error = function(e) {
+      showNotification("Could not read the selected snapshot.", type = "error")
+      NULL
     })
+    req(ss)
+
+    ss <- tryCatch(
+      validate_app_state(ss, dataset = reactive_eset(), dataset_id = current_dataset_id()),
+      error = function(e) {
+        showNotification(paste("Invalid snapshot:", conditionMessage(e)), type = "error")
+        NULL
+      },
+      warning = function(w) {
+        showNotification(paste("Snapshot restored with warnings:", conditionMessage(w)), type = "warning", duration = 10)
+        suppressWarnings(validate_app_state(ss, dataset = reactive_eset(), dataset_id = current_dataset_id()))
+      }
+    )
+    req(ss)
+
+    # Reset before restore. Child modules distinguish this boundary and can
+    # safely restore defaults for fields absent from an older snapshot.
+    esv_status(NULL)
+    esv_status(ss)
+
+    selection <- normalize_selection(ss$selection)
+    ri(selection$features)
+    rh(selection$samples)
+  })
+
 
   }) # end moduleServer
 }

@@ -262,13 +262,11 @@ geneshot_module <- function(
       return()
     xax(NULL)
     xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
-    rif(s$rif)
     updateTextInput(session, inputId = "term", value = s$term)
     })
 
   rv <- reactiveValues()
   observe(rv$xax <- v1())
-  observe(rv$rif <- rif())
   observe(rv$term <- input$term)
 
   reactive({

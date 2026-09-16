@@ -417,8 +417,11 @@ L1_data_space_module <- function(
     )
 
     ### return selected feature and samples
-    selectedFeatures <- reactiveVal()
-    selectedSamples <- reactiveVal()
+    # Initialize to empty semantic selections. An unset reactiveVal raises a
+    # silent validation condition when the complete data-space snapshot state is
+    # read before the user has selected anything.
+    selectedFeatures <- reactiveVal(character(0))
+    selectedSamples <- reactiveVal(character(0))
 
     observeEvent(s_cor_heatmap(), {
       if (!is.null(s_cor_heatmap()$brushed$col)) {
@@ -491,7 +494,8 @@ L1_data_space_module <- function(
     # GS List
     tab_gslist <- gslist_module(
       "gsList",
-      reactive_i = tab_rows_fdata, reactive_featureData = fdata
+      reactive_i = tab_rows_fdata, reactive_featureData = fdata,
+      reactive_status = reactive(status()$eset_gslist_tab)
     )
 
     observeEvent(tab_gslist(), {
@@ -500,6 +504,17 @@ L1_data_space_module <- function(
     })
 
     # ============= status for snapshot ============
+    # Optional child panels can have unmet req() conditions (for example no
+    # selected row). Those conditions must not invalidate the complete panel
+    # state; each child contributes NULL until it has state to save.
+    safe_panel_status <- function(x) {
+      tryCatch({
+        if (is.list(x) && !is.null(x$state))
+          return(x$state)
+        attr(x, "status")
+      }, error = function(e) NULL)
+    }
+
     observe({
       if (!is.null(tb <- status()$eset_active_tab)) {
         updateNavbarPage(session = session, inputId = "eset", selected = tb)
@@ -582,14 +597,15 @@ L1_data_space_module <- function(
 
       sta <- list(
         eset_active_tab = input$eset,
-        eset_pdata_tab = attr(tab_pd(), "status"), # -> pdata_tab
-        eset_fdata_tab = attr(tab_fd(), "status"), # -> fdata_tab
-        eset_exprs_tab = attr(tab_expr(), "status"), # -> exprs_tab
-        eset_fdata_fig = attr(s_feature_fig(), "status"), # -> fdata_fig
-        eset_pdata_fig = attr(s_sample_fig(), "status"), # -> pdata_fig
-        eset_heatmap = attr(s_heatmap(), "status"),
-        eset_cor_heatmap = tryCatch(attr(s_cor_heatmap(), "status"), error = function(e) NULL),
-        eset_dyn_heatmap = tryCatch(attr(s_dyn_heatmap(), "status"), error = function(e) NULL),
+        eset_pdata_tab = safe_panel_status(tab_pd()), # -> pdata_tab
+        eset_fdata_tab = safe_panel_status(tab_fd()), # -> fdata_tab
+        eset_exprs_tab = safe_panel_status(tab_expr()), # -> exprs_tab
+        eset_gslist_tab = safe_panel_status(tab_gslist()), # -> gslist_tab
+        eset_fdata_fig = safe_panel_status(s_feature_fig()), # -> fdata_fig
+        eset_pdata_fig = safe_panel_status(s_sample_fig()), # -> pdata_fig
+        eset_heatmap = safe_panel_status(s_heatmap()),
+        eset_cor_heatmap = safe_panel_status(s_cor_heatmap()),
+        eset_dyn_heatmap = safe_panel_status(s_dyn_heatmap()),
         eset_fdata_tabrows = tab_rows_fdata(),
         eset_pdata_tabrows = tab_rows_pdata(),
         eset_selected_samples = c(selectedSamples()),

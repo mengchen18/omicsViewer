@@ -59,7 +59,7 @@ L1_result_space_module <- function(
       reactive_ids = reactive({
         i <- grep("^StringDB\\|", colnames(reactive_featureData()))
         reactive_featureData()[reactive_i(), i[1]]
-      }), reactive_status = reactive(status()$analyst_stringdb),
+      }), reactive_status = reactive(NULL),
       active = reactive(status()$analyst_active_tab == "StringDB")
     )
 
@@ -107,17 +107,29 @@ L1_result_space_module <- function(
     )
 
     #
+    additional_module_results <- list()
     if (length(additionalTabs) > 0) {
       for (lo in additionalTabs) {
-        lo$moduleServer(
-          lo$moduleName,
+        module_args <- list(
           pdata = reactive_phenoData, fdata = reactive_featureData, expr = reactive_expr,
           feature_selected = reactive_i, sample_selected = reactive_highlight, object = object
+        )
+        if (isTRUE(lo$stateful)) {
+          module_args$reactive_status <- reactive(
+            status()$analyst_additional[[lo$moduleName]]
+          )
+        }
+        additional_module_results[[lo$moduleName]] <- do.call(
+          lo$moduleServer, c(list(lo$moduleName), module_args)
         )
       }
     }
 
     #### status for snapshot #####
+    safe_module_state <- function(x) {
+      tryCatch(.sanitize_widget_state(x()), error = function(e) NULL)
+    }
+
     observe({
       if (!is.null(tb <- status()$analyst_active_tab)) {
         updateNavbarPage(session = session, inputId = "analyst", selected = tb)
@@ -202,15 +214,39 @@ L1_result_space_module <- function(
     })
 
     reactive({
+      additional_state <- lapply(additional_module_results, function(x) {
+        if (is.null(x))
+          return(NULL)
+        tryCatch({
+          value <- if (is.function(x)) x() else x
+          if (is.list(value) && !is.null(value$state))
+            value$state
+          else
+            attr(value, "status")
+        }, error = function(e) NULL)
+      })
+      if (length(additionalTabs) > 0) {
+        for (lo in additionalTabs) {
+          if (isTRUE(lo$stateful) && !is.null(additional_state[[lo$moduleName]]))
+            next
+          additional_state[[lo$moduleName]] <- list(state_support = FALSE)
+        }
+      }
+
       list(
         analyst_active_tab = input$analyst,
-        analyst_feature_general = v(),
-        analyst_sample_general = v5(),
-        analyst_gene_shot = v6(),
-        analyst_fgsea = v2(),
-        analyst_stringdb = v4(),
-        analyst_ora = tryCatch(v3(), error = function(e) NULL),
-        analyst_ptm = tryCatch(v7(), error = function(e) NULL)
+        analyst_feature_general = safe_module_state(v),
+        analyst_sample_general = safe_module_state(v5),
+        analyst_gene_shot = safe_module_state(v6),
+        analyst_fgsea = safe_module_state(v2),
+        analyst_stringdb = list(
+          state_support = FALSE,
+          gap = APP_STATE_GAPS$stringdb
+        ),
+        analyst_ora = safe_module_state(v3),
+        analyst_ptm = safe_module_state(v7),
+        analyst_dose_response = list(state_support = FALSE),
+        analyst_additional = additional_state
       )
     })
   }) # end moduleServer

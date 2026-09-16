@@ -51,6 +51,9 @@ gslist_ui <- function(id) {
 #'     \item NULL or NA (show all features)
 #'   }
 #'
+#' @param reactive_status Reactive gene-set table state used for snapshot
+#'   restoration.
+#'
 #' @details
 #' The module extracts gene set annotations from the "GS" attribute of
 #' feature data and filters to show only selected features. Gene sets are
@@ -69,7 +72,7 @@ gslist_ui <- function(id) {
 #' @importFrom fastmatch fmatch
 #'
 gslist_module <- function(
-  id, reactive_featureData, reactive_i
+  id, reactive_featureData, reactive_i, reactive_status = reactive(NULL)
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -99,7 +102,12 @@ gslist_module <- function(
   ii <- dataTableDownload_module(
     "stab", reactive_table = reactive({
       tab()[, setdiff(colnames(tab()), "featureId")]
-      }), prefix = "gslist_", pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE
+      }), tab_status = reactive_status, prefix = "gslist_",
+    pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE,
+    reactive_row_ids = reactive({
+      if (is.null(tab()) || nrow(tab()) == 0) return(NULL)
+      paste(tab()$gsId, tab()$featureId, sep = "|")
+    })
   )
 
   reactive({

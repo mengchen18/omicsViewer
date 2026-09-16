@@ -251,22 +251,10 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     attr4select_status(s$attr4)    
     })
 
-  observeEvent(reactive_status(), {
-    if (is.null(s <- reactive_status()))
-      return()
-    htestV1( s$htestV1 )
-    htestV2( s$htestV2 )
-    })  
-
   ## return status ##
   rv <- reactiveValues()
   observe( rv$xax <- v1() )
   observe( rv$attr4 <- attr4select$status )
-  observe({
-    rv$htestV1 <- vs_scatter()$htestV1
-    rv$htestV2 <- vs_scatter()$htestV2
-    })
-
   reactive(
     reactiveValuesToList(rv)
     )

@@ -43,12 +43,14 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #' # }
 #' # shinyApp(ui, server)
 #'
-dataTableDownload_module <- function(id, reactive_table, tab_status = NULL,
-  reactive_cols=reactive(NULL), prefix = "", pageLength = 10, sortBy = NULL, decreasing = TRUE) {
+dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(NULL),
+  reactive_cols=reactive(NULL), prefix = "", pageLength = 10, sortBy = NULL,
+  decreasing = TRUE, reactive_row_ids = reactive(NULL)) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+  notNullAndPositiveLength <- function(x) !is.null(x) && length(x) > 0
 
   rtab <- reactive({
     req(tt <- reactive_table())
@@ -56,6 +58,30 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = NULL,
       tt <- as.data.frame(tt, stringsAsFactors = FALSE)
     tt
     })
+
+  # Some callers still pass a plain list while newer callers pass a reactive.
+  tabStatus <- reactive({
+    if (is.function(tab_status)) tab_status() else tab_status
+  })
+
+  rowIds <- reactive({
+    if (is.null(reactive_row_ids()))
+      return(NULL)
+    as.character(reactive_row_ids())
+  })
+
+  selectedRows <- reactive({
+    st <- tabStatus()
+    if (is.null(st))
+      return(NULL)
+    if (is.null(st$selected_rows) || length(st$selected_rows) == 0)
+      return(st$rows_selected)
+    ids <- rowIds()
+    if (is.null(ids))
+      return(st$rows_selected)
+    # tabsort()$index maps displayed rows back to rows in reactive_table().
+    match(as.character(st$selected_rows), ids[tabsort()$index])
+  })
   
   output$downloadData <- downloadHandler(
     filename = function() {
@@ -79,14 +105,22 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = NULL,
   })
   
   formatTab <- function(tab, sel = 0, pageLength = pageLength) {
-    dt <- DT::datatable( 
+    dt <- DT::datatable(
       tab,
-      selection =  c("single", "multiple")[as.integer(sel)+1],
+      selection = list(
+        mode = c("single", "multiple")[as.integer(sel) + 1],
+        selected = selectedRows(),
+        target = "row"
+      ),
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
-      options = list(scrollX = TRUE, pageLength = pageLength, dom = 'tip', stateSave = TRUE,  stateDuration = -1,
-        searchCols = getSearchCols(tab_status), order = getOrderCols(tab_status)
+      # Server snapshots are authoritative; DataTable browser-local state is
+      # deliberately not enabled because it is machine-specific.
+      options = list(scrollX = TRUE, dom = 'tip',
+        searchCols = getSearchCols(tabStatus()), order = getOrderCols(tabStatus()),
+        displayStart = tabStatus()$start,
+        pageLength = restore_table_page_length(tabStatus()$length, pageLength = pageLength)
         )
     )
     DT::formatStyle(dt, columns = seq_len(ncol(tab)), fontSize = '90%')
@@ -117,7 +151,14 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = NULL,
   
   reactive({
     ii <- tabsort()$index[input$table_rows_selected]
-    attr(ii, "status") <- input$table_state
+    sta <- data_table_widget_state(input$table_state)
+    if (is.null(sta))
+      sta <- list()
+    sta$rows_selected <- input$table_rows_selected
+    ids <- rowIds()
+    if (!is.null(ids) && notNullAndPositiveLength(ii))
+      sta$selected_rows <- unique(ids[ii])
+    attr(ii, "status") <- sta
     ii
     })
 

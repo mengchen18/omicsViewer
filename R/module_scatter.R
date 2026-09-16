@@ -194,9 +194,12 @@ plotly_scatter <- function(
   
   ############ plot #################
   mop <- NA
-  if (!is.na(inSelection)) {
+  if (length(inSelection) > 0 && !all(is.na(inSelection))) {
     mop <- rep(0.2, nrow(df))
-    mop[inSelection] <- 0.75
+    # inSelection refers to indices in the original x/y vectors. df has been
+    # filtered for finite coordinates and sorted by x, so match through df$index
+    # rather than using positional subsetting on the reordered rows.
+    mop[df$index %in% inSelection] <- 0.75
   }
 
   fig <- plot_ly(data = df, source = source)

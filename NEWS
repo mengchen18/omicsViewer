@@ -1,3 +1,6 @@
+Changes in version 1.17.2
+ - improved status save and reload, still in beta, not all status could be restored. 
+ 
 Changes in version 1.17.1
 new functions added:
  - quick view panel include for sample and feature scatter plot.
