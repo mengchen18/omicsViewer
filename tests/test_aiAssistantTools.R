@@ -63,6 +63,20 @@ apply_scatter_view <- function(space, quick_view_id = NULL,
        x_axis = x_axis, y_axis = y_axis)
 }
 
+# canonical widget store for the S3 generic tier
+widget_store_new <- omicsViewer:::widget_store_new
+widget_binding <- omicsViewer:::widget_binding
+store_register <- omicsViewer:::store_register
+test_store <- widget_store_new()
+store_register(test_store,
+  widget_binding("dataspace.expr_heatmap.heatmap_colors", "select",
+    label = "Heatmap color panel",
+    help = "Diverging palette for the heatmap",
+    values = c("BrBG", "PiYG", "RdBu", "RdGy", "RdYlBu")),
+  widget_binding("dataspace.expr_heatmap.margin_bottom", "integer",
+    label = "Bottom margin", help = "Bottom plot margin in lines",
+    min = 1L, max = 20L))
+
 shiny::testServer(
   omicsViewer:::ai_assistant_module,
   args = list(
@@ -76,13 +90,15 @@ shiny::testServer(
     selected_features = shiny::reactive(c("Gene1", "Gene2", "Gene3")),
     selected_samples = shiny::reactive(character()),
     apply_state = apply_state,
-    apply_scatter_view = apply_scatter_view
+    apply_scatter_view = apply_scatter_view,
+    store = test_store
   ),
   expr = {
     tools <- chat_object$client$get_tools()
     expected_tools <- c(
       "get_omics_viewer_state", "search_annotations", "summarize_annotation",
-      "set_omics_viewer_state", "set_scatter_view", "create_figure", "update_figure"
+      "set_omics_viewer_state", "set_scatter_view", "create_figure", "update_figure",
+      "list_widgets", "get_widget", "set_widgets"
     )
     ok(
       ut_cmp_identical(sort(names(tools)), sort(expected_tools)),
@@ -178,6 +194,45 @@ shiny::testServer(
         figure_result@value$figure_id
       ),
       "figure update records its parent figure"
+    )
+
+    # ---- S3 generic widget tier ---------------------------------------
+    widgets_result <- tools$list_widgets(section = "dataspace", `_intent` = "unit test")
+    ok(
+      ut_cmp_identical(widgets_result@value$widget_count, 2L) &&
+        ut_cmp_identical(widgets_result@value$widgets$dataspace.expr_heatmap.heatmap_colors$kind,
+                         "select"),
+      "list_widgets returns section-filtered registry records"
+    )
+    widget_result <- tools$get_widget(
+      id = "dataspace.expr_heatmap.heatmap_colors", `_intent` = "unit test")
+    ok(
+      ut_cmp_identical(widget_result@value$id, "dataspace.expr_heatmap.heatmap_colors") &&
+        "RdGy" %in% widget_result@value$allowed_values,
+      "get_widget describes one widget with allowed values"
+    )
+    set_widgets_result <- tools$set_widgets(
+      patch = "{\"dataspace.expr_heatmap.heatmap_colors\": \"RdGy\", \"dataspace.expr_heatmap.margin_bottom\": 9}",
+      `_intent` = "unit test"
+    )
+    ok(
+      setequal(set_widgets_result@value$applied,
+               c("dataspace.expr_heatmap.heatmap_colors",
+                 "dataspace.expr_heatmap.margin_bottom")) &&
+        ut_cmp_identical(
+          set_widgets_result@value$applied_values$dataspace.expr_heatmap.margin_bottom,
+          9L),
+      "set_widgets applies a JSON patch with typed coercion"
+    )
+    rejected_result <- tools$set_widgets(
+      patch = "{\"dataspace.expr_heatmap.heatmap_colors\": \"Spectral\"}",
+      `_intent` = "unit test"
+    )
+    ok(
+      length(rejected_result@value$applied) == 0L &&
+        length(rejected_result@value$rejected) == 1L &&
+        grepl("RdGy|RdYlBu", rejected_result@value$rejected[[1]]$reason),
+      "set_widgets rejects invalid values per key with suggestions"
     )
   }
 )

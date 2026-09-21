@@ -202,8 +202,18 @@ meta_scatter_module <- function(
       if (length(l) != 3L || any(!nzchar(l))) return(NULL)
       l
     }
+    # Store-glue observers are kept referenced: observers whose dependencies
+    # are only weakly held by the reactive graph are garbage collected
+    # between flushes, silently killing later sync/seed/restore/push work
+    # (found while hardening the S3 generic tier; explains sporadic
+    # restore/stress flakiness).
+    .scatter_store_observers <- list()
+    .scatter_keep <- function(obs) {
+      .scatter_store_observers[[length(.scatter_store_observers) + 1L]] <<- obs
+      invisible(obs)
+    }
     last_seeded <- character()
-    observe({
+    .scatter_keep(observe({
       dx <- reactive_x()
       dy <- reactive_y()
       req(nrow(ts <- triset()) > 0)
@@ -223,7 +233,7 @@ meta_scatter_module <- function(
         return(NULL)
       tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
                error = function(e) NULL)
-    })
+    }))
 
     v1 <- triselector_module("tris_main_scatter1",
       reactive_x = triset, label = "X-axis",
@@ -256,7 +266,7 @@ meta_scatter_module <- function(
         nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
         nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
     }
-    observe({
+    .scatter_keep(observe({
       xv <- .scatter_read_tris(v1)
       yv <- .scatter_read_tris(v2)
       if (.scatter_component_set(xv)) {
@@ -269,18 +279,23 @@ meta_scatter_module <- function(
         store_sync_from_ui(store, "y_subset", yv$subset)
         store_sync_from_ui(store, "y_variable", yv$variable)
       }
-    })
-    observeEvent(input$axisMode, {
+    }))
+    .scatter_keep(observeEvent(input$axisMode, {
       updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
       if (input$axisMode %in% c("quick", "custom"))
         store_sync_from_ui(store, "axis_mode", input$axisMode)
-    }, ignoreInit = TRUE)
+    }, ignoreInit = TRUE))
 
     # Store -> UI push for the axis mode radio: external writes only (a
-    # pending entry marks them); user clicks sync back above.
+    # pending entry marks them); user clicks sync back above. The epoch
+    # reactive is created once and the observer is kept referenced: an
+    # observer whose dependencies are only weakly held by the reactive
+    # graph is garbage collected between flushes, silently killing later
+    # pushes (same retention rule as the heatmap store glue).
     axisModeRoot <- if (is.null(store$parent)) store else store$parent
-    observe({
-      store_epoch(store)()
+    axis_mode_epoch <- store_epoch(store)
+    .scatter_store_observers$axis_mode_push <- observe({
+      axis_mode_epoch()
       mode <- store_read(store, "axis_mode")[[1]]
       if (is.null(mode)) return(NULL)
       if (is.null(axisModeRoot$pending[[kmode]])) return(NULL)
@@ -315,7 +330,7 @@ meta_scatter_module <- function(
         selectionDisplayAxes(NULL)
     })
 
-    observeEvent(quickBadge()$trigger, {
+    .scatter_keep(observeEvent(quickBadge()$trigger, {
       qv <- quickBadge()$view
       req(nrow(qv) == 1)
       req(xx <- .quick_view_axis(qv$x))
@@ -326,7 +341,7 @@ meta_scatter_module <- function(
         stats::setNames(as.list(yy), c("y_analysis", "y_subset", "y_variable")),
         list(axis_mode = "quick")
       ), origin = "system")
-    }, ignoreInit = TRUE)
+    }, ignoreInit = TRUE))
 
     # Keep the compact mode switch and the header-less tab panel in sync. The
     # tab panel switches content immediately without adding another tab bar.
@@ -565,7 +580,7 @@ meta_scatter_module <- function(
     # which replaces the former direct radio updates and xax/yax writes:
     # keys absent from the status are never touched, so restores have no
     # side effects beyond what the snapshot recorded.
-    observeEvent(reactive_status(), {
+    .scatter_keep(observeEvent(reactive_status(), {
       s <- reactive_status()
       if (is.null(s)) {
         return()
@@ -610,7 +625,7 @@ meta_scatter_module <- function(
         clicked = s$selection_clicked,
         selected = s$selection_selected
       ))
-    })
+    }))
     #############################################
 
     # Generate hidden text summary for AI browsers and screen readers

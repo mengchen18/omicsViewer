@@ -181,11 +181,16 @@ iheatmapClear <- function(id) {
 #' @param fd feature data
 #' @param fill.NA fill NA? TRUE or FALSE
 #' @param status heatmap states
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this heatmap instance. When
+#'   given, the color palette, scaling, and margin widgets are registered
+#'   as agent-controllable bindings (control plane, plan section 6, S3).
 #' @importFrom RColorBrewer brewer.pal
 #' @name iheatmap
 #'
 iheatmapModule <- function(
-  id, mat, pd, fd, status = reactive(NULL), fill.NA = TRUE
+  id, mat, pd, fd, status = reactive(NULL), fill.NA = TRUE,
+  store = NULL
   ) {
 
   moduleServer(id, function(input, output, session) {
@@ -287,6 +292,106 @@ iheatmapModule <- function(
   pre_ord <- reactiveVal()
   pre_hcl_col <- reactiveVal()
   pre_ord_col <- reactiveVal()
+
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S3).
+  # The S3 generic agent tier drives these keys through store_apply; user
+  # edits sync back below. The status observer below still restores legacy
+  # snapshot state directly - the store path is additive until S4 migrates
+  # the remaining heatmap widgets.
+  # ------------------------------------------------------------------
+  if (!is.null(store)) {
+    .heatmap_palettes <- c(
+      "BrBG", "PiYG", "PRGn", "PuOr", "RdBu", "RdGy", "RdYlBu", "RdYlGn")
+    store_register(
+      store,
+      widget_binding("heatmap_colors", "select", label = "Heatmap color panel",
+        help = paste("Diverging RColorBrewer palette for the heatmap cells;",
+                     "one of", paste(.heatmap_palettes, collapse = ", ")),
+        values = .heatmap_palettes),
+      widget_binding("scale", "select", label = "Scale on",
+        help = "Center and scale values by row, by column, or not at all",
+        values = c("row", "none", "column")),
+      widget_binding("margin_bottom", "integer", label = "Bottom margin",
+        help = "Bottom plot margin in lines, from 1 through 20",
+        min = 1L, max = 20L),
+      widget_binding("margin_right", "integer", label = "Right margin",
+        help = "Right plot margin in lines, from 1 through 20",
+        min = 1L, max = 20L)
+    )
+    .heatmap_store_root <- if (is.null(store$parent)) store else store$parent
+    .heatmap_store_keys <- c(
+      heatmap_colors = "heatmapColors", scale = "scale",
+      margin_bottom = "marginBottom", margin_right = "marginRight")
+    # Create the epoch reactive ONCE and keep strong references to every
+    # store-glue observer: observers whose dependencies are only weakly
+    # held by the reactive graph are otherwise garbage collected between
+    # flushes, silently killing later store -> UI pushes.
+    .heatmap_epoch <- store_epoch(store)
+    .heatmap_store_observers <- list()
+    .heatmap_keep <- function(obs) {
+      .heatmap_store_observers[[length(.heatmap_store_observers) + 1L]] <<- obs
+      invisible(obs)
+    }
+
+    # UI -> store: mirror user edits (store_sync_from_ui is acknowledgement
+    # aware, so widget confirmations of external writes are not overrides).
+    .heatmap_keep(observeEvent(input$heatmapColors, {
+      store_sync_from_ui(store, "heatmap_colors", input$heatmapColors)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$scale, {
+      store_sync_from_ui(store, "scale", input$scale)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$marginBottom, {
+      store_sync_from_ui(store, "margin_bottom", input$marginBottom)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$marginRight, {
+      store_sync_from_ui(store, "margin_right", input$marginRight)
+    }, ignoreInit = TRUE))
+
+    # Seed unset keys with the widget defaults once the inputs exist, so
+    # discovery tools report real current values from the start. Restores
+    # and agent applies that land first win (seeding skips held keys).
+    .heatmap_seeded <- FALSE
+    .heatmap_keep(observe({
+      if (.heatmap_seeded) return(NULL)
+      vals <- list(
+        heatmap_colors = input$heatmapColors, scale = input$scale,
+        margin_bottom = input$marginBottom, margin_right = input$marginRight)
+      if (any(vapply(vals, is.null, logical(1))))
+        return(NULL)
+      .heatmap_seeded <<- TRUE
+      # store_read on a child view keys results by FULL canonical ids
+      held <- store_read(store, names(vals))
+      patch <- vals[vapply(names(vals), function(k)
+        is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+
+    # Store -> UI push for external writes only (pending entries mark
+    # them); user clicks sync back through the observers above.
+    # Shape mirrors meta_scatter's proven axis-mode push: epoch watch +
+    # return()-based guards (no for/next control flow inside observe()).
+    .heatmap_keep(observe({
+      .heatmap_epoch()
+      vals <- store_read(store, names(.heatmap_store_keys))
+      pending <- .heatmap_store_root$pending
+      invisible(lapply(names(.heatmap_store_keys), function(key) {
+        full <- paste0(store$prefix, ".", key)
+        value <- vals[[full]]
+        if (is.null(value) || is.null(pending[[full]]))
+          return(NULL)
+        input_id <- .heatmap_store_keys[[key]]
+        if (startsWith(key, "margin_"))
+          updateSliderInput(session, input_id, value = value)
+        else
+          updateSelectInput(session, input_id, selected = value)
+      }))
+    }))
+  }
+
   observeEvent(status(), {
     if (is.null(status()))
       return(NULL)

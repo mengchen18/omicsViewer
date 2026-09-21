@@ -240,6 +240,9 @@ L1_data_space_module <- function(
   stopifnot(!is.null(store))
   store_feature <- widget_store_child(store, "dataspace.feature_space")
   store_sample <- widget_store_child(store, "dataspace.sample_space")
+  store_cor_heatmap <- widget_store_child(store, "dataspace.cor_heatmap")
+  store_expr_heatmap <- widget_store_child(store, "dataspace.expr_heatmap")
+  store_dyn_heatmap <- widget_store_child(store, "dataspace.dyn_heatmap")
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -269,14 +272,16 @@ L1_data_space_module <- function(
     s_cor_heatmap <- iheatmapModule(
       "corheatmapViewer",
       mat = cmat, pd = pdata, fd = pdata,
-      status = reactive(status()$eset_cor_heatmap), fill.NA = FALSE
+      status = reactive(status()$eset_cor_heatmap), fill.NA = FALSE,
+      store = store_cor_heatmap
     )
 
     # # heatmap
     s_heatmap <- iheatmapModule(
       "heatmapViewer",
       mat = expr, pd = pdata, fd = fdata,
-      status = reactive(status()$eset_heatmap)
+      status = reactive(status()$eset_heatmap),
+      store = store_expr_heatmap
     )
 
     # ============ feature space - scatter plot ===========
@@ -571,7 +576,8 @@ L1_data_space_module <- function(
     s_dyn_heatmap <- iheatmapModule(
       "dynheatmapViewer",
       mat = reactive(hdmat()$expr), pd = reactive(hdmat()$pd), fd = reactive(hdmat()$fd),
-      status = reactive(status()$eset_dyn_heatmap), fill.NA = FALSE
+      status = reactive(status()$eset_dyn_heatmap), fill.NA = FALSE,
+      store = store_dyn_heatmap
     )
 
     observeEvent(s_dyn_heatmap(), {

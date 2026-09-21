@@ -791,7 +791,8 @@ app_module <- function(
     selected_features = ri,
     selected_samples = rh,
     apply_state = apply_agent_state,
-    apply_scatter_view = apply_agent_scatter_view
+    apply_scatter_view = apply_agent_scatter_view,
+    store = app_store
   )
 
   # Test-only: drive the exact agent apply callbacks from headless tests.
@@ -800,7 +801,8 @@ app_module <- function(
       "agentTestHooks",
       apply_state = apply_agent_state,
       apply_scatter_view = apply_agent_scatter_view,
-      state = agent_state
+      state = agent_state,
+      store = app_store
     )
 
   savedSS <- reactiveVal(
@@ -986,6 +988,9 @@ app_module <- function(
       selected_samples = rh(),
       label = name
     )
+    # Canonical widget-store state rides along (S4 start): keeps every
+    # registered widget's desired value in one authoritative snapshot.
+    obj$widget_store <- store_snapshot(app_store)
     write_app_state(obj, flink)
     snapshot_refresh(snapshot_refresh() + 1L)
     removeModal()
@@ -1026,6 +1031,19 @@ app_module <- function(
     selection <- normalize_selection(ss$selection)
     ri(selection$features)
     rh(selection$samples)
+
+    # Canonical widget-store restore (S4 start): applies per-key-resilient
+    # through the same transactional protocol the agent uses. Panel-status
+    # restoration above stays authoritative for not-yet-migrated modules;
+    # diff-only writes make the overlap idempotent. Older snapshots without
+    # widget_store skip this.
+    if (!is.null(ss$widget_store) && is.list(ss$widget_store$values)) {
+      tryCatch(
+        store_restore(app_store, ss$widget_store),
+        error = function(e)
+          warning("Widget-store snapshot restore failed: ", conditionMessage(e))
+      )
+    }
   })
 
 

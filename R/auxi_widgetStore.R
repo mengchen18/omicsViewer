@@ -291,7 +291,8 @@ store_register <- function(store, ...) {
       if (!is.null(allowed) && !value %in% allowed) {
         hint <- .agent_suggest_text(value, allowed)
         return(list(error = paste0(
-          "Unknown value for ", binding$id, ": ", value, ".", hint)))
+          "Unknown value for ", binding$id, ": ", value, ".", hint,
+          " Allowed: ", paste(head(allowed, 10), collapse = ", "))))
       }
     }
     return(list(value = value))
@@ -323,8 +324,9 @@ store_register <- function(store, ...) {
     value <- as.character(value)[1]
     if (!value %in% binding$values)
       return(list(error = paste0(
-        "Unknown value for ", binding$id, ": ", value,
-        ". Allowed: ", paste(head(binding$values, 10), collapse = ", "))))
+        "Unknown value for ", binding$id, ": ", value, ".",
+        .agent_suggest_text(value, binding$values),
+        " Allowed: ", paste(head(binding$values, 10), collapse = ", "))))
     return(list(value = value))
   }
 
@@ -370,13 +372,15 @@ store_register <- function(store, ...) {
 #' @keywords internal
 #' @rdname widgetStoreHelpers
 store_read <- function(store, ids = NULL) {
-  if (is.null(store$parent)) {
-    want <- if (is.null(ids)) names(store$values) else ids
-  } else {
-    want <- vapply(ids %||% character(), function(k) .widget_store_key(store, k),
-                   character(1), USE.NAMES = FALSE)
-    if (!length(want)) want <- names(store$values)
+  if (!is.null(store$parent)) {
+    child <- store
     store <- store$parent
+    want <- vapply(ids %||% character(), function(k) .widget_store_key(child, k),
+                   character(1), USE.NAMES = FALSE)
+    if (!length(want))
+      want <- names(store$values)
+  } else {
+    want <- if (is.null(ids)) names(store$values) else ids
   }
   out <- lapply(want, function(id) store$values[[id]]$val)
   names(out) <- want
@@ -635,12 +639,15 @@ store_snapshot <- function(store) {
 #'
 #' Restore-origin patches may set internal (non-user-editable) state, which
 #' is exactly how snapshot round-trips reach keys the agent may never
-#' touch. Unknown ids in the snapshot are reported, not applied.
+#' touch. Restores are per-key resilient: a snapshot saved against another
+#' dataset may contain values that no longer validate; those keys are
+#' reported in \code{receipt$rejected} while the valid remainder still
+#' applies. Unknown ids in the snapshot are reported, not applied.
 #'
 #' @param store Store (or child view).
 #' @param snapshot List from \code{\link{store_snapshot}}.
 #' @return Invisible receipt from \code{\link{store_apply}} plus
-#'   \code{unknown_ids}.
+#'   \code{unknown_ids} and (per-key) \code{rejected}.
 #' @keywords internal
 #' @rdname widgetStoreHelpers
 store_restore <- function(store, snapshot) {
@@ -650,7 +657,7 @@ store_restore <- function(store, snapshot) {
   known <- names(store$bindings)
   unknown <- setdiff(names(snapshot$values), known)
   patch <- snapshot$values[intersect(names(snapshot$values), known)]
-  receipt <- store_apply(store, patch, origin = "restore")
+  receipt <- store_apply(store, patch, origin = "restore", strict = FALSE)
   receipt$unknown_ids <- unknown
   invisible(receipt)
 }
@@ -667,7 +674,10 @@ store_restore <- function(store, snapshot) {
 #' these records.
 #'
 #' @param store Store (or child view).
-#' @param prefix Optional id prefix filter.
+#' @param prefix Optional id prefix filter (component match: an id is kept
+#'   when it equals \code{prefix} or starts with \code{"prefix."}, so a
+#'   \code{dataspace} section matches \code{dataspace.*} but not
+#'   \code{dataspace2.*}).
 #' @return A list of records: id, kind, label, help, depends_on, and the
 #'   current allowed values when cheap to compute.
 #' @keywords internal
@@ -682,7 +692,8 @@ store_registry_view <- function(store, prefix = NULL) {
   for (id in names(store$bindings)) {
     b <- store$bindings[[id]]
     if (!b$agent_writable) next
-    if (!is.null(prefix) && !startsWith(id, prefix)) next
+    if (!is.null(prefix) && !identical(id, prefix) &&
+        !startsWith(id, paste0(prefix, "."))) next
     allowed <- NULL
     if (is.function(b$choices_provider)) {
       vals <- store_read(store, names(store$bindings))
@@ -692,6 +703,7 @@ store_registry_view <- function(store, prefix = NULL) {
     out[[length(out) + 1L]] <- list(
       id = id, kind = b$kind, label = b$label, help = b$help,
       depends_on = b$depends_on,
+      min = b$min, max = b$max,
       allowed_values = if (is.null(allowed)) NULL else head(allowed, 50)
     )
   }

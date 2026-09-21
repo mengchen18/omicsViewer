@@ -324,6 +324,57 @@ try {
 
   await p1.screenshot({ path: path.join(ARTIFACTS, 'tier_a_session1_final.png'), fullPage: false });
 
+  // ---- 4b. S3 acceptance: generic widget tier -------------------------
+  // Drive set_widgets through the test hooks (the exact store path the
+  // ellmer tool uses) against a widget family never exposed to the agent
+  // before: heatmap parameters. Verifies visible UI effect + per-key
+  // self-correction feedback.
+  await runHook(p1, 'state', { data_space_tab: 'Heatmap' });
+  await waitTab(p1, 'Heatmap');
+  const hmColor = () => p1.evaluate(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-heatmapColors']);
+  const hmMargin = () => p1.evaluate(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-marginBottom']);
+  const w1 = await runHook(p1, 'widgets', {
+    patch: {
+      'dataspace.expr_heatmap.heatmap_colors': 'RdGy',
+      'dataspace.expr_heatmap.margin_bottom': 9
+    }
+  });
+  record('generic widget apply succeeds', !w1.hook_error, w1.hook_error || '');
+  record('receipt lists both keys applied',
+    (w1.applied || []).includes('dataspace.expr_heatmap.heatmap_colors') &&
+    (w1.applied || []).includes('dataspace.expr_heatmap.margin_bottom'),
+    JSON.stringify(w1.applied || []));
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-heatmapColors'] === 'RdGy',
+    null, { timeout: 30000 });
+  record('heatmap color select reflects agent-set palette', (await hmColor()) === 'RdGy');
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-marginBottom'] === 9,
+    null, { timeout: 30000 });
+  record('heatmap margin slider reflects agent-set value', (await hmMargin()) === 9);
+  const w2 = await runHook(p1, 'widgets', {
+    patch: { 'dataspace.expr_heatmap.heatmap_colors': 'Spectral' }
+  });
+  record('invalid palette rejected per key with suggestions',
+    !w2.hook_error && (w2.rejected || []).length === 1 &&
+    /BrBG|RdGy|RdBu/.test(w2.rejected[0].reason),
+    JSON.stringify(w2.rejected || []));
+  record('rejected key leaves current palette unchanged', (await hmColor()) === 'RdGy');
+  const w3 = await runHook(p1, 'widgets', {
+    patch: { 'dataspace.expr_heatmap.colour_scheme': 'RdGy' }
+  });
+  record('unknown widget id rejected with a suggestion',
+    !w3.hook_error && (w3.rejected || []).length === 1 &&
+    /Unknown widget id/.test(w3.rejected[0].reason) &&
+    /dataspace\.expr_heatmap\./.test(w3.rejected[0].reason),
+    JSON.stringify(w3.rejected || []));
+  // return to the Feature tab so later isolation assertions keep their
+  // baseline
+  await runHook(p1, 'state', { data_space_tab: 'Feature' });
+  await waitTab(p1, 'Feature');
+
   // ---- 5. cross-session isolation -------------------------------------
   const s2 = await openSession(browser);
   const p2 = s2.page;

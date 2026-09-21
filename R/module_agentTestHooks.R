@@ -40,7 +40,8 @@ agent_test_hooks_ui <- function(id) {
       choices = c(
         "state" = "state",
         "scatter" = "scatter",
-        "overview" = "overview"
+        "overview" = "overview",
+        "widgets" = "widgets"
       ),
       selected = "state"
     ),
@@ -60,10 +61,12 @@ agent_test_hooks_ui <- function(id) {
 #' @param apply_scatter_view Callback applying a validated scatter view
 #'   (as used by the \code{set_scatter_view} tool).
 #' @param state Reactive compact assistant state (for the overview hook).
+#' @param store Canonical widget store driving the S3 generic widget tier
+#'   (the exact store the \code{set_widgets} tool writes to).
 #' @rdname agentTestHooksModule
 #' @keywords internal
 agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
-                                    state) {
+                                    state, store = NULL) {
   moduleServer(id, function(input, output, session) {
     last_result <- reactiveVal(NULL)
 
@@ -84,6 +87,12 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
       tryCatch(
         if (identical(op, "overview")) {
           isolate(state())
+        } else if (identical(op, "widgets")) {
+          if (is.null(store))
+            stop("Widget store unavailable in this session.")
+          # isolate: the hook observer must not take reactive dependencies
+          # through choices providers read during validation.
+          shiny::isolate(agent_widget_apply(store, parsed$patch))
         } else if (identical(op, "scatter")) {
           do.call(
             apply_scatter_view,
