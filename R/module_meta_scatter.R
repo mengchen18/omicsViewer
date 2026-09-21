@@ -176,13 +176,15 @@ meta_scatter_module <- function(
       reactive_x = triset, label = "X-axis",
       reactive_selector1 = reactive({ axisRequest(); xax()$v1 }),
       reactive_selector2 = reactive({ axisRequest(); xax()$v2 }),
-      reactive_selector3 = reactive({ axisRequest(); xax()$v3 })
+      reactive_selector3 = reactive({ axisRequest(); xax()$v3 }),
+      reactive_axis_request = reactive(axisRequest())
     )
     v2 <- triselector_module("tris_main_scatter2",
       reactive_x = triset, label = "Y-axis",
       reactive_selector1 = reactive({ axisRequest(); yax()$v1 }),
       reactive_selector2 = reactive({ axisRequest(); yax()$v2 }),
-      reactive_selector3 = reactive({ axisRequest(); yax()$v3 })
+      reactive_selector3 = reactive({ axisRequest(); yax()$v3 }),
+      reactive_axis_request = reactive(axisRequest())
     )
 
     # Plotly owns the visible box/lasso immediately after a user selection. We
@@ -482,6 +484,13 @@ meta_scatter_module <- function(
       pendingSelectionDisplayAxes(restored_axes)
       xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
       yax(list(v1 = s$yax[[1]], v2 = s$yax[[2]], v3 = s$yax[[3]]))
+      # Mirror the quick-badge path: bump the axis-request version so the
+      # triselectors re-assert the requested values even when the internal
+      # xax/yax model already holds them. Without the bump, a restore to axes
+      # the model already contains (e.g. after the user changed the widgets
+      # manually, leaving xax/yax stale) changes no reactive value and the
+      # widgets are never corrected.
+      axisRequest(isolate(axisRequest()) + 1L)
       if (identical(restored_axes, current_axes))
         selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
 

@@ -115,6 +115,7 @@ triselector_module <- function(id,
                                reactive_selector1 = reactive(NULL),
                                reactive_selector2 = reactive(NULL),
                                reactive_selector3 = reactive(NULL),
+                               reactive_axis_request = reactive(NULL),
                                label = "Group Label:") {
 
   moduleServer(id, function(input, output, session) {
@@ -175,7 +176,7 @@ triselector_module <- function(id,
       pendingAnalysis(NULL)
   })
   
-  observeEvent(list(reactive_selector1()), {
+  observeEvent(list(reactive_selector1(), reactive_axis_request()), {
     req(vx <- validated_x())
     if (length(names(input)) == 0)
       return(NULL)
@@ -223,6 +224,7 @@ triselector_module <- function(id,
   
   # updat selectize input when reactive_x is given
   observe({
+    reactive_axis_request()  # version bumps force re-assertion after restores
     req(vx <- validated_x())
     input$analysis
     req(input$analysis)
@@ -232,6 +234,7 @@ triselector_module <- function(id,
   })
   
   observe({
+    reactive_axis_request()  # version bumps force re-assertion after restores
     input$analysis
     input$subset
     req(input$analysis)
