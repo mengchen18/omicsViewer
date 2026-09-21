@@ -495,6 +495,13 @@ humans (tooltips), the model (registry/discovery), and the apply protocol
 (validation). New widgets become agent-controllable by registering, not by
 writing a tool.
 
+**Governing principle (settled):** agent-controllability mirrors
+user-controllability *exactly*. Every widget a user can change is
+agent-settable and agent-discoverable; anything a user cannot change is
+registered (at most) as internal state for snapshot purposes and is never
+exposed to the agent — discovery, descriptions, and tools stay free of
+components the model cannot meaningfully use.
+
 ### 6.3 Agent tool surface (three tiers)
 
 - **Tier 1 — semantic capability tools** (unchanged strategy):
@@ -567,7 +574,7 @@ Tier 1 doesn't cover; the registry tells the model what exists.
 | 0b′ | **Unplanned: ellmer tibble-coercion fix in figure specs** | **DONE** | R/auxi_agentFigures.R — ellmer converts `type_array(type_object)` args into tibbles, so `length(spec$layers)` counted 15 columns, not layers: **every chat-path `create_figure` failed the layer cap regardless of count** (the model was innocent; it even said "empty objects misparsed"). Layers/params now coerced to row-lists before counting; JSON-null→NA params fall back to defaults. Verified live end-to-end (Tier B driver, glm-5.3-flash): volcano prompt → get_state → create_figure (4 layers) → fig_1 rendered, 2702 rows, 416 KB PNG |
 | 0b | WP0 Tier B e2e driver | **first run done** (`tests/e2e_agent/tier_b.mjs`, `node tier_b.mjs "prompt"`) | screenshots + archived log under tests/e2e_agent/artifacts/ |
 | 1 | WP2 suggestions | **DONE** | auxi_agentAssistant.R, auxi_agentFigures.R, tests |
-| 1½ | **§6 control plane S1: widget store + state_apply** | M | new R/auxi_widgetStore.R + unit suite |
+| 1½ | **§6 control plane S1: widget store + state_apply** | **DONE (34/34)** | R/auxi_widgetStore.R (single file, comment-sectioned: registration/validation/apply/ack/snapshot/registry) + tests/test_widgetStore.R |
 | 1¾ | **§6 control plane S2: migrate meta_scatter onto store** | M–L | deletes hand-rolled sync; fixes axisMode side effect; stress-tested |
 | 1″ | **Unplanned: stale-internal-axes fix (user-reported, 19:49 session)** | **DONE** | meta_scatter's internal xax/yax never track manual triselector edits, so a restore targeting values the internal model already holds changed no reactive and never touched the widgets (quick-badge path was immune via its axisRequest bump). The restore path now bumps axisRequest too, and triselector_module accepts reactive_axis_request so analysis/subset/variable observers re-assert on version bumps. Reproduced: manual y=log.pvalue drift + volcano quick-view apply previously a silent no-op; now corrects. Manual edits still stick (no bump on user input) |
 | 1′ | **Unplanned: mid-restore req-abort fix** | **DONE** | R/module_meta_scatter.R — `current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))` ran before the axis assignment; v1()/v2() are req(input$variable)-guarded, so during an in-flight triselector cascade the req silently aborted the restore observer and the requested axes were lost (reproduced: apply during init lands on defaults). current_axes now tryCatch-guarded; verified racy and settled apply paths |
@@ -600,6 +607,11 @@ code paths or adds dependencies.
 ---
 
 ## 9. Decisions (settled 2026-09-21)
+
+| # | Topic | Decision |
+|---|-------|----------|
+| 12 | Store scope (Q1) | Single per-app store with hierarchical canonical ids; child views (`widget_store_child`) provide NS()-like namespace prefixes. Implementation lives in ONE file (`R/auxi_widgetStore.R`) organized by numbered comment sections — no file sprawl |
+| 13 | Agent visibility (Q2) | Agent-controllability mirrors user-controllability exactly: every user-editable widget is agent-settable and discoverable; anything the user cannot change is at most internal snapshot state and is never exposed to the agent (registry views and tools exclude it — context hygiene). Semantic tools remain as convenience, never as access gates |
 
 All eleven open questions resolved as follows; these are binding for
 implementation:
