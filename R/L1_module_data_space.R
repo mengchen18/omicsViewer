@@ -618,6 +618,10 @@ L1_data_space_module <- function(
         sta$eset_pdata_tab$rows_selected <- NULL
       }
       attr(l, "status") <- sta
+      attr(l, "quickViews") <- list(
+        feature = attr(s_feature_fig(), "quickViews"),
+        sample = attr(s_sample_fig(), "quickViews")
+      )
       l
     })
   }) # end moduleServer

@@ -1,0 +1,12 @@
+{
+  "name": "omicsviewer-agent-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Playwright harness for omicsViewer agent UI-effect (Tier A) and chat e2e (Tier B) validation. Uses the system Chrome; no browser download needed.",
+  "scripts": {
+    "tier-a": "node tier_a.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}

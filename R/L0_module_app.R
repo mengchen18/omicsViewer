@@ -2,8 +2,8 @@
 #'
 #' @description
 #' Generates the user interface for the main omicsViewer application. This function creates
-#' a responsive layout with data exploration panels, snapshot functionality, and data export
-#' capabilities. Primarily intended for developers extending the application.
+#' a responsive layout with data exploration panels, snapshot functionality, data export,
+#' and an optional AI assistant. Primarily intended for developers extending the application.
 #'
 #' @param id Character. Namespace ID for the Shiny module. Must match the ID used in
 #'   \code{\link{app_module}}.
@@ -31,6 +31,7 @@
 #'   \item Data summary display
 #'   \item Export and snapshot buttons
 #'   \item Two-column layout with data space (left) and analysis space (right)
+#'   \item Optional floating AI assistant launcher and settings/chat drawer
 #' }
 #'
 #' @export
@@ -133,6 +134,8 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
             "Contingency table analysis with chi-square and Fisher exact tests",
             "Searchable data tables for features, samples, expression values, and gene sets",
             "State snapshot management for reproducible analysis workflows",
+            "Optional session-local AI assistant with bounded state inspection and validated view updates",
+            "AI-generated declarative ggplot2 figures with in-chat previews and high-resolution downloads",
             "Data export to Excel format with all annotations"
           ],
           "softwareRequirements": "Modern web browser with JavaScript enabled",
@@ -149,6 +152,11 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
         tagAppendAttributes(`data-testid` = "app-snapshot-button",
                            title = "Manage snapshots")
     ),
+    ai_assistant_ui(ns("assistant")),
+    # Headless-test-only bridge hooks; never rendered unless explicitly
+    # enabled via OMICSVIEWER_TEST_HOOKS for the assistant UI-effect suite.
+    if (agent_test_hooks_enabled())
+      agent_test_hooks_ui(ns("agentTestHooks")),
     # Main content area with semantic HTML
     tags$main(
       role = "main",
@@ -242,6 +250,8 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'   \item \strong{Data Export}: Generate Excel files with expression data, metadata, and gene sets
 #'   \item \strong{Module Coordination}: Manages data space (L1_data_space_module) and
 #'         result space (L1_result_space_module) interactions
+#'   \item \strong{AI Assistant}: Optionally connects a session-local ellmer chat to
+#'         bounded application-state and annotation tools
 #' }
 #'
 #' Security features include path traversal prevention, file type validation,
@@ -605,6 +615,188 @@ app_module <- function(
     ri(NULL)
     rh(NULL)
   })
+
+  # =====================================================================
+  # Optional session-local AI assistant
+  #
+  # The state bridge reuses the semantic snapshot representation, but stays
+  # outside persisted .ESS files. Model tools receive this compact reactive
+  # snapshot and can propose only narrowly validated UI transitions.
+  # =====================================================================
+  agent_data_tabs <- c(
+    "Feature", "Feature table", "Sample", "Sample table", "Cor",
+    "Heatmap", "Dynamic heatmap", "Expression", "GSList"
+  )
+
+  agent_analysis_tabs <- reactive({
+    req(fdata())
+    tabs <- "Feature"
+    if (!is.null(attr(fdata(), "GS")))
+      tabs <- c(tabs, "ORA", "fGSEA")
+    if (any(grepl("^ResponseCurve\\|", colnames(fdata()))))
+      tabs <- c(tabs, "Response")
+    if (any(grepl("^StringDB\\|", colnames(fdata()))))
+      tabs <- c(tabs, "StringDB")
+    if (any(grepl("^SeqLogo\\|", colnames(fdata()))))
+      tabs <- c(tabs, "SeqLogo")
+    if (length(additionalTabs) > 0)
+      tabs <- c(tabs, vapply(additionalTabs, function(x) x$tabName, character(1)))
+    unique(c(tabs, "Geneshot", "Sample"))
+  })
+
+  agent_full_state <- reactive({
+    req(vEset())
+    req(reactive_eset())
+
+    data_status <- tryCatch(
+      attr(v1(), "status"),
+      shiny.silent.error = function(e) list(),
+      error = function(e) stop(e)
+    )
+    result_status <- tryCatch(
+      v2(),
+      shiny.silent.error = function(e) list(),
+      error = function(e) stop(e)
+    )
+    build_app_state(
+      dataset = reactive_eset(),
+      dataset_id = current_dataset_id(),
+      data_status = data_status,
+      result_status = result_status,
+      selected_features = ri(),
+      selected_samples = rh(),
+      label = "AI assistant current state"
+    )
+  })
+
+  agent_state_available <- reactive({
+    req(reactive_eset())
+    req(vEset())
+    TRUE
+  })
+
+  agent_state <- reactive({
+    full_state <- agent_full_state()
+    agent_compact_state(
+      state = full_state,
+      annotations = agent_annotation_catalog(fdata(), pdata()),
+      quick_views = attr(v1(), "quickViews"),
+      available_tabs = list(
+        data_space = agent_data_tabs,
+        analysis_space = agent_analysis_tabs()
+      ),
+      figure_grammar = agent_figure_grammar()
+    )
+  })
+
+  apply_agent_state <- function(update) {
+    full_state <- isolate(agent_full_state())
+    if (is.null(full_state))
+      stop("No dataset is currently available.")
+
+    validated <- agent_normalize_state_update(
+      update = update,
+      data_tabs = agent_data_tabs,
+      analysis_tabs = isolate(agent_analysis_tabs()),
+      feature_ids = rownames(isolate(expr())),
+      sample_ids = colnames(isolate(expr()))
+    )
+
+    if (!is.null(validated$data_space_tab)) {
+      full_state$app$data_active_tab <- validated$data_space_tab
+      full_state$panels$data_space$eset_active_tab <- validated$data_space_tab
+    }
+    if (!is.null(validated$analysis_space_tab)) {
+      full_state$app$analysis_active_tab <- validated$analysis_space_tab
+      full_state$panels$result_space$analyst_active_tab <- validated$analysis_space_tab
+    }
+    if (!is.null(validated$features))
+      full_state$selection$features <- validated$features
+    if (!is.null(validated$samples))
+      full_state$selection$samples <- validated$samples
+
+    # Use the same transactional boundary as snapshot restoration. Child
+    # modules distinguish NULL from a state object and safely fill gaps.
+    esv_status(NULL)
+    esv_status(full_state)
+    ri(full_state$selection$features)
+    rh(full_state$selection$samples)
+
+    list(
+      data_space_tab = if (is.null(validated$data_space_tab)) NULL else full_state$app$data_active_tab,
+      analysis_space_tab = if (is.null(validated$analysis_space_tab)) NULL else full_state$app$analysis_active_tab,
+      feature_count = length(full_state$selection$features),
+      sample_count = length(full_state$selection$samples),
+      example_features = utils::head(full_state$selection$features, 20L),
+      example_samples = utils::head(full_state$selection$samples, 20L)
+    )
+  }
+
+  apply_agent_scatter_view <- function(space, quick_view_id = NULL,
+                                       x_axis = NULL, y_axis = NULL) {
+    full_state <- isolate(agent_full_state())
+    if (is.null(full_state))
+      stop("No dataset is currently available.")
+
+    view <- agent_normalize_scatter_view(
+      space = space,
+      quick_view_id = quick_view_id,
+      x_axis = x_axis,
+      y_axis = y_axis,
+      quick_views = isolate(attr(v1(), "quickViews")),
+      feature_columns = colnames(isolate(fdata())),
+      sample_columns = colnames(isolate(pdata()))
+    )
+
+    state_key <- if (view$space == "feature") "eset_fdata_fig" else "eset_pdata_fig"
+    axis_data <- if (view$space == "feature") isolate(fdata()) else isolate(pdata())
+    if (!any(vapply(
+      c(view$x_axis, view$y_axis),
+      function(nm) is.numeric(axis_data[[nm]]),
+      logical(1)
+    ))) {
+      stop("At least one scatter axis must contain numeric values.")
+    }
+
+    split_axis <- function(axis) {
+      parts <- strsplit(axis, "|", fixed = TRUE)[[1]]
+      as.list(stats::setNames(parts, c("v1", "v2", "v3")))
+    }
+    full_state$panels$data_space[[state_key]]$axisMode <- view$mode
+    full_state$panels$data_space[[state_key]]$xax <- split_axis(view$x_axis)
+    full_state$panels$data_space[[state_key]]$yax <- split_axis(view$y_axis)
+    full_state$app$data_active_tab <- if (view$space == "feature") "Feature" else "Sample"
+    full_state$panels$data_space$eset_active_tab <- full_state$app$data_active_tab
+
+    esv_status(NULL)
+    esv_status(full_state)
+    ri(full_state$selection$features)
+    rh(full_state$selection$samples)
+
+    view
+  }
+
+  ai_assistant_module(
+    "assistant",
+    state = agent_state,
+    state_available = agent_state_available,
+    feature_data = fdata,
+    sample_data = pdata,
+    expression_data = expr,
+    selected_features = ri,
+    selected_samples = rh,
+    apply_state = apply_agent_state,
+    apply_scatter_view = apply_agent_scatter_view
+  )
+
+  # Test-only: drive the exact agent apply callbacks from headless tests.
+  if (agent_test_hooks_enabled())
+    agent_test_hooks_module(
+      "agentTestHooks",
+      apply_state = apply_agent_state,
+      apply_scatter_view = apply_agent_scatter_view,
+      state = agent_state
+    )
 
   savedSS <- reactiveVal(
     data.frame(name = character(), link = character(), schema = integer(),

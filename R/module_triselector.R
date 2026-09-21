@@ -163,6 +163,18 @@ triselector_module <- function(id,
     length(aa) > 0 && aa
   })
   
+  # Track the last server-sent analysis value that the browser has not yet
+  # acknowledged. Server-initiated updates reach the browser asynchronously;
+  # between sending the update and the client acknowledging it, input$analysis
+  # still holds the previous value. Observers that re-derive the selection
+  # from input$analysis during that window would silently revert the update
+  # (observed with live snapshot/agent restores re-binding dynamic UIs).
+  pendingAnalysis <- reactiveVal(NULL)
+  observeEvent(input$analysis, {
+    if (identical(isolate(pendingAnalysis()), input$analysis))
+      pendingAnalysis(NULL)
+  })
+  
   observeEvent(list(reactive_selector1()), {
     req(vx <- validated_x())
     if (length(names(input)) == 0)
@@ -171,6 +183,8 @@ triselector_module <- function(id,
     if (!is.null(reactive_selector1()))
       ss <- reactive_selector1() else
         ss <- cc[1]
+    if (!identical(ss, input$analysis))
+      pendingAnalysis(ss)
     updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
   
@@ -179,10 +193,18 @@ triselector_module <- function(id,
     if (length(names(input)) == 0)
       return(NULL)
     cc <- unique(vx[, 1])
-    if (input$analysis %in% cc)
-      ss <- input$analysis else if (!is.null(reactive_selector1()))
+    # Prefer the not-yet-acknowledged server-sent value over the stale
+    # input; otherwise a pending restore is reverted before the browser
+    # can confirm it.
+    current <- isolate(pendingAnalysis())
+    if (is.null(current))
+      current <- input$analysis
+    if (!is.null(current) && current %in% cc)
+      ss <- current else if (!is.null(reactive_selector1()) && reactive_selector1() %in% cc)
         ss <- reactive_selector1() else
           ss <- cc[1]
+    if (!identical(ss, input$analysis))
+      pendingAnalysis(ss)
     updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
     # updatePickerInput(session, inputId = "analysis", choices = cc, selected = ss)
   })
@@ -194,8 +216,8 @@ triselector_module <- function(id,
     cc <- unique(vx[, 1])
     if (is.null(reactive_selector1()))
       ss <- cc[1] else
-        ss <- reactive_selector1()    
-      updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
+        ss <- reactive_selector1()
+    updateSelectInput(session, inputId = "analysis", choices = cc, selected = ss)
       # updatePickerInput(session, inputId = "analysis", choices = cc, selected = ss)
     })
   

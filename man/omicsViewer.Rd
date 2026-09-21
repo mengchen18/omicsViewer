@@ -63,6 +63,43 @@ of expression matrices, feature and sample metadata, statistical analyses, and f
 enrichment results. The viewer supports both \code{ExpressionSet} and
 \code{SummarizedExperiment} objects.
 }
+\details{
+The app includes an optional AI assistant. Enable it by installing the
+suggested packages \code{ellmer (>= 0.5.0)} and \code{shinychat (>= 0.5.0)}.
+A user can supply a provider, model, and session-only API key through the
+assistant settings dialog, or an administrator can configure credentials
+before launching the app.
+
+Supported environment variables are:
+\itemize{
+  \item \code{OMICSVIEWER_LLM_PROVIDER}: \code{"openai"} or \code{"anthropic"}
+  \item \code{OMICSVIEWER_LLM_API_KEY}, or the provider's usual
+    \code{OPENAI_API_KEY} / \code{ANTHROPIC_API_KEY}
+  \item \code{OMICSVIEWER_LLM_MODEL}, or
+    \code{OMICSVIEWER_OPENAI_MODEL} / \code{OMICSVIEWER_ANTHROPIC_MODEL}
+  \item \code{OMICSVIEWER_LLM_BASE_URL}, or a provider-specific
+    \code{OMICSVIEWER_OPENAI_BASE_URL} / \code{OMICSVIEWER_ANTHROPIC_BASE_URL}
+  \item \code{OMICSVIEWER_LLM_MAX_REQUESTS}: integer from 1--200; default 40
+  \item \code{OMICSVIEWER_LLM_LOG}: opt in to local assistant diagnostics;
+    default false
+  \item \code{OMICSVIEWER_LLM_LOG_DIR}: writable directory for JSONL logs
+  \item \code{OMICSVIEWER_LLM_LOG_MAX_BYTES}: log size limit from
+    1 MB--100 MB; default 10 MB
+}
+
+The assistant is session-local and does not store credentials or conversations
+in omicsViewer snapshots. Its tools expose only bounded state and annotation
+summaries and can change only explicitly validated interface views. Figures
+use an allowlisted declarative ggplot2 grammar: the model never supplies R
+code, and the chat shows a low-resolution preview with a high-resolution PNG
+download.
+
+Optional diagnostic logging records user prompts, assistant responses, tool
+requests/results, provider request boundaries, configuration changes, and
+failures to a local JSONL file. Logs may contain dataset-derived summaries;
+they never contain API keys. Logging can also be toggled in the assistant
+drawer for the current session.
+}
 \examples{
 if (interactive()) {
   # Basic usage with example data

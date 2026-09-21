@@ -78,6 +78,8 @@ The module coordinates several key functionalities:
   \item \strong{Data Export}: Generate Excel files with expression data, metadata, and gene sets
   \item \strong{Module Coordination}: Manages data space (L1_data_space_module) and
         result space (L1_result_space_module) interactions
+  \item \strong{AI Assistant}: Optionally connects a session-local ellmer chat to
+        bounded application-state and annotation tools
 }
 
 Security features include path traversal prevention, file type validation,

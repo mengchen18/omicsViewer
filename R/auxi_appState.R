@@ -116,8 +116,6 @@ dataset_state <- function(dataset, id = NA_character_) {
 #' hash of expression values; expression revisions that do not alter IDs or
 #' annotation columns are intentionally not treated as incompatible.
 #'
-#' @inheritParams dataset_state
-#'
 #' @keywords internal
 #' @rdname app_state_helpers
 dataset_fingerprint <- function(dataset, id = NULL) {
@@ -379,7 +377,6 @@ sanitize_snapshot_name <- function(name, fallback = "snapshot") {
 
 #' Generate a safe snapshot file name
 #'
-#' @inheritParams sanitize_snapshot_name
 #' @param dataset_id Dataset identifier used in the legacy-compatible prefix.
 #'
 #' @keywords internal
@@ -402,8 +399,6 @@ snapshot_file_name <- function(name, dataset_id = "ESVObj.RDS", fallback = "snap
 #' @param selected_features Active semantic feature IDs.
 #' @param selected_samples Active semantic sample IDs.
 #' @param label Snapshot label/name.
-#' @inheritParams new_app_state
-#'
 #' @keywords internal
 #' @rdname app_state_helpers
 build_app_state <- function(

@@ -35,12 +35,13 @@ A \code{fluidRow} containing the complete UI structure, including:
   \item Data summary display
   \item Export and snapshot buttons
   \item Two-column layout with data space (left) and analysis space (right)
+  \item Optional floating AI assistant launcher and settings/chat drawer
 }
 }
 \description{
 Generates the user interface for the main omicsViewer application. This function creates
-a responsive layout with data exploration panels, snapshot functionality, and data export
-capabilities. Primarily intended for developers extending the application.
+a responsive layout with data exploration panels, snapshot functionality, data export,
+and an optional AI assistant. Primarily intended for developers extending the application.
 }
 \examples{
 if (interactive()) {

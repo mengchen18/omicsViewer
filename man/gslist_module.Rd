@@ -4,7 +4,12 @@
 \alias{gslist_module}
 \title{Gene Set List Server Function}
 \usage{
-gslist_module(id, reactive_featureData, reactive_i)
+gslist_module(
+  id,
+  reactive_featureData,
+  reactive_i,
+  reactive_status = reactive(NULL)
+)
 }
 \arguments{
 \item{id}{Character. Namespace ID for the Shiny module. Must match the ID
@@ -27,6 +32,9 @@ display. Can be:
   \item Logical scalar TRUE (show all features)
   \item NULL or NA (show all features)
 }}
+
+\item{reactive_status}{Reactive gene-set table state used for snapshot
+restoration.}
 }
 \value{
 A reactive expression returning a character vector of feature IDs for

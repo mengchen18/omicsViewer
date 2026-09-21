@@ -1,3 +1,20 @@
+#' Create a stable signature for a pair of scatter axes
+#'
+#' Selection emphasis is tied to the exact axes on which that selection was
+#' made or restored. This prevents an opacity vector from being carried into a
+#' different quick/custom figure.
+#'
+#' @keywords internal
+.scatter_axis_signature <- function(x, y) {
+  axis <- function(z) {
+    if (is.null(z)) return(rep("", 3L))
+    value <- unlist(z[c("analysis", "subset", "variable")], use.names = FALSE)
+    if (length(value) != 3L) return(rep("", 3L))
+    as.character(value)
+  }
+  paste(c(axis(x), axis(y)), collapse = "\r")
+}
+
 #' Meta Scatter Plot UI Function
 #'
 #' @description
@@ -168,6 +185,29 @@ meta_scatter_module <- function(
       reactive_selector3 = reactive({ axisRequest(); yax()$v3 })
     )
 
+    # Plotly owns the visible box/lasso immediately after a user selection. We
+    # therefore do not make selection emphasis a reactive dependency of the
+    # plot. These values allow a later redraw to emphasize only the selection
+    # belonging to the current axes; changing axes clears that emphasis.
+    selectionDisplayAxes <- reactiveVal(NULL)
+    pendingSelectionDisplayAxes <- reactiveVal(NULL)
+    selectionDisplayTrigger <- reactiveVal(0L)
+    observe({
+      current_axes <- .scatter_axis_signature(v1(), v2())
+      pending_axes <- pendingSelectionDisplayAxes()
+      if (!is.null(pending_axes)) {
+        if (identical(current_axes, pending_axes)) {
+          selectionDisplayAxes(pending_axes)
+          pendingSelectionDisplayAxes(NULL)
+        }
+        return(NULL)
+      }
+
+      displayed_axes <- isolate(selectionDisplayAxes())
+      if (!is.null(displayed_axes) && !identical(current_axes, displayed_axes))
+        selectionDisplayAxes(NULL)
+    })
+
     observeEvent(quickBadge()$trigger, {
       qv <- quickBadge()$view
       req(nrow(qv) == 1)
@@ -269,13 +309,28 @@ meta_scatter_module <- function(
       l$highlight <- attr4select$highlight
       l$highlightName <- attr4select$highlightName
       l$rect <- rectval()
-      # Plotly owns the visible box/lasso until the plot is redrawn. Reading
-      # selVal() as a reactive dependency here turns a user selection into a
-      # plot invalidation, which redraws the figure and erases that selection
-      # box. Isolate the semantic IDs: they are only used to carry selection
-      # emphasis into a redraw caused by an actual plotting parameter change
-      # (for example, axis, color, or snapshot restoration).
-      selected_ids <- isolate(selVal()$selected)
+      # A restoration on unchanged axes needs one deliberate redraw. Ordinary
+      # selection emphasis is deliberately isolated so a lasso/box event does
+      # not immediately erase Plotly's browser-owned selection shape. When the
+      # axes change, the triselector outputs already invalidate this reactive.
+      selectionDisplayTrigger()
+
+      # Do not carry an opacity vector from one figure into another. Emphasize
+      # semantic IDs only when the current axes match either a restored axis
+      # pair or the axis pair on which the user made the selection.
+      current_axes <- .scatter_axis_signature(v1(), v2())
+      restored_axes <- isolate(pendingSelectionDisplayAxes())
+      displayed_axes <- isolate(selectionDisplayAxes())
+      if (!is.null(restored_axes) && identical(restored_axes, current_axes)) {
+        displayed_axes <- restored_axes
+      }
+      selected_ids <- if (
+        !is.null(displayed_axes) && identical(displayed_axes, current_axes)
+      ) {
+        isolate(selVal()$selected)
+      } else {
+        character(0)
+      }
       l$inSelection <- if (notNullAndPositiveLength(selected_ids)) {
         which(get_names() %in% selected_ids)
       } else {
@@ -309,6 +364,8 @@ meta_scatter_module <- function(
         clicked = character(0),
         selected = character(0)
       ))
+      selectionDisplayAxes(NULL)
+      pendingSelectionDisplayAxes(NULL)
       sbc(FALSE)
     })
 
@@ -330,6 +387,12 @@ meta_scatter_module <- function(
         clicked = u_c,
         selected = u_s
       ))
+      selectionDisplayAxes(
+        if (notNullAndPositiveLength(tmp))
+          .scatter_axis_signature(v1(), v2())
+        else
+          NULL
+      )
       sbc(FALSE)
     })
 
@@ -345,6 +408,7 @@ meta_scatter_module <- function(
           clicked = character(0),
           selected = character(0)
         ))
+        selectionDisplayAxes(NULL)
         return(NULL)
       }
       req(cc <- xycoord())
@@ -358,6 +422,7 @@ meta_scatter_module <- function(
         clicked = character(0),
         selected = l[i]
       ))
+      selectionDisplayAxes(.scatter_axis_signature(v1(), v2()))
       sbc(TRUE)
     })
 
@@ -403,8 +468,14 @@ meta_scatter_module <- function(
       updateTabsetPanel(session, "axisModeTabs", selected = axis_mode)
 
       # Restore axis selections
+      restored_axes <- .scatter_axis_signature(s$xax, s$yax)
+      current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))
+      selectionDisplayAxes(NULL)
+      pendingSelectionDisplayAxes(restored_axes)
       xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
       yax(list(v1 = s$yax[[1]], v2 = s$yax[[2]], v3 = s$yax[[3]]))
+      if (identical(restored_axes, current_axes))
+        selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
 
       # Restore attribute selector status
       attr4select_status(NULL)
@@ -493,6 +564,9 @@ meta_scatter_module <- function(
       # consumers historically lost attributes when forwarding module values.
       current$state <- sta
       attr(current, "status") <- sta
+      # Derived quick views are not snapshot state, but the optional AI
+      # assistant uses this metadata to describe and validate one-click views.
+      attr(current, "quickViews") <- quick_views()
       current
     })
   }) # end moduleServer

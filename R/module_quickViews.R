@@ -391,5 +391,6 @@ quick_badges_module <- function(id, views, activeId) {
 #' @param lhs Left-hand value.
 #' @param rhs Right-hand value returned when \code{lhs} is NULL.
 #' @return \code{lhs}, or \code{rhs} if \code{lhs} is NULL.
+#' @name quickViewsNullCoalesce
 #' @keywords internal
 '%||%' <- function(lhs, rhs) if (is.null(lhs)) rhs else lhs

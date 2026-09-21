@@ -1,0 +1,268 @@
+// WP0 Tier A — UI-effect regression for the agent state bridge.
+//
+// Spawns the omicsViewer Shiny app with demo.RDS preloaded (ESVObj path,
+// which bypasses the file-selector dropdown), then drives the exact
+// apply_agent_state / apply_scatter_view callbacks used by the ellmer
+// assistant tools via the env-gated test hooks, and asserts visible UI
+// outcomes. No LLM provider is required.
+//
+// Run standalone:   node tier_a.mjs          (from tests/e2e_agent/)
+// Run via repo:     Rscript tests/test_agentUiEffects.R
+//
+// Writes tier_a_results.json and screenshots under artifacts/.
+
+import { chromium } from 'playwright';
+import { spawn } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.resolve(here, '../..');
+const EXTDATA = path.join(REPO, 'inst/extdata');
+const ARTIFACTS = path.join(here, 'artifacts');
+mkdirSync(ARTIFACTS, { recursive: true });
+
+const PORT = 7778;
+const results = [];
+const record = (name, pass, detail = '') => {
+  results.push({ name, pass, detail: String(detail).slice(0, 300) });
+  console.log(`${pass ? 'PASS' : 'FAIL'} | ${name}${detail ? ' | ' + detail : ''}`);
+};
+
+// ------------------------------------------------------------------- app
+const rCode = `
+  options(shiny.port = ${PORT}, shiny.host = '127.0.0.1')
+  eset <- readRDS(file.path('${EXTDATA}', 'demo.RDS'))
+  omicsViewer::omicsViewer(dir = '${EXTDATA}', ESVObj = eset)
+`;
+const r = spawn('Rscript', ['-e', rCode], {
+  cwd: REPO,
+  env: { ...process.env, OMICSVIEWER_TEST_HOOKS: 'true' },
+  stdio: ['ignore', 'pipe', 'pipe']
+});
+let rLog = '';
+r.stdout.on('data', d => { rLog += d; });
+r.stderr.on('data', d => { rLog += d; });
+process.on('exit', () => { try { r.kill('SIGKILL'); } catch {} });
+process.on('SIGINT', () => { try { r.kill('SIGKILL'); } catch {}; process.exit(130); });
+
+const waitPort = async (port, ms = 90000) => {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/`);
+      if (res.status > 0) return true;
+    } catch {}
+    await new Promise(s => setTimeout(s, 500));
+  }
+  throw new Error(`app did not start on :${port}\n${rLog}`);
+};
+
+// ---------------------------------------------------------------- helpers
+const TAB_ID = 'app-dataspace-eset';
+const getTab = (page) => page.evaluate(
+  (id) => (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$inputValues[id]) || null, TAB_ID);
+const waitTab = (page, value, timeout = 30000) => page.waitForFunction(
+  ({ id, v }) => Shiny.shinyapp.$inputValues[id] === v, { id: TAB_ID, v: value }, { timeout });
+const HOOK = {
+  box: '#app-agentTestHooks-container',
+  op: '#app-agentTestHooks-op',
+  payload: '#app-agentTestHooks-payload',
+  run: '#app-agentTestHooks-run',
+  result: '#app-agentTestHooks-result'
+};
+
+async function openSession(browser) {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const pageErrors = [];
+  page.on('pageerror', e => pageErrors.push(String(e).slice(0, 200)));
+  await page.goto(`http://127.0.0.1:${PORT}/`, { timeout: 60000 });
+  // dataset is preloaded via ESVObj: wait for the contents panel + data-space tab.
+  // NOTE: #app-dataspace-eset is a navbarPage binding (not a <select>), so the
+  // reliable source of truth is Shiny's client-side input value map.
+  await page.waitForFunction(() => {
+    const tab = Shiny.shinyapp.$inputValues['app-dataspace-eset'];
+    const box = document.querySelector('#app-contents');
+    return !!tab && !!box && box.offsetParent !== null;
+  }, null, { timeout: 90000 });
+  // un-hide the test-hook panel so ordinary Playwright actions work on it
+  await page.evaluate(sel => {
+    document.querySelector(sel).style.display = 'block';
+  }, HOOK.box);
+  return { ctx, page, pageErrors };
+}
+
+async function runHook(page, op, payload) {
+  const before = (await page.innerText(HOOK.result)).trim();
+  // The app selectizes every select, including the hidden test-hook panel's;
+  // drive it through the selectize API (with a plain-select fallback).
+  await page.evaluate(({ sel, value }) => {
+    const el = document.querySelector(sel);
+    if (el.selectize) el.selectize.setValue(value);
+    else {
+      el.value = value;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, { sel: HOOK.op, value: op });
+  await page.fill(HOOK.payload, JSON.stringify(payload ?? {}));
+  const runCount = await page.evaluate(sel => {
+    const el = document.querySelector(sel);
+    const n = (parseInt(el.dataset.runs || '0', 10) + 1);
+    el.dataset.runs = String(n);
+    return n;
+  }, HOOK.run);
+  await page.click(HOOK.run);
+  await page.waitForFunction(({ sel, before, n }) => {
+    const t = (document.querySelector(sel)?.innerText || '').trim();
+    return t !== before && t.includes(`"hook_run": ${n}`);
+  }, { sel: HOOK.result, before, n: runCount }, { timeout: 30000 });
+  const txt = (await page.innerText(HOOK.result)).trim();
+  return JSON.parse(txt);
+}
+
+const axisTitles = (page) => page.evaluate(() => {
+  const els = Array.from(document.querySelectorAll('.js-plotly-plot'))
+    .filter(e => e.offsetParent !== null && e._fullLayout);
+  if (!els.length || !els[0]._fullLayout) return null;
+  const t = (ax) => {
+    const v = ax && ax.title ? (ax.title.text || ax.title) : '';
+    return typeof v === 'string' ? v : '';
+  };
+  return [t(els[0]._fullLayout.xaxis), t(els[0]._fullLayout.yaxis)];
+});
+
+const waitAxisContains = (page, needle, timeout = 45000) =>
+  page.waitForFunction((nd) => {
+    const els = Array.from(document.querySelectorAll('.js-plotly-plot'))
+      .filter(e => e.offsetParent !== null && e._fullLayout);
+    if (!els.length) return false;
+    const t = (ax) => {
+      const v = ax && ax.title ? (ax.title.text || ax.title) : '';
+      return typeof v === 'string' ? v : '';
+    };
+    const tt = [t(els[0]._fullLayout.xaxis), t(els[0]._fullLayout.yaxis)];
+    return tt.some(x => x.includes(nd));
+  }, needle, { timeout });
+
+// ------------------------------------------------------------------- run
+let exitCode = 0;
+try {
+  await waitPort(PORT);
+  const browser = await chromium.launch({
+    executablePath: '/usr/bin/google-chrome',
+    headless: true,
+    // --disable-webgl mirrors the documented no-GPU desktop environment: the
+    // app's WebGL detection then picks the SVG scatter path, which is the
+    // configuration users of this machine actually experience.
+    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+           '--disable-webgl', '--disable-webgl2']
+  });
+
+  // ---- session 1: load & baseline -----------------------------------
+  const s1 = await openSession(browser);
+  const p1 = s1.page;
+  record('app loads with preloaded dataset', true);
+  const initialTab = await getTab(p1);
+  record('initial data-space tab is Feature', initialTab === 'Feature', initialTab);
+
+  await p1.waitForFunction(() =>
+    Array.from(document.querySelectorAll('.js-plotly-plot'))
+      .some(e => e.offsetParent !== null && e._fullLayout), null, { timeout: 90000 });
+  record('feature scatter renders a visible plotly container', true);
+  record('test hooks are rendered', await p1.locator(HOOK.box).count() === 1);
+
+  // ---- 1. state: tab + selection ------------------------------------
+  const res1 = await runHook(p1, 'state', {
+    data_space_tab: 'Sample',
+    features: ['X32.TYW5', 'X52.CNOT1', 'X55.MAP1LC3B.MAP1LC3B2'],
+    samples: ['X786O_NCI60', 'A498_NCI60']
+  });
+  record('state update applies without error', !res1.hook_error, res1.hook_error || '');
+  record('hook reports Sample tab', res1.data_space_tab === 'Sample');
+  record('hook reports 3 selected features', res1.feature_count === 3);
+  await waitTab(p1, 'Sample');
+  record('visible data-space tab switched to Sample', true);
+
+  // ---- 2. scatter: custom axes ---------------------------------------
+  const res2 = await runHook(p1, 'scatter', {
+    space: 'feature',
+    x_axis: 'PCA|All|PC1(10.5%)',
+    y_axis: 'PCA|All|PC2(7.2%)'
+  });
+  record('custom scatter view applies without error', !res2.hook_error, res2.hook_error || '');
+  await waitAxisContains(p1, 'PC1');
+  record('plotly x-axis reflects requested PC1 column', true);
+  const res3 = await runHook(p1, 'scatter', {
+    space: 'feature',
+    x_axis: 'PCA|All|PC1(10.5%)',
+    y_axis: 'PCA|All|PC3(5.4%)'
+  });
+  record('second custom scatter view applies without error', !res3.hook_error, res3.hook_error || '');
+  await waitAxisContains(p1, 'PC3');
+  record('plotly y-axis updates to PC3', true);
+
+  // ---- 3. scatter: quick view ----------------------------------------
+  const ov = await runHook(p1, 'overview', {});
+  const fviews = (ov.quick_views && ov.quick_views.feature) || [];
+  record('runtime feature quick views available', fviews.length > 0,
+    fviews.map(v => v.id).slice(0, 6).join(','));
+  if (fviews.length > 0) {
+    const qv = fviews[0];
+    const res4 = await runHook(p1, 'scatter', { space: 'feature', quick_view_id: qv.id });
+    record(`quick view '${qv.id}' applies without error`, !res4.hook_error, res4.hook_error || '');
+    record('applied quick view axes match runtime definition',
+      res4.x_axis === qv.x && res4.y_axis === qv.y, `${res4.x_axis} / ${res4.y_axis}`);
+    const yVar = qv.y.split('|').pop();
+    await waitAxisContains(p1, yVar);
+    record('plotly axes reflect the applied quick view', true);
+  }
+
+  // ---- 4. validation negatives ---------------------------------------
+  const n1 = await runHook(p1, 'state', { data_space_tab: 'Samples-typo' });
+  record('invalid tab rejected with descriptive error',
+    !!n1.hook_error && /Unknown data-space tab/.test(n1.hook_error), n1.hook_error || '');
+  const n2 = await runHook(p1, 'scatter', { space: 'feature', x_axis: 'p value', y_axis: 'log.fdr' });
+  record('invalid custom axis rejected with descriptive error',
+    !!n2.hook_error && /X-axis annotation/.test(n2.hook_error), n2.hook_error || '');
+  const n3 = await runHook(p1, 'scatter', { space: 'feature', quick_view_id: 'nope' });
+  record('unknown quick view rejected with descriptive error',
+    !!n3.hook_error && /quick view/i.test(n3.hook_error), n3.hook_error || '');
+  record('failed updates leave visible tab unchanged',
+    (await getTab(p1)) === 'Feature');
+  const outErrs = await p1.evaluate(() =>
+    document.querySelectorAll('.shiny-output-error').length);
+  record('no shiny output errors after negatives', outErrs === 0, String(outErrs));
+
+  await p1.screenshot({ path: path.join(ARTIFACTS, 'tier_a_session1_final.png'), fullPage: false });
+
+  // ---- 5. cross-session isolation -------------------------------------
+  const s2 = await openSession(browser);
+  const p2 = s2.page;
+  const res5 = await runHook(p2, 'state', { data_space_tab: 'Heatmap' });
+  record('second session applies its own state update', !res5.hook_error, res5.hook_error || '');
+  await waitTab(p2, 'Heatmap');
+  record('second session visible tab switched to Heatmap', true);
+  record('first session tab unchanged by second session',
+    (await getTab(p1)) === 'Feature');
+  record('session 1 has no uncaught page errors', s1.pageErrors.length === 0, s1.pageErrors[0] || '');
+  record('session 2 has no uncaught page errors', s2.pageErrors.length === 0, s2.pageErrors[0] || '');
+  await s2.ctx.close();
+
+  await browser.close();
+  try { r.kill('SIGTERM'); } catch {}
+} catch (e) {
+  record('harness completed without fatal errors', false, e.message);
+  console.error('--- R process log (tail) ---');
+  console.error(rLog.split('\n').slice(-25).join('\n'));
+  exitCode = 1;
+}
+
+const passed = results.filter(x => x.pass).length;
+console.log(`\nTier A summary: ${passed}/${results.length} passed`);
+writeFileSync(path.join(here, 'tier_a_results.json'), JSON.stringify({
+  finished_at: new Date().toISOString(),
+  passed, total: results.length, results
+}, null, 2));
+process.exit(exitCode === 0 && passed === results.length ? 0 : 1);
