@@ -469,7 +469,15 @@ meta_scatter_module <- function(
 
       # Restore axis selections
       restored_axes <- .scatter_axis_signature(s$xax, s$yax)
-      current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))
+      # v1()/v2() are req(input$variable)-guarded; while a triselector cascade
+      # is still in flight they abort, which would otherwise consume this
+      # restore BEFORE the axes below are assigned (silently losing the
+      # requested view). current_axes only feeds a redraw-trigger comparison,
+      # so NULL on failure is harmless and the restore always completes.
+      current_axes <- tryCatch(
+        .scatter_axis_signature(isolate(v1()), isolate(v2())),
+        error = function(e) NULL
+      )
       selectionDisplayAxes(NULL)
       pendingSelectionDisplayAxes(restored_axes)
       xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
