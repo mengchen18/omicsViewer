@@ -212,6 +212,15 @@ else opt-in.
 
 ### WP2: did-you-mean suggestions in all validation errors
 
+**STATUS: complete.** `.agent_suggest()` (substring → prefix → containment →
+segment-aware edit distance, adist skipped for candidate sets > 5,000) wired
+into tab/ID/quick-view/axis/column/facet/mapping rejections and zero-hit
+searches. Also normalized the literal-`"null"`-string artifact (glm flash
+serializes omitted optional strings as `"null"`; observed live when
+`set_scatter_view` failed 3× with `Unknown quick view: null`). Tier B run
+confirmed the model now self-corrects typos via `search_annotations` +
+suggestions without user intervention.
+
 **Change.** New internal helper in `auxi_agentAssistant.R`:
 
 ```r
@@ -409,7 +418,7 @@ Two cheap-to-expensive steps, log-gated:
 | 0a″ | **Unplanned: figure-spec limit raise 8→12 + logging sanitizer fix** | **DONE** | R/auxi_agentFigures.R, R/module_aiAssistant.R, R/auxi_agentLogging.R (unnamed-list crash silently killed `tool_request` logging for figure specs; drops are now never silent) |
 | 0b′ | **Unplanned: ellmer tibble-coercion fix in figure specs** | **DONE** | R/auxi_agentFigures.R — ellmer converts `type_array(type_object)` args into tibbles, so `length(spec$layers)` counted 15 columns, not layers: **every chat-path `create_figure` failed the layer cap regardless of count** (the model was innocent; it even said "empty objects misparsed"). Layers/params now coerced to row-lists before counting; JSON-null→NA params fall back to defaults. Verified live end-to-end (Tier B driver, glm-5.3-flash): volcano prompt → get_state → create_figure (4 layers) → fig_1 rendered, 2702 rows, 416 KB PNG |
 | 0b | WP0 Tier B e2e driver | **first run done** (`tests/e2e_agent/tier_b.mjs`, `node tier_b.mjs "prompt"`) | screenshots + archived log under tests/e2e_agent/artifacts/ |
-| 1 | WP2 suggestions | S–M | auxi_agentAssistant.R, auxi_agentFigures.R, tests |
+| 1 | WP2 suggestions | **DONE** | auxi_agentAssistant.R, auxi_agentFigures.R, tests |
 | 2 | WP1 sections | M | auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring, tests |
 | 3 | WP3 spec round-trip | S | module_aiAssistant.R, tests |
 | 4 | WP4 log summarizer | M | auxi_agentLogging.R, new test file |

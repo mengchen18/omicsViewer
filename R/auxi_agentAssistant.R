@@ -53,6 +53,90 @@ NULL
   }
 }
 
+#' Suggest closest valid values for a rejected assistant input
+#'
+#' Used to make validation errors self-correcting: instead of a bare
+#' rejection, the model receives the nearest valid candidates and can retry
+#' without guessing. Scoring is deliberately cheap: exact case-insensitive
+#' match first, then substring containment (either direction), then prefix,
+#' and finally edit distance. Edit distance is skipped for very large
+#' candidate sets (e.g. feature ID spaces on real datasets) where it would
+#' dominate validation time.
+#'
+#' @param value Rejected value (single string).
+#' @param candidates Character vector of valid values.
+#' @param max Maximum number of suggestions to return.
+#' @return A character vector of up to \code{max} suggestions (possibly empty).
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+.agent_suggest <- function(value, candidates, max = 3L) {
+  value <- .agent_trim_scalar(value)
+  if (!nzchar(value) || !length(candidates))
+    return(character())
+  candidates <- unique(as.character(candidates))
+  value_lower <- tolower(value)
+  cand_lower <- tolower(candidates)
+
+  # never suggest the value itself on an exact (case-insensitive) hit; that
+  # situation means the caller validated against a different set
+  is_exact <- cand_lower == value_lower
+
+  contains <- grepl(value_lower, cand_lower, fixed = TRUE) & !is_exact
+  contained_by <- vapply(cand_lower, function(cl)
+    grepl(cl, value_lower, fixed = TRUE), logical(1)) & !is_exact
+  prefix <- startsWith(cand_lower, value_lower) & !is_exact
+
+  pick <- function(keep, limit) {
+    if (!any(keep) || limit <= 0L)
+      return(list(idx = integer(), limit = limit))
+    idx <- which(keep)
+    list(idx = utils::head(idx, limit), limit = limit - length(utils::head(idx, limit)))
+  }
+
+  out <- character()
+  remaining <- max
+  for (keep in list(contains, prefix, contained_by)) {
+    if (remaining <= 0L) break
+    hit <- pick(keep, remaining)
+    out <- c(out, candidates[hit$idx])
+    remaining <- hit$limit
+  }
+
+  if (remaining > 0L && !any(is_exact) && length(candidates) <= 5000L) {
+    # Compare edit distance against the candidate as a whole and against
+    # each of its pipe-separated segments: annotation columns follow
+    # Category|Subcategory|Variable, and typos almost always land in the
+    # variable segment ("logg.fdrr" vs "ttest|A_vs_B|log.fdr").
+    segment_distance <- function(candidate) {
+      segs <- strsplit(candidate, "|", fixed = TRUE)[[1]]
+      if (length(segs) <= 1L)
+        return(utils::adist(value_lower, tolower(candidate))[1, 1])
+      min(utils::adist(value_lower, tolower(segs))[1, ])
+    }
+    dist <- vapply(cand_lower, segment_distance, numeric(1))
+    names(dist) <- NULL
+    threshold <- max(2, floor(nchar(value_lower, type = "chars") / 3))
+    near <- which(dist <= threshold & !is_exact)
+    if (length(near)) {
+      near <- near[order(dist[near])]
+      out <- c(out, candidates[utils::head(near, remaining)])
+    }
+  }
+
+  unique(utils::head(out, max))
+}
+
+.agent_suggest_text <- function(value, candidates, max = 3L,
+                                 search_hint = NULL) {
+  hits <- .agent_suggest(value, candidates, max = max)
+  if (!length(hits))
+    return("")
+  paste0(
+    " Closest matches: ", paste(hits, collapse = ", "), ".",
+    if (!is.null(search_hint)) paste0(" Use ", search_hint, " to confirm exact values.") else ""
+  )
+}
+
 #' Read the session request limit
 #'
 #' The limit applies to all provider requests in one Shiny session, including
@@ -378,7 +462,7 @@ agent_search_annotations <- function(space, query, feature_data, sample_data,
     )
   }
 
-  list(
+  out <- list(
     space = space,
     query = query,
     matching_id_count = length(matching_ids),
@@ -388,6 +472,14 @@ agent_search_annotations <- function(space, query, feature_data, sample_data,
     value_matches_truncated = value_match_column_count > length(value_hits),
     value_matches = value_hits
   )
+  # A completely empty result is a dead end for the model; surface the
+  # closest annotation column names so the next call can be a correction
+  # instead of another guess.
+  if (!out$matching_id_count && !out$matching_column_count && !length(value_hits))
+    out$suggestions <- utils::head(
+      .agent_suggest(query, column_names), 5L
+    )
+  out
 }
 
 #' Summarize one annotation column
@@ -414,7 +506,8 @@ agent_summarize_annotation <- function(space, column, feature_data, sample_data,
   if (is.null(df))
     stop("No ", space, " metadata are loaded.")
   if (!column %in% colnames(df))
-    stop("Unknown ", space, " annotation column: ", column)
+    stop("Unknown ", space, " annotation column: ", column, ".",
+         .agent_suggest_text(column, colnames(df)))
 
   values <- df[[column]]
   missing <- if (is.list(values)) !lengths(values) else is.na(values)
@@ -488,7 +581,16 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
     invalid <- setdiff(x, ids)
     if (length(invalid)) {
       example <- utils::head(invalid, 3L)
-      stop("Unknown ", label, " ID(s): ", paste(example, collapse = ", "))
+      hints <- vapply(example, function(v) {
+        .agent_suggest_text(
+          v, ids,
+          search_hint = paste0('search_annotations(query="', v, '")')
+        )
+      }, character(1))
+      stop(
+        "Unknown ", label, " ID(s): ", paste(example, collapse = ", "), ".",
+        paste(hints, collapse = "")
+      )
     }
     x
   }
@@ -497,7 +599,8 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
     if (is.null(x)) return(NULL)
     x <- .agent_trim_scalar(x)
     if (!x %in% choices)
-      stop("Unknown ", label, " tab: ", x)
+      stop("Unknown ", label, " tab: ", x, ".",
+           .agent_suggest_text(x, choices))
     x
   }
 
@@ -526,44 +629,60 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 #' @return A validated scatter-space and axis update.
 #' @keywords internal
 #' @rdname agentAssistantHelpers
+.agent_nullable_scalar <- function(x) {
+  # Some providers serialize omitted optional string arguments as the literal
+  # string "null" instead of JSON null (observed with glm flash models);
+  # normalize that artifact to an empty string so downstream nzchar() logic
+  # treats the argument as absent.
+  x <- .agent_trim_scalar(x)
+  if (identical(x, "null")) "" else x
+}
+
 agent_normalize_scatter_view <- function(space, quick_view_id = NULL,
                                          x_axis = NULL, y_axis = NULL,
                                          quick_views = NULL,
                                          feature_columns = character(),
                                          sample_columns = character()) {
   space <- match.arg(space, c("feature", "sample"))
-  quick_view_id <- .agent_trim_scalar(quick_view_id)
+  quick_view_id <- .agent_nullable_scalar(quick_view_id)
 
   if (nzchar(quick_view_id)) {
     views <- quick_views[[space]]
     if (is.null(views) || !is.data.frame(views) || !nrow(views) ||
         !quick_view_id %in% views$id) {
-      stop("Unknown ", space, " quick view: ", quick_view_id)
+      known_ids <- if (is.null(views) || !is.data.frame(views) || !nrow(views))
+        character() else views$id
+      stop("Unknown ", space, " quick view: ", quick_view_id, ".",
+           .agent_suggest_text(quick_view_id, known_ids),
+           " Available quick views are listed under quick_views in get_omics_viewer_state.")
     }
     view <- views[views$id == quick_view_id, , drop = FALSE][1, ]
     return(list(space = space, mode = "quick", quick_view_id = view$id,
                 x_axis = view$x, y_axis = view$y))
   }
 
-  x_axis <- .agent_trim_scalar(x_axis)
-  y_axis <- .agent_trim_scalar(y_axis)
+  x_axis <- .agent_nullable_scalar(x_axis)
+  y_axis <- .agent_nullable_scalar(y_axis)
   if (!nzchar(x_axis) || !nzchar(y_axis))
     stop("A scatter view requires either quick_view_id or both x_axis and y_axis.")
 
   columns <- if (space == "feature") feature_columns else sample_columns
-  if (!x_axis %in% columns)
-    stop("Unknown ", space, " X-axis annotation: ", x_axis)
-  if (!y_axis %in% columns)
-    stop("Unknown ", space, " Y-axis annotation: ", y_axis)
-
   axis_parts <- function(axis) {
     parts <- strsplit(axis, "|", fixed = TRUE)[[1]]
     if (length(parts) != 3L || any(!nzchar(parts)))
       return(NULL)
     parts
   }
-  if (is.null(axis_parts(x_axis)) || is.null(axis_parts(y_axis)))
-    stop("Custom axes must use the Category|Subcategory|Variable naming convention.")
+  convention_hint <-
+    if (is.null(axis_parts(x_axis)) || is.null(axis_parts(y_axis)))
+      " Axis names must use the Category|Subcategory|Variable naming convention."
+    else ""
+  for (axis_name in c("X", "Y")) {
+    axis <- if (axis_name == "X") x_axis else y_axis
+    if (!axis %in% columns)
+      stop("Unknown ", space, " ", axis_name, "-axis annotation: ", axis, ".",
+           .agent_suggest_text(axis, columns), convention_hint)
+  }
 
   list(space = space, mode = "custom", quick_view_id = NULL,
        x_axis = x_axis, y_axis = y_axis)

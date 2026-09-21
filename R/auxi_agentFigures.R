@@ -394,10 +394,16 @@ agent_build_figure_plot <- function(data, spec) {
   all_mappings <- unique(unlist(lapply(spec$layers, function(x) as.character(x$mappings))))
   all_mappings <- unname(all_mappings[!is.na(all_mappings) & nzchar(all_mappings)])
   invalid <- setdiff(all_mappings, columns)
-  if (length(invalid))
-    stop("Figure mappings refer to unavailable column(s): ", paste(utils::head(invalid, 3L), collapse = ", "))
+  if (length(invalid)) {
+    hints <- vapply(utils::head(invalid, 3L), function(v)
+      .agent_suggest_text(v, columns), character(1))
+    stop("Figure mappings refer to unavailable column(s): ",
+         paste(utils::head(invalid, 3L), collapse = ", "), ".",
+         paste(hints, collapse = ""))
+  }
   if (!is.null(spec$facet_by) && !spec$facet_by %in% columns)
-    stop("Figure facet column is unavailable: ", spec$facet_by)
+    stop("Figure facet column is unavailable: ", spec$facet_by, ".",
+         .agent_suggest_text(spec$facet_by, columns))
 
   mapping_symbol <- function(name) as.name(name)
   make_mapping <- function(mappings) {

@@ -9,6 +9,10 @@ agent_search_annotations <- omicsViewer:::agent_search_annotations
 agent_summarize_annotation <- omicsViewer:::agent_summarize_annotation
 agent_normalize_state_update <- omicsViewer:::agent_normalize_state_update
 agent_normalize_scatter_view <- omicsViewer:::agent_normalize_scatter_view
+.agent_suggest <- omicsViewer:::`.agent_suggest`
+agent_normalize_figure_spec <- omicsViewer:::agent_normalize_figure_spec
+agent_build_figure_data <- omicsViewer:::agent_build_figure_data
+agent_build_figure_plot <- omicsViewer:::agent_build_figure_plot
 
 fd <- data.frame(
   `ttest|A_vs_B|log.fdr` = c(0.1, 0.4, 0.8),
@@ -146,4 +150,110 @@ ok(
     "Unknown feature X-axis annotation: missing"
   ),
   "unknown custom scatter axes are rejected"
+)
+
+# WP2: did-you-mean suggestions make validation errors self-correcting
+ok(
+  ut_cmp_identical(
+    .agent_suggest("Featue", c("Feature", "Feature table", "Sample")),
+    "Feature"
+  ),
+  "suggest returns the case/prefix closest tab"
+)
+ok(
+  ut_cmp_identical(
+    grepl("Closest matches: Feature", 
+          tryCatch(agent_normalize_state_update(
+            list(data_space_tab = "Featur"), 
+            c("Feature", "Sample"), c("Feature"), c("Gene1"), c("S1")),
+            error = function(e) conditionMessage(e)), fixed = TRUE),
+    TRUE),
+  "invalid tab error carries closest matches"
+)
+ok(
+  ut_cmp_identical(
+    grepl("Closest matches: Gene1",
+          tryCatch(agent_normalize_state_update(
+            list(features = c("Gene10")),
+            c("Feature"), c("Feature"), rownames(fd), rownames(pd)),
+            error = function(e) conditionMessage(e)), fixed = TRUE),
+    TRUE),
+  "invalid feature ID error carries closest match and search hint"
+)
+ok(
+  ut_cmp_identical(
+    grepl("search_annotations", 
+          tryCatch(agent_normalize_state_update(
+            list(features = c("Gene10")),
+            c("Feature"), c("Feature"), rownames(fd), rownames(pd)),
+            error = function(e) conditionMessage(e)), fixed = TRUE),
+    TRUE),
+  "ID errors point at search_annotations"
+)
+ok(
+  ut_cmp_identical(
+    grepl("Closest matches: ttest|A_vs_B|log.fdr",
+          tryCatch(agent_normalize_scatter_view(
+            space = "feature",
+            x_axis = "ttest|A_vs_B|log.fdr", y_axis = "ttest|A_vs_B|log.fd",
+            quick_views = list(feature = data.frame(
+              id = "v1", label = "v1", x = "a|b|c", y = "d|e|f",
+              description = "", source = "auto", stringsAsFactors = FALSE)),
+            feature_columns = colnames(fd), sample_columns = colnames(pd)),
+            error = function(e) conditionMessage(e)), fixed = TRUE),
+    TRUE),
+  "invalid axis error suggests the closest annotation column"
+)
+ok(
+  ut_cmp_identical(
+    grepl("naming convention",
+          tryCatch(agent_normalize_scatter_view(
+            space = "feature", x_axis = "log.fdr", y_axis = "ttest|A_vs_B|log.fdr",
+            quick_views = NULL,
+            feature_columns = colnames(fd), sample_columns = colnames(pd)),
+            error = function(e) conditionMessage(e)), fixed = TRUE),
+    TRUE),
+  "malformed axis error still explains the naming convention"
+)
+zero_hit <- agent_search_annotations("feature", "logg.fdrr", fd, pd)
+ok(
+  ut_cmp_identical(
+    "ttest|A_vs_B|log.fdr" %in% zero_hit$suggestions,
+    TRUE),
+  "zero-hit searches return column suggestions instead of a dead end"
+)
+ok(
+  ut_cmp_identical(
+    grepl("Closest matches: sample__group",
+          tryCatch({
+            spec <- agent_normalize_figure_spec(list(
+              layers = list(list(geom = "point", x = "sample__groupz", y = "__expression__")),
+              data_source = "expression", features = rownames(fd)[1], 
+              samples = rownames(pd)[1]),
+              fd, pd, matrix(1, dimnames = list(rownames(fd)[1], rownames(pd)[1])),
+              rownames(fd)[1], rownames(pd)[1])
+            fig_data <- agent_build_figure_data(spec, fd, pd, 
+              matrix(1, dimnames = list(rownames(fd)[1], rownames(pd)[1])))
+            plot_spec <- agent_normalize_figure_spec(list(
+              layers = list(list(geom = "point", x = "sample__groupz", y = "__expression__")),
+              data_source = "expression", features = rownames(fd)[1], 
+              samples = rownames(pd)[1]),
+              fd, pd, matrix(1, dimnames = list(rownames(fd)[1], rownames(pd)[1])),
+              rownames(fd)[1], rownames(pd)[1])
+            agent_build_figure_plot(fig_data, plot_spec)
+          }, error = function(e) conditionMessage(e)), fixed = TRUE),
+    TRUE),
+  "figure mapping errors suggest closest data columns"
+)
+
+# providers that serialize omitted optional strings as the literal "null"
+ok(
+  ut_cmp_identical(
+    agent_normalize_scatter_view(
+      space = "feature", quick_view_id = "null",
+      x_axis = "ttest|A_vs_B|log.fdr", y_axis = "ttest|A_vs_B|log.fdr",
+      quick_views = NULL,
+      feature_columns = colnames(fd), sample_columns = colnames(pd))$mode,
+    "custom"),
+  "literal \"null\" quick_view_id is treated as omitted"
 )
