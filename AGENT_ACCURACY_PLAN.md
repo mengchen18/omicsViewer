@@ -575,7 +575,18 @@ Tier 1 doesn't cover; the registry tells the model what exists.
 | 0b | WP0 Tier B e2e driver | **first run done** (`tests/e2e_agent/tier_b.mjs`, `node tier_b.mjs "prompt"`) | screenshots + archived log under tests/e2e_agent/artifacts/ |
 | 1 | WP2 suggestions | **DONE** | auxi_agentAssistant.R, auxi_agentFigures.R, tests |
 | 1½ | **§6 control plane S1: widget store + state_apply** | **DONE (34/34)** | R/auxi_widgetStore.R (single file, comment-sectioned: registration/validation/apply/ack/snapshot/registry) + tests/test_widgetStore.R |
-| 1¾ | **§6 control plane S2: migrate meta_scatter onto store** | **DONE (Tier A 32/32 incl. stress)** | meta_scatter x/y axes + axis_mode store-backed; xax/yax/axisRequest machinery deleted; apply_agent_scatter_view never writes axisMode (side effect fixed); cascades derive choices from the store, not in-flight inputs; restores apply per-key-resilient (strict=FALSE); placeholder states never enter the store. Found en route: demo.RDS stores truncated sample default axes (PCA\|All\|PC1( ) — old code silently no-opped them, now cleanly rejected per key |
+| 1¾ | **§6 control plane S2: migrate meta_scatter onto store** | **DONE (Tier A 33/33 incl. stress + right-panel guard)** | meta_scatter x/y axes + axis_mode store-backed; xax/yax/axisRequest machinery deleted; apply_agent_scatter_view never writes axisMode (side effect fixed); cascades derive choices from the store, not in-flight inputs; restores apply per-key-resilient (strict=FALSE); placeholder states never enter the store. Found en route: demo.RDS stores truncated sample default axes (PCA\|All\|PC1( ) — old code silently no-opped them, now cleanly rejected per key
+
+**S2 regression post-mortem (user-reported):** the initial S2 cascade
+required reactive_selector1/2 unconditionally, but five modules drive
+triselectors WITHOUT the store (feature_general, fgsea, geneshot, tables,
+attr4 pass restore-only selectors) — their cascades never fired and the
+analysis panel stayed blank after selections. Fixed by
+`reactive_selector1() %||% input$analysis` fallbacks. Test debt repaid:
+new tests/test_triselectorCascade.R spies sendInputMessage to assert
+cascades fire in BOTH regimes (validated: fails on the broken code), and
+Tier A gained the missing right-panel guard (analysis-panel populate +
+render after selection — the exact missed regression) |
 | 1″ | **Unplanned: stale-internal-axes fix (user-reported, 19:49 session)** | **DONE** | meta_scatter's internal xax/yax never track manual triselector edits, so a restore targeting values the internal model already holds changed no reactive and never touched the widgets (quick-badge path was immune via its axisRequest bump). The restore path now bumps axisRequest too, and triselector_module accepts reactive_axis_request so analysis/subset/variable observers re-assert on version bumps. Reproduced: manual y=log.pvalue drift + volcano quick-view apply previously a silent no-op; now corrects. Manual edits still stick (no bump on user input) |
 | 1′ | **Unplanned: mid-restore req-abort fix** | **DONE** | R/module_meta_scatter.R — `current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))` ran before the axis assignment; v1()/v2() are req(input$variable)-guarded, so during an in-flight triselector cascade the req silently aborted the restore observer and the requested axes were lost (reproduced: apply during init lands on defaults). current_axes now tryCatch-guarded; verified racy and settled apply paths |
 | 2 | WP1 sections | M | auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring, tests |

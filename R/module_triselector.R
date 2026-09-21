@@ -223,17 +223,19 @@ triselector_module <- function(id,
     })
   
   # Cascaded choices derive from the REQUESTED state (reactive_selector1/2,
-  # i.e. the canonical store values), never from the in-flight inputs: when
-  # a transaction changes analysis -> subset -> variable, input$analysis
-  # still holds the previous value while these observers run, which
-  # previously produced stale choice sets, dropped selections, and let the
-  # UI-sync mirror transitional widget states back as user edits. Manual
-  # edits reach the store through the module-level sync observer, which
-  # re-invalidates reactive_selector1/2, so user flows re-fire identically.
+  # i.e. the canonical store values when the owning module is store-backed),
+  # falling back to the live inputs for modules that drive their selectors
+  # without a store (feature_general, fgsea, geneshot, tables, attr4 pass
+  # restore-only reactive_selectors that are NULL until a status arrives -
+  # requiring them unconditionally left those cascades permanently
+  # unpopulated, hiding the analysis panel). During a store transaction the
+  # store value wins over the in-flight input, which is what keeps
+  # restores from racing the client acknowledgement.
   observe({
     reactive_axis_request()  # version bumps force re-assertion after restores
     req(vx <- validated_x())
-    req(a1 <- reactive_selector1())
+    a1 <- reactive_selector1() %||% input$analysis
+    req(a1)
     cc <- unique(vx[vx[, 1] == a1, 2])
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
     # updatePickerInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
@@ -241,8 +243,10 @@ triselector_module <- function(id,
   
   observe({
     reactive_axis_request()  # version bumps force re-assertion after restores
-    req(a1 <- reactive_selector1())
-    req(a2 <- reactive_selector2())
+    a1 <- reactive_selector1() %||% input$analysis
+    a2 <- reactive_selector2() %||% input$subset
+    req(a1)
+    req(a2)
     req(vx <- validated_x())
 
     cc <- vx[, 3][vx[, 1] == a1 & vx[, 2] == a2]

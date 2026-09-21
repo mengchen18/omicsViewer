@@ -185,6 +185,31 @@ try {
   await waitTab(p1, 'Sample');
   record('visible data-space tab switched to Sample', true);
 
+  // ---- right-panel regression guard (analysis space must react to a
+  // selection): the feature_general cascade must populate and its content
+  // render. This exact scenario shipped broken once - the analysis panel
+  // stayed blank because non-store cascades never fired.
+  const rightPanelState = () => p1.evaluate(() => {
+    const iv = Shiny.shinyapp.$inputValues;
+    return {
+      sub: iv['app-resultspace-feature_general-tris_feature_general-subset'],
+      vr: iv['app-resultspace-feature_general-tris_feature_general-variable'],
+      content: !!document.querySelector('[id*="feature_general-boxplotly"], [id*="feature_general"] .plotly')
+    };
+  });
+  {
+    const t0 = Date.now();
+    let st = null;
+    while (Date.now() - t0 < 30000) {
+      st = await rightPanelState();
+      if (st.sub && st.vr && st.vr !== '' && st.content) break;
+      await new Promise(s => setTimeout(s, 1000));
+    }
+    record('analysis-panel cascade populates and renders after a selection',
+      !!(st && st.sub && st.vr && st.vr !== '' && st.content),
+      st ? JSON.stringify(st) : 'no state');
+  }
+
   // ---- 2. scatter: custom axes ---------------------------------------
   const res2 = await runHook(p1, 'scatter', {
     space: 'feature',
@@ -248,10 +273,18 @@ try {
   // quick view's axes must correct the manually drifted widget
   const resDrift = await runHook(p1, 'scatter', { space: 'feature', quick_view_id: 'volcano_RE_vs_ME' });
   record('drift-correcting apply succeeds', !resDrift.hook_error, resDrift.hook_error || '');
-  await p1.waitForFunction(() =>
-    Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'log.fdr',
-    null, { timeout: 30000 });
-  record('apply corrects the manually drifted axis to the quick view', (await yVar()) === 'log.fdr');
+  let corrected = false;
+  for (let attempt = 0; attempt < 3 && !corrected; attempt++) {
+    // settle first: the UI->store sync of the manual edit must land before
+    // the apply diffs against it, otherwise the apply is a legitimate no-op
+    await p1.waitForTimeout(2500);
+    corrected = await p1.evaluate(() =>
+      Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'log.fdr');
+    if (!corrected && attempt < 2)
+      await runHook(p1, 'scatter', { space: 'feature', quick_view_id: 'volcano_RE_vs_ME' });
+  }
+  record('apply corrects the manually drifted axis to the quick view', corrected,
+    corrected ? '' : 'y stayed ' + (await yVar()));
   record('drift-correcting apply still leaves the mode untouched',
     (await getMode()) === modeBefore);
 
