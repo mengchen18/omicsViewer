@@ -398,14 +398,162 @@ Two cheap-to-expensive steps, log-gated:
 
 ---
 
-## 6. Explicit non-goals (rejected approaches)
+## 6. Universal widget control plane (NEW PILLAR — designed 2026-09-21)
 
-- Tool per widget; generic `set_input`; generic R/JS/CSS generation.
-- Model reading DOM/HTML/tooltips directly.
-- Giant static UI description in the system prompt.
-- Silent fuzzy-match acceptance of IDs/columns (suggestions only).
-- `validate_figure_spec` as a separate tool (costs the same provider
-  request as a failed create; WP2/WP6 attack the root cause instead).
+**Goal:** the agent (and snapshots, and any future automation) can flexibly
+and reliably read and control *every individual widget/component*, with no
+unrequested side effects — via architecture, not per-bug patching.
+
+**Evidence this is needed:** five defects found in a single day, all in one
+module's state machinery, each a distinct symptom of the same gap — the app
+has no single source of truth and no synchronization protocol between
+widgets, module-internal models, snapshot state, and agent writes:
+
+| Defect (date) | Symptom | Missing mechanism |
+|---|---|---|
+| stale-input revert | in-flight restore reverted ~150 ms later | acknowledgement protocol |
+| mid-restore `req()` abort | restore event silently consumed | transactional applies |
+| internal xax/yax drift | applies no-op after manual edits | UI→store sync (canonical model) |
+| axisMode side effect | mode tab flips when only axes requested | diff-based (minimal) writes |
+| `"null"`/`"{}"` args | spurious validation errors | per-kind boundary validation |
+
+### 6.1 Architecture
+
+Unidirectional data flow with a command/ack protocol (Elm/Redux lineage,
+adapted to Shiny; extends the app-level canonical-state bridge from the
+bioSkills skill down to widget level):
+
+```text
+                      ┌───────────────────────────────────────────┐
+   user edits ───────▶│  canonical widget store (per-app env of    │
+   (input bindings,   │  reactiveVals keyed by canonical IDs,      │
+    origin="user")    │  each with origin + epoch metadata)        │
+                      └──────┬──────────────┬──────────────┬──────┘
+                 projections │              │              │
+              (renderPlotly, │              │              │
+               tables, …)    │              │              │
+                            ▼              ▼              ▼
+                     status collectors  snapshot      agent tools
+                     (read store,       (store →     (validate →
+                      never raw input)    .ESS)        state_apply)
+
+   external writers ──▶ state_apply(patch) ──▶ diff ──▶ ordered setters
+   (agent / snapshot   (transactional function, never an observer cascade)
+    restore / badge)
+                            │
+                            └─▶ epoch bump + re-assert loop (bounded)
+                                until widget ack == store value
+```
+
+The five mechanisms:
+
+1. **Canonical store.** Every controllable widget is *registered* with a
+   binding: canonical id, kind (`select`, `selectize_server`, `radio`,
+   `tabset`, `navbar`, `checkbox`, `slider`, …), value getter, setter
+   (correct `update*Input` + cascade position), choices provider, upstream
+   dependencies (variable depends on analysis+subset), and owning module.
+   The store is the single source of truth for desired state; widgets are a
+   view.
+2. **Transactional applies.** All external writes go through one function
+   `state_apply(patch, origin=)` that (a) validates against the registry,
+   (b) computes the diff *vs the store* (not vs widget inputs — kills the
+   drift class), (c) writes store keys, (d) applies setters in dependency
+   order, (e) bumps an epoch for touched keys. It is a plain function, not
+   an observer — transient `req()` failures cannot consume it.
+3. **Diff-only writes.** Untouched keys are never written: the axisMode
+   side effect disappears by construction (custom-axes applies never touch
+   the mode; quick-view applies do, because the badge state is part of the
+   requested view).
+4. **Ack + re-assert.** Setters mark in-flight values (generalized
+   `pendingAnalysis`); a bounded verify loop re-sends until acknowledged.
+   Status collectors and `get_omics_viewer_state` read the *store*, so
+   state reads are never stale mid-flight.
+5. **UI→store sync.** Each binding subscribes to its input and mirrors user
+   edits into the store (origin="user", no re-assert). Internal models can
+   no longer drift from reality.
+
+### 6.2 Registration contract (ergonomics)
+
+Hand-maintaining a registry would rot. Bindings are declared co-located
+with the UI, via wrappers that return the tag unchanged:
+
+```r
+# module UI code
+agent_input(
+  selectInput(ns("variable"), NULL, choices = NULL, selectize = TRUE),
+  id = "dataspace.feature_space.y_axis",
+  kind = "select_cascaded",
+  depends_on = c("dataspace.feature_space.y_analysis",
+                 "dataspace.feature_space.y_subset"),
+  help = "Y-axis variable; choices depend on the analysis and subset above"
+)
+```
+
+The WP9 capability registry (labels, help text, allowed values, writability)
+is **generated from these declarations** — one source of truth serves
+humans (tooltips), the model (registry/discovery), and the apply protocol
+(validation). New widgets become agent-controllable by registering, not by
+writing a tool.
+
+### 6.3 Agent tool surface (three tiers)
+
+- **Tier 1 — semantic capability tools** (unchanged strategy):
+  `set_scatter_view`, future `set_enrichment_parameters`, … implemented as
+  thin validate + `state_apply` wrappers. Best accuracy for common intents.
+- **Tier 2 — generic widget tools** (now safe because the substrate is
+  reliable): `list_widgets(section)`, `get_widget(id)`,
+  `set_widgets(patch)` — one batched setter, registry-driven validation,
+  WP2-style suggestions. This is what "flexibly control every widget"
+  literally means; it was previously rejected because the substrate could
+  not guarantee it.
+- **Tier 3 — discovery**: `search_ui_capabilities` from WP9, generated from
+  the registry. Progressive disclosure stays (WP1).
+
+Prompt contract: prefer Tier 1 for known intents; Tier 2 only for what
+Tier 1 doesn't cover; the registry tells the model what exists.
+
+### 6.4 Migration phases (each independently valuable)
+
+| Phase | Deliverable | Acceptance criteria |
+|---|---|---|
+| S1 | Store + binding spec + `state_apply` + ack/epoch machinery, pure logic, unit-tested standalone (`R/auxi_widgetStore.R`) | unit suite: diff, ordering, ack, re-assert, origin tracking — no browser needed |
+| S2 | Migrate meta_scatter (x/y axes, axisMode, attr4): store-backed; **delete** `pendingAnalysis`, the hand-rolled cascade ordering, and the restore observer's bespoke versioning; mode side effect gone | today's four repro scenarios + manual-edit stickiness, as generated Tier A cases; no observer-cascade races reproducible under stress (10 rapid interleaved edits/applies) |
+| S3 | Tier-2 generic tools + registry generation from bindings; WP9 re-scoped to consume the registry | agent changes any registered widget (incl. one never exposed before, e.g. heatmap params) in one Tier B run each |
+| S4 | Migrate remaining data-space modules (tables, heatmaps), then result-space; snapshot save/restore re-routed through the store | snapshot round-trip equals store state exactly; Tier A green across modules |
+
+**Known issues assigned here** (explicitly *not* individually patched):
+- axisMode flips on axis-only applies → fixed by S2 diff-only writes
+  (interim: tool description tells the model to prefer explicit axes and
+  not to switch modes unprompted — a prompt line, not a code patch)
+- provider `"null"`/`"{}"` artifacts → S1 per-kind validators normalize
+  known sentinels at the boundary (generalizes the current ad-hoc
+  `.agent_nullable_scalar`)
+
+### 6.5 Risks & mitigations
+
+- **Dynamic UIs re-bind** (renderUI outputs): bindings keyed by canonical
+  id, re-registration idempotent; epoch detects stale bindings.
+- **Server-side selectize**: choices live server-side; setters go through
+  the same `updateSelectizeInput(server=TRUE)` channel — protocol unchanged,
+  but S2 must include a server-selectize widget as an acceptance case.
+- **Feedback loops**: UI→store sync marks origin="user" and never re-asserts;
+  store→UI writes only for diffed keys; ack loop is bounded (3 retries).
+- **Performance**: store is O(registered widgets), re-assert only on diff;
+  stress test in S2 acceptance.
+- **Scope creep**: S1/S2 are self-contained; if S3+ stall, the curated
+  tools still benefit (they move onto the store in S2).
+
+### 6.6 Relationship to existing plan
+
+- WP1–WP7 unchanged (accuracy of curated tools; they gain reliability by
+  being re-implemented on the store in S2).
+- WP8 (new capability tools) becomes cheap: register widgets + thin tool.
+- WP9 (capability registry) is re-scoped: **generated from bindings**
+  instead of hand-maintained.
+- WP10 (state token) becomes trivial: the store epoch *is* the token.
+- The "no tool per widget / no generic set_input" non-goal is amended:
+  generic widget *tools* remain rejected for model-facing primary use, but
+  a registry-validated generic tier becomes permitted once S1/S2 land.
 
 ---
 
@@ -419,6 +567,8 @@ Two cheap-to-expensive steps, log-gated:
 | 0b′ | **Unplanned: ellmer tibble-coercion fix in figure specs** | **DONE** | R/auxi_agentFigures.R — ellmer converts `type_array(type_object)` args into tibbles, so `length(spec$layers)` counted 15 columns, not layers: **every chat-path `create_figure` failed the layer cap regardless of count** (the model was innocent; it even said "empty objects misparsed"). Layers/params now coerced to row-lists before counting; JSON-null→NA params fall back to defaults. Verified live end-to-end (Tier B driver, glm-5.3-flash): volcano prompt → get_state → create_figure (4 layers) → fig_1 rendered, 2702 rows, 416 KB PNG |
 | 0b | WP0 Tier B e2e driver | **first run done** (`tests/e2e_agent/tier_b.mjs`, `node tier_b.mjs "prompt"`) | screenshots + archived log under tests/e2e_agent/artifacts/ |
 | 1 | WP2 suggestions | **DONE** | auxi_agentAssistant.R, auxi_agentFigures.R, tests |
+| 1½ | **§6 control plane S1: widget store + state_apply** | M | new R/auxi_widgetStore.R + unit suite |
+| 1¾ | **§6 control plane S2: migrate meta_scatter onto store** | M–L | deletes hand-rolled sync; fixes axisMode side effect; stress-tested |
 | 1″ | **Unplanned: stale-internal-axes fix (user-reported, 19:49 session)** | **DONE** | meta_scatter's internal xax/yax never track manual triselector edits, so a restore targeting values the internal model already holds changed no reactive and never touched the widgets (quick-badge path was immune via its axisRequest bump). The restore path now bumps axisRequest too, and triselector_module accepts reactive_axis_request so analysis/subset/variable observers re-assert on version bumps. Reproduced: manual y=log.pvalue drift + volcano quick-view apply previously a silent no-op; now corrects. Manual edits still stick (no bump on user input) |
 | 1′ | **Unplanned: mid-restore req-abort fix** | **DONE** | R/module_meta_scatter.R — `current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))` ran before the axis assignment; v1()/v2() are req(input$variable)-guarded, so during an in-flight triselector cascade the req silently aborted the restore observer and the requested axes were lost (reproduced: apply during init lands on defaults). current_axes now tryCatch-guarded; verified racy and settled apply paths |
 | 2 | WP1 sections | M | auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring, tests |
@@ -438,7 +588,18 @@ code paths or adds dependencies.
 
 ---
 
-## 8. Decisions (settled 2026-09-21)
+## 8. Explicit non-goals (rejected approaches)
+
+- Tool per widget; generic `set_input`; generic R/JS/CSS generation.
+- Model reading DOM/HTML/tooltips directly.
+- Giant static UI description in the system prompt.
+- Silent fuzzy-match acceptance of IDs/columns (suggestions only).
+- `validate_figure_spec` as a separate tool (costs the same provider
+  request as a failed create; WP2/WP6 attack the root cause instead).
+
+---
+
+## 9. Decisions (settled 2026-09-21)
 
 All eleven open questions resolved as follows; these are binding for
 implementation:
