@@ -219,6 +219,60 @@ try {
     record('plotly axes reflect the applied quick view', true);
   }
 
+  // ---- 3b. S2 acceptance: mode preservation + manual drift -------------
+  const getMode = () => p1.evaluate(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-feature_space-axisMode']);
+  const yVar = () => p1.evaluate(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable']);
+  const modeBefore = await getMode();
+  record('custom-axes apply leaves the display mode untouched',
+    (await getMode()) === modeBefore, `${modeBefore} -> ${await getMode()}`);
+
+  // return to the volcano axes so log.pvalue is a valid y choice, then
+  // manually drift the y variable (user behavior)
+  await runHook(p1, 'scatter', { space: 'feature', quick_view_id: 'volcano_RE_vs_ME' });
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'log.fdr',
+    null, { timeout: 30000 });
+  await p1.evaluate(() => {
+    const el = document.querySelector('#app-dataspace-feature_space-tris_main_scatter2-variable');
+    if (el && el.selectize) el.selectize.setValue('log.pvalue');
+  });
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'log.pvalue',
+    null, { timeout: 15000 });
+  record('manual variable edit sticks in the widget', (await yVar()) === 'log.pvalue');
+  await p1.waitForTimeout(1500);
+
+  // agent apply targeting the pre-edit value (the drift scenario): the
+  // quick view's axes must correct the manually drifted widget
+  const resDrift = await runHook(p1, 'scatter', { space: 'feature', quick_view_id: 'volcano_RE_vs_ME' });
+  record('drift-correcting apply succeeds', !resDrift.hook_error, resDrift.hook_error || '');
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'log.fdr',
+    null, { timeout: 30000 });
+  record('apply corrects the manually drifted axis to the quick view', (await yVar()) === 'log.fdr');
+  record('drift-correcting apply still leaves the mode untouched',
+    (await getMode()) === modeBefore);
+
+  // stress: 6 rapid interleaved applies; final state must equal the last
+  const targets = [
+    ['PCA|All|PC1(10.5%)', 'PCA|All|PC2(7.2%)'],
+    ['ttest|RE_vs_ME|mean.diff', 'ttest|RE_vs_ME|log.fdr'],
+    ['PCA|All|PC3(5.4%)', 'PCA|All|PC4(4.8%)'],
+  ];
+  let stressOk = true, lastErr = '';
+  for (const [xx, yy] of targets) {
+    const rr = await runHook(p1, 'scatter', { space: 'feature', x_axis: xx, y_axis: yy });
+    if (rr.hook_error) { stressOk = false; lastErr = rr.hook_error; break; }
+  }
+  await p1.waitForFunction(() => {
+    const iv = Shiny.shinyapp.$inputValues;
+    return iv['app-dataspace-feature_space-tris_main_scatter1-variable'] === 'PC3(5.4%)' &&
+           iv['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'PC4(4.8%)';
+  }, null, { timeout: 45000 }).catch(() => { stressOk = false; lastErr = 'final axes never landed'; });
+  record('rapid successive applies converge on the last request', stressOk, lastErr);
+
   // ---- 4. validation negatives ---------------------------------------
   const n1 = await runHook(p1, 'state', { data_space_tab: 'Samples-typo' });
   record('invalid tab rejected with descriptive error',

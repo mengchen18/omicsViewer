@@ -40,10 +40,13 @@ NULL
 
 #' Create a canonical widget store
 #'
-#' @return An environment-based store holding bindings, values, per-key and
-#'   global epochs, pending (unacknowledged) values, and a bounded override
-#'   log. Child stores (namespace-prefixed views) are created with
-#'   \code{\link{widget_store_child}}.
+#' @return An environment-based store holding bindings, values (each key
+#'   keeps a plain value for protocol reads plus a \code{reactiveVal} used
+#'   only as an invalidation signal for Shiny consumers - shiny >= 1.14
+#'   forbids reading reactiveVals outside reactive contexts), per-key and
+#'   global epochs, a reactive epoch counter, pending (unacknowledged)
+#'   values, and a bounded override log. Child stores (namespace-prefixed
+#'   views) are created with \code{\link{widget_store_child}}.
 #' @keywords internal
 #' @rdname widgetStoreHelpers
 widget_store_new <- function() {
@@ -54,6 +57,7 @@ widget_store_new <- function() {
   store$pending <- list()       # canonical id -> list(value, epoch)
   store$origins <- list()       # canonical id -> last write origin
   store$global_epoch <- 0L
+  store$epoch_rv <- shiny::reactiveVal(0L)  # reactive transaction counter
   store$override_log <- list()  # user-overridden in-flight agent writes
   store
 }
@@ -88,8 +92,12 @@ widget_store_child <- function(store, prefix) {
 #' @param help One-sentence help text shared by tooltips and the registry.
 #' @param depends_on Canonical ids this widget's choices depend on (for
 #'   cascaded selects); used to order transactional writes.
-#' @param choices_provider Optional function returning the currently allowed
-#'   values (evaluated at apply time); used by select-like kinds.
+#' @param choices_provider Optional function of the effective state
+#'   returning the currently allowed values for this widget. The function
+#'   receives the full named list of current values (store state overlaid
+#'   with any pending patch entries during transactional validation), which
+#'   is what makes cascaded selects (subset depends on analysis) validate
+#'   correctly inside a single patch.
 #' @param values Optional static allowed values for \code{enum}/\code{slider}.
 #' @param min,max Optional numeric bounds for \code{numeric}/\code{integer}/
 #'   \code{slider}.
@@ -184,6 +192,14 @@ store_register <- function(store, ...) {
   if (!is.null(store$parent)) {
     prefixer <- function(b) {
       b$id <- .widget_store_key(store, b$id)
+      if (length(b$depends_on)) {
+        # depends_on entries are module-local references: prefix them too,
+        # unless already fully qualified for this namespace
+        b$depends_on <- vapply(b$depends_on, function(d) {
+          if (startsWith(d, paste0(store$prefix, "."))) d
+          else .widget_store_key(store, d)
+        }, character(1), USE.NAMES = FALSE)
+      }
       b
     }
     bindings <- lapply(bindings, prefixer)
@@ -197,7 +213,7 @@ store_register <- function(store, ...) {
       stop("Widget already registered: ", id)
     store$bindings[[id]] <- b
     store$epochs[[id]] <- 0L
-    store$values[[id]] <- list(val = NULL)
+    store$values[[id]] <- list(val = NULL, rv = shiny::reactiveVal(NULL))
   }
   # resolve dependencies after all registrations in this call
   known <- names(store$bindings)
@@ -251,9 +267,9 @@ store_register <- function(store, ...) {
     value
 }
 
-.widget_store_allowed_values <- function(binding) {
+.widget_store_allowed_values <- function(binding, effective) {
   if (is.function(binding$choices_provider)) {
-    tryCatch(binding$choices_provider(), error = function(e) NULL)
+    tryCatch(binding$choices_provider(effective), error = function(e) NULL)
   } else if (!is.null(binding$values)) {
     binding$values
   } else {
@@ -261,7 +277,7 @@ store_register <- function(store, ...) {
   }
 }
 
-.widget_store_validate_value <- function(binding, value) {
+.widget_store_validate_value <- function(binding, value, effective) {
   value <- .widget_store_sentinel(value)
   if (is.null(value))
     return(list(value = NULL))
@@ -271,7 +287,7 @@ store_register <- function(store, ...) {
     if (!is.character(value) || length(value) != 1L || !nzchar(value))
       return(list(error = paste(binding$id, "requires a single non-empty string.")))
     if (kind %in% c("select", "select_cascaded", "tabset", "navbar")) {
-      allowed <- .widget_store_allowed_values(binding)
+      allowed <- .widget_store_allowed_values(binding, effective)
       if (!is.null(allowed) && !value %in% allowed) {
         hint <- .agent_suggest_text(value, allowed)
         return(list(error = paste0(
@@ -357,7 +373,7 @@ store_read <- function(store, ids = NULL) {
   if (is.null(store$parent)) {
     want <- if (is.null(ids)) names(store$values) else ids
   } else {
-    want <- vapply(ids %||% character(), .widget_store_key,
+    want <- vapply(ids %||% character(), function(k) .widget_store_key(store, k),
                    character(1), USE.NAMES = FALSE)
     if (!length(want)) want <- names(store$values)
     store <- store$parent
@@ -382,12 +398,19 @@ store_read <- function(store, ids = NULL) {
 #' @param origin One of \code{"agent"}, \code{"restore"}, \code{"system"}.
 #'   Agent-origin writes require agent-writable (user-editable) widgets;
 #'   restore-origin writes may also set internal state.
+#' @param strict TRUE (default): any invalid value aborts the whole
+#'   transaction. FALSE: invalid values are rejected per key (recorded in
+#'   \code{receipt$rejected}) and the valid remainder still applies - used
+#'   by restores, where one module's transient junk (e.g. an unset
+#'   \code{--select--} placeholder) must not veto unrelated keys.
 #' @return Invisible receipt: \code{applied} (ordered ids), \code{diff},
-#'   \code{epochs}, \code{skipped} (no-op keys), \code{global_epoch}.
+#'   \code{epochs}, \code{skipped} (no-op keys), \code{global_epoch},
+#'   and (when not strict) \code{rejected}.
 #' @keywords internal
 #' @rdname widgetStoreHelpers
 store_apply <- function(store, patch,
-                        origin = c("agent", "restore", "system")) {
+                        origin = c("agent", "restore", "system"),
+                        strict = TRUE) {
   origin <- match.arg(origin)
   if (is.null(store$parent)) {
     ids <- names(patch)
@@ -401,7 +424,7 @@ store_apply <- function(store, patch,
   if (!is.list(patch))
     stop("Patch must be a named list.")
 
-  # drop explicit NULLs (omitted sentinels) and validate every entry first
+  # drop explicit NULLs (omitted sentinels)
   entries <- list()
   for (id in ids) {
     value <- .widget_store_sentinel(patch[[id]])
@@ -412,14 +435,35 @@ store_apply <- function(store, patch,
            .agent_suggest_text(id, names(store$bindings)))
     if (origin == "agent" && !binding$agent_writable)
       stop("Widget is not user-editable and cannot be set by the agent: ", id)
-    checked <- .widget_store_validate_value(binding, value)
-    if (!is.null(checked$error))
-      stop(checked$error)
+    entries[[id]] <- value
+  }
+
+  # Validate in dependency order against an *effective* view of the state
+  # (current values overlaid with earlier patch entries). This is what lets
+  # one patch set a cascaded group (analysis -> subset -> variable) whose
+  # members are only jointly valid: the subset is checked against the
+  # analysis the SAME patch is about to install.
+  current <- store_read(store, names(store$bindings))
+  plan_order <- .store_write_plan(store, names(entries))
+  effective <- current
+  rejected <- list()
+  for (id in plan_order) {
+    checked <- .widget_store_validate_value(store$bindings[[id]], entries[[id]],
+                                            effective)
+    if (!is.null(checked$error)) {
+      if (strict)
+        stop(checked$error)
+      # keep the effective view unchanged so downstream keys validate
+      # against the pre-existing state, and record the rejection
+      rejected[[length(rejected) + 1L]] <- list(id = id, reason = checked$error)
+      entries[[id]] <- NULL
+      next
+    }
     entries[[id]] <- checked$value
+    effective[[id]] <- checked$value
   }
 
   # diff against the store: only genuinely changed keys are written
-  current <- store_read(store, names(entries))
   diff_keys <- names(entries)[!vapply(names(entries), function(id) {
     identical(entries[[id]], current[[id]])
   }, logical(1))]
@@ -427,21 +471,27 @@ store_apply <- function(store, patch,
   plan <- .store_write_plan(store, diff_keys)
   for (id in plan) {
     store$values[[id]]$val <- entries[[id]]
+    store$values[[id]]$rv(entries[[id]])
     store$epochs[[id]] <- (store$epochs[[id]] %||% 0L) + 1L
     store$origins[[id]] <- origin
     store$pending[[id]] <- list(value = entries[[id]],
                                 epoch = store$epochs[[id]])
   }
-  if (length(plan))
+  if (length(plan)) {
     store$global_epoch <- store$global_epoch + 1L
+    store$epoch_rv(store$global_epoch)  # invalidate reactive consumers once per transaction
+  }
 
-  invisible(list(
+  receipt <- list(
     applied = plan,
     diff = entries[plan],
     epochs = store$epochs[plan],
     skipped = setdiff(names(entries), plan),
     global_epoch = store$global_epoch
-  ))
+  )
+  if (!strict)
+    receipt$rejected <- rejected
+  invisible(receipt)
 }
 
 ############################################################################
@@ -497,8 +547,18 @@ store_sync_from_ui <- function(store, id, value) {
   binding <- store$bindings[[key]]
   if (is.null(binding))
     return(invisible(FALSE))
-  checked <- .widget_store_validate_value(binding, value)
+  checked <- .widget_store_validate_value(binding, value,
+                                          store_read(store, names(store$bindings)))
   value <- if (is.null(checked$error)) checked$value else value
+  # acknowledgement: a widget confirming an in-flight external write is NOT
+  # a user override - clear the pending entry and keep the write's origin
+  pending <- store$pending[[key]]
+  if (!is.null(pending) && identical(value, pending$value)) {
+    store$pending[[key]] <- NULL
+    store$values[[key]]$val <- value
+    store$values[[key]]$rv(value)
+    return(invisible(FALSE))
+  }
   overridden <- !is.null(store$pending[[key]])
   if (overridden) {
     store$override_log <- c(
@@ -512,8 +572,45 @@ store_sync_from_ui <- function(store, id, value) {
     store$pending[[key]] <- NULL
   }
   store$values[[key]]$val <- value
+  store$values[[key]]$rv(value)
   store$origins[[key]] <- "user"
   invisible(overridden)
+}
+
+#' React to one widget's store value
+#'
+#' S2 session glue: returns a reactive expression reading the key's
+#' reactiveVal, so effects can depend on store writes directly.
+#'
+#' @param store Store (or child view).
+#' @param id Canonical id.
+#' @return A reactive expression yielding the current stored value.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_watch <- function(store, id) {
+  key <- .widget_store_key(store, id)
+  root <- if (is.null(store$parent)) store else store$parent
+  # touch the reactiveVal (the invalidation signal), read the plain value
+  shiny::reactive({
+    root$values[[key]]$rv()
+    root$values[[key]]$val
+  })
+}
+
+#' Reactive transaction counter for the store
+#'
+#' Bumped once per applying transaction. Consumers that must re-assert after
+#' ANY external write (e.g. a cascade group) watch this instead of tracking
+#' per-key epochs.
+#'
+#' @param store Store (or child view).
+#' @return A reactive expression yielding the global epoch.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_epoch <- function(store) {
+  root <- if (is.null(store$parent)) store else store$parent
+  # epoch_rv stores the global epoch as its value
+  shiny::reactive(root$epoch_rv())
 }
 
 ############################################################################
@@ -587,9 +684,10 @@ store_registry_view <- function(store, prefix = NULL) {
     if (!b$agent_writable) next
     if (!is.null(prefix) && !startsWith(id, prefix)) next
     allowed <- NULL
-    if (is.function(b$choices_provider))
-      allowed <- tryCatch(b$choices_provider(), error = function(e) NULL)
-    else if (!is.null(b$values))
+    if (is.function(b$choices_provider)) {
+      vals <- store_read(store, names(store$bindings))
+      allowed <- tryCatch(b$choices_provider(vals), error = function(e) NULL)
+    } else if (!is.null(b$values))
       allowed <- b$values
     out[[length(out) + 1L]] <- list(
       id = id, kind = b$kind, label = b$label, help = b$help,

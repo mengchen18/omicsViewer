@@ -234,8 +234,12 @@ L1_data_space_module <- function(
   id, expr, pdata, fdata,
   reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),
   reactive_x_f = reactive(NULL), reactive_y_f = reactive(NULL),
-  cormat = reactive(NULL), status = reactive(NULL)
+  cormat = reactive(NULL), status = reactive(NULL),
+  store = NULL
 ) {
+  stopifnot(!is.null(store))
+  store_feature <- widget_store_child(store, "dataspace.feature_space")
+  store_sample <- widget_store_child(store, "dataspace.sample_space")
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -281,7 +285,8 @@ L1_data_space_module <- function(
       "feature_space",
       reactive_meta = fdata, reactive_expr = expr,
       combine = "feature", source = "scatter_meta_feature", reactive_x = reactive_x_f,
-      reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig)
+      reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig),
+      store = store_feature
     )
 
     # ============ sample space - scatter plot ============
@@ -289,7 +294,8 @@ L1_data_space_module <- function(
     s_sample_fig <- meta_scatter_module(
       "sample_space",
       reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
-      reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig)
+      reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig),
+      store = store_sample
     )
 
     # ============ level 1 selection - forward to dynamic heatmap ============

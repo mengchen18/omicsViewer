@@ -103,12 +103,18 @@ meta_scatter_ui <- function(id) {
 #' @param reactive_x reactive value for pre-selected x-aixs
 #' @param reactive_y reactive value for pre-selected y-aixs
 #' @param reactive_status the status of scatter plot, e.g. x-, y-axis, color variable, shape variable, etc.
+#' @param store Child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this scatter space. Axis and
+#'   mode state lives in the store; the hand-rolled xax/yax/axisRequest
+#'   sync machinery was replaced by the store protocol (plan section 6,
+#'   phase S2).
 #'
 meta_scatter_module <- function(
   id, reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
   combine = c("pheno", "feature"), source = "plotlyscattersource",
   reactive_x = reactive(NULL), reactive_y = reactive(NULL),
-  reactive_status = reactive(NULL)
+  reactive_status = reactive(NULL),
+  store = NULL
 ) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -142,50 +148,149 @@ meta_scatter_module <- function(
       activeId = activeQuickView
     )
 
-    # Axis requests are versioned so a badge can restore an axis combination
-    # after the user manually changed the triselectors.
-    axisRequest <- reactiveVal(0)
+    # ------------------------------------------------------------------
+    # Canonical widget-store bindings (control plane, plan section 6).
+    # The store is the single source of truth for the axis and mode state;
+    # the triselector cascade pushes store values to the UI, and the sync
+    # observer below mirrors user edits (and acknowledgements) back.
+    # ------------------------------------------------------------------
+    stopifnot(!is.null(store))
+    kx1 <- paste0(store$prefix, ".x_analysis")
+    kx2 <- paste0(store$prefix, ".x_subset")
+    kx3 <- paste0(store$prefix, ".x_variable")
+    ky1 <- paste0(store$prefix, ".y_analysis")
+    ky2 <- paste0(store$prefix, ".y_subset")
+    ky3 <- paste0(store$prefix, ".y_variable")
+    kmode <- paste0(store$prefix, ".axis_mode")
+    store_register(
+      store,
+      widget_binding("x_analysis", "select", label = "X-axis analysis",
+        help = "Analysis category for the X axis",
+        choices_provider = function(v) unique(triset()[, 1])),
+      widget_binding("x_subset", "select", label = "X-axis subset",
+        help = "Subset within the X-axis analysis", depends_on = "x_analysis",
+        choices_provider = function(v)
+          unique(triset()[triset()[, 1] %in% v[[kx1]], 2])),
+      widget_binding("x_variable", "select_cascaded", label = "X-axis variable",
+        help = "Annotation variable plotted on the X axis",
+        depends_on = c("x_analysis", "x_subset"),
+        choices_provider = function(v)
+          triset()[triset()[, 1] %in% v[[kx1]] & triset()[, 2] %in% v[[kx2]], 3]),
+      widget_binding("y_analysis", "select", label = "Y-axis analysis",
+        help = "Analysis category for the Y axis",
+        choices_provider = function(v) unique(triset()[, 1])),
+      widget_binding("y_subset", "select", label = "Y-axis subset",
+        help = "Subset within the Y-axis analysis", depends_on = "y_analysis",
+        choices_provider = function(v)
+          unique(triset()[triset()[, 1] %in% v[[ky1]], 2])),
+      widget_binding("y_variable", "select_cascaded", label = "Y-axis variable",
+        help = "Annotation variable plotted on the Y axis",
+        depends_on = c("y_analysis", "y_subset"),
+        choices_provider = function(v)
+          triset()[triset()[, 1] %in% v[[ky1]] & triset()[, 2] %in% v[[ky2]], 3]),
+      widget_binding("axis_mode", "enum", label = "Axis mode",
+        help = "Quick-view badges or custom triselectors",
+        values = c("quick", "custom"))
+    )
 
-    # Axis config: Parse pipe-separated strings into list(v1, v2, v3)
-    # Use reactiveVal pattern (not pure reactive) to prevent multiple invalidations
-    xax <- reactiveVal(list())
+    # Seed the store with the dataset's default axes whenever the defaults
+    # change (initial load, dataset reload). A snapshot/agent restore that
+    # lands first wins: seeding skips keys the store already holds.
+    .scatter_axis_triple <- function(axis_string) {
+      if (is.null(axis_string)) return(NULL)
+      l <- strsplit(axis_string, "\\|")[[1]]
+      if (length(l) != 3L || any(!nzchar(l))) return(NULL)
+      l
+    }
+    last_seeded <- character()
     observe({
-      r <- list()
-      if (!is.null(reactive_x())) {
-        l <- strsplit(reactive_x(), "\\|")[[1]]
-        r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
-      }
-      xax(r)
-      # isolate prevents this observer from taking a dependency on the
-      # reactiveVal it updates, which would otherwise invalidate itself.
-      axisRequest(isolate(axisRequest()) + 1)
-    })
-
-    yax <- reactiveVal(list())
-    observe({
-      r <- list()
-      if (!is.null(reactive_y())) {
-        l <- strsplit(reactive_y(), "\\|")[[1]]
-        r <- list(v1 = l[1], v2 = l[2], v3 = l[3])
-      }
-      yax(r)
-      axisRequest(isolate(axisRequest()) + 1)
+      dx <- reactive_x()
+      dy <- reactive_y()
+      req(nrow(ts <- triset()) > 0)
+      stamp <- c(dx %||% "", dy %||% "")
+      if (identical(stamp, last_seeded))
+        return(NULL)
+      last_seeded <<- stamp
+      patch <- list()
+      tx <- .scatter_axis_triple(dx)
+      ty <- .scatter_axis_triple(dy)
+      vals <- store_read(store, c("x_analysis", "y_analysis"))
+      if (!is.null(tx) && is.null(vals[[kx1]]))
+        patch <- c(patch, stats::setNames(as.list(tx), c("x_analysis", "x_subset", "x_variable")))
+      if (!is.null(ty) && is.null(vals[[ky1]]))
+        patch <- c(patch, stats::setNames(as.list(ty), c("y_analysis", "y_subset", "y_variable")))
+      if (!length(patch))
+        return(NULL)
+      tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+               error = function(e) NULL)
     })
 
     v1 <- triselector_module("tris_main_scatter1",
       reactive_x = triset, label = "X-axis",
-      reactive_selector1 = reactive({ axisRequest(); xax()$v1 }),
-      reactive_selector2 = reactive({ axisRequest(); xax()$v2 }),
-      reactive_selector3 = reactive({ axisRequest(); xax()$v3 }),
-      reactive_axis_request = reactive(axisRequest())
+      reactive_selector1 = store_watch(store, "x_analysis"),
+      reactive_selector2 = store_watch(store, "x_subset"),
+      reactive_selector3 = store_watch(store, "x_variable"),
+      reactive_axis_request = store_epoch(store)
     )
     v2 <- triselector_module("tris_main_scatter2",
       reactive_x = triset, label = "Y-axis",
-      reactive_selector1 = reactive({ axisRequest(); yax()$v1 }),
-      reactive_selector2 = reactive({ axisRequest(); yax()$v2 }),
-      reactive_selector3 = reactive({ axisRequest(); yax()$v3 }),
-      reactive_axis_request = reactive(axisRequest())
+      reactive_selector1 = store_watch(store, "y_analysis"),
+      reactive_selector2 = store_watch(store, "y_subset"),
+      reactive_selector3 = store_watch(store, "y_variable"),
+      reactive_axis_request = store_epoch(store)
     )
+
+    # UI -> store synchronisation: user edits and widget acknowledgements.
+    # store_sync_from_ui is acknowledgement-aware: confirming an in-flight
+    # external write clears its pending entry; a diverging value is a user
+    # override (user always wins). Reads are req-guarded, hence tryCatch.
+    .scatter_read_tris <- function(sel) {
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    }
+    .scatter_component_set <- function(sel) {
+      # triselectors report the "--select--" placeholder while unset; that is
+      # "no value", not a user choice, and must not enter the store
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    }
+    observe({
+      xv <- .scatter_read_tris(v1)
+      yv <- .scatter_read_tris(v2)
+      if (.scatter_component_set(xv)) {
+        store_sync_from_ui(store, "x_analysis", xv$analysis)
+        store_sync_from_ui(store, "x_subset", xv$subset)
+        store_sync_from_ui(store, "x_variable", xv$variable)
+      }
+      if (.scatter_component_set(yv)) {
+        store_sync_from_ui(store, "y_analysis", yv$analysis)
+        store_sync_from_ui(store, "y_subset", yv$subset)
+        store_sync_from_ui(store, "y_variable", yv$variable)
+      }
+    })
+    observeEvent(input$axisMode, {
+      updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
+      if (input$axisMode %in% c("quick", "custom"))
+        store_sync_from_ui(store, "axis_mode", input$axisMode)
+    }, ignoreInit = TRUE)
+
+    # Store -> UI push for the axis mode radio: external writes only (a
+    # pending entry marks them); user clicks sync back above.
+    axisModeRoot <- if (is.null(store$parent)) store else store$parent
+    observe({
+      store_epoch(store)()
+      mode <- store_read(store, "axis_mode")[[1]]
+      if (is.null(mode)) return(NULL)
+      if (is.null(axisModeRoot$pending[[kmode]])) return(NULL)
+      updateRadioGroupButtons(
+        session, "axisMode",
+        choices = c("Quick view" = "quick", "Custom visualization" = "custom"),
+        selected = mode
+      )
+      updateTabsetPanel(session, "axisModeTabs", selected = mode)
+    })
 
     # Plotly owns the visible box/lasso immediately after a user selection. We
     # therefore do not make selection emphasis a reactive dependency of the
@@ -216,9 +321,11 @@ meta_scatter_module <- function(
       req(xx <- .quick_view_axis(qv$x))
       req(yy <- .quick_view_axis(qv$y))
 
-      xax(xx)
-      yax(yy)
-      axisRequest(isolate(axisRequest()) + 1)
+      store_apply(store, c(
+        stats::setNames(as.list(xx), c("x_analysis", "x_subset", "x_variable")),
+        stats::setNames(as.list(yy), c("y_analysis", "y_subset", "y_variable")),
+        list(axis_mode = "quick")
+      ), origin = "system")
     }, ignoreInit = TRUE)
 
     # Keep the compact mode switch and the header-less tab panel in sync. The
@@ -438,10 +545,12 @@ meta_scatter_module <- function(
                  error = function(e) NULL)
       }
       current <- isolate(selVal())
+      vals <- store_read(store, c("x_analysis", "x_subset", "x_variable",
+                                   "y_analysis", "y_subset", "y_variable"))
       list(
         axisMode = input$axisMode,
-        xax = safe_state_value(v1()),
-        yax = safe_state_value(v2()),
+        xax = list(v1 = vals[[kx1]], v2 = vals[[kx2]], v3 = vals[[kx3]]),
+        yax = list(v1 = vals[[ky1]], v2 = vals[[ky2]], v3 = vals[[ky3]]),
         showRegLine = showRegLine(),
         attr4 = safe_state_value(attr4select$status),
         selection_clicked = current$clicked,
@@ -451,46 +560,39 @@ meta_scatter_module <- function(
     })
 
     ############## status restore ###############
-    # Consolidate all status restoration into single observer
+    # Consolidate all status restoration into single observer. Axis and mode
+    # state goes through the canonical store (transactional, diff-only),
+    # which replaces the former direct radio updates and xax/yax writes:
+    # keys absent from the status are never touched, so restores have no
+    # side effects beyond what the snapshot recorded.
     observeEvent(reactive_status(), {
       s <- reactive_status()
       if (is.null(s)) {
         return()
       }
 
-      # Restore compact/custom mode first so the corresponding controls are visible.
-      axis_mode <- if (is.null(s$axisMode)) "quick" else s$axisMode
-      if (!axis_mode %in% c("quick", "custom"))
-        axis_mode <- "quick"
-      updateRadioGroupButtons(
-        session, "axisMode",
-        choices = c("Quick view" = "quick", "Custom visualization" = "custom"),
-        selected = axis_mode
-      )
-      updateTabsetPanel(session, "axisModeTabs", selected = axis_mode)
-
-      # Restore axis selections
       restored_axes <- .scatter_axis_signature(s$xax, s$yax)
       # v1()/v2() are req(input$variable)-guarded; while a triselector cascade
-      # is still in flight they abort, which would otherwise consume this
-      # restore BEFORE the axes below are assigned (silently losing the
-      # requested view). current_axes only feeds a redraw-trigger comparison,
-      # so NULL on failure is harmless and the restore always completes.
+      # is still in flight they abort. current_axes only feeds a redraw-trigger
+      # comparison, so NULL on failure is harmless.
       current_axes <- tryCatch(
         .scatter_axis_signature(isolate(v1()), isolate(v2())),
         error = function(e) NULL
       )
       selectionDisplayAxes(NULL)
       pendingSelectionDisplayAxes(restored_axes)
-      xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
-      yax(list(v1 = s$yax[[1]], v2 = s$yax[[2]], v3 = s$yax[[3]]))
-      # Mirror the quick-badge path: bump the axis-request version so the
-      # triselectors re-assert the requested values even when the internal
-      # xax/yax model already holds them. Without the bump, a restore to axes
-      # the model already contains (e.g. after the user changed the widgets
-      # manually, leaving xax/yax stale) changes no reactive value and the
-      # widgets are never corrected.
-      axisRequest(isolate(axisRequest()) + 1L)
+
+      patch <- list()
+      if (identical(length(s$xax), 3L))
+        patch <- c(patch, stats::setNames(as.list(s$xax),
+                 c("x_analysis", "x_subset", "x_variable")))
+      if (identical(length(s$yax), 3L))
+        patch <- c(patch, stats::setNames(as.list(s$yax),
+                 c("y_analysis", "y_subset", "y_variable")))
+      if (!is.null(s$axisMode) && s$axisMode %in% c("quick", "custom"))
+        patch$axis_mode <- s$axisMode
+      tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+               error = function(e) NULL)
       if (identical(restored_axes, current_axes))
         selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
 

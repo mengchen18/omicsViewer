@@ -222,26 +222,30 @@ triselector_module <- function(id,
       # updatePickerInput(session, inputId = "analysis", choices = cc, selected = ss)
     })
   
-  # updat selectize input when reactive_x is given
+  # Cascaded choices derive from the REQUESTED state (reactive_selector1/2,
+  # i.e. the canonical store values), never from the in-flight inputs: when
+  # a transaction changes analysis -> subset -> variable, input$analysis
+  # still holds the previous value while these observers run, which
+  # previously produced stale choice sets, dropped selections, and let the
+  # UI-sync mirror transitional widget states back as user edits. Manual
+  # edits reach the store through the module-level sync observer, which
+  # re-invalidates reactive_selector1/2, so user flows re-fire identically.
   observe({
     reactive_axis_request()  # version bumps force re-assertion after restores
     req(vx <- validated_x())
-    input$analysis
-    req(input$analysis)
-    cc <- unique(vx[vx[, 1] == input$analysis, 2])
+    req(a1 <- reactive_selector1())
+    cc <- unique(vx[vx[, 1] == a1, 2])
     updateSelectInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
     # updatePickerInput(session, inputId = "subset", choices = cc, selected = reactive_selector2())
   })
   
   observe({
     reactive_axis_request()  # version bumps force re-assertion after restores
-    input$analysis
-    input$subset
-    req(input$analysis)
-    req(input$subset)
+    req(a1 <- reactive_selector1())
+    req(a2 <- reactive_selector2())
     req(vx <- validated_x())
 
-    cc <- vx[, 3][vx[, 1] == input$analysis & vx[, 2] == input$subset]
+    cc <- vx[, 3][vx[, 1] == a1 & vx[, 2] == a2]
     cc <- c("--select--", cc)
     preselected <- try(match.arg(reactive_selector3(), cc), silent = TRUE)
       if (inherits(preselected, "try-error"))

@@ -34,7 +34,9 @@ scatterApp <- function(input, output, session) {
     reactive_meta = reactive(pdata),
     reactive_expr = reactive(expr),
     combine = "pheno",
-    source = "selectiontest"
+    source = "selectiontest",
+    store = omicsViewer:::widget_store_child(
+      omicsViewer:::widget_store_new(), "test.scatter")
   )
 }
 
@@ -96,7 +98,9 @@ restorationApp <- function(input, output, session) {
     reactive_expr = reactive(expr),
     combine = "pheno",
     source = "restoretest",
-    reactive_status = restoration_status
+    reactive_status = restoration_status,
+    store = omicsViewer:::widget_store_child(
+      omicsViewer:::widget_store_new(), "test.restore")
   )
 }
 

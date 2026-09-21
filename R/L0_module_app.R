@@ -543,10 +543,13 @@ app_module <- function(
     }
   })
 
+  app_store <- widget_store_new()
+
   v1 <- L1_data_space_module(
     "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
-    status = reactive(esv_status()$panels$data_space), cormat = cormat
+    status = reactive(esv_status()$panels$data_space), cormat = cormat,
+    store = app_store
   )
 
   sameValues <- function(a, b) {
@@ -762,7 +765,9 @@ app_module <- function(
       parts <- strsplit(axis, "|", fixed = TRUE)[[1]]
       as.list(stats::setNames(parts, c("v1", "v2", "v3")))
     }
-    full_state$panels$data_space[[state_key]]$axisMode <- view$mode
+    # Deliberately do NOT write axisMode: a scatter-view change updates the
+    # axes only, and the display mode (quick badges vs custom triselectors)
+    # is left exactly as the user set it (plan section 6, diff-only writes).
     full_state$panels$data_space[[state_key]]$xax <- split_axis(view$x_axis)
     full_state$panels$data_space[[state_key]]$yax <- split_axis(view$y_axis)
     full_state$app$data_active_tab <- if (view$space == "feature") "Feature" else "Sample"

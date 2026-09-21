@@ -564,7 +564,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         description = paste(
           "Set a feature-space or sample-space scatter view after an explicit user request.",
           "Use quick_view_id from get_omics_viewer_state when possible; otherwise provide exact x_axis and y_axis names.",
-          "Does not change selections or run statistical tests."
+          "quick_view_id is a shorthand for an axis pair: it changes the axes only and never switches the display mode.",
+          "Does not change selections, tabs, or the quick/custom display mode, and runs no statistical tests."
         ),
         arguments = list(
           space = ellmer::type_enum(c("feature", "sample"), "Scatter space to update."),
