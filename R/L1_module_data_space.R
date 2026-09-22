@@ -243,6 +243,9 @@ L1_data_space_module <- function(
   store_cor_heatmap <- widget_store_child(store, "dataspace.cor_heatmap")
   store_expr_heatmap <- widget_store_child(store, "dataspace.expr_heatmap")
   store_dyn_heatmap <- widget_store_child(store, "dataspace.dyn_heatmap")
+  store_tab_pheno <- widget_store_child(store, "dataspace.tab_pheno")
+  store_tab_feature <- widget_store_child(store, "dataspace.tab_feature")
+  store_tab_expr <- widget_store_child(store, "dataspace.tab_expr")
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -411,12 +414,14 @@ L1_data_space_module <- function(
     tab_pd <- dataTable_module(
       "tab_pheno",
       reactive_data = pdata,
-      tab_status = reactive(status()$eset_pdata_tab), tab_rows = tab_rows_pdata
+      tab_status = reactive(status()$eset_pdata_tab), tab_rows = tab_rows_pdata,
+      store = store_tab_pheno
     )
     tab_fd <- dataTable_module(
       "tab_feature",
       reactive_data = fdata,
-      tab_status = reactive(status()$eset_fdata_tab), tab_rows = tab_rows_fdata
+      tab_status = reactive(status()$eset_fdata_tab), tab_rows = tab_rows_fdata,
+      store = store_tab_feature
     )
     tab_expr <- dataTable_module(
       "tab_expr",
@@ -424,7 +429,8 @@ L1_data_space_module <- function(
         req(expr())
         cbind(data.frame(feature = rownames(expr()), expr()))
       }), tab_status = reactive(status()$eset_exprs_tab),
-      tab_rows = tab_rows_fdata, selector = FALSE
+      tab_rows = tab_rows_fdata, selector = FALSE,
+      store = store_tab_expr
     )
 
     ### return selected feature and samples

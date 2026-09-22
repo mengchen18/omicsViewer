@@ -438,3 +438,103 @@ ok(
                                     r$rejected[[1]]$reason),
   "invalid sort values are rejected with suggestions"
 )
+
+## ------------------------------------------ dataTable module wiring ----
+# S4: the three data-space tables register their user-editable surface
+# (multi-selection switch + shown-columns set) on the canonical store.
+.dt_cols_reg <- Filter(
+  function(x) startsWith(x$id, "dataspace.tab_feature."),
+  store_registry_view(widget_store_new()))
+dt_root <- widget_store_new()
+dt_store <- widget_store_child(dt_root, "dataspace.tab_feature")
+.dt_pd <- data.frame(
+  `General|All|group` = rep(c("A", "B"), each = 15),
+  `PCA|All|PC1` = rnorm(30),
+  `mean|Origin|RE` = rnorm(30),
+  check.names = FALSE,
+  row.names = paste0("feature_", sprintf("%03d", 1:30)))
+.dt_state <- list(start = 0L, length = 25L,
+                  order = list(c(1L, "asc")),
+                  columns = list(list(search = list(search = ""))))
+.sent_dt <- new.env(); .sent_dt$msgs <- list(); .sent_dt$s4 <- NULL
+dt_result <- NULL
+app_dt <- function(input, output, session) {
+  dt_result <<- omicsViewer:::dataTable_module(
+    "dt", reactive_data = shiny::reactive(.dt_pd),
+    tab_status = shiny::reactive(NULL), tab_rows = shiny::reactive(TRUE),
+    store = dt_store)
+}
+shiny::testServer(app_dt, {
+  .spy_input_messages(session, .sent_dt)
+
+  # initialize: switch off (warm the ignoreInit swallow), then a user edit
+  session$setInputs(`dt-multisel` = FALSE)
+  session$flushReact()
+  ok(
+    identical(store_read(dt_store)$dataspace.tab_feature.columns,
+              "General|All|group"),
+    "the seed observer stores the default shown columns"
+  )
+  session$setInputs(`dt-multisel` = TRUE)
+  session$flushReact()
+  ok(
+    identical(store_read(dt_store)$dataspace.tab_feature.multi_selection, TRUE),
+    "user multi-selection toggle syncs into the store"
+  )
+
+  # external column write: store -> scn push, observed through the table
+  # status contract (showColumns)
+  store_apply(dt_store, list(columns = c("PCA|All|PC1", "mean|Origin|RE")),
+              origin = "agent")
+  session$flushReact()
+  session$setInputs(`dt-table_state` = .dt_state)
+  session$flushReact()
+  ok(
+    identical(attr(dt_result(), "status")$showColumns,
+              c("PCA|All|PC1", "mean|Origin|RE")),
+    "agent column write pushes the shown-column set in order"
+  )
+
+  # external switch write: store -> updateSwitchInput (MockShinySession
+  # only relays the message, so assert on the spied message)
+  store_apply(dt_store, list(multi_selection = FALSE), origin = "agent")
+  session$flushReact()
+  session$setInputs(`dt-table_state` = .dt_state)
+  session$flushReact()
+  ok(
+    any(vapply(.sent_dt$msgs, function(m)
+      grepl("(^|\\.)multisel$", m$id) && identical(m$msg$value %||% m$msg$checked, FALSE),
+      logical(1))),
+    "agent multi-selection write pushes the switch"
+  )
+
+  # generic tier over the table keys (inside the session: providers read
+  # module reactives)
+  s4 <- list()
+  s4$ok <- agent_widget_apply(dt_root,
+    '{"dataspace.tab_feature.columns": ["General|All|group"], "dataspace.tab_feature.multi_selection": true}')
+  s4$empty <- agent_widget_apply(dt_root,
+    '{"dataspace.tab_feature.columns": []}')
+  s4$bad <- agent_widget_apply(dt_root,
+    '{"dataspace.tab_feature.columns": ["PC1"]}')
+  .sent_dt$s4 <- s4
+})
+r <- .sent_dt$s4$ok
+ok(
+  identical(sort(r$applied), sort(c("dataspace.tab_feature.columns",
+                                    "dataspace.tab_feature.multi_selection"))) &&
+    identical(r$applied_values$dataspace.tab_feature.columns,
+              "General|All|group"),
+  "generic tier applies table columns and switches"
+)
+r <- .sent_dt$s4$empty
+ok(
+  length(r$applied) == 0L && length(r$rejected) == 1L &&
+    grepl("at least 1", r$rejected[[1]]$reason),
+  "emptying the shown columns is rejected (one column must remain)"
+)
+r <- .sent_dt$s4$bad
+ok(
+  length(r$rejected) == 1L && grepl("PCA\\|All\\|PC1", r$rejected[[1]]$reason),
+  "unknown table columns are rejected with suggestions"
+)

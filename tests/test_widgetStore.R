@@ -385,3 +385,30 @@ ok(
     identical(view$allowed_values, c("group", "batch", "stage")),
   "registry view reports multi_select bindings with allowed values"
 )
+
+# min/max bound the number of selected entries
+ms3 <- widget_store_new()
+store_register(ms3,
+  widget_binding("tab.columns", "multi_select", label = "Shown",
+    help = "columns", min = 1L, max = 3L,
+    choices_provider = function(v) c("a", "b", "c", "d")))
+ok(
+  ut_cmp_error(store_apply(ms3, list(tab.columns = character(0))),
+    "at least 1"),
+  "multi_select min bounds the selection count (empty rejected)"
+)
+ok(
+  ut_cmp_error(store_apply(ms3, list(tab.columns = c("a", "b", "c", "d"))),
+    "at most 3"),
+  "multi_select max bounds the selection count"
+)
+r <- store_apply(ms3, list(tab.columns = ""), strict = FALSE)
+ok(
+  length(r$rejected) == 1L && grepl("at least 1", r$rejected[[1]]$reason),
+  "clearing below min is per-key resilient under strict=FALSE"
+)
+r <- store_apply(ms3, list(tab.columns = c("b", "a")))
+ok(
+  identical(store_read(ms3)$tab.columns, c("b", "a")),
+  "in-bounds multi_select applies preserving order"
+)

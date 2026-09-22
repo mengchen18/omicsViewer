@@ -104,7 +104,8 @@ widget_store_child <- function(store, prefix) {
 #'   correctly inside a single patch.
 #' @param values Optional static allowed values for \code{enum}/\code{slider}.
 #' @param min,max Optional numeric bounds for \code{numeric}/\code{integer}/
-#'   \code{slider}.
+#'   \code{slider}; for \code{multi_select} they bound the number of
+#'   selected entries.
 #' @param user_editable TRUE (default) when the user can change this widget
 #'   in the UI. Governs agent visibility: only user-editable widgets are
 #'   agent-writable and agent-discoverable.
@@ -305,9 +306,8 @@ store_register <- function(store, ...) {
     # empty vectors, empty lists, and a single empty string all mean
     # "clear the selection" rather than "invalid"
     if (is.list(value)) {
-      if (!length(value))
-        return(list(value = character(0)))
-      value <- unlist(value, use.names = FALSE)
+      value <- if (!length(value)) character(0)
+               else unlist(value, use.names = FALSE)
     }
     if (is.factor(value))
       value <- as.character(value)
@@ -318,7 +318,7 @@ store_register <- function(store, ...) {
     if (any(is.na(value)))
       return(list(error = paste(binding$id, "requires non-empty strings.")))
     if (length(value) == 1L && !nzchar(value))
-      return(list(value = character(0)))
+      value <- character(0)
     if (any(!nzchar(value)))
       return(list(error = paste(binding$id, "requires non-empty strings.")))
     allowed <- .widget_store_allowed_values(binding, effective)
@@ -332,6 +332,14 @@ store_register <- function(store, ...) {
           " Allowed: ", paste(head(allowed, 10), collapse = ", "))))
       }
     }
+    # min/max bound the number of selected entries for multi_select
+    if (!is.null(binding$min) && length(value) < binding$min)
+      return(list(error = paste0(
+        binding$id, " requires at least ", binding$min,
+        " selected entr", if (binding$min == 1L) "y" else "ies", ".")))
+    if (!is.null(binding$max) && length(value) > binding$max)
+      return(list(error = paste0(
+        binding$id, " allows at most ", binding$max, " selected entries.")))
     return(list(value = value))
   }
 

@@ -8,34 +8,38 @@ this file once absorbed.
 ## Where things stand
 
 Branch `agent-driven-exploration`, DESCRIPTION 2.1.1. S3 (generic widget
-tier) shipped previously; **S4 step 1 (heatmap completion) is now done**:
-the `multi_select` store kind plus the full 13-widget heatmap parameter
-panel (sorting, clustering, annotations, tooltips) registered on all
-three heatmap instances and covered by unit + Tier A tests.
+tier) shipped previously; **S4 steps 1–2 are done**: heatmap completion
+(multi_select kind + full 13-widget parameter panel) and the data-space
+table migration (multi-selection switch + shown-columns set on all three
+tables).
 
 Commit map (newest first, on top of the S3 history in git log):
 
 | Change | What |
 |---|---|
+| S4-2 | dataTable store migration (multi_selection + columns, min=1 bound) |
 | S4-1 | multi_select kind + heatmap sorting/clustering/annotation registration + tests |
 
 Verified this session (do not re-litigate without evidence):
 
-- Unit: widgetStore 48, agentWidgets 44, aiAssistantTools 19, appState 30,
+- Unit: widgetStore 52, agentWidgets 51, aiAssistantTools 19, appState 30,
   agentAssistant 38, agentFigures 26, agentLogging 21, triselectorCascade 6,
   quickViews 17, scatterSelection 6, shinyAuxi 10, tableWidgetState 5
-- Tier A browser: **48/48 × 2 consecutive runs** (new 4c section: five-key
-  sorting/clustering/annotation apply incl. JSON-array multi_select,
-  wholesale selection replacement, per-key rejection with
-  "Closest matches: General|All|Cell.line" quality suggestions)
+- Tier A browser: **55/55 × 2 consecutive runs** (4c heatmap section:
+  five-key sorting/clustering/annotation apply incl. JSON-array
+  multi_select, wholesale selection replacement, per-key rejection with
+  "Closest matches: General|All|Cell.line" quality suggestions; 4d tables
+  section: multi_selection + columns apply with visible header changes,
+  min-count rejection, cross-table apply)
 
 ## What S4-1 added (carry-forward rules)
 
 - **`multi_select` kind** (auxi_widgetStore.R): value = character vector;
   empty vector / empty JSON array / `""` all clear the selection; entries
-  validated against choices_provider/values; literal sentinel strings
-  (`"[]"`, `"null"`) remain omitted optionals per the shared
-  AGENT_SENTINEL_STRINGS invariant.
+  validated against choices_provider/values; **min/max bound the entry
+  count** (tables use min=1 so an empty column set is rejected instead of
+  blanking the table); literal sentinel strings (`"[]"`, `"null"`) remain
+  omitted optionals per the shared AGENT_SENTINEL_STRINGS invariant.
 - **Heatmap full registration** (heatmapshinyApp.R): 13 keys per instance
   under `dataspace.{cor,expr,dyn}_heatmap.*`. UI→store sync (clearing a
   multi-select syncs `character(0)`), seeding, and store→UI push follow
@@ -61,16 +65,18 @@ Verified this session (do not re-litigate without evidence):
 
 ## Next steps (S4 continuation, plan §6.4 order)
 
-1. **Tables (dataTable modules)** — next migration target; then any
-   remaining data-space widgets. Each is a small S2-style migration:
-   register bindings (no-req choices providers!), UI→store sync, seeding,
-   push with observer retention, per-key-resilient restore.
-2. Result-space modules (fgsea, ora, survival, string, …).
+1. **Result-space modules** (fgsea, ora, survival, string, geneshot,
+   feature/sample_general, attr4, PTMotif, …) — the remaining migrations;
+   each is a small S2-style move: register bindings (no-req choices
+   providers!), UI→store sync, seeding, push with observer retention,
+   per-key-resilient restore. The dataTableDownload instances embedded in
+   those modules carry no state (buttons only) and need nothing.
 3. Re-route snapshot save/restore fully through the store; retire
    status-path duplication for migrated keys.
 4. Then WP1 (`sections` param on get_omics_viewer_state), WP3 (figure
    spec round-trip), WP4 (log summarizer); re-run the Tier B task set
-   (tests/e2e_agent/tier_b_tasks.md) with a heatmap-annotation task added.
+   (tests/e2e_agent/tier_b_tasks.md) with heatmap-annotation and
+   table-column tasks added.
 
 ## Known open threads (none blocking)
 

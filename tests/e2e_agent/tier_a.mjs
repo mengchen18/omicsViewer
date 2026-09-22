@@ -427,6 +427,57 @@ try {
   record('multi-select write replaces the selection wholesale',
     JSON.stringify(await hmInput('annotCol')) === JSON.stringify(['General|All|MDR']),
     JSON.stringify(await hmInput('annotCol')));
+
+  // ---- 4d. S4 acceptance: data tables ---------------------------------
+  // The Feature table registers its user-editable surface: the
+  // multi-row-selection switch and the shown-columns set.
+  await runHook(p1, 'state', { data_space_tab: 'Feature table' });
+  await waitTab(p1, 'Feature table');
+  const tabSwitch = () => p1.evaluate(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-tab_feature-multisel']);
+  const tableHeaders = () => p1.evaluate(() =>
+    Array.from(document.querySelectorAll('#app-dataspace-tab_feature-table thead th'))
+      .filter(el => !el.querySelector('input'))
+      .map(el => el.innerText.trim()).filter(t => t));
+  const w7 = await runHook(p1, 'widgets', {
+    patch: {
+      'dataspace.tab_feature.multi_selection': true,
+      'dataspace.tab_feature.columns': ['General|All|Gene.name', 'mean|Origin|RE']
+    }
+  });
+  record('table widget apply succeeds', !w7.hook_error, w7.hook_error || '');
+  record('receipt lists both table keys applied',
+    (w7.applied || []).includes('dataspace.tab_feature.multi_selection') &&
+    (w7.applied || []).includes('dataspace.tab_feature.columns'),
+    JSON.stringify(w7.applied || []));
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-tab_feature-multisel'] === true,
+    null, { timeout: 30000 });
+  record('multi-selection switch reflects agent-set value',
+    (await tabSwitch()) === true);
+  await p1.waitForFunction(() => {
+    const hs = Array.from(document.querySelectorAll('#app-dataspace-tab_feature-table thead th'))
+      .filter(el => !el.querySelector('input'))
+      .map(el => el.innerText.trim());
+    return hs.includes('mean|Origin|RE') && !hs.includes('General|All|Protein.ID');
+  }, null, { timeout: 30000 });
+  record('feature table headers reflect the agent-set columns',
+    (await tableHeaders()).includes('mean|Origin|RE'));
+  const w8 = await runHook(p1, 'widgets', {
+    patch: { 'dataspace.tab_feature.columns': [] }
+  });
+  record('emptying table columns is rejected with the min rule',
+    !w8.hook_error && (w8.rejected || []).length === 1 &&
+    /at least 1/.test(w8.rejected[0].reason),
+    JSON.stringify(w8.rejected || []));
+  record('rejected column set leaves headers unchanged',
+    (await tableHeaders()).includes('mean|Origin|RE'));
+  const w9 = await runHook(p1, 'widgets', {
+    patch: { 'dataspace.tab_pheno.columns': ['General|All|Cell.line'] }
+  });
+  record('sample table columns are settable through the same tier',
+    !w9.hook_error && [w9.applied].flat().includes('dataspace.tab_pheno.columns'),
+    JSON.stringify({ applied: w9.applied || [], rejected: w9.rejected || [] }));
   // return to the Feature tab so later isolation assertions keep their
   // baseline
   await runHook(p1, 'state', { data_space_tab: 'Feature' });

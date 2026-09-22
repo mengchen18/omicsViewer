@@ -101,7 +101,8 @@ correctly inside a single patch.}
 \item{values}{Optional static allowed values for \code{enum}/\code{slider}.}
 
 \item{min, max}{Optional numeric bounds for \code{numeric}/\code{integer}/
-\code{slider}.}
+\code{slider}; for \code{multi_select} they bound the number of
+selected entries.}
 
 \item{user_editable}{TRUE (default) when the user can change this widget
 in the UI. Governs agent visibility: only user-editable widgets are
