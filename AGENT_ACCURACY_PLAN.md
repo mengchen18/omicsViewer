@@ -326,6 +326,22 @@ spec re-submitted as update normalizes identically.
 
 ### WP4: log summarizer (`agent_summarize_log`)
 
+**STATUS: complete (2026-09-24).** `agent_summarize_log(path)` +
+`agent_summarize_logs(directory)` in `auxi_agentLogging.R`, with a
+console-friendly registered `print.omicsViewerAgentLogSummary` method.
+Covers event counts, session duration, per-tool call counts, the 8-class
+error taxonomy over failed tool results PLUS `stream_failure` provider
+errors, first-attempt success rate (overall + per tool), retry recovery
+within a sequence window (default 10), most-rejected argument keys
+(`_intent` excluded), unresolved/orphan call accounting, malformed-line
+count, and bounded failure examples. Verified against the archived real
+Tier B logs (surfaces the glm-flash `analysis_space_tab="null"` story:
+2 failures, 100% retry recovery). Tests: new
+tests/test_agentLogSummary.R (32: classifier unit cases, synthetic
+fixture covering every taxonomy class + a successful retry + an
+out-of-window retry, print rendering, directory wrapper, real-fixture
+parse).
+
 **Change.** New function in `auxi_agentLogging.R`:
 
 ```r
@@ -699,7 +715,7 @@ render after selection — the exact missed regression) |
 | 1′ | **Unplanned: mid-restore req-abort fix** | **DONE** | R/module_meta_scatter.R — `current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))` ran before the axis assignment; v1()/v2() are req(input$variable)-guarded, so during an in-flight triselector cascade the req silently aborted the restore observer and the requested axes were lost (reproduced: apply during init lands on defaults). current_axes now tryCatch-guarded; verified racy and settled apply paths |
 | 2 | WP1 sections | M | **DONE** — auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring (on-demand builder), test hooks sections pass-through, tests |
 | 3 | WP3 spec round-trip | S | **DONE** — module_aiAssistant.R + auxi_agentFigures.R (echo shape, idempotent normalizer, full-set sample exemption), tests |
-| 4 | WP4 log summarizer | M | auxi_agentLogging.R, new test file |
+| 4 | WP4 log summarizer | M | **DONE** — auxi_agentLogging.R (agent_summarize_log + agent_summarize_logs + print method), new test file |
 | 5 | WP5b prompt workflows | S | module_aiAssistant.R |
 | 6 | re-run benchmark (Tier B), compare | S | tests/e2e_agent/ |
 | 7+ | WP6, WP7, WP8 (Phase 2) | M each | figures/app modules |

@@ -23,8 +23,18 @@ Key carry-forward: the figure spec in tool RESULTS is the **echo shape**
 `convert_from_type` drops schema-foreign keys (`mappings`) from echoed
 arguments; the REGISTRY keeps the normalized shape (WP7 merge base); the
 normalizer accepts both shapes (idempotent) and exempts a verbatim full
-sample set from the 200-sample cap. **Next: WP4** (log summarizer), then
-WP5 (benchmark tasks 15–16 + optional 17), WP6, WP7 (gated).
+sample set from the 200-sample cap.
+
+**Update 2026-09-24 (latest): WP4 is COMPLETE** —
+`agent_summarize_log(path)` / `agent_summarize_logs(dir)` + registered
+print method in `auxi_agentLogging.R`; tests in
+`tests/test_agentLogSummary.R` (32, incl. real archived-fixture parse).
+Phase 1 (WP1–WP4) is now DONE. **Next: WP5** — benchmark task set
+(`tests/e2e_agent/tier_b_tasks.md` tasks 15–16 cover the S4 surface;
+optionally task 17 for the snapshot round-trip; check
+`tests/e2e_agent/provider.env` + `npm install` for the live Tier B
+baseline), then WP5b prompt workflows, re-run benchmarks, WP6, WP7
+(gated on tasks 10–11 after WP1–WP3).
 
 ## Where we are / how to resume
 

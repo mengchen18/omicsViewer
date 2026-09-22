@@ -9,6 +9,10 @@
 \alias{agent_logger_set_enabled}
 \alias{agent_log_turn}
 \alias{agent_log_provider_config}
+\alias{agent_log_error_class}
+\alias{agent_summarize_log}
+\alias{print.omicsViewerAgentLogSummary}
+\alias{agent_summarize_logs}
 \title{Internal opt-in AI-assistant diagnostic logging}
 \usage{
 agent_logging_config()
@@ -24,6 +28,17 @@ agent_logger_set_enabled(logger, enabled)
 agent_log_turn(turn)
 
 agent_log_provider_config(config)
+
+agent_log_error_class(message)
+
+agent_summarize_log(path, retry_window = 10L, max_examples = 8L)
+
+\method{print}{omicsViewerAgentLogSummary}(x, ...)
+
+agent_summarize_logs(
+  directory = agent_logging_config()$directory,
+  retry_window = 10L
+)
 }
 \arguments{
 \item{session}{Shiny session.}
@@ -39,6 +54,17 @@ agent_log_provider_config(config)
 \item{enabled}{Single logical value.}
 
 \item{turn}{An ellmer Turn object.}
+
+\item{message}{Error message (character, possibly length > 1).}
+
+\item{path}{Path to a \code{.jsonl} assistant log.}
+
+\item{retry_window}{See \code{\link{agent_summarize_log}}.}
+
+\item{max_examples}{Maximum failed-call examples kept in the summary.}
+
+\item{directory}{Directory containing \code{.jsonl} logs; defaults to
+the configured diagnostic directory.}
 }
 \value{
 Logger objects, sanitized event payloads, or ellmer turn summaries.
@@ -56,6 +82,13 @@ The logger, invisibly.
 A JSON-safe turn summary.
 
 JSON-safe provider/model information.
+
+Single class label.
+
+A classed list with the summary fields; print it for a
+  console-friendly overview.
+
+Named list of summaries keyed by file name.
 }
 \description{
 Logging is disabled unless explicitly enabled by the administrator or the
@@ -81,5 +114,22 @@ Shiny session or provider request.
 Provider-specific raw JSON and rich HTML dependencies are omitted. Tool
 result display payloads are also omitted to avoid writing large base64
 figures into diagnostic logs.
+
+Ordered regex rules (first match wins) over the lower-cased message.
+The classes mirror the validation surface of the agent tools
+(plan section 3, WP4): unknown identifiers, unknown annotation
+columns, unknown tabs, invalid figure specs, other invalid arguments,
+missing datasets, the session request limit, and provider-side
+failures (observed on \code{stream_failure} events).
+
+Developer tool (plan section 3, WP4): parses one session log and
+returns event counts, session duration, per-tool call counts, the
+error taxonomy for failed tool results (plus \code{stream_failure}
+provider errors), the first-attempt success rate, retry-recovery
+outcome (same tool re-invoked within \code{retry_window} sequence
+numbers and succeeding), and the most-rejected argument keys.
+
+Convenience wrapper over \code{\link{agent_summarize_log}} for the
+configured (or given) log directory.
 }
 \keyword{internal}

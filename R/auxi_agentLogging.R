@@ -393,3 +393,301 @@ agent_log_provider_config <- function(config) {
     api_key_omitted = TRUE
   )
 }
+
+#' Classify one assistant error message into the failure taxonomy
+#'
+#' Ordered regex rules (first match wins) over the lower-cased message.
+#' The classes mirror the validation surface of the agent tools
+#' (plan section 3, WP4): unknown identifiers, unknown annotation
+#' columns, unknown tabs, invalid figure specs, other invalid arguments,
+#' missing datasets, the session request limit, and provider-side
+#' failures (observed on \code{stream_failure} events).
+#'
+#' @param message Error message (character, possibly length > 1).
+#' @return Single class label.
+#' @keywords internal
+#' @rdname agentLoggingHelpers
+agent_log_error_class <- function(message) {
+  msg <- tolower(paste(trimws(as.character(message)), collapse = " "))
+  if (!nzchar(msg))
+    return("unknown")
+  if (grepl("request limit", msg, fixed = TRUE))
+    return("request_limit")
+  if (grepl("no dataset|metadata are loaded|currently available", msg))
+    return("no_dataset")
+  if (grepl("provider|http 4|http 5|429|401|403|timeout|timed out|connection|api key|rate limit", msg))
+    return("provider_failure")
+  if (grepl("unknown .*tab|(data|analysis)[- ]space tab:", msg))
+    return("unknown_tab")
+  if (grepl("unknown .*(annotation|column)", msg))
+    return("unknown_column")
+  if (grepl("unknown .*(id|quick view|widget|figure)", msg))
+    return("unknown_id")
+  if (grepl("figure|geom|layer", msg))
+    return("invalid_figure_spec")
+  "invalid_argument"
+}
+
+.agent_log_na_time <- as.POSIXct(NA_character_, tz = "UTC")
+.agent_log_origin <- as.POSIXct("1970-01-01", tz = "UTC")
+
+.agent_log_parse_timestamp <- function(x) {
+  x <- trimws(as.character(x)[1])
+  if (is.na(x) || !nzchar(x))
+    return(.agent_log_na_time)
+  as.POSIXct(sub("Z$", "", x), format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")
+}
+
+.agent_log_summary_simplify <- function(counts, max_entries = 12L) {
+  if (!length(counts))
+    return(list())
+  counts <- counts[order(-as.integer(counts), names(counts))]
+  as.list(utils::head(counts, max_entries))
+}
+
+#' Summarize one assistant diagnostic JSONL log
+#'
+#' Developer tool (plan section 3, WP4): parses one session log and
+#' returns event counts, session duration, per-tool call counts, the
+#' error taxonomy for failed tool results (plus \code{stream_failure}
+#' provider errors), the first-attempt success rate, retry-recovery
+#' outcome (same tool re-invoked within \code{retry_window} sequence
+#' numbers and succeeding), and the most-rejected argument keys.
+#'
+#' @param path Path to a \code{.jsonl} assistant log.
+#' @param retry_window Sequence-number window in which a same-tool retry
+#'   counts as a recovery attempt (default 10).
+#' @param max_examples Maximum failed-call examples kept in the summary.
+#' @return A classed list with the summary fields; print it for a
+#'   console-friendly overview.
+#' @keywords internal
+#' @rdname agentLoggingHelpers
+agent_summarize_log <- function(path, retry_window = 10L, max_examples = 8L) {
+  if (!file.exists(path))
+    stop("Log file not found: ", path)
+  retry_window <- suppressWarnings(as.integer(retry_window)[1])
+  if (is.na(retry_window) || retry_window < 1L)
+    retry_window <- 10L
+
+  lines <- readLines(path, warn = FALSE)
+  lines <- trimws(lines)
+  lines <- lines[nzchar(lines)]
+
+  events <- vector("list", length(lines))
+  malformed <- 0L
+  for (i in seq_along(lines)) {
+    events[[i]] <- tryCatch(
+      jsonlite::fromJSON(lines[[i]], simplifyVector = FALSE),
+      error = function(e) {
+        malformed <<- malformed + 1L
+        NULL
+      }
+    )
+  }
+  events <- Filter(function(x) !is.null(x) && !is.null(x$event), events)
+
+  event_counts <- table(vapply(events, function(x) as.character(x$event)[1], character(1)))
+  timestamps <- vapply(events, function(x) as.character(x$timestamp %||% ""), character(1))
+  parsed_times <- unlist(lapply(timestamps[timestamps != ""], .agent_log_parse_timestamp))
+  session_start <- if (length(parsed_times) && !all(is.na(parsed_times)))
+    .agent_log_origin + min(as.numeric(parsed_times), na.rm = TRUE) else .agent_log_na_time
+  session_end <- if (length(parsed_times) && !all(is.na(parsed_times)))
+    .agent_log_origin + max(as.numeric(parsed_times), na.rm = TRUE) else .agent_log_na_time
+
+  seq_of <- vapply(events, function(x) {
+    v <- suppressWarnings(as.integer(x$sequence)[1])
+    if (is.na(v)) 0L else v
+  }, integer(1))
+
+  # join tool requests with their results by tool_call_id
+  pending <- list()
+  pairs <- list()
+  orphan_results <- 0L
+  unresolved_requests <- 0L
+  for (i in seq_along(events)) {
+    ev <- events[[i]]$event
+    d <- events[[i]]$details
+    if (identical(ev, "tool_request")) {
+      id <- as.character(d$tool_call_id %||% "")
+      if (!nzchar(id)) {
+        unresolved_requests <- unresolved_requests + 1L
+        next
+      }
+      pending[[id]] <- list(
+        index = i, sequence = seq_of[[i]],
+        tool_name = as.character(d$tool_name %||% ""),
+        arguments = if (is.list(d$arguments)) d$arguments else list()
+      )
+    } else if (identical(ev, "tool_result")) {
+      id <- as.character(d$tool_call_id %||% "")
+      req <- pending[[id]]
+      if (is.null(req)) {
+        orphan_results <- orphan_results + 1L
+        next
+      }
+      pending[[id]] <- NULL
+      error <- d$error
+      pairs[[length(pairs) + 1L]] <- list(
+        index = i, sequence = seq_of[[i]],
+        tool_name = req$tool_name %||% as.character(d$tool_name %||% ""),
+        tool_call_id = id, arguments = req$arguments,
+        error = !is.null(error),
+        error_class = if (is.null(error)) NULL else
+          agent_log_error_class(unlist(error$message)),
+        error_message = if (is.null(error)) NULL else
+          .agent_shorten(paste(unlist(error$message), collapse = " "), 160L)
+      )
+    }
+  }
+  unresolved_requests <- unresolved_requests + length(pending)
+
+  tool_counts <- table(vapply(pairs, function(x) x$tool_name, character(1)))
+  failed <- Filter(function(x) isTRUE(x$error), pairs)
+  succeeded <- Filter(function(x) !isTRUE(x$error), pairs)
+
+  taxonomy <- table(vapply(failed, function(x) x$error_class, character(1)))
+  # provider-side failures surface on stream_failure events, not tool
+  # results; classify them into the same taxonomy so one view covers all
+  # failure modes.
+  stream_failures <- Filter(function(x) identical(x$event, "stream_failure"), events)
+  stream_classes <- vapply(stream_failures, function(x) {
+    msg <- x$details$error$message
+    if (is.null(msg)) "unknown" else agent_log_error_class(unlist(msg))
+  }, character(1))
+  if (length(stream_classes))
+    taxonomy <- table(c(
+      vapply(failed, function(x) x$error_class, character(1)),
+      stream_classes
+    ))
+
+  # first-attempt success: per pair (a tool_call_id is one attempt)
+  per_tool_rate <- vapply(split(
+    vapply(pairs, function(x) !isTRUE(x$error), logical(1)),
+    vapply(pairs, function(x) x$tool_name, character(1))
+  ), mean, numeric(1))
+
+  # retry recovery: after a failed result, a same-tool request whose own
+  # result succeeds within the sequence window
+  recovered <- 0L
+  for (f in failed) {
+    hit <- FALSE
+    for (p in pairs) {
+      if (p$sequence > f$sequence &&
+          identical(p$tool_name, f$tool_name) &&
+          !isTRUE(p$error) &&
+          (p$sequence - f$sequence) <= retry_window) {
+        hit <- TRUE
+        break
+      }
+    }
+    if (hit) recovered <- recovered + 1L
+  }
+
+  rejected_args <- character()
+  for (f in failed) {
+    keys <- setdiff(names(f$arguments), "_intent")
+    rejected_args <- c(rejected_args, keys)
+  }
+
+  examples <- lapply(utils::head(failed, max_examples), function(f)
+    list(sequence = f$sequence, tool = f$tool_name, class = f$error_class,
+         message = f$error_message))
+
+  structure(
+    list(
+      path = path,
+      session_id = if (length(events)) as.character(events[[1]]$session_id %||% "") else "",
+      events_total = length(events) + malformed,
+      malformed_lines = malformed,
+      event_counts = as.list(event_counts[order(-as.integer(event_counts))]),
+      session_start = session_start,
+      session_end = session_end,
+      duration_seconds = if (!is.na(session_start) && !is.na(session_end))
+        round(as.numeric(difftime(session_end, session_start, units = "secs")), 3) else NA_real_,
+      tool_calls_total = length(pairs),
+      tool_calls_per_tool = as.list(tool_counts[order(-as.integer(tool_counts))]),
+      unresolved_requests = unresolved_requests,
+      orphan_results = orphan_results,
+      tool_failures = length(failed),
+      stream_failures = length(stream_failures),
+      first_attempt_success_rate = if (length(pairs))
+        round(length(succeeded) / length(pairs), 4) else NA_real_,
+      first_attempt_success_per_tool = as.list(round(per_tool_rate, 4)),
+      error_taxonomy = .agent_log_summary_simplify(taxonomy, max_entries = 12L),
+      retry_window = retry_window,
+      recovered_retries = if (length(failed)) recovered else 0L,
+      retry_recovery_rate = if (length(failed)) round(recovered / length(failed), 4) else NA_real_,
+      most_rejected_arguments = .agent_log_summary_simplify(table(rejected_args)),
+      failure_examples = examples
+    ),
+    class = c("omicsViewerAgentLogSummary", "list")
+  )
+}
+
+#' @method print omicsViewerAgentLogSummary
+#' @keywords internal
+#' @rdname agentLoggingHelpers
+#' @export
+print.omicsViewerAgentLogSummary <- function(x, ...) {
+  cat("omicsViewer agent log summary\n")
+  cat("  file:            ", x$path, "\n", sep = "")
+  cat("  events:          ", x$events_total,
+      if (x$malformed_lines) paste0("(", x$malformed_lines, " malformed)") else "",
+      "\n", sep = " ")
+  if (!is.na(x$session_start))
+    cat("  session:         ", format(x$session_start),
+        "->", format(x$session_end),
+        "(", x$duration_seconds, "s)\n", sep = " ")
+  cat("  tool calls:      ", x$tool_calls_total,
+      "| failed:", x$tool_failures,
+      "| first-attempt success:",
+      if (is.na(x$first_attempt_success_rate)) "NA"
+      else sprintf("%.0f%%", 100 * x$first_attempt_success_rate), "\n", sep = " ")
+  if (length(x$tool_calls_per_tool)) {
+    cat("  calls per tool:  ",
+        paste(names(x$tool_calls_per_tool), x$tool_calls_per_tool, sep = "=", collapse = ", "),
+        "\n", sep = "")
+  }
+  if (length(x$error_taxonomy)) {
+    cat("  error taxonomy:  ",
+        paste(names(x$error_taxonomy), x$error_taxonomy, sep = "=", collapse = ", "),
+        "\n", sep = "")
+  }
+  if (x$tool_failures)
+    cat("  retry recovery:  ", x$recovered_retries, "/", x$tool_failures,
+        sprintf("(%.0f%%)", 100 * (x$retry_recovery_rate %||% 0)),
+        "within", x$retry_window, "events\n", sep = " ")
+  if (length(x$most_rejected_arguments)) {
+    cat("  rejected args:   ",
+        paste(names(x$most_rejected_arguments), x$most_rejected_arguments,
+              sep = "=", collapse = ", "),
+        "\n", sep = "")
+  }
+  for (ex in utils::head(x$failure_examples, 5L)) {
+    cat("  failure #", ex$sequence, " [", ex$class, "] ", ex$tool, ": ",
+        ex$message, "\n", sep = "")
+  }
+  invisible(x)
+}
+
+#' Summarize every assistant diagnostic log in a directory
+#'
+#' Convenience wrapper over \code{\link{agent_summarize_log}} for the
+#' configured (or given) log directory.
+#'
+#' @param directory Directory containing \code{.jsonl} logs; defaults to
+#'   the configured diagnostic directory.
+#' @param retry_window See \code{\link{agent_summarize_log}}.
+#' @return Named list of summaries keyed by file name.
+#' @keywords internal
+#' @rdname agentLoggingHelpers
+agent_summarize_logs <- function(directory = agent_logging_config()$directory,
+                                 retry_window = 10L) {
+  if (!dir.exists(directory) || !length(list.files(directory, pattern = "[.]jsonl$")))
+    stop("No assistant .jsonl logs found in: ", directory)
+  files <- sort(list.files(directory, pattern = "[.]jsonl$", full.names = TRUE))
+  stats::setNames(
+    lapply(files, agent_summarize_log, retry_window = retry_window),
+    basename(files)
+  )
+}
