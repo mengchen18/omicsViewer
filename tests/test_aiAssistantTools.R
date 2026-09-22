@@ -236,6 +236,33 @@ shiny::testServer(
       "figure update records its parent figure"
     )
 
+    # ---- WP3: spec round-trip ---------------------------------------
+    ok(
+      !is.null(figure_result@value$spec) &&
+        ut_cmp_identical(figure_result@value$spec$data_source, "expression"),
+      "figure result carries the full normalized spec"
+    )
+    ok(
+      ut_cmp_identical(figure_result@value$spec$layers[[1]]$y, "__expression__") &&
+        ut_cmp_identical("mappings" %in% names(figure_result@value$spec$layers[[1]]), FALSE) &&
+        ut_cmp_identical(figure_result@value$spec$layers[[1]]$params$alpha, 0.65) &&
+        ut_cmp_identical(figure_result@value$spec$samples, rownames(pd)),
+      "result spec is schema-shaped (flat aesthetics, defaulted params, resolved samples)"
+    )
+    roundtrip_spec <- figure_result@value$spec
+    roundtrip_spec$labels$title <- "Expression by group, round-tripped"
+    roundtrip_figure <- tools$update_figure(
+      figure_id = updated_figure@value$figure_id,
+      spec = roundtrip_spec,
+      `_intent` = "unit test"
+    )
+    expected_roundtrip <- figure_result@value$spec
+    expected_roundtrip$labels$title <- "Expression by group, round-tripped"
+    ok(
+      ut_cmp_identical(roundtrip_figure@value$spec, expected_roundtrip),
+      "echoed spec re-submitted through update normalizes identically"
+    )
+
     # ---- S3 generic widget tier ---------------------------------------
     widgets_result <- tools$list_widgets(section = "dataspace", `_intent` = "unit test")
     ok(

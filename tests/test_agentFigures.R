@@ -3,6 +3,7 @@ library(unittest, quietly = TRUE)
 
 agent_figure_grammar <- omicsViewer:::agent_figure_grammar
 agent_normalize_figure_spec <- omicsViewer:::agent_normalize_figure_spec
+agent_figure_spec_echo <- omicsViewer:::agent_figure_spec_echo
 agent_build_figure_data <- omicsViewer:::agent_build_figure_data
 agent_build_figure_plot <- omicsViewer:::agent_build_figure_plot
 agent_render_figure <- omicsViewer:::agent_render_figure
@@ -236,6 +237,8 @@ if (requireNamespace("ellmer", quietly = TRUE)) {
     geom = ellmer::type_string("geom"),
     x = ellmer::type_string("x", required = FALSE),
     y = ellmer::type_string("y", required = FALSE),
+    color = ellmer::type_string("color", required = FALSE),
+    fill = ellmer::type_string("fill", required = FALSE),
     params = ellmer::type_object(
       alpha = ellmer::type_number(required = FALSE),
       yintercept = ellmer::type_number(required = FALSE),
@@ -274,6 +277,146 @@ if (requireNamespace("ellmer", quietly = TRUE)) {
     ut_cmp_identical(is.null(normalized_tibble$layers[[1]]$params$alpha), FALSE),
     "NA alpha from JSON null falls back to its default"
   )
+
+  # WP3 live-path replication: the echo spec is serialized to JSON (tool
+  # result), re-parsed and schema-converted by ellmer (tool arguments),
+  # then normalized - and must reproduce the original normalized spec.
+  echo_raw <- jsonlite::fromJSON(
+    jsonlite::toJSON(agent_figure_spec_echo(normalized), auto_unbox = TRUE),
+    simplifyVector = FALSE
+  )
+  echo_converted <- ellmer:::convert_from_type(
+    list(layers = echo_raw$layers), spec_type
+  )
+  echo_renormalized <- agent_normalize_figure_spec(
+    echo_converted, fd, pd, mat, character(), character()
+  )
+  ok(
+    ut_cmp_identical(echo_renormalized$layers, normalized$layers),
+    "echo spec survives the JSON -> ellmer -> normalize round-trip"
+  )
 } else {
   ok(TRUE, "ellmer conversion-shape test skipped: ellmer unavailable")
 }
+
+# ---- WP3: normalized specs are re-submittable (round-trip) -------------
+renormalized <- agent_normalize_figure_spec(
+  normalized, fd, pd, mat, character(), character()
+)
+ok(
+  ut_cmp_identical(renormalized, normalized),
+  "normalizing a normalized spec is the identity (WP3 round-trip)"
+)
+
+# the echo shape (what tool results carry) uses flat layer aesthetics and
+# re-normalizes to the identical normalized spec
+echo <- agent_figure_spec_echo(normalized)
+ok(
+  ut_cmp_identical("mappings" %in% names(echo$layers[[1]]), FALSE) &&
+    ut_cmp_identical(echo$layers[[1]]$y, "__expression__"),
+  "echo shape carries flat aesthetics, not mappings keys"
+)
+ok(
+  ut_cmp_identical(
+    agent_normalize_figure_spec(echo, fd, pd, mat, character(), character()),
+    normalized
+  ),
+  "echo-shaped specs re-normalize to the identical normalized spec"
+)
+
+# the mappings-keyed layer shape (what tool results and the registry
+# carry) is accepted and expanded into the documented flat aesthetics
+mappings_shape <- agent_normalize_figure_spec(
+  list(
+    data_source = "feature_annotation",
+    layers = list(list(
+      geom = "point",
+      mappings = list(x = "score", y = "score", color = "category")
+    ))
+  ),
+  fd, pd, mat, character(), character()
+)
+ok(
+  ut_cmp_identical(
+    mappings_shape$layers[[1]]$mappings,
+    list(x = "score", y = "score", color = "category")
+  ),
+  "mappings-keyed layers normalize to the same mappings"
+)
+ok(
+  ut_cmp_identical(
+    agent_normalize_figure_spec(
+      list(layers = list(list(
+        geom = "point",
+        x = "score", y = "score",
+        mappings = list(x = "category")
+      ))),
+      fd, pd, mat, character(), character()
+    )$layers[[1]]$mappings$x,
+    "score"
+  ),
+  "flat aesthetics win over expanded mappings"
+)
+ok(
+  ut_cmp_error(
+    agent_normalize_figure_spec(
+      list(layers = list(list(geom = "point", mappings = list(zz = "a")))),
+      fd, pd, mat, character(), character()
+    ),
+    "Unknown figure layer mapping"
+  ),
+  "unknown mappings keys are rejected"
+)
+
+# expression figures default to the FULL sample set; datasets larger than
+# the ad-hoc 200-sample cap must still round-trip the echoed spec
+pd_big <- data.frame(
+  group = rep(c("WT", "KO"), 125),
+  row.names = paste0("S", 1:250),
+  check.names = FALSE
+)
+mat_big <- matrix(
+  rnorm(10 * 250), nrow = 10,
+  dimnames = list(rownames(fd), rownames(pd_big))
+)
+big <- agent_normalize_figure_spec(
+  list(
+    data_source = "expression",
+    features = "F1",
+    layers = list(list(geom = "boxplot", x = "sample__group", y = "__expression__"))
+  ),
+  fd, pd_big, mat_big, character(), character()
+)
+ok(
+  ut_cmp_identical(length(big$samples), 250L),
+  "expression default fills the full sample set beyond the 200 cap"
+)
+ok(
+  ut_cmp_identical(
+    agent_normalize_figure_spec(big, fd, pd_big, mat_big, character(), character()),
+    big
+  ) &&
+    ut_cmp_identical(
+      agent_normalize_figure_spec(
+        agent_figure_spec_echo(big), fd, pd_big, mat_big,
+        character(), character()
+      ),
+      big
+    ),
+  "full-set sample specs re-normalize identically (WP3 round-trip)"
+)
+ok(
+  ut_cmp_error(
+    agent_normalize_figure_spec(
+      list(
+        data_source = "expression",
+        features = "F1",
+        samples = paste0("S", 1:201),
+        layers = list(list(geom = "boxplot", x = "sample__group", y = "__expression__"))
+      ),
+      fd, pd_big, mat_big, character(), character()
+    ),
+    "Figure can plot at most 200 samples"
+  ),
+  "hand-written sample subsets keep the 200 cap"
+)

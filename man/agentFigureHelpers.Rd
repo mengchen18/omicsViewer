@@ -3,6 +3,7 @@
 \name{agentFigureHelpers}
 \alias{agentFigureHelpers}
 \alias{agent_figure_grammar}
+\alias{agent_figure_spec_echo}
 \alias{agent_normalize_figure_spec}
 \alias{agent_build_figure_data}
 \alias{agent_build_figure_plot}
@@ -11,6 +12,8 @@
 \title{Internal constrained AI figure helpers}
 \usage{
 agent_figure_grammar()
+
+agent_figure_spec_echo(spec)
 
 agent_normalize_figure_spec(
   spec,
@@ -59,6 +62,9 @@ Figure grammar/catalog objects, normalized specifications, bounded
 A JSON-like description of supported data sources, geoms, aesthetic
   mappings, transformations, themes, palettes, and hard limits.
 
+A JSON-like spec in the documented input shape; normalizing it
+  again reproduces \code{spec} exactly.
+
 A normalized specification with only allowlisted keys and values.
 
 A data.frame with reserved ID/expression columns and original
@@ -79,5 +85,12 @@ optional AI assistant. The model composes JSON-like figure specifications;
 omicsViewer validates every field and performs all rendering itself. The
 assistant never supplies R code, function names, file paths, raw HTML, or
 arbitrary expression strings.
+
+Tool results must carry the spec in the exact shape the tool schema
+documents (aesthetics as direct layer fields): providers and ellmer's
+schema-driven argument conversion drop properties that are not in the
+declared schema, so a model echoing the result verbatim would otherwise
+lose the axis mappings. The session registry keeps the normalized shape
+(the canonical base for a future patch-mode update_figure).
 }
 \keyword{internal}

@@ -16,8 +16,15 @@ demo.RDS (15.8×), unit board green (agentAssistant 64, aiAssistantTools
 22), Tier A 93/93 ×2. `agent_state` is now an on-demand builder function
 (`state(sections)`), not a reactive — keep that contract when touching
 L0_module_app.R / ai_assistant_module / agent_test_hooks_module.
-**Next: WP3** (figure spec round-trip, hard prerequisite per WP7), then
-WP4 (log summarizer).
+
+**Update 2026-09-24 (later): WP3 is COMPLETE** (see plan §3-WP3 STATUS).
+Key carry-forward: the figure spec in tool RESULTS is the **echo shape**
+(flat layer aesthetics — `agent_figure_spec_echo()`), because ellmer's
+`convert_from_type` drops schema-foreign keys (`mappings`) from echoed
+arguments; the REGISTRY keeps the normalized shape (WP7 merge base); the
+normalizer accepts both shapes (idempotent) and exempts a verbatim full
+sample set from the 200-sample cap. **Next: WP4** (log summarizer), then
+WP5 (benchmark tasks 15–16 + optional 17), WP6, WP7 (gated).
 
 ## Where we are / how to resume
 
@@ -48,12 +55,15 @@ decisions done):
    `module_agentTestHooks.R` (`overview` op forwards `payload.sections`),
    `constants.R` (`AGENT_STATE_SECTIONS`). Tests: test_agentAssistant.R
    (+26), test_aiAssistantTools.R (+3), tier_a.mjs (+4).
-2. **WP3 — figure spec round-trip** (HARD PREREQUISITE — user-confirmed
-   that `update_figure` is core surface): `render_assistant_figure()`
-   includes the full normalized spec in the tool result; store normalized
-   specs in the session `figures()` registry. Tests:
-   `test_aiAssistantTools.R` (create → result contains spec; spec
-   re-submitted as update normalizes identically).
+2. **WP3 — figure spec round-trip** — **DONE 2026-09-24** (hard
+   prerequisite for WP7 patch-mode per settled decision 4):
+   `render_assistant_figure()` includes the spec in the tool result AND
+   stores the normalized spec in the session `figures()` registry.
+   Live-path discovery: result spec is the ECHO shape (flat layer
+   aesthetics) since ellmer's `convert_from_type` drops schema-foreign
+   keys like `mappings`; normalizer accepts both shapes idempotently;
+   full-sample-set echo exempt from the 200 cap. Tests:
+   test_aiAssistantTools.R (+4), test_agentFigures.R (+10).
 3. **WP4 — log summarizer** `agent_summarize_log(path)` in
    `auxi_agentLogging.R`: event counts, per-tool call counts, error
    taxonomy (regex classes: unknown_id/column/tab, invalid_figure_spec,

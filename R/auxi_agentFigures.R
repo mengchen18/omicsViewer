@@ -130,6 +130,32 @@ agent_figure_grammar <- function() {
   x
 }
 
+#' Convert a normalized figure spec to its re-submittable echo shape
+#'
+#' Tool results must carry the spec in the exact shape the tool schema
+#' documents (aesthetics as direct layer fields): providers and ellmer's
+#' schema-driven argument conversion drop properties that are not in the
+#' declared schema, so a model echoing the result verbatim would otherwise
+#' lose the axis mappings. The session registry keeps the normalized shape
+#' (the canonical base for a future patch-mode update_figure).
+#'
+#' @param spec Normalized specification from
+#'   \code{\link{agent_normalize_figure_spec}}.
+#' @return A JSON-like spec in the documented input shape; normalizing it
+#'   again reproduces \code{spec} exactly.
+#' @keywords internal
+#' @rdname agentFigureHelpers
+agent_figure_spec_echo <- function(spec) {
+  layers <- lapply(spec$layers, function(layer) {
+    out <- c(list(geom = layer$geom), layer$mappings)
+    if (!is.null(layer$params)) out$params <- layer$params
+    out
+  })
+  out <- spec
+  out$layers <- layers
+  out
+}
+
 #' Normalize and validate a model-proposed figure specification
 #'
 #' @param spec Model-proposed declarative figure specification.
@@ -178,9 +204,16 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     if (data_source == "expression") 50L else 20000L,
     allow_default = TRUE
   )
+  # WP3 round-trip: expression figures normalize to the FULL sample set by
+  # default, so a spec echoed back from a tool result may explicitly carry
+  # every sample. The ad-hoc cap exists to bound hand-written subsets; a
+  # verbatim full set must survive re-submission on larger datasets.
+  samples_are_full_set <- !is.null(spec$samples) &&
+    !agent_sentinel_string(spec$samples) &&
+    identical(as.character(spec$samples), sample_ids)
   samples <- .agent_figure_ids(
     spec$samples, sample_ids, "sample",
-    if (data_source == "expression") 200L else 20000L,
+    if (data_source == "expression" && !samples_are_full_set) 200L else 20000L,
     allow_default = TRUE
   )
   if (data_source == "expression") {
@@ -218,6 +251,24 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
   layers <- lapply(spec$layers, function(layer) {
     if (!is.list(layer))
       stop("Every figure layer must be an object.")
+    # WP3 round-trip: normalized specs (returned in tool results and stored
+    # in the session figure registry) carry aesthetics under a `mappings`
+    # named list. Expand it into the documented flat shape so a normalized
+    # spec re-submitted through update_figure validates identically;
+    # explicitly given flat aesthetics win over expanded mappings.
+    if (!is.null(layer$mappings)) {
+      if (!is.list(layer$mappings))
+        stop("Figure layer mappings must be an object.")
+      unknown_mappings <- setdiff(names(layer$mappings), .agent_figure_aesthetics)
+      if (length(unknown_mappings))
+        stop("Unknown figure layer mapping(s): ",
+             paste(unknown_mappings, collapse = ", "))
+      for (nm in names(layer$mappings)) {
+        if (is.null(layer[[nm]]))
+          layer[[nm]] <- layer$mappings[[nm]]
+      }
+      layer$mappings <- NULL
+    }
     allowed_layer <- c("geom", .agent_figure_aesthetics, "params")
     unknown_layer <- setdiff(names(layer), allowed_layer)
     if (length(unknown_layer))

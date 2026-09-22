@@ -842,7 +842,10 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           parent_id = parent_figure_id,
           created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
           row_count = nrow(rendered$data),
-          geoms = vapply(spec$layers, function(x) x$geom, character(1))
+          geoms = vapply(spec$layers, function(x) x$geom, character(1)),
+          # WP3: the normalized spec is the canonical revision base; a
+          # future patch-mode update_figure (WP7) merges onto exactly this.
+          spec = spec
         )
         figures(registry)
 
@@ -864,6 +867,11 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           full_dimensions = rendered$files$full_dimensions,
           full_png_bytes = rendered$files$full_bytes,
           download_filename = paste0("omicsviewer-", figure_id, "-2400x1800.png"),
+          # WP3 round-trip: the full spec rides along in the documented
+          # (flat-aesthetic) input shape so the model can revise the figure
+          # by echoing it back through update_figure; providers and ellmer
+          # drop schema-foreign keys like the normalized `mappings` form.
+          spec = agent_figure_spec_echo(spec),
           warnings = utils::head(unique(warning_messages), 10L)
         )
 
@@ -902,6 +910,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         description = paste(
           "Create a static ggplot2 figure from an allowlisted declarative specification.",
           "The chat displays a small preview and a high-resolution PNG download.",
+          "The result includes the full normalized spec under 'spec'; reuse it verbatim when revising this figure with update_figure.",
           "For expression data, use feature__ and sample__ prefixed metadata columns described by the figure grammar.",
           "Use exact columns returned by get_omics_viewer_state/search_annotations and never invent R code."
         ),
@@ -937,6 +946,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         name = "update_figure",
         description = paste(
           "Create a revised figure from a complete allowlisted specification.",
+          "Start from the 'spec' field of the previous create_figure/update_figure result and change only what is needed; do not reconstruct it from memory.",
           "The new result retains figure_id as its parent. Do not send a patch; send the full revised spec.",
           "For expression data, use feature__ and sample__ prefixed metadata columns described by the figure grammar.",
           "Use create_figure for an unrelated figure."

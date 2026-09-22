@@ -296,6 +296,22 @@ typo cases (`"p value"` → `ttest|A_vs_B|log.fdr`; `"featrue"` tab;
 
 ### WP3: figure spec round-trip
 
+**STATUS: complete (2026-09-24).** `render_assistant_figure()` returns the
+full spec in the tool result and stores the normalized spec in the
+`figures()` registry (the WP7 merge base). One live-path discovery: the
+result carries the spec in the **documented flat-aesthetic input shape**
+(`agent_figure_spec_echo()`), because ellmer's schema-driven argument
+conversion drops schema-foreign keys — a model echoing the normalized
+`mappings` form would lose its axes. The normalizer additionally ACCEPTS
+the mappings form (idempotent; defense in depth for programmatic callers
+and the WP7 merge), and expression specs echoing the full sample set
+exempt from the 200-sample cap (datasets >200 samples would otherwise
+fail on the first revision). Tests: agentFigures 36 (identity, echo
+re-normalization, mappings acceptance, >200-sample round-trip, full
+JSON → ellmer convert_from_type → normalize replication),
+aiAssistantTools 25 (result carries spec; echoed spec re-submitted
+through update normalizes identically).
+
 **Change.** `render_assistant_figure()` in `module_aiAssistant.R` includes
 the **full normalized spec** (`rendered$normalized`) in the tool result value
 (alongside metadata). It is already JSON-safe (that is what
@@ -682,7 +698,7 @@ render after selection — the exact missed regression) |
 | 1″ | **Unplanned: stale-internal-axes fix (user-reported, 19:49 session)** | **DONE** | meta_scatter's internal xax/yax never track manual triselector edits, so a restore targeting values the internal model already holds changed no reactive and never touched the widgets (quick-badge path was immune via its axisRequest bump). The restore path now bumps axisRequest too, and triselector_module accepts reactive_axis_request so analysis/subset/variable observers re-assert on version bumps. Reproduced: manual y=log.pvalue drift + volcano quick-view apply previously a silent no-op; now corrects. Manual edits still stick (no bump on user input) |
 | 1′ | **Unplanned: mid-restore req-abort fix** | **DONE** | R/module_meta_scatter.R — `current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))` ran before the axis assignment; v1()/v2() are req(input$variable)-guarded, so during an in-flight triselector cascade the req silently aborted the restore observer and the requested axes were lost (reproduced: apply during init lands on defaults). current_axes now tryCatch-guarded; verified racy and settled apply paths |
 | 2 | WP1 sections | M | **DONE** — auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring (on-demand builder), test hooks sections pass-through, tests |
-| 3 | WP3 spec round-trip | S | module_aiAssistant.R, tests |
+| 3 | WP3 spec round-trip | S | **DONE** — module_aiAssistant.R + auxi_agentFigures.R (echo shape, idempotent normalizer, full-set sample exemption), tests |
 | 4 | WP4 log summarizer | M | auxi_agentLogging.R, new test file |
 | 5 | WP5b prompt workflows | S | module_aiAssistant.R |
 | 6 | re-run benchmark (Tier B), compare | S | tests/e2e_agent/ |
