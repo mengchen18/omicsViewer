@@ -181,7 +181,9 @@ cover and the baseline (WP5a) is machine-scored rather than hand-waved.
 
 - **Default (`"overview"`)** returns: dataset, active tabs, available tabs,
   selection **counts + up to 20 example IDs** (currently 100), quick-view
-  **id + label lists only** (currently full records), an
+  **id + label lists only** (currently full records), `scatter_view`
+  (current x/y axis triples + axis_mode of both data-space scatters, read
+  from the widget store — settled decision below), an
   `available_sections` field (`annotations`, `quick_views`, `panels`,
   `figure_grammar`), and `state_policy`.
 - Requested sections return today's full payloads:
@@ -205,10 +207,23 @@ Tests: extend `tests/test_agentAssistant.R`.
 large datasets; detail is one cheap local call away (no provider round-trip
 for the tool itself — only the continuation request).
 
-**Decision point for review:** does overview include panel state summary
-(e.g. current scatter axes) or keep `panels` fully opt-in? I lean: include
-*current scatter x/y axes* in overview (tiny, frequently asked), everything
-else opt-in.
+**Decision (settled 2026-09-23, from real Tier B logs + size measurements):**
+the overview INCLUDES a fixed-size current-view block; `panels` stays
+opt-in. Concretely the default payload gains `scatter_view` = the x/y
+axis triples + axis_mode of both data-space scatters, read from the
+**widget store** (`store_read`, now the canonical source — the control
+plane makes this possible). Evidence: (a) 3 of the 5 real
+`get_omics_viewer_state` calls in the 2026-09-21/22 Tier B logs were
+made *specifically* to learn what is currently plotted ("identify the
+volcano plot … and its underlying axes", "inspect the active tabs and
+views", "check current scatter view before switching axes") — with the
+anchors in the overview those calls vanish or shrink 20×; (b) measured
+on demo.RDS (18,393 B full state, ~28.7 B KB as a tool result): pure
+overview = 918 B, overview + scatter anchors = 1,336 B — the anchors
+cost +418 B fixed and still cut the default payload ~14×; annotations
+alone are 73% of today's payload (13.5 KB) and are the section to gate.
+Everything else (annotations, full quick-view records, panels,
+figure_grammar) stays opt-in via `sections`.
 
 ### WP2: did-you-mean suggestions in all validation errors
 
