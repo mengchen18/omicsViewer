@@ -506,9 +506,44 @@ iheatmapModule <- function(
     }))
   }
 
+  # Status restore: translated into one store transaction when the module
+  # is store-backed (values identical to the widget_store snapshot apply
+  # idempotently; diff-only writes leave untouched keys alone). The direct
+  # update*Input path is kept for store-less callers (standalone heatmap
+  # app) and covers values the transactional validators reject per key
+  # (strict = FALSE), e.g. annotation columns from a changed dataset.
+  .heatmap_status_patch <- function(s) {
+    patch <- list(
+      heatmap_colors = s$heatmapColors,
+      scale = s$scale,
+      margin_bottom = s$marginBottom,
+      margin_right = s$marginRight,
+      col_sort_by = s$colSortBy,
+      row_sort_by = s$rowSortBy,
+      cluster_col_dist = s$clusterColDist,
+      cluster_col_link = s$clusterColLink,
+      cluster_row_dist = s$clusterRowDist,
+      cluster_row_link = s$clusterRowLink,
+      annot_col = null2empty(s$annotCol),
+      annot_row = null2empty(s$annotRow),
+      tooltip_info = null2empty(s$tooltipInfo))
+    # drop absent scalar keys; multi_select keys may legitimately be empty
+    # (cleared selections restore as character(0))
+    keep <- vapply(names(patch), function(k) {
+      if (k %in% c("annot_col", "annot_row", "tooltip_info")) TRUE
+      else !is.null(patch[[k]]) && length(patch[[k]]) > 0L
+    }, logical(1))
+    patch[keep]
+  }
   observeEvent(status(), {
     if (is.null(status()))
       return(NULL)
+    if (!is.null(store)) {
+      tryCatch(
+        store_apply(store, .heatmap_status_patch(status()),
+                    origin = "restore", strict = FALSE),
+        error = function(e) NULL)
+    }
     updateSelectInput(session, "annotCol", selected = null2empty(status()$annotCol) )
     updateSelectizeInput(session, "annotRow", selected  = null2empty(status()$annotRow) )
     updateSelectInput(session, "colSortBy", selected  = status()$colSortBy)

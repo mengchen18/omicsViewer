@@ -448,15 +448,32 @@ feature_general_module <- function(id,
     })
 
   observeEvent(reactive_status(), {
-    if (!is.null(s <- reactive_status()))
-      showRegLine(s$showRegLine)
+    if (is.null(s <- reactive_status()))
+      return()
+    if (!is.null(s$showRegLine)) {
+      if (!is.null(store)) {
+        tryCatch(store_apply(store, list(regression_line = s$showRegLine),
+                             origin = "restore", strict = FALSE),
+                 error = function(e) NULL)
+      } else {
+        showRegLine(s$showRegLine)
+      }
+    }
     })
 
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    if (!is.null(s$plotType))
+    if (is.null(s$plotType))
+      return()
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient)
+      tryCatch(store_apply(store, list(plot_type = s$plotType),
+                           origin = "restore", strict = FALSE),
+               error = function(e) NULL)
+    } else {
       updateRadioGroupButtons(session, "internal_radio", selected = s$plotType)
+    }
     })
 
   ## Hidden plot summary for AI browsers ##

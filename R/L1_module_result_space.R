@@ -225,7 +225,14 @@ L1_result_space_module <- function(
 
     observe({
       if (!is.null(tb <- status()$analyst_active_tab)) {
-        updateNavbarPage(session = session, inputId = "analyst", selected = tb)
+        if (!is.null(store_rs)) {
+          # single transactional path (per-key resilient, meta_scatter style)
+          tryCatch(store_apply(store_rs, list(analyst_tab = tb),
+                               origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+        } else {
+          updateNavbarPage(session = session, inputId = "analyst", selected = tb)
+        }
       }
     })
     ####

@@ -307,9 +307,22 @@ dataTable_module <- function(
   observeEvent(tabStatus(), {
     if (is.null(tabStatus()))
       return(NULL)
-    if (!is.null(i <- tabStatus()$showColumns))
-      scn(i)
-    updateSwitchInput(session, "multisel", value = tabStatus()$multiSelection)
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient): the column set is
+      # intersected with the live colnames by the multi_select validator
+      patch <- list()
+      if (!is.null(tabStatus()$showColumns))
+        patch$columns <- tabStatus()$showColumns
+      if (!is.null(tabStatus()$multiSelection))
+        patch$multi_selection <- tabStatus()$multiSelection
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                 error = function(e) NULL)
+    } else {
+      if (!is.null(i <- tabStatus()$showColumns))
+        scn(i)
+      updateSwitchInput(session, "multisel", value = tabStatus()$multiSelection)
+    }
   })
   
   output$table <- DT::renderDataTable({

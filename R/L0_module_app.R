@@ -305,12 +305,17 @@ app_module <- function(
   id, .dir, filePattern = ".(RDS|db|sqlite|sqlite3)$", additionalTabs = NULL, ESVObj = reactive(NULL),
   esetLoader = readESVObj, exprsGetter = getExprs, pDataGetter = getPData, fDataGetter = getFData,
   imputeGetter = getExprsImpute, defaultAxisGetter = getAx,
-  appName = "omicsViewer", appVersion = packageVersion("omicsViewer")
+  appName = "omicsViewer", appVersion = packageVersion("omicsViewer"),
+  store = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+
+  # Canonical widget store: created here by default; callers may inject
+  # their own (embedding contexts and headless tests observe it directly).
+  app_store <- store %||% widget_store_new()
 
   ll <- reactive({
     req(.dir())
@@ -542,8 +547,6 @@ app_module <- function(
       tags$span("No dataset selected. Please select a dataset to begin.")
     }
   })
-
-  app_store <- widget_store_new()
 
   v1 <- L1_data_space_module(
     "dataspace", expr = expr, pdata = pdata, fdata = fdata,

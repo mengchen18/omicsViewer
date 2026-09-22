@@ -17,7 +17,8 @@ app_module(
   imputeGetter = getExprsImpute,
   defaultAxisGetter = getAx,
   appName = "omicsViewer",
-  appVersion = packageVersion("omicsViewer")
+  appVersion = packageVersion("omicsViewer"),
+  store = NULL
 )
 }
 \arguments{

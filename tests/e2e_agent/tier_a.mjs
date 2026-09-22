@@ -13,7 +13,7 @@
 
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readdirSync, unlinkSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -733,6 +733,71 @@ try {
     !w23.hook_error && (w23.rejected || []).length === 1 &&
       /Allowed:/.test(w23.rejected[0].reason),
     JSON.stringify(w23.rejected || []));
+
+  // ---- 4g. S4 completion: snapshot round-trip equals store state ------
+  // The real .ESS save/restore flow (snapshot modal) must reproduce the
+  // saved canonical store state exactly: patch widgets, read the store,
+  // save, drift, restore through the modal table, read again, deep-compare.
+  const canon = (v) => Array.isArray(v)
+    ? v.map(canon).sort()
+    : (v !== null && typeof v === 'object')
+      ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, canon(x)])
+          .sort((a, b) => (a[0] < b[0] ? -1 : 1)))
+      : [v];
+  const storeSnapshot = async () => {
+    const r = await runHook(p1, 'store', {});
+    if (r.hook_error) throw new Error(r.hook_error);
+    return r.values;
+  };
+  const w24 = await runHook(p1, 'widgets', {
+    patch: {
+      'dataspace.expr_heatmap.heatmap_colors': 'RdGy',
+      'dataspace.expr_heatmap.margin_bottom': 7,
+      'resultspace.feature_general.plot_type': 'Curve'
+    }
+  });
+  record('round-trip widget writes apply', !w24.hook_error,
+    w24.hook_error || '');
+  const rtSaved = await storeSnapshot();
+  // save through the real modal
+  await p1.click('[data-testid="app-snapshot-button"]');
+  await p1.fill('#app-snapshot_name', 'rt1');
+  await p1.click('#app-snapshot_save');
+  await p1.waitForFunction(() =>
+    (document.querySelector('#app-tab_saveSS tbody tr') || null) !== null,
+    null, { timeout: 30000 });
+  record('snapshot modal lists the saved .ESS', true);
+  // drift the widgets after saving
+  const w25 = await runHook(p1, 'widgets', {
+    patch: {
+      'dataspace.expr_heatmap.heatmap_colors': 'PiYG',
+      'dataspace.expr_heatmap.margin_bottom': 3,
+      'resultspace.feature_general.plot_type': 'Bees'
+    }
+  });
+  record('post-save drift applies', !w25.hook_error, w25.hook_error || '');
+  const rtMid = await storeSnapshot();
+  record('drift changed the live store state',
+    rtMid['dataspace.expr_heatmap.heatmap_colors'] === 'PiYG');
+  // restore by clicking the saved row in the modal's snapshot table
+  await p1.click('[data-testid="app-snapshot-button"]');
+  await p1.locator('#app-tab_saveSS tbody tr').first().click();
+  await p1.waitForFunction((want) =>
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-heatmapColors'] === want,
+    'RdGy', { timeout: 45000 });
+  record('restore reverts the drifted heatmap palette in the widget', true);
+  const rtAfter = await storeSnapshot();
+  const keys = Object.keys(rtSaved);
+  const diffs = keys.filter(k =>
+    JSON.stringify(canon(rtSaved[k])) !== JSON.stringify(canon(rtAfter[k])));
+  record('restore reproduces the saved store state exactly',
+    diffs.length === 0,
+    diffs.slice(0, 5).map(k => `${k}: ${JSON.stringify(rtSaved[k])} -> ${JSON.stringify(rtAfter[k])}`).join('; '));
+  // clean the test snapshot out of the repo extdata directory
+  try {
+    for (const f of readdirSync(EXTDATA))
+      if (/rt1\.ESS$/i.test(f)) unlinkSync(path.join(EXTDATA, f));
+  } catch {}
 
   // ---- 5. cross-session isolation -------------------------------------
   const s2 = await openSession(browser);

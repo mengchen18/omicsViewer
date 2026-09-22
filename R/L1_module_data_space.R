@@ -238,6 +238,7 @@ L1_data_space_module <- function(
   store = NULL
 ) {
   stopifnot(!is.null(store))
+  store_ds <- widget_store_child(store, "dataspace")
   store_feature <- widget_store_child(store, "dataspace.feature_space")
   store_sample <- widget_store_child(store, "dataspace.sample_space")
   store_cor_heatmap <- widget_store_child(store, "dataspace.cor_heatmap")
@@ -248,6 +249,55 @@ L1_data_space_module <- function(
   store_tab_expr <- widget_store_child(store, "dataspace.tab_expr")
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    # ------------------------------------------------------------------
+    # Canonical widget-store bindings (control plane, plan section 6, S4
+    # completion): the data-space navbar itself, mirroring the result-space
+    # analyst_tab binding. Tab titles are static in the UI. Snapshot
+    # restores of eset_active_tab route through the store (the legacy
+    # updateNavbarPage path is kept only for store-less callers).
+    # ------------------------------------------------------------------
+    .ds_tabs <- c("Feature", "Feature table", "Sample", "Sample table",
+                  "Cor", "Heatmap", "Dynamic heatmap", "Expression", "GSList")
+    store_register(
+      store_ds,
+      widget_binding("active_tab", "navbar", label = "Data-space tab",
+        help = paste("Active tab of the data-space (left) navbar:",
+                     "Feature, Feature table, Sample, Sample table, Cor,",
+                     "Heatmap, Dynamic heatmap, Expression, or GSList"),
+        values = .ds_tabs)
+    )
+    .ds_store_root <- if (is.null(store_ds$parent)) store_ds else store_ds$parent
+    .ds_store_observers <- list()
+    .ds_keep <- function(obs) {
+      .ds_store_observers[[length(.ds_store_observers) + 1L]] <<- obs
+      invisible(obs)
+    }
+    .ds_keep(observeEvent(input$eset, {
+      if (!is.null(input$eset))
+        store_sync_from_ui(store_ds, "active_tab", input$eset)
+    }, ignoreInit = TRUE))
+    # seed once the navbar reports a tab (restore-first-wins)
+    .ds_seeded <- FALSE
+    .ds_keep(observe({
+      if (.ds_seeded) return(NULL)
+      if (is.null(input$eset)) return(NULL)
+      .ds_seeded <<- TRUE
+      held <- store_read(store_ds, "active_tab")
+      if (is.null(held[[paste0(store_ds$prefix, ".active_tab")]]))
+        tryCatch(store_apply(store_ds, list(active_tab = input$eset),
+                             origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+    # store -> UI push for external writes only (pending entries mark them)
+    .ds_epoch <- store_epoch(store_ds)
+    .ds_keep(observe({
+      .ds_epoch()
+      tb <- store_read(store_ds, "active_tab")[[1]]
+      if (!is.null(tb) &&
+          !is.null(.ds_store_root$pending[[paste0(store_ds$prefix, ".active_tab")]]))
+        updateNavbarPage(session = session, inputId = "eset", selected = tb)
+    }))
 
     # ====== calculate correlation matrix and related component =====
 
@@ -534,7 +584,14 @@ L1_data_space_module <- function(
 
     observe({
       if (!is.null(tb <- status()$eset_active_tab)) {
-        updateNavbarPage(session = session, inputId = "eset", selected = tb)
+        if (tb %in% .ds_tabs) {
+          # single transactional path (per-key resilient, meta_scatter style)
+          tryCatch(store_apply(store_ds, list(active_tab = tb),
+                               origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+        } else {
+          updateNavbarPage(session = session, inputId = "eset", selected = tb)
+        }
       }
     })
 

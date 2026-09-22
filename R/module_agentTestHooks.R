@@ -41,7 +41,8 @@ agent_test_hooks_ui <- function(id) {
         "state" = "state",
         "scatter" = "scatter",
         "overview" = "overview",
-        "widgets" = "widgets"
+        "widgets" = "widgets",
+        "store" = "store"
       ),
       selected = "state"
     ),
@@ -93,6 +94,12 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
           # isolate: the hook observer must not take reactive dependencies
           # through choices providers read during validation.
           shiny::isolate(agent_widget_apply(store, parsed$patch))
+        } else if (identical(op, "store")) {
+          if (is.null(store))
+            stop("Widget store unavailable in this session.")
+          # full canonical snapshot (values + epochs); used by the S4
+          # snapshot round-trip acceptance tests
+          shiny::isolate(store_snapshot(store))
         } else if (identical(op, "scatter")) {
           do.call(
             apply_scatter_view,

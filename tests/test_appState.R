@@ -241,3 +241,99 @@ ok(
   ut_cmp_identical(loaded$format, "omicsViewerState"),
   "written state can be loaded"
 )
+
+## ------------- S4 completion: widget-store snapshot round-trip ---------
+# The .ESS snapshot embeds the canonical widget store; restoring it must
+# reproduce the saved store state exactly (per-key resilient only for
+# values the live data invalidates). Driven through the real app_module:
+# widgets patched via the agent path, saved through the snapshot modal
+# observer, drifted, then restored through the savedSS table selection.
+.rt_dir <- file.path(tempdir(), paste0("esv-rt-", Sys.getpid()))
+if (dir.exists(.rt_dir)) unlink(.rt_dir, recursive = TRUE)
+dir.create(.rt_dir, recursive = TRUE)
+Sys.setenv(OMICSVIEWER_TEST_HOOKS = "true")
+.rt_dat <- readRDS(file.path("inst", "extdata", "demo.RDS"))
+.rt_store_vals <- function() {
+  omicsViewer:::store_snapshot(.rt_app_store)$values
+}
+.rt_run <- new.env(); .rt_run$n <- 0L
+.rt_hook <- function(session, output, op, payload = list()) {
+  session$setInputs(`app-agentTestHooks-op` = op)
+  session$setInputs(`app-agentTestHooks-payload` = jsonlite::toJSON(
+    payload, auto_unbox = TRUE))
+  .rt_run$n <- .rt_run$n + 1L
+  session$setInputs(`app-agentTestHooks-run` = .rt_run$n)
+  session$flushReact()
+  txt <- as.character(output[["app-agentTestHooks-result"]])
+  jsonlite::fromJSON(txt, simplifyVector = FALSE)
+}
+.rt_app_store <- omicsViewer:::widget_store_new()
+app_rt <- function(input, output, session) {
+  omicsViewer:::app_module(
+    "app", .dir = shiny::reactive(.rt_dir),
+    ESVObj = shiny::reactive(.rt_dat), store = .rt_app_store)
+}
+shiny::testServer(app_rt, {
+  # the navbar input must exist before the first flush, otherwise the
+  # data-space status assembly errors under the mock session
+  session$setInputs(`app-dataspace-eset` = "Feature")
+  session$flushReact()
+  # agent-path widget writes across modules (scatter, heatmap, table,
+  # result space); the data-space navbar is driven through its input like
+  # a real browser (a push relays updateNavbarPage, the mock input map
+  # would otherwise keep the stale tab and the saved status disagree)
+  r1 <- .rt_hook(session, output, "widgets", list(patch = list(
+    `dataspace.expr_heatmap.heatmap_colors` = "RdGy",
+    `dataspace.expr_heatmap.margin_bottom` = 7,
+    `dataspace.tab_feature.multi_selection` = TRUE,
+    `resultspace.feature_general.plot_type` = "Curve")))
+  ok(length(r1$applied) == 4L && !length(r1$rejected),
+     "round-trip setup: four widget writes apply")
+  session$setInputs(`app-dataspace-eset` = "Heatmap")
+  session$flushReact()
+  s1 <- .rt_store_vals()
+  ok(
+    identical(s1$`dataspace.expr_heatmap.heatmap_colors`, "RdGy") &&
+      identical(s1$`dataspace.expr_heatmap.margin_bottom`, 7L) &&
+      isTRUE(s1$`dataspace.tab_feature.multi_selection`) &&
+      identical(s1$`resultspace.feature_general.plot_type`, "Curve") &&
+      identical(s1$`dataspace.active_tab`, "Heatmap"),
+    "pre-save store state holds the requested widget values"
+  )
+  # save through the real snapshot observer (.ESS to disk)
+  session$setInputs(`app-snapshot_name` = "rt1")
+  session$setInputs(`app-snapshot_save` = 1L)
+  session$flushReact()
+  ess <- list.files(.rt_dir, pattern = "\\.ESS$", ignore.case = TRUE)
+  ok(length(ess) == 1L, "snapshot save writes exactly one .ESS file")
+  saved <- if (length(ess)) readRDS(file.path(.rt_dir, ess))
+  ok(!is.null(saved) && is.list(saved$widget_store$values),
+     "saved .ESS embeds the widget-store snapshot")
+  # drift the widgets after saving
+  r2 <- .rt_hook(session, output, "widgets", list(patch = list(
+    `dataspace.expr_heatmap.heatmap_colors` = "PiYG",
+    `dataspace.expr_heatmap.margin_bottom` = 3,
+    `dataspace.tab_feature.multi_selection` = FALSE,
+    `resultspace.feature_general.plot_type` = "Bees")))
+  ok(length(r2$applied) == 4L,
+     "post-save drift applies")
+  smid <- .rt_store_vals()
+  ok(!identical(smid$`dataspace.expr_heatmap.heatmap_colors`,
+                s1$`dataspace.expr_heatmap.heatmap_colors`),
+     "drift actually changed the store state")
+  # restore by selecting the saved row in the snapshot table
+  session$setInputs(`app-tab_saveSS_cells_selected` = c(1, 1))
+  session$flushReact()
+  session$flushReact()
+  s2 <- .rt_store_vals()
+  diffs <- Filter(function(k) !identical(s1[[k]], s2[[k]]), names(s1))
+  ok(
+    length(diffs) == 0L,
+    sprintf("restore reproduces the saved store state exactly%s",
+            if (length(diffs)) paste0(" (differs: ",
+                                      paste(head(diffs, 5), collapse = ", "),
+                                      ")") else "")
+  )
+})
+Sys.unsetenv("OMICSVIEWER_TEST_HOOKS")
+unlink(.rt_dir, recursive = TRUE)
