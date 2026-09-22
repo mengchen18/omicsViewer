@@ -225,6 +225,25 @@ alone are 73% of today's payload (13.5 KB) and are the section to gate.
 Everything else (annotations, full quick-view records, panels,
 figure_grammar) stays opt-in via `sections`.
 
+**Progressive-disclosure shape (settled):** WP1 is a three-layer ladder.
+Layer 0 — the ground floor every call returns (overview + scatter_view,
+~1.3 KB). Layer 1 — opt-in `sections` of the SAME call (the response's
+`available_sections` is the menu). Layer 2 — targeted discovery tools
+(`search_annotations`, `summarize_annotation`, `list_widgets`,
+`get_widget`) that are narrower than any section. The anchors live on
+the ground floor because the scarce resource there is ROUND TRIPS, not
+bytes: making them a section would cost an extra provider call (~1–3 s
+latency + framing tokens) on 60% of real calls, versus ~100 tokens/carried
+call with zero latency. Two further progressive mechanisms were
+considered and are DEFERRED (not rejected): (a) intent-driven
+auto-include — the tool already receives `_intent`; clearly-named
+sections could ride along — reconsider only if logs show overview→section
+double calls where one would do; (b) epoch/change tokens — the store's
+global epoch is a natural state token (WP10's resolution); a follow-up
+get_state could pass it back and receive only changed keys — cheap to
+add later thanks to the store, worth it only if logs show repeated full
+overviews within one conversation.
+
 ### WP2: did-you-mean suggestions in all validation errors
 
 **STATUS: complete.** `.agent_suggest()` (substring → prefix → containment →
@@ -348,12 +367,19 @@ template optional — needs server-side projection; decide later.
 
 ### WP7: patch-mode `update_figure`
 
+**Confirmed core surface (user, 2026-09-23):** `update_figure` is
+needed — the early Tier B logs' zero update calls reflect testing that
+never got past basic functions, not disinterest. Consequence: **WP3
+(spec round-trip) is a hard prerequisite and stays scheduled** — without
+it the model must reconstruct its previous spec from memory for every
+revision.
+
 `update_figure(figure_id, changes = list(labels = ..., theme = ...))` where
 `changes` has the same shape as a spec but all fields optional. Server
 merges onto the stored normalized spec (WP3 registry), validates the merged
 result, renders. Full-resend remains supported (spec present ⇒ patch
-ignored). This is mostly convenience once WP3 exists; do it if benchmark
-task 10/11 show revision failures persisting.
+ignored). Patch-mode itself keeps the benchmark gate (decision 5): build it
+if tasks 10–11 show revision failures persisting after WP1–WP3.
 
 ### WP8: first new capability tools (enrichment / table view)
 
