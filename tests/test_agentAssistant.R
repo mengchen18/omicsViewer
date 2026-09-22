@@ -296,3 +296,173 @@ ok(
     "custom"),
   "literal \"null\" quick_view_id is treated as omitted"
 )
+
+# ---- WP1: sections / progressive disclosure on agent_compact_state -----
+agent_compact_state <- omicsViewer:::agent_compact_state
+agent_scatter_view_from_store <- omicsViewer:::agent_scatter_view_from_store
+build_app_state <- omicsViewer:::build_app_state
+widget_store_new <- omicsViewer:::widget_store_new
+widget_store_child <- omicsViewer:::widget_store_child
+widget_binding <- omicsViewer:::widget_binding
+store_register <- omicsViewer:::store_register
+store_apply <- omicsViewer:::store_apply
+
+full_state <- build_app_state(
+  dataset = NULL,
+  dataset_id = "unit.RDS",
+  data_status = list(eset_active_tab = "Feature"),
+  result_status = list(analyst_active_tab = "Feature"),
+  selected_features = paste0("G", 1:25),
+  selected_samples = c("S1", "S2"),
+  label = "unit"
+)
+qv <- list(feature = views, sample = NULL)
+state_args <- list(
+  annotations = catalog,
+  quick_views = qv,
+  available_tabs = list(
+    data_space = c("Feature", "Sample"),
+    analysis_space = c("Feature", "ORA")
+  ),
+  figure_grammar = list(geoms = "point")
+)
+
+overview <- do.call(agent_compact_state,
+                    c(list(state = full_state), state_args))
+ok(is.null(overview$annotations),
+   "WP1 overview omits the annotation catalog")
+ok(is.null(overview$panels), "WP1 overview omits panel state")
+ok(is.null(overview$figure_grammar), "WP1 overview omits the figure grammar")
+ok(is.null(overview$scatter_view),
+   "WP1 overview has no scatter_view without a widget store")
+ok(ut_cmp_identical(overview$selection$features$count, 25L),
+   "WP1 overview selection keeps the full count")
+ok(ut_cmp_identical(length(overview$selection$features$ids), 20L),
+   "WP1 overview selection example IDs are capped at 20")
+ok(ut_cmp_identical(overview$selection$features$truncated, TRUE),
+   "WP1 overview selection reports truncation")
+ok(
+  ut_cmp_identical(
+    overview$quick_views$feature[[1]], list(id = "volcano", label = "Volcano")
+  ),
+  "WP1 overview quick views carry id+label only"
+)
+ok(
+  ut_cmp_identical(
+    overview$available_sections,
+    c("annotations", "quick_views", "panels", "figure_grammar")
+  ),
+  "WP1 overview advertises the section menu"
+)
+ok(ut_cmp_identical(overview$active_tabs$data_space, "Feature"),
+   "WP1 overview keeps active tabs")
+
+mixed <- do.call(agent_compact_state,
+                 c(list(state = full_state, sections = "annotations"), state_args))
+ok(ut_cmp_identical(mixed$annotations, catalog),
+   "requested annotations section returns the full catalog")
+ok(is.null(mixed$panels), "unrequested sections stay absent")
+ok(
+  ut_cmp_identical(mixed$quick_views$feature[[1]], list(id = "volcano", label = "Volcano")),
+  "quick views stay compact unless the section is requested"
+)
+
+full <- do.call(
+  agent_compact_state,
+  c(list(state = full_state,
+         sections = c("quick_views", "panels", "figure_grammar")),
+    state_args)
+)
+ok(
+  ut_cmp_identical(full$quick_views$feature[[1]]$x, "ttest|A_vs_B|mean.diff"),
+  "requested quick_views section returns full records"
+)
+ok(ut_cmp_identical(full$panels$data_space$eset_active_tab, "Feature"),
+   "requested panels section returns bounded panel state")
+ok(ut_cmp_identical(full$figure_grammar, list(geoms = "point")),
+   "requested figure_grammar section is passed through")
+ok(is.null(full$annotations),
+   "sections compose: unrequested annotations stay absent")
+ok(
+  ut_cmp_error(
+    do.call(agent_compact_state,
+            c(list(state = full_state, sections = "annotaions"), state_args)),
+    "Unknown state section"
+  ),
+  "unknown sections are rejected"
+)
+ok(
+  ut_cmp_identical(
+    grepl(
+      "Closest matches: annotations",
+      tryCatch(
+        do.call(agent_compact_state,
+                c(list(state = full_state, sections = "annotaion"), state_args)),
+        error = function(e) conditionMessage(e)),
+      fixed = TRUE),
+    TRUE),
+  "unknown-section errors carry closest-match suggestions"
+)
+ok(
+  ut_cmp_identical(
+    do.call(agent_compact_state,
+            c(list(state = full_state, sections = "null"), state_args))$selection,
+    overview$selection
+  ),
+  "literal 'null' sections sentinel is treated as omitted"
+)
+ok(
+  ut_cmp_identical(
+    do.call(agent_compact_state,
+            c(list(state = full_state, sections = list("panels")), state_args))$panels,
+    full$panels
+  ),
+  "list-shaped sections (fromJSON) are accepted"
+)
+
+# widget-store scatter anchors on the overview ground floor
+st <- widget_store_new()
+fs <- widget_store_child(st, "dataspace.feature_space")
+store_register(
+  fs,
+  widget_binding("x_analysis", "select", values = c("ttest", "PCA")),
+  widget_binding("x_subset", "select", values = c("A_vs_B", "All")),
+  widget_binding("x_variable", "select", values = c("log.fdr", "PC1")),
+  widget_binding("y_analysis", "select", values = c("ttest", "PCA")),
+  widget_binding("y_subset", "select", values = c("A_vs_B", "All")),
+  widget_binding("y_variable", "select", values = c("log.fc", "PC2")),
+  widget_binding("axis_mode", "enum", values = c("quick", "custom"))
+)
+store_apply(
+  fs,
+  list(x_analysis = "ttest", x_subset = "A_vs_B", x_variable = "log.fdr",
+       y_analysis = "ttest", y_subset = "A_vs_B", y_variable = "log.fc",
+       axis_mode = "quick"),
+  origin = "restore"
+)
+sv <- agent_scatter_view_from_store(st)
+ok(
+  ut_cmp_identical(
+    sv$feature$x,
+    list(analysis = "ttest", subset = "A_vs_B", variable = "log.fdr",
+         name = "ttest|A_vs_B|log.fdr")
+  ),
+  "scatter_view reads axis triples from the widget store"
+)
+ok(ut_cmp_identical(sv$feature$axis_mode, "quick"),
+   "scatter_view carries the axis mode")
+ok(is.null(sv$sample), "unset sample scatter is NULL")
+ok(
+  ut_cmp_identical(
+    do.call(agent_compact_state,
+            c(list(state = full_state, store = st), state_args))$scatter_view,
+    sv
+  ),
+  "overview embeds the store-backed scatter_view"
+)
+st2 <- widget_store_new()
+fs2 <- widget_store_child(st2, "dataspace.feature_space")
+store_register(fs2, widget_binding("axis_mode", "enum", values = c("quick", "custom")))
+store_apply(fs2, list(axis_mode = "quick"), origin = "restore")
+ok(is.null(agent_scatter_view_from_store(st2)),
+   "axis mode without axes yields no scatter_view block")

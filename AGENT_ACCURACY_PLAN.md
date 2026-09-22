@@ -176,6 +176,18 @@ cover and the baseline (WP5a) is machine-scored rather than hand-waved.
 
 ### WP1: `sections` parameter on `get_omics_viewer_state`
 
+**STATUS: complete (2026-09-24).** `agent_compact_state()` gained `sections`
++ `store`; the overview is the settled three-layer ground floor (dataset,
+active/available tabs, selection counts + ≤20 example IDs, quick-view
+id+label lists, store-backed `scatter_view` with x/y triples + axis_mode,
+`available_sections`, `state_policy`); requested sections return today's
+full payloads. `agent_state` in L0 is now an on-demand builder (isolated,
+computed per call); the tool schema exposes the optional `sections` enum
+array; test hooks' `overview` op forwards `payload.sections`. Measured on
+demo.RDS through the real app_module: overview 1,185 B vs full 18,693 B
+(15.8× cut; annotations remain the gated bulk). Unit: agentAssistant 64,
+aiAssistantTools 22; Tier A 93/93 ×2 (4 new WP1 browser assertions).
+
 **Change.** `agent_compact_state()` gains a `sections` argument.
 `get_omics_viewer_state(sections = [...], _intent)`.
 
@@ -669,7 +681,7 @@ Tier A gained the missing right-panel guard (analysis-panel populate +
 render after selection — the exact missed regression) |
 | 1″ | **Unplanned: stale-internal-axes fix (user-reported, 19:49 session)** | **DONE** | meta_scatter's internal xax/yax never track manual triselector edits, so a restore targeting values the internal model already holds changed no reactive and never touched the widgets (quick-badge path was immune via its axisRequest bump). The restore path now bumps axisRequest too, and triselector_module accepts reactive_axis_request so analysis/subset/variable observers re-assert on version bumps. Reproduced: manual y=log.pvalue drift + volcano quick-view apply previously a silent no-op; now corrects. Manual edits still stick (no bump on user input) |
 | 1′ | **Unplanned: mid-restore req-abort fix** | **DONE** | R/module_meta_scatter.R — `current_axes <- .scatter_axis_signature(isolate(v1()), isolate(v2()))` ran before the axis assignment; v1()/v2() are req(input$variable)-guarded, so during an in-flight triselector cascade the req silently aborted the restore observer and the requested axes were lost (reproduced: apply during init lands on defaults). current_axes now tryCatch-guarded; verified racy and settled apply paths |
-| 2 | WP1 sections | M | auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring, tests |
+| 2 | WP1 sections | M | **DONE** — auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring (on-demand builder), test hooks sections pass-through, tests |
 | 3 | WP3 spec round-trip | S | module_aiAssistant.R, tests |
 | 4 | WP4 log summarizer | M | auxi_agentLogging.R, new test file |
 | 5 | WP5b prompt workflows | S | module_aiAssistant.R |

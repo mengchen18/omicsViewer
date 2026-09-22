@@ -174,3 +174,10 @@ agent_sentinel_string <- function(x) {
   is.character(x) && length(x) == 1L && !is.na(x) &&
     x %in% AGENT_SENTINEL_STRINGS
 }
+
+#' @description Full-detail sections of \code{get_omics_viewer_state} that a
+#' model can request beyond the compact overview (WP1 progressive
+#' disclosure). The overview itself always carries dataset, active and
+#' available tabs, selection counts with bounded example IDs, quick-view
+#' id+label lists, the widget-store scatter view, and this menu.
+AGENT_STATE_SECTIONS <- c("annotations", "quick_views", "panels", "figure_grammar")

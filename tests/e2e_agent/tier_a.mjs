@@ -229,8 +229,31 @@ try {
   record('plotly y-axis updates to PC3', true);
 
   // ---- 3. scatter: quick view ----------------------------------------
-  const ov = await runHook(p1, 'overview', {});
-  const fviews = (ov.quick_views && ov.quick_views.feature) || [];
+  // WP1 progressive disclosure: the no-sections overview is compact (no
+  // annotation catalog / panels / figure grammar) but still carries the
+  // id+label quick-view menu and the store-backed scatter_view anchors;
+  // full quick-view records need the quick_views section.
+  const ovCompact = await runHook(p1, 'overview', {});
+  record('WP1 overview omits full-detail sections',
+    ovCompact.annotations === undefined && ovCompact.panels === undefined &&
+      ovCompact.figure_grammar === undefined &&
+      Array.isArray(ovCompact.available_sections) &&
+      ovCompact.available_sections.includes('quick_views'),
+    JSON.stringify(Object.keys(ovCompact)));
+  const sv = ovCompact.scatter_view || {};
+  record('WP1 overview carries store-backed scatter_view',
+    !!(sv.feature && sv.feature.x && sv.feature.x.name && sv.feature.axis_mode) &&
+      sv.feature.x.name.startsWith('PCA|All|PC1'),
+    JSON.stringify(sv.feature || null));
+  const qvMenu = (ovCompact.quick_views && ovCompact.quick_views.feature) || [];
+  record('WP1 overview quick views are id+label only',
+    qvMenu.length > 0 && qvMenu.every(v => v.id && v.label && v.x === undefined),
+    qvMenu.slice(0, 3).map(v => v.id).join(','));
+  const ovFull = await runHook(p1, 'overview', { sections: ['quick_views'] });
+  const fviews = (ovFull.quick_views && ovFull.quick_views.feature) || [];
+  record('WP1 quick_views section returns full records',
+    fviews.length > 0 && fviews.every(v => typeof v.x === 'string' && typeof v.y === 'string'),
+    fviews.length + ' records');
   record('runtime feature quick views available', fviews.length > 0,
     fviews.map(v => v.id).slice(0, 6).join(','));
   if (fviews.length > 0) {

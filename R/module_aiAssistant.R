@@ -6,7 +6,10 @@
 #' omicsViewer use does not require an LLM provider.
 #'
 #' @param id Module ID.
-#' @param state Reactive compact application state.
+#' @param state Builder function called as \code{state(sections)} returning
+#'   the compact application state for the requested sections (WP1
+#'   progressive disclosure; it isolates its own reactive reads, so it is
+#'   safe to call from ellmer tool contexts).
 #' @param state_available Reactive logical indicating whether dataset state is ready.
 #' @param feature_data Reactive feature metadata.
 #' @param sample_data Reactive sample metadata.
@@ -391,28 +394,47 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
     chat_object <- NULL
     if (dependencies_available) {
       get_state_tool <- ellmer::tool(
-        function(`_intent`) {
-          current <- isolate(state())
+        function(sections = NULL, `_intent`) {
+          current <- state(sections = sections)
           if (is.null(current))
             stop("No dataset is currently available to the assistant.")
           .ai_tool_result(
             current,
             title = "Read current analysis state",
-            label = paste(current$dataset$dimensions[["features"]], "features /",
-                          current$dataset$dimensions[["samples"]], "samples"),
+            label = paste(
+              current$dataset$dimensions[["features"]], "features /",
+              current$dataset$dimensions[["samples"]], "samples",
+              if (length(sections))
+                paste0("+ ", paste(sections, collapse = ", "))
+              else "(overview)"
+            ),
             preview = paste("data tab:", current$active_tabs$data_space,
                             "| analysis tab:", current$active_tabs$analysis_space)
           )
         },
         name = "get_omics_viewer_state",
         description = paste(
-          "Read the current compact omicsViewer state, annotation catalog, quick views,",
-          "active tabs, and semantic feature/sample selections. Call this before answering",
-          "questions about the visible dataset or interface."
+          "Read the current omicsViewer state. Call with no sections for a compact overview:",
+          "dataset, active and available tabs, selection counts with up to 20 example IDs,",
+          "quick-view id+label lists, and scatter_view (the current x/y axes and axis mode of",
+          "both data-space scatters). Request sections only when needed: 'annotations' (full",
+          "annotation column catalog), 'quick_views' (full quick-view records including axes),",
+          "'panels' (bounded interface panel state), 'figure_grammar' (declarative figure",
+          "grammar). Requested sections are returned together with the overview."
         ),
-        arguments = list(`_intent` = ellmer::type_string(
-          "Short user-facing reason this state is needed."
-        )),
+        arguments = list(
+          sections = ellmer::type_array(
+            ellmer::type_enum(
+              AGENT_STATE_SECTIONS,
+              "State section to include in full detail beyond the overview."
+            ),
+            "Optional sections to include; omit or pass an empty array for the compact overview.",
+            required = FALSE
+          ),
+          `_intent` = ellmer::type_string(
+            "Short user-facing reason this state is needed."
+          )
+        ),
         annotations = ellmer::tool_annotations(
           title = "Reading application state",
           read_only_hint = TRUE,

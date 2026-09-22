@@ -28,7 +28,9 @@ agent_test_hooks_module(
 \item{apply_scatter_view}{Callback applying a validated scatter view
 (as used by the \code{set_scatter_view} tool).}
 
-\item{state}{Reactive compact assistant state (for the overview hook).}
+\item{state}{Builder function called as \code{state(sections)} returning
+the compact assistant state (overview plus any requested full-detail
+sections; mirrors the \code{get_omics_viewer_state} tool surface).}
 
 \item{store}{Canonical widget store driving the S3 generic widget tier
 (the exact store the \code{set_widgets} tool writes to).}

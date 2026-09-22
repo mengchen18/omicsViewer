@@ -682,19 +682,35 @@ app_module <- function(
     TRUE
   })
 
-  agent_state <- reactive({
-    full_state <- agent_full_state()
-    agent_compact_state(
-      state = full_state,
-      annotations = agent_annotation_catalog(fdata(), pdata()),
-      quick_views = attr(v1(), "quickViews"),
-      available_tabs = list(
-        data_space = agent_data_tabs,
-        analysis_space = agent_analysis_tabs()
-      ),
-      figure_grammar = agent_figure_grammar()
-    )
-  })
+  # WP1 progressive disclosure: the compact state is built on demand for
+  # exactly the requested sections. Expensive parts (annotation catalog,
+  # figure grammar) are only computed when their section is asked for;
+  # quick-view id/label lists and the widget-store scatter view always ride
+  # along on the overview (plan section 3, settled decision). The whole
+  # builder runs inside isolate() so it is safe to call from ellmer tool
+  # contexts and test hooks outside the reactive graph.
+  agent_state <- function(sections = NULL) {
+    shiny::isolate({
+      full_state <- agent_full_state()
+      if (is.null(full_state))
+        return(NULL)
+      wanted <- sections %||% character()
+      agent_compact_state(
+        state = full_state,
+        annotations = if ("annotations" %in% wanted)
+          agent_annotation_catalog(fdata(), pdata()),
+        quick_views = attr(v1(), "quickViews"),
+        available_tabs = list(
+          data_space = agent_data_tabs,
+          analysis_space = agent_analysis_tabs()
+        ),
+        figure_grammar = if ("figure_grammar" %in% wanted)
+          agent_figure_grammar(),
+        sections = sections,
+        store = app_store
+      )
+    })
+  }
 
   apply_agent_state <- function(update) {
     full_state <- isolate(agent_full_state())

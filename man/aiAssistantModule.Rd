@@ -25,7 +25,10 @@ ai_assistant_module(
 \arguments{
 \item{id}{Module ID.}
 
-\item{state}{Reactive compact application state.}
+\item{state}{Builder function called as \code{state(sections)} returning
+the compact application state for the requested sections (WP1
+progressive disclosure; it isolates its own reactive reads, so it is
+safe to call from ellmer tool contexts).}
 
 \item{state_available}{Reactive logical indicating whether dataset state is ready.}
 

@@ -10,6 +10,15 @@ WP1 decision + disclosure ladder in §3-WP1; WP7/WP10 updated) and
 `AGENTS.md` (environment + commands). Delete or trim this file once
 absorbed.
 
+**Update 2026-09-24: WP1 is COMPLETE** (see plan §3-WP1 STATUS) —
+overview/sections ladder landed, overview 1,185 B vs 18,693 B full on
+demo.RDS (15.8×), unit board green (agentAssistant 64, aiAssistantTools
+22), Tier A 93/93 ×2. `agent_state` is now an on-demand builder function
+(`state(sections)`), not a reactive — keep that contract when touching
+L0_module_app.R / ai_assistant_module / agent_test_hooks_module.
+**Next: WP3** (figure spec round-trip, hard prerequisite per WP7), then
+WP4 (log summarizer).
+
 ## Where we are / how to resume
 
 Branch `agent-driven-exploration`, working tree clean through this
@@ -23,20 +32,22 @@ session's commits. DESCRIPTION 2.1.1.
 **Next session goes straight to implementation** (all groundwork +
 decisions done):
 
-1. **WP1 — `sections` parameter on `get_omics_viewer_state`** (decision
-   SETTLED — do not re-litigate): default overview = dataset, active
-   tabs, available tabs, selection counts + ≤20 example IDs, quick-view
-   id+label lists, **`scatter_view`** (x/y axis triples + axis_mode of
-   BOTH data-space scatters via `store_read(app_store, ...)` — keys
-   `dataspace.{feature,sample}_space.{x,y}_{analysis,subset,variable}`
-   + `.axis_mode`), `available_sections`, `state_policy`. Requested
-   sections return today's full payloads (annotations / quick_views /
-   panels / figure_grammar). Measured on demo.RDS: full state 18.4 KB →
-   overview ~1.3 KB (14× cut; annotations alone were 73%). Touch points:
-   `auxi_agentAssistant.R` (`agent_compact_state`),
-   `module_aiAssistant.R` (tool schema + description),
-   `R/L0_module_app.R` (`agent_state` builds eagerly today — build on
-   demand from parts). Tests: `test_agentAssistant.R`.
+1. **WP1 — `sections` parameter on `get_omics_viewer_state`** — **DONE
+   2026-09-24** (decision was settled; implemented as designed):
+   overview = dataset, active tabs, available tabs, selection counts +
+   ≤20 example IDs, quick-view id+label lists, **`scatter_view`** (x/y
+   axis triples + axis_mode of BOTH data-space scatters via
+   `store_read`, keys
+   `dataspace.{feature,sample}_space.{x,y}_{analysis,subset,variable}` +
+   `.axis_mode`), `available_sections`, `state_policy`. Requested
+   sections return today's full payloads. Touch points landed:
+   `auxi_agentAssistant.R` (`agent_compact_state` +
+   `agent_scatter_view_from_store` + `.agent_normalize_state_sections`),
+   `module_aiAssistant.R` (tool schema + description), `L0_module_app.R`
+   (`agent_state` is now an on-demand isolated builder),
+   `module_agentTestHooks.R` (`overview` op forwards `payload.sections`),
+   `constants.R` (`AGENT_STATE_SECTIONS`). Tests: test_agentAssistant.R
+   (+26), test_aiAssistantTools.R (+3), tier_a.mjs (+4).
 2. **WP3 — figure spec round-trip** (HARD PREREQUISITE — user-confirmed
    that `update_figure` is core surface): `render_assistant_figure()`
    includes the full normalized spec in the tool result; store normalized

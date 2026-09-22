@@ -286,39 +286,138 @@ agent_quick_view_records <- function(views) {
   x
 }
 
+#' Normalize a requested state-section list
+#'
+#' Providers may serialize omitted array optionals as literal sentinel
+#' strings (glm flash) or as JSON lists; both are normalized here so
+#' \code{agent_compact_state} never sees an ambiguous request.
+#'
+#' @param sections Character vector (or list) of requested section names,
+#'   or NULL for the overview only.
+#' @return A deduplicated character vector of valid section names.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+.agent_normalize_state_sections <- function(sections) {
+  if (is.null(sections))
+    return(character())
+  if (agent_sentinel_string(sections))
+    return(character())
+  sections <- as.character(sections)
+  sections <- trimws(sections)
+  sections <- sections[!is.na(sections) & nzchar(sections)]
+  sections <- sections[!duplicated(sections)]
+  invalid <- setdiff(sections, AGENT_STATE_SECTIONS)
+  if (length(invalid))
+    stop("Unknown state section(s): ",
+         paste(utils::head(invalid, 3L), collapse = ", "), ".",
+         .agent_suggest_text(invalid[[1]], AGENT_STATE_SECTIONS),
+         " Available sections: ", paste(AGENT_STATE_SECTIONS, collapse = ", "), ".")
+  sections
+}
+
+#' Read the current data-space scatter views from the widget store
+#'
+#' Layer-0 overview anchors (plan section 3, WP1): the x/y axis triples and
+#' display mode of both data-space scatters, read from the canonical widget
+#' store, which is the single source of truth for axis state.
+#'
+#' @param store Canonical widget store (\code{\link{widget_store_new}}),
+#'   typically the app's root store. NULL returns NULL.
+#' @return A named list with \code{feature} and \code{sample} blocks (each
+#'   with \code{x}/\code{y} triples and \code{axis_mode}), or NULL when the
+#'   store carries no scatter-axis state.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_scatter_view_from_store <- function(store) {
+  if (is.null(store))
+    return(NULL)
+  read_one <- function(prefix) {
+    axes <- paste0(prefix, ".", rep(c("x", "y"), each = 3L), "_",
+                   c("analysis", "subset", "variable"))
+    vals <- store_read(store, unique(c(axes, paste0(prefix, ".axis_mode"))))
+    triple <- function(axis) {
+      parts <- vals[paste0(prefix, ".", axis, "_",
+                          c("analysis", "subset", "variable"))]
+      ok <- vapply(parts, function(p)
+        is.character(p) && length(p) == 1L && nzchar(p), logical(1))
+      if (!all(ok))
+        return(NULL)
+      list(analysis = parts[[1]], subset = parts[[2]], variable = parts[[3]],
+           name = paste(unlist(parts, use.names = FALSE), collapse = "|"))
+    }
+    x <- triple("x")
+    y <- triple("y")
+    if (is.null(x) && is.null(y))
+      return(NULL)
+    list(x = x, y = y, axis_mode = vals[[paste0(prefix, ".axis_mode")]])
+  }
+  out <- list(
+    feature = read_one("dataspace.feature_space"),
+    sample = read_one("dataspace.sample_space")
+  )
+  if (is.null(out$feature) && is.null(out$sample))
+    return(NULL)
+  out
+}
+
 #' Build a compact model-facing application state
+#'
+#' Progressive disclosure (plan section 3, WP1): by default the payload is a
+#' fixed-size overview - dataset, active and available tabs, selection
+#' counts with at most 20 example IDs, quick-view id+label lists, the
+#' widget-store scatter view, the \code{available_sections} menu, and the
+#' state policy. Full-detail sections (annotation catalog, complete
+#' quick-view records, bounded panel state, figure grammar) are returned by
+#' the same call only when requested through \code{sections}.
 #'
 #' @param state Versioned application state from \code{\link{build_app_state}}.
 #' @param annotations Annotation catalog created by
-#'   \code{\link{agent_annotation_catalog}}.
+#'   \code{\link{agent_annotation_catalog}} (included only when the
+#'   \code{annotations} section is requested).
 #' @param quick_views Named list containing feature and sample quick views.
 #' @param available_tabs Named list of valid data-space and analysis-space tabs.
+#' @param figure_grammar Allowlisted figure grammar (included only when the
+#'   \code{figure_grammar} section is requested).
+#' @param sections Optional character vector requesting full-detail
+#'   sections beyond the overview: \code{annotations}, \code{quick_views},
+#'   \code{panels}, \code{figure_grammar}.
+#' @param store Canonical widget store; when given, the overview gains a
+#'   \code{scatter_view} block with the current x/y axis triples and
+#'   axis mode of both data-space scatters.
 #'
-#' @return A JSON-like list containing identifiers, active tabs, semantic
-#'   selections, widget state, annotation metadata, and bounded quick-view
-#'   definitions. Expression values, fingerprints, credentials, and timestamps
+#' @return A JSON-like list containing the overview (identifiers, active
+#'   tabs, semantic selections, quick-view id/label lists, scatter view,
+#'   available sections, state policy) plus any requested full-detail
+#'   sections. Expression values, fingerprints, credentials, and timestamps
 #'   are intentionally omitted.
 #' @keywords internal
 #' @rdname agentAssistantHelpers
 agent_compact_state <- function(state, annotations = NULL, quick_views = NULL,
-                                available_tabs = NULL, figure_grammar = NULL) {
+                                available_tabs = NULL, figure_grammar = NULL,
+                                sections = NULL, store = NULL) {
   if (is.null(state))
     return(NULL)
+
+  sections <- .agent_normalize_state_sections(sections)
+  want <- function(section) section %in% sections
 
   if (is.null(available_tabs))
     available_tabs <- list(data_space = character(), analysis_space = character())
 
-  feature_views <- utils::head(agent_quick_view_records(quick_views$feature), 50L)
-  sample_views <- utils::head(agent_quick_view_records(quick_views$sample), 50L)
+  feature_records <- utils::head(agent_quick_view_records(quick_views$feature), 50L)
+  sample_records <- utils::head(agent_quick_view_records(quick_views$sample), 50L)
   bound_selection <- function(ids) {
     list(
       count = length(ids),
-      ids = utils::head(ids, 100L),
-      truncated = length(ids) > 100L
+      ids = utils::head(ids, 20L),
+      truncated = length(ids) > 20L
     )
   }
+  overview_views <- function(records) {
+    lapply(records, function(r) list(id = r$id, label = r$label))
+  }
 
-  list(
+  out <- list(
     dataset = list(
       id = state$dataset$id,
       class = state$dataset$class,
@@ -333,15 +432,29 @@ agent_compact_state <- function(state, annotations = NULL, quick_views = NULL,
       samples = bound_selection(state$selection$samples)
     ),
     available_tabs = available_tabs,
-    annotations = annotations,
-    quick_views = list(
-      feature = feature_views,
-      sample = sample_views
-    ),
-    panels = .agent_bound_value(state$panels),
-    figure_grammar = figure_grammar,
+    quick_views = if (want("quick_views")) {
+      list(feature = feature_records, sample = sample_records)
+    } else {
+      list(
+        feature = overview_views(feature_records),
+        sample = overview_views(sample_records)
+      )
+    },
+    available_sections = AGENT_STATE_SECTIONS,
     state_policy = state$policy
   )
+
+  scatter_view <- agent_scatter_view_from_store(store)
+  if (!is.null(scatter_view))
+    out$scatter_view <- scatter_view
+
+  if (want("annotations"))
+    out$annotations <- annotations
+  if (want("panels"))
+    out$panels <- .agent_bound_value(state$panels)
+  if (want("figure_grammar"))
+    out$figure_grammar <- figure_grammar
+  out
 }
 
 #' Describe annotation structure without returning row-level data

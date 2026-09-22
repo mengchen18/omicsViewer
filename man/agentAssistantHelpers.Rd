@@ -7,6 +7,8 @@
 \alias{agent_environment_config}
 \alias{agent_validate_provider_config}
 \alias{agent_quick_view_records}
+\alias{.agent_normalize_state_sections}
+\alias{agent_scatter_view_from_store}
 \alias{agent_compact_state}
 \alias{agent_annotation_catalog}
 \alias{agent_search_annotations}
@@ -30,12 +32,18 @@ agent_validate_provider_config(
 
 agent_quick_view_records(views)
 
+.agent_normalize_state_sections(sections)
+
+agent_scatter_view_from_store(store)
+
 agent_compact_state(
   state,
   annotations = NULL,
   quick_views = NULL,
   available_tabs = NULL,
-  figure_grammar = NULL
+  figure_grammar = NULL,
+  sections = NULL,
+  store = NULL
 )
 
 agent_annotation_catalog(feature_data, sample_data)
@@ -85,14 +93,26 @@ agent_normalize_state_update(
 
 \item{views}{A data.frame from \code{\link{prepare_quick_views}}, or NULL.}
 
+\item{sections}{Optional character vector requesting full-detail
+sections beyond the overview: \code{annotations}, \code{quick_views},
+\code{panels}, \code{figure_grammar}.}
+
+\item{store}{Canonical widget store; when given, the overview gains a
+\code{scatter_view} block with the current x/y axis triples and
+axis mode of both data-space scatters.}
+
 \item{state}{Versioned application state from \code{\link{build_app_state}}.}
 
 \item{annotations}{Annotation catalog created by
-\code{\link{agent_annotation_catalog}}.}
+\code{\link{agent_annotation_catalog}} (included only when the
+\code{annotations} section is requested).}
 
 \item{quick_views}{Named list of feature/sample quick-view data.frames.}
 
 \item{available_tabs}{Named list of valid data-space and analysis-space tabs.}
+
+\item{figure_grammar}{Allowlisted figure grammar (included only when the
+\code{figure_grammar} section is requested).}
 
 \item{feature_data}{Feature metadata.}
 
@@ -150,9 +170,16 @@ A normalized provider-configuration list without changing the
 
 A list of JSON-like quick-view records.
 
-A JSON-like list containing identifiers, active tabs, semantic
-  selections, widget state, annotation metadata, and bounded quick-view
-  definitions. Expression values, fingerprints, credentials, and timestamps
+A deduplicated character vector of valid section names.
+
+A named list with \code{feature} and \code{sample} blocks (each
+  with \code{x}/\code{y} triples and \code{axis_mode}), or NULL when the
+  store carries no scatter-axis state.
+
+A JSON-like list containing the overview (identifiers, active
+  tabs, semantic selections, quick-view id/label lists, scatter view,
+  available sections, state policy) plus any requested full-detail
+  sections. Expression values, fingerprints, credentials, and timestamps
   are intentionally omitted.
 
 A named list containing dimensions, row ID labels, and column-level
@@ -189,5 +216,21 @@ intermediate requests generated while a model resolves tool calls.
 Environment variables are intentionally limited to provider selection, model
 selection, an optional OpenAI-compatible base URL, and credentials. The API
 key is never placed in Shiny UI state, snapshots, tool results, or logs.
+
+Providers may serialize omitted array optionals as literal sentinel
+strings (glm flash) or as JSON lists; both are normalized here so
+\code{agent_compact_state} never sees an ambiguous request.
+
+Layer-0 overview anchors (plan section 3, WP1): the x/y axis triples and
+display mode of both data-space scatters, read from the canonical widget
+store, which is the single source of truth for axis state.
+
+Progressive disclosure (plan section 3, WP1): by default the payload is a
+fixed-size overview - dataset, active and available tabs, selection
+counts with at most 20 example IDs, quick-view id+label lists, the
+widget-store scatter view, the \code{available_sections} menu, and the
+state policy. Full-detail sections (annotation catalog, complete
+quick-view records, bounded panel state, figure grammar) are returned by
+the same call only when requested through \code{sections}.
 }
 \keyword{internal}

@@ -77,10 +77,31 @@ store_register(test_store,
     label = "Bottom margin", help = "Bottom plot margin in lines",
     min = 1L, max = 20L))
 
+# WP1: the state bridge is a builder function called as state(sections);
+# mirror the real app wiring by building through agent_compact_state so the
+# tool wrapper and the progressive-disclosure helper are tested together.
+state_builder <- function(sections = NULL) {
+  omicsViewer:::agent_compact_state(
+    state = omicsViewer:::build_app_state(
+      dataset = NULL,
+      dataset_id = "demo.RDS",
+      data_status = list(eset_active_tab = "Feature"),
+      result_status = list(analyst_active_tab = "Feature"),
+      selected_features = "Gene1",
+      selected_samples = character(),
+      label = "unit test"
+    ),
+    annotations = compact_state$annotations,
+    quick_views = NULL,
+    available_tabs = compact_state$available_tabs,
+    sections = sections
+  )
+}
+
 shiny::testServer(
   omicsViewer:::ai_assistant_module,
   args = list(
-    state = shiny::reactive(compact_state),
+    state = state_builder,
     state_available = shiny::reactive(TRUE),
     feature_data = shiny::reactive(fd),
     sample_data = shiny::reactive(pd),
@@ -109,6 +130,25 @@ shiny::testServer(
     ok(
       ut_cmp_identical(state_result@value$dataset$id, "demo.RDS"),
       "state tool returns the compact current state"
+    )
+    ok(
+      ut_cmp_identical(state_result@value$available_sections,
+                       c("annotations", "quick_views", "panels", "figure_grammar")),
+      "state tool overview advertises the section menu"
+    )
+    ok(
+      is.null(state_result@value$annotations) && is.null(state_result@value$panels),
+      "state tool omits full-detail sections by default"
+    )
+    state_section <- tools$get_omics_viewer_state(
+      sections = c("annotations"), `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(
+        state_section@value$annotations,
+        list(feature = list(rows = 3L), sample = list(rows = 4L))
+      ),
+      "state tool returns requested sections in full"
     )
     search_result <- tools$search_annotations(
       space = "feature", query = "gene1", max_results = 2L,

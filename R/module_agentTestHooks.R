@@ -61,7 +61,9 @@ agent_test_hooks_ui <- function(id) {
 #'   (as used by the \code{set_omics_viewer_state} tool).
 #' @param apply_scatter_view Callback applying a validated scatter view
 #'   (as used by the \code{set_scatter_view} tool).
-#' @param state Reactive compact assistant state (for the overview hook).
+#' @param state Builder function called as \code{state(sections)} returning
+#'   the compact assistant state (overview plus any requested full-detail
+#'   sections; mirrors the \code{get_omics_viewer_state} tool surface).
 #' @param store Canonical widget store driving the S3 generic widget tier
 #'   (the exact store the \code{set_widgets} tool writes to).
 #' @rdname agentTestHooksModule
@@ -87,7 +89,7 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
 
       tryCatch(
         if (identical(op, "overview")) {
-          isolate(state())
+          state(parsed$sections)
         } else if (identical(op, "widgets")) {
           if (is.null(store))
             stop("Widget store unavailable in this session.")
