@@ -48,6 +48,13 @@ feature_general_ui <- function(id) {
 #' @param reactive_phenoData reactive phenotype data
 #' @param reactive_featureData reactive feature data
 #' @param reactive_status saved status to restore
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{resultspace.feature_general}. When given, the module's
+#'   user-editable surface (the link-variable cascade, the plot-type radio,
+#'   the regression-line switch, and the embedded attribute-4 panel)
+#'   registers on the store and is driven through the store protocol;
+#'   when NULL the legacy status-restore path is kept.
 #' @importFrom DT renderDataTable
 #' @importFrom reshape2 melt
 #' @importFrom shinyWidgets radioGroupButtons updateRadioGroupButtons
@@ -87,7 +94,8 @@ feature_general_module <- function(id,
                                    reactive_highlight = reactive(NULL),
                                    reactive_phenoData,
                                    reactive_featureData,
-                                   reactive_status = reactive(NULL)) {
+                                   reactive_status = reactive(NULL),
+                                   store = NULL) {
 
   moduleServer(id, function(input, output, session) {
 
@@ -100,16 +108,93 @@ feature_general_module <- function(id,
   })
   
   xax <- reactiveVal()
-  v1 <- triselector_module(
-    "tris_feature_general", reactive_x = triset, label = "Link to variable",
-    reactive_selector1 = reactive(xax()$v1),
-    reactive_selector2 = reactive(xax()$v2),
-    reactive_selector3 = reactive(xax()$v3))
+
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).\n  # The link-variable cascade is driven by store_watch selectors
+  # (meta_scatter pattern); the plot-type radio and regression-line state
+  # sync/push through the standard observers. The embedded attr4 panel
+  # registers under <prefix>.attr4.* inside attr4selector_module.
+  # ------------------------------------------------------------------
+  if (!is.null(store)) {
+    .fg_ts <- function() {
+      if (is.null(reactive_expr()) || is.null(reactive_phenoData()))
+        return(NULL)
+      ts <- tryCatch(
+        trisetter(expr = reactive_expr(), meta = reactive_phenoData(),
+                  combine = "pheno"),
+        shiny.silent.error = function(e) NULL, error = function(e) NULL)
+      if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) return(NULL)
+      ts[ts[, 1] != "Surv", , drop = FALSE]
+    }
+    .fg_ts1 <- function() {
+      ts <- .fg_ts()
+      if (is.null(ts)) character(0) else unique(ts[, 1])
+    }
+    .fg_ts2 <- function(a) {
+      ts <- .fg_ts()
+      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+      else unique(ts[ts[, 1] %in% a, 2])
+    }
+    .fg_ts3 <- function(a, b) {
+      ts <- .fg_ts()
+      if (is.null(ts)) character(0)
+      else {
+        i <- rep(TRUE, nrow(ts))
+        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+        unique(ts[i, 3])
+      }
+    }
+    kx1 <- paste0(store$prefix, ".xax_analysis")
+    kx2 <- paste0(store$prefix, ".xax_subset")
+    store_register(
+      store,
+      widget_binding("xax_analysis", "select",
+        label = "Link variable category",
+        help = paste("Annotation category of the variable the selected",
+                     "features are compared across"),
+        choices_provider = function(v) .fg_ts1()),
+      widget_binding("xax_subset", "select", label = "Link variable subcategory",
+        help = "Subcategory within the link-variable category",
+        depends_on = "xax_analysis",
+        choices_provider = function(v) .fg_ts2(v[[kx1]])),
+      widget_binding("xax_variable", "select_cascaded", label = "Link variable",
+        help = paste("Variable the selected features are plotted or tested",
+                     "against (phenotype annotation or Feature|Auto| row)"),
+        depends_on = c("xax_analysis", "xax_subset"),
+        choices_provider = function(v) .fg_ts3(v[[kx1]], v[[kx2]])),
+      widget_binding("plot_type", "enum", label = "Plot type",
+        help = paste("Beeswarm/box view or ROC/PR classification curves",
+                     "(categorical link variable with few features)"),
+        values = c("Bees", "Curve")),
+      widget_binding("regression_line", "boolean", label = "Regression line",
+        help = "Draw a regression line in the single-feature scatter view")
+    )
+    # observer-GC rule: keep every store-glue observer referenced
+    .fg_store_observers <- list()
+    .fg_keep <- function(obs) {
+      .fg_store_observers[[length(.fg_store_observers) + 1L]] <<- obs
+      invisible(obs)
+    }
+    v1 <- triselector_module(
+      "tris_feature_general", reactive_x = triset, label = "Link to variable",
+      reactive_selector1 = store_watch(store, "xax_analysis"),
+      reactive_selector2 = store_watch(store, "xax_subset"),
+      reactive_selector3 = store_watch(store, "xax_variable"),
+      reactive_axis_request = store_epoch(store))
+  } else {
+    v1 <- triselector_module(
+      "tris_feature_general", reactive_x = triset, label = "Link to variable",
+      reactive_selector1 = reactive(xax()$v1),
+      reactive_selector2 = reactive(xax()$v2),
+      reactive_selector3 = reactive(xax()$v3))
+  }
 
   attr4select_status <- reactiveVal()
   attr4select <- attr4selector_module(
     "a4_gf", reactive_meta = reactive_phenoData, reactive_expr = reactive_expr,
-    reactive_triset = triset, reactive_status = attr4select_status
+    reactive_triset = triset, reactive_status = attr4select_status,
+    store = store
   )
   
   reactive_input <- reactive({
@@ -238,6 +323,74 @@ feature_general_module <- function(id,
     showRegLine(v_scatter()$regline)
     })
 
+  # ------------------------------------------------------------------
+  # Store glue for the plot-type radio and regression-line state (the
+  # link-variable cascade syncs through v1() below; cutoffs/attr4 live in
+  # attr4selector_module). Acknowledgement-aware: a pushed value written
+  # into showRegLine acks through the same observer that mirrors user
+  # checkbox edits arriving via v_scatter()$regline.
+  # ------------------------------------------------------------------
+  if (!is.null(store)) {
+    .fg_root_store <- if (is.null(store$parent)) store else store$parent
+    .fg_read_tris <- function(sel)
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    .fg_component_set <- function(sel)
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    .fg_keep(observe({
+      xv <- .fg_read_tris(v1)
+      if (.fg_component_set(xv)) {
+        store_sync_from_ui(store, "xax_analysis", xv$analysis)
+        store_sync_from_ui(store, "xax_subset", xv$subset)
+        store_sync_from_ui(store, "xax_variable", xv$variable)
+      }
+    }))
+    .fg_keep(observeEvent(input$internal_radio, {
+      if (!is.null(input$internal_radio))
+        store_sync_from_ui(store, "plot_type", input$internal_radio)
+    }, ignoreInit = TRUE))
+    .fg_keep(observe({
+      if (is.null(showRegLine())) return(NULL)
+      store_sync_from_ui(store, "regression_line", showRegLine())
+    }))
+
+    # Seed unset scalar keys once the inputs exist (restore-first-wins);
+    # the cascade is genuinely unset by default and fills on first pick
+    .fg_seeded <- FALSE
+    .fg_keep(observe({
+      if (.fg_seeded) return(NULL)
+      if (is.null(input$internal_radio) || is.null(showRegLine()))
+        return(NULL)
+      .fg_seeded <<- TRUE
+      vals <- list(plot_type = input$internal_radio,
+                   regression_line = showRegLine())
+      held <- store_read(store, names(vals))
+      patch <- vals[vapply(names(vals), function(k)
+        is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+
+    # Store -> UI push for external writes only (pending entries mark them);
+    # the cascade re-derives from the store_watch selectors themselves
+    .fg_epoch <- store_epoch(store)
+    .fg_keep(observe({
+      .fg_epoch()
+      pt <- store_read(store, "plot_type")[[1]]
+      if (!is.null(pt) &&
+          !is.null(.fg_root_store$pending[[paste0(store$prefix, ".plot_type")]]))
+        updateRadioGroupButtons(session, "internal_radio", selected = pt)
+      rl <- store_read(store, "regression_line")[[1]]
+      if (!is.null(rl) &&
+          !is.null(.fg_root_store$pending[[paste0(store$prefix, ".regression_line")]]))
+        showRegLine(rl)
+    }))
+  }
+
   ## beeswarm:
   # - single feature selected - categorical phenoData selected
   # - multi feature selected - categorical phenoData selected
@@ -268,8 +421,23 @@ feature_general_module <- function(id,
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    xax(NULL)
-    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient, meta_scatter style)
+      if (identical(length(s$xax), 3L)) {
+        tr <- lapply(s$xax, function(x)
+          if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
+        patch <- list()
+        if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
+        if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
+        if (!is.null(tr[[3]])) patch$xax_variable <- tr[[3]]
+        if (length(patch))
+          tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+      }
+    } else {
+      xax(NULL)
+      xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    }
     })
 
   observeEvent(reactive_status(), {

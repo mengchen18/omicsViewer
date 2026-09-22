@@ -40,6 +40,12 @@ sample_general_ui <- function(id) {
 #' @param reactive_expr reactive expression data
 #' @param reactive_j index for which row in phenotype data should be highlighted/selected
 #' @param reactive_status saved status to restore
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{resultspace.sample_general}. When given, the module's
+#'   user-editable surface (the link-variable cascade and the embedded
+#'   attribute-4 panel) registers on the store; when NULL the legacy
+#'   status-restore path is kept.
 #' @examples
 #' #' # library(shiny)
 #' # #
@@ -64,7 +70,8 @@ sample_general_ui <- function(id) {
 #' # shinyApp(ui, server)
 #'
 sample_general_module <- function(id, reactive_phenoData, reactive_expr,
-  reactive_j = reactive(NULL), reactive_status = reactive(NULL)) {
+  reactive_j = reactive(NULL), reactive_status = reactive(NULL),
+  store = NULL) {
 
   moduleServer(id, function(input, output, session) {
 
@@ -75,11 +82,94 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   })
 
   xax <- reactiveVal()
-  v1 <- triselector_module(
-    "tris_sample_general", reactive_x = triset, label = "Link selection to",
-    reactive_selector1 = reactive(xax()$v1),
-    reactive_selector2 = reactive(xax()$v2),
-    reactive_selector3 = reactive(xax()$v3))
+
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4):
+  # the link-variable cascade (beeswarm / contingency / survival switch).
+  # The attr4 panel registers under <prefix>.attr4.* inside
+  # attr4selector_module. Choices providers mirror triset() WITHOUT req()
+  # (a shiny.validation condition inside a provider aborts the whole
+  # store_apply transaction) and include the Surv category, which decides
+  # the survival view.
+  # ------------------------------------------------------------------
+  if (!is.null(store)) {
+    .sg_ts <- function() {
+      if (is.null(reactive_phenoData())) return(NULL)
+      ts <- tryCatch(
+        trisetter(meta = reactive_phenoData(), expr = reactive_expr(),
+                  combine = "pheno"),
+        shiny.silent.error = function(e) NULL, error = function(e) NULL)
+      if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) NULL else ts
+    }
+    .sg_ts1 <- function() {
+      ts <- .sg_ts()
+      if (is.null(ts)) character(0) else unique(ts[, 1])
+    }
+    .sg_ts2 <- function(a) {
+      ts <- .sg_ts()
+      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+      else unique(ts[ts[, 1] %in% a, 2])
+    }
+    .sg_ts3 <- function(a, b) {
+      ts <- .sg_ts()
+      if (is.null(ts)) character(0)
+      else {
+        i <- rep(TRUE, nrow(ts))
+        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+        unique(ts[i, 3])
+      }
+    }
+    kx1 <- paste0(store$prefix, ".xax_analysis")
+    kx2 <- paste0(store$prefix, ".xax_subset")
+    store_register(
+      store,
+      widget_binding("xax_analysis", "select",
+        label = "Link variable category",
+        help = paste("Annotation category of the variable the selected",
+                     "samples are analyzed against"),
+        choices_provider = function(v) .sg_ts1()),
+      widget_binding("xax_subset", "select", label = "Link variable subcategory",
+        help = "Subcategory within the link-variable category",
+        depends_on = "xax_analysis",
+        choices_provider = function(v) .sg_ts2(v[[kx1]])),
+      widget_binding("xax_variable", "select_cascaded", label = "Link variable",
+        help = paste("Variable driving the analysis view: numeric gives a",
+                     "beeswarm, categorical a contingency table, Surv a",
+                     "Kaplan-Meier curve"),
+        depends_on = c("xax_analysis", "xax_subset"),
+        choices_provider = function(v) .sg_ts3(v[[kx1]], v[[kx2]]))
+    )
+    .sg_store_observers <- list()
+    .sg_keep <- function(obs) {
+      .sg_store_observers[[length(.sg_store_observers) + 1L]] <<- obs
+      invisible(obs)
+    }
+    # programmatic triple writes (status restore, batch link) share one
+    # helper; user picks sync back through the v1() observer below
+    .sg_apply_triple <- function(p1, p2, p3, origin = "system") {
+      patch <- stats::setNames(list(p1, p2, p3),
+                               c("xax_analysis", "xax_subset", "xax_variable"))
+      tryCatch(store_apply(store, patch, origin = origin, strict = FALSE),
+               error = function(e) NULL)
+    }
+    v1 <- triselector_module(
+      "tris_sample_general", reactive_x = triset, label = "Link selection to",
+      reactive_selector1 = store_watch(store, "xax_analysis"),
+      reactive_selector2 = store_watch(store, "xax_subset"),
+      reactive_selector3 = store_watch(store, "xax_variable"),
+      reactive_axis_request = store_epoch(store))
+  } else {
+    .sg_apply_triple <- function(p1, p2, p3, origin = "system") {
+      xax(NULL)
+      xax(list(v1 = p1, v2 = p2, v3 = p3))
+    }
+    v1 <- triselector_module(
+      "tris_sample_general", reactive_x = triset, label = "Link selection to",
+      reactive_selector1 = reactive(xax()$v1),
+      reactive_selector2 = reactive(xax()$v2),
+      reactive_selector3 = reactive(xax()$v3))
+  }
 
   attr4select_status <- reactiveVal()
   reactive_input <- reactive({
@@ -91,7 +181,8 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   })
   attr4select <- attr4selector_module(
     "a4_gp", reactive_meta = reactive_input,
-    reactive_triset = triset, reactive_status = attr4select_status
+    reactive_triset = triset, reactive_status = attr4select_status,
+    store = store
   )
   
   pheno <- reactive({
@@ -225,23 +316,48 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
       parts <- strsplit(var_name, "\\|")[[1]]
 
       if (length(parts) >= 3) {
-        xax(NULL)  # Clear first to trigger reactivity
-        xax(list(v1 = parts[1], v2 = parts[2], v3 = parts[3]))
+        .sg_apply_triple(parts[1], parts[2], parts[3])
       }
     } else if (selected$source == "features") {
       # For features: set to "Feature" -> "Auto" -> [feature_name]
       feature_name <- selected$data$feature_name
-      xax(NULL)  # Clear first to trigger reactivity
-      xax(list(v1 = "Feature", v2 = "Auto", v3 = feature_name))
+      .sg_apply_triple("Feature", "Auto", feature_name)
     }
   })
+
+  # Store glue: UI -> store sync for the cascade (acknowledgement-aware:
+  # store pushes ack through the same observer once the triselector
+  # confirms). The cascade has no meaningful default, so unlike the
+  # scalar widgets it is not seeded and fills on the first pick.
+  if (!is.null(store)) {
+    .sg_read_tris <- function(sel)
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    .sg_component_set <- function(sel)
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    .sg_keep(observe({
+      xv <- .sg_read_tris(v1)
+      if (.sg_component_set(xv)) {
+        store_sync_from_ui(store, "xax_analysis", xv$analysis)
+        store_sync_from_ui(store, "xax_subset", xv$subset)
+        store_sync_from_ui(store, "xax_variable", xv$variable)
+      }
+    }))
+  }
 
   ## save and restore status
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    xax(NULL)
-    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    if (identical(length(s$xax), 3L)) {
+      tr <- lapply(s$xax, function(x)
+        if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
+      if (!any(vapply(tr, is.null, logical(1))))
+        .sg_apply_triple(tr[[1]], tr[[2]], tr[[3]], origin = "restore")
+    }
     })
 
   observeEvent(reactive_status(), {

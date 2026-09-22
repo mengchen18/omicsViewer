@@ -577,7 +577,8 @@ app_module <- function(
                    reactive_highlight = rh,
                    additionalTabs = additionalTabs,
                    object = reactive_eset,
-                   status = reactive(esv_status()$panels$result_space))
+                   status = reactive(esv_status()$panels$result_space),
+                   store = app_store)
 
   # =======================================================
   # =======================================================

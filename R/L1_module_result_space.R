@@ -19,6 +19,10 @@ L1_result_space_ui <- function(id) {
 #' @param additionalTabs additional tabs added to "Analyst" panel
 #' @param object originally loaded object, mostly an \code{ExpressionSet} or \code{SummarizedExperiment} object
 #' @param status intial status
+#' @param store Root of the canonical widget store
+#'   (\code{\link{widget_store_new}}). Result-space child stores are
+#'   derived from it (\code{resultspace.*}) and the analyst tab navbar is
+#'   registered for agent control.
 #' @export
 L1_result_space_module <- function(
   id,
@@ -26,10 +30,82 @@ L1_result_space_module <- function(
   reactive_i = reactive(NULL),
   reactive_highlight = reactive(NULL),
   additionalTabs = NULL,
-  object = NULL, status = reactive(NULL)
+  object = NULL, status = reactive(NULL),
+  store = NULL
 ) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    # ------------------------------------------------------------------
+    # Canonical widget-store bindings (control plane, plan section 6, S4):
+    # result-space child stores plus the analyst tab navbar itself, so the
+    # agent can switch analysis tabs exactly like a user.
+    # ------------------------------------------------------------------
+    store_feature_general <- NULL
+    store_sample_general <- NULL
+    if (!is.null(store)) {
+      store_feature_general <- widget_store_child(store, "resultspace.feature_general")
+      store_sample_general <- widget_store_child(store, "resultspace.sample_general")
+      store_rs <- widget_store_child(store, "resultspace")
+      # tab titles in renderUI order; providers must never req()
+      .rs_tab_choices <- function() {
+        fd <- tryCatch(reactive_featureData(),
+                       shiny.silent.error = function(e) NULL,
+                       error = function(e) NULL)
+        tabs <- "Feature"
+        if (!is.null(fd)) {
+          if (!is.null(attr(fd, "GS")))
+            tabs <- c(tabs, "ORA", "fGSEA")
+          if (any(grepl("^ResponseCurve\\|", colnames(fd))))
+            tabs <- c(tabs, "Response")
+          if (any(grepl("^StringDB\\|", colnames(fd))))
+            tabs <- c(tabs, "StringDB")
+          if (any(grepl("^SeqLogo\\|", colnames(fd))))
+            tabs <- c(tabs, "SeqLogo")
+        }
+        if (length(additionalTabs) > 0)
+          tabs <- c(tabs, vapply(additionalTabs,
+                                 function(lo) lo$tabName, character(1)))
+        c(tabs, "Geneshot", "Sample")
+      }
+      store_register(
+        store_rs,
+        widget_binding("analyst_tab", "navbar", label = "Analysis tab",
+          help = paste("Active tab of the analysis (result-space) navbar:",
+                       "Feature, ORA, fGSEA, Response, StringDB, SeqLogo,",
+                       "Geneshot, or Sample (dataset-dependent)"),
+          choices_provider = function(v) .rs_tab_choices())
+      )
+      .rs_store_observers <- list()
+      .rs_keep <- function(obs) {
+        .rs_store_observers[[length(.rs_store_observers) + 1L]] <<- obs
+        invisible(obs)
+      }
+      .rs_root_store <- if (is.null(store$parent)) store else store$parent
+      .rs_keep(observeEvent(input$analyst, {
+        if (!is.null(input$analyst))
+          store_sync_from_ui(store_rs, "analyst_tab", input$analyst)
+      }, ignoreInit = TRUE))
+      .rs_seeded <- FALSE
+      .rs_keep(observe({
+        if (.rs_seeded) return(NULL)
+        if (is.null(input$analyst)) return(NULL)
+        .rs_seeded <<- TRUE
+        held <- store_read(store_rs, "analyst_tab")
+        if (is.null(held[[paste0(store_rs$prefix, ".analyst_tab")]]))
+          tryCatch(store_apply(store_rs, list(analyst_tab = input$analyst),
+                               origin = "system", strict = FALSE),
+                   error = function(e) NULL)
+      }))
+      .rs_epoch <- store_epoch(store_rs)
+      .rs_keep(observe({
+        .rs_epoch()
+        tb <- store_read(store_rs, "analyst_tab")[[1]]
+        if (!is.null(tb) &&
+            !is.null(.rs_root_store$pending[[paste0(store_rs$prefix, ".analyst_tab")]]))
+          updateNavbarPage(session = session, inputId = "analyst", selected = tb)
+      }))
+    }
 
     # session restore finished
     v <- feature_general_module("feature_general",
@@ -38,7 +114,8 @@ L1_result_space_module <- function(
       reactive_highlight = reactive_highlight,
       reactive_phenoData = reactive_phenoData,
       reactive_featureData = reactive_featureData,
-      reactive_status = reactive(status()$analyst_feature_general)
+      reactive_status = reactive(status()$analyst_feature_general),
+      store = store_feature_general
     )
 
     # session restore finished
@@ -68,7 +145,8 @@ L1_result_space_module <- function(
       "sample_general",
       reactive_phenoData = reactive_phenoData, reactive_expr = reactive_expr,
       reactive_j = reactive_highlight,
-      reactive_status = reactive(status()$analyst_sample_general)
+      reactive_status = reactive(status()$analyst_sample_general),
+      store = store_sample_general
     )
 
     # session restore finished

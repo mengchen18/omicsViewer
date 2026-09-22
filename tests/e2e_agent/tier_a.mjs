@@ -483,6 +483,171 @@ try {
   await runHook(p1, 'state', { data_space_tab: 'Feature' });
   await waitTab(p1, 'Feature');
 
+  // ---- 4e. S4 acceptance: result space --------------------------------
+  // The result-space modules join the control plane: the analyst navbar,
+  // sample_general's link-variable cascade (survival / contingency
+  // switch), feature_general's cascade + plot-type radio, and the shared
+  // attr4 panel. Driven through the same widgets hook as every S4 tier.
+  const rsInput = (id) => p1.evaluate(
+    (k) => Shiny.shinyapp.$inputValues[k], `app-resultspace-${id}`);
+  const waitRsInput = (id, v, timeout = 45000) => p1.waitForFunction(
+    ({ k, x }) => Shiny.shinyapp.$inputValues[k] === x,
+    { k: `app-resultspace-${id}`, x: v }, { timeout });
+  const w10 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.analyst_tab': 'Sample' }
+  });
+  record('result-space tab apply succeeds', !w10.hook_error, w10.hook_error || '');
+  record('receipt lists the analyst tab applied',
+    [w10.applied].flat().includes('resultspace.analyst_tab'),
+    JSON.stringify(w10.applied || []));
+  await waitRsInput('analyst', 'Sample');
+  record('analyst navbar reflects agent-set tab',
+    (await rsInput('analyst')) === 'Sample');
+
+  // sample_general: the Surv category switches to the Kaplan-Meier view
+  const w11 = await runHook(p1, 'widgets', {
+    patch: {
+      'resultspace.sample_general.xax_analysis': 'Surv',
+      'resultspace.sample_general.xax_subset': 'all',
+      'resultspace.sample_general.xax_variable': 'OS'
+    }
+  });
+  record('sample link-variable cascade applies', !w11.hook_error, w11.hook_error || '');
+  record('receipt lists all three cascade keys applied',
+    ['resultspace.sample_general.xax_analysis',
+     'resultspace.sample_general.xax_subset',
+     'resultspace.sample_general.xax_variable']
+      .every(k => (w11.applied || []).includes(k)),
+    JSON.stringify(w11.applied || []));
+  await waitRsInput('sample_general-tris_sample_general-variable', 'OS');
+  record('sample cascade select reflects agent-set Surv variable',
+    (await rsInput('sample_general-tris_sample_general-variable')) === 'OS');
+  await p1.waitForFunction(() =>
+    !!document.querySelector('[id*="sample_general_surv"]'), null, { timeout: 45000 });
+  record('survival view renders for the Surv link variable', true);
+
+  // a categorical variable switches the same panel to a contingency table
+  // (MDR is numeric in the demo data and keeps the beeswarm view)
+  const w12 = await runHook(p1, 'widgets', {
+    patch: {
+      'resultspace.sample_general.xax_analysis': 'General',
+      'resultspace.sample_general.xax_subset': 'All',
+      'resultspace.sample_general.xax_variable': 'Origin'
+    }
+  });
+  record('categorical sample cascade applies', !w12.hook_error, w12.hook_error || '');
+  await waitRsInput('sample_general-tris_sample_general-variable', 'Origin');
+  await p1.waitForFunction(() =>
+    !!document.querySelector('[id*="sample_general_contab"]'), null, { timeout: 45000 });
+  record('contingency view renders for a categorical link variable', true);
+
+  // feature_general: cascade + plot type. Features are selected through
+  // the real UI (Feature table rows) because the analysis panel consumes
+  // the data-space selection, which only table/scatter interactions feed
+  // durably (a pre-existing state-bridge gap: apply_agent_state feature
+  // patches are transient and get overwritten by the restore roundtrip).
+  const w13 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.analyst_tab': 'Feature' }
+  });
+  await waitRsInput('analyst', 'Feature');
+  await runHook(p1, 'state', { data_space_tab: 'Feature table' });
+  await waitTab(p1, 'Feature table');
+  const selRows = async () => p1.evaluate(() =>
+    (Shiny.shinyapp.$inputValues['app-dataspace-tab_feature-table_rows_selected'] || []).length);
+  {
+    // multiple-row selection needs the switch on; tab re-renders reset it,
+    // so toggle it through the DOM exactly like a user would. Read the
+    // rendered bootstrap-switch state (the client input map can be stale
+    // right after a tab switch).
+    const sw = '.bootstrap-switch-id-app-dataspace-tab_feature-multisel';
+    await p1.waitForSelector(sw, { timeout: 30000 });
+    await p1.waitForFunction((s) => {
+      const el = document.querySelector(s);
+      return el && (el.classList.contains('bootstrap-switch-on') ||
+                    el.classList.contains('bootstrap-switch-off'));
+    }, sw, { timeout: 15000 });
+    if (!(await p1.evaluate(s =>
+      document.querySelector(s).classList.contains('bootstrap-switch-on'), sw))) {
+      await p1.click(sw);
+      await p1.waitForFunction(s =>
+        document.querySelector(s)?.classList.contains('bootstrap-switch-on'),
+        sw, { timeout: 15000 });
+    }
+    const rows = p1.locator('#app-dataspace-tab_feature-table tbody tr');
+    await rows.first().waitFor({ timeout: 30000 });
+    // plain clicks accumulate in the DT os-select style (ctrl-click
+    // replaces); the DT redraw on tab return can swallow a click, so
+    // self-correct against the live selection until the wanted rows hold
+    const wanted = [0, 2, 4];
+    const getSel = () => p1.evaluate(() =>
+      Shiny.shinyapp.$inputValues['app-dataspace-tab_feature-table_rows_selected'] || []);
+    const deadline = Date.now() + 45000;
+    while (Date.now() < deadline) {
+      const sel = await getSel();
+      if (sel.length === wanted.length && wanted.every(i => sel.includes(i + 1)))
+        break;
+      const missing = wanted.find(i => !sel.includes(i + 1));
+      const extra = sel.filter(x => !wanted.includes(x - 1));
+      const target = missing !== undefined ? missing : extra[0] - 1;
+      await rows.nth(target).click().catch(() => {});
+      await p1.waitForTimeout(600);
+    }
+    if ((await selRows()) !== 3)
+      throw new Error('feature-table row selection did not converge');
+  }
+  record('three features selected through the feature table', (await selRows()) === 3);
+  await runHook(p1, 'state', { data_space_tab: 'Feature' });
+  await waitTab(p1, 'Feature');
+  const w14 = await runHook(p1, 'widgets', {
+    patch: {
+      'resultspace.feature_general.xax_analysis': 'General',
+      'resultspace.feature_general.xax_subset': 'All',
+      'resultspace.feature_general.xax_variable': 'TP53.Status',
+      'resultspace.feature_general.plot_type': 'Curve'
+    }
+  });
+  record('feature link-variable + plot type apply', !w14.hook_error, w14.hook_error || '');
+  await waitRsInput('feature_general-tris_feature_general-variable', 'TP53.Status');
+  await waitRsInput('feature_general-internal_radio', 'Curve');
+  record('feature plot-type radio reflects agent-set value',
+    (await rsInput('feature_general-internal_radio')) === 'Curve');
+  await p1.waitForFunction(() =>
+    !!document.querySelector('[id*="feature_general_roc_pr"]'), null, { timeout: 45000 });
+  record('ROC/PR view renders for the Curve plot type', true);
+
+  // attr4: the shared figure-attribute panel (nested namespace)
+  const w15 = await runHook(p1, 'widgets', {
+    patch: {
+      'resultspace.feature_general.attr4.color_analysis': 'General',
+      'resultspace.feature_general.attr4.color_subset': 'All',
+      'resultspace.feature_general.attr4.color_variable': 'Origin'
+    }
+  });
+  record('attr4 color cascade applies', !w15.hook_error, w15.hook_error || '');
+  await waitRsInput('feature_general-a4_gf-selectColorUI-variable', 'Origin');
+  record('attr4 color selector reflects agent-set variable',
+    (await rsInput('feature_general-a4_gf-selectColorUI-variable')) === 'Origin');
+
+  // negatives: per-key rejections with suggestions, current state intact
+  const w16 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.feature_general.plot_type': 'Histogram' }
+  });
+  record('invalid result-space plot type rejected with allowed values',
+    !w16.hook_error && (w16.rejected || []).length === 1 &&
+    /Allowed: Bees, Curve/.test(w16.rejected[0].reason),
+    JSON.stringify(w16.rejected || []));
+  record('rejected plot type leaves the radio unchanged',
+    (await rsInput('feature_general-internal_radio')) === 'Curve');
+  const w17 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.analyst_tab': 'Response' }
+  });
+  record('dataset-absent analysis tab rejected with allowed tabs',
+    !w17.hook_error && (w17.rejected || []).length === 1 &&
+    /StringDB|Sample/.test(w17.rejected[0].reason),
+    JSON.stringify(w17.rejected || []));
+  record('rejected tab leaves the navbar on Feature',
+    (await rsInput('analyst')) === 'Feature');
+
   // ---- 5. cross-session isolation -------------------------------------
   const s2 = await openSession(browser);
   const p2 = s2.page;

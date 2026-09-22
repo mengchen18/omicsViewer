@@ -538,3 +538,248 @@ ok(
   length(r$rejected) == 1L && grepl("PCA\\|All\\|PC1", r$rejected[[1]]$reason),
   "unknown table columns are rejected with suggestions"
 )
+
+## ------------------------------- S4 result-space: feature_general ------
+# The first result-space module on the store: link-variable cascade,
+# plot-type radio, regression-line state, and the shared attr4 panel.
+.fg_reg <- Filter(
+  function(x) startsWith(x$id, "resultspace.feature_general."),
+  store_registry_view(widget_store_new()))
+fg_root <- widget_store_new()
+fg_store <- widget_store_child(fg_root, "resultspace.feature_general")
+.fg_pd <- data.frame(
+  `General|All|group` = factor(rep(c("A", "B"), each = 4)),
+  `General|All|score` = rnorm(8),
+  `Surv|All|time` = rexp(8),
+  row.names = paste0("S", 1:8), check.names = FALSE)
+.fg_ex <- matrix(rnorm(16 * 8), nrow = 16,
+                 dimnames = list(paste0("F", 1:16), paste0("S", 1:8)))
+.fg_fd <- data.frame(`General|All|Gene.name` = paste0("g", 1:16),
+                     row.names = paste0("F", 1:16), check.names = FALSE)
+.sent_fg <- new.env(); .sent_fg$msgs <- list(); .sent_fg$s4 <- NULL
+app_fg <- function(input, output, session) {
+  omicsViewer:::feature_general_module(
+    "fg", reactive_expr = shiny::reactive(.fg_ex),
+    reactive_i = shiny::reactive(3), reactive_highlight = shiny::reactive(NULL),
+    reactive_phenoData = shiny::reactive(.fg_pd),
+    reactive_featureData = shiny::reactive(.fg_fd),
+    store = fg_store)
+}
+shiny::testServer(app_fg, {
+  .spy_input_messages(session, .sent_fg)
+  ids <- names(store_read(fg_store))
+  ok(
+    identical(sort(ids), sort(paste0("resultspace.feature_general.", c(
+      "xax_analysis", "xax_subset", "xax_variable", "plot_type",
+      "regression_line",
+      paste0("attr4.", outer(c("color", "shape", "size", "tooltip", "search"),
+                             c("_analysis", "_subset", "_variable"),
+                             FUN = paste0)),
+      "attr4.xcut", "attr4.ycut", "attr4.scorner")))),
+    "feature_general registers 23 user-editable keys (5 own + 18 attr4)"
+  )
+  # user pick through the triselector cascade syncs into the store
+  session$setInputs(`fg-tris_feature_general-analysis` = "General")
+  session$setInputs(`fg-tris_feature_general-subset` = "All")
+  session$setInputs(`fg-tris_feature_general-variable` = "group")
+  session$flushReact()
+  ok(
+    identical(store_read(fg_store)$resultspace.feature_general.xax_analysis,
+              "General") &&
+      identical(store_read(fg_store)$resultspace.feature_general.xax_variable,
+                "group"),
+    "user link-variable pick syncs into the store"
+  )
+  # plot type: warm the ignoreInit swallow, then a user edit
+  session$setInputs(`fg-internal_radio` = "Bees")
+  session$flushReact()
+  session$setInputs(`fg-internal_radio` = "Curve")
+  session$flushReact()
+  ok(
+    identical(store_read(fg_store)$resultspace.feature_general.plot_type,
+              "Curve"),
+    "user plot-type edit syncs into the store"
+  )
+  # external cascade write: store -> triselector update relays with
+  # unprefixed ids; the score variable drives the single-feature scatter
+  .sent_fg$msgs <- list()
+  store_apply(fg_store, list(xax_variable = "score"), origin = "agent")
+  session$flushReact()
+  ok(
+    identical(store_read(fg_store)$resultspace.feature_general.xax_variable,
+              "score") &&
+      any(vapply(.sent_fg$msgs, function(m)
+        grepl("(^|\\.)variable$", m$id), logical(1))),
+    "agent link-variable write pushes the cascade"
+  )
+  # external plot-type write: updateRadioGroupButtons relays a message
+  .sent_fg$msgs <- list()
+  store_apply(fg_store, list(plot_type = "Bees"), origin = "agent")
+  session$flushReact()
+  ok(
+    any(vapply(.sent_fg$msgs, function(m)
+      grepl("(^|\\.)internal_radio$", m$id) &&
+        identical(m$msg$selected %||% m$msg$value, "Bees"), logical(1))),
+    "agent plot-type write pushes the radio"
+  )
+  # external regression-line write lands in the mirrored reactiveVal
+  store_apply(fg_store, list(regression_line = TRUE), origin = "agent")
+  session$flushReact()
+  ok(
+    isTRUE(store_read(fg_store)$resultspace.feature_general.regression_line),
+    "agent regression-line write is stored and acked through the mirror"
+  )
+  # generic tier over the result-space keys (providers read reactives)
+  s4 <- list()
+  s4$ok <- agent_widget_apply(fg_root,
+    '{"resultspace.feature_general.attr4.color_variable": "score", "resultspace.feature_general.plot_type": "Curve"}')
+  s4$bad <- agent_widget_apply(fg_root,
+    '{"resultspace.feature_general.plot_type": "Histogram"}')
+  s4$nope <- agent_widget_apply(fg_root,
+    '{"resultspace.feature_general.xax_variable": "nope"}')
+  s4$surv <- agent_widget_apply(fg_root,
+    '{"resultspace.feature_general.xax_analysis": "Surv"}')
+  .sent_fg$s4 <- s4
+})
+r <- .sent_fg$s4$ok
+ok(
+  identical(sort(r$applied),
+            sort(c("resultspace.feature_general.attr4.color_variable",
+                   "resultspace.feature_general.plot_type"))),
+  "generic tier applies attr4 cascades and the plot type"
+)
+r <- .sent_fg$s4$bad
+ok(
+  length(r$rejected) == 1L &&
+    grepl("Allowed: Bees, Curve", r$rejected[[1]]$reason),
+  "invalid plot type is rejected with allowed values"
+)
+r <- .sent_fg$s4$nope
+ok(
+  length(r$rejected) == 1L && grepl("Unknown value", r$rejected[[1]]$reason),
+  "unknown link variable is rejected with suggestions"
+)
+r <- .sent_fg$s4$surv
+ok(
+  length(r$rejected) == 1L &&
+    grepl("Surv", r$rejected[[1]]$reason),
+  "the Surv category is not a feature_general choice (sample_general only)"
+)
+
+## ------------------------------- S4 result-space: sample_general -------
+# The sample twin keeps the Surv category (survival view) and routes the
+# batch-comparison link through the store.
+sg_root <- widget_store_new()
+sg_store <- widget_store_child(sg_root, "resultspace.sample_general")
+.sent_sg <- new.env(); .sent_sg$msgs <- list(); .sent_sg$s4 <- NULL
+app_sg <- function(input, output, session) {
+  omicsViewer:::sample_general_module(
+    "sg", reactive_phenoData = shiny::reactive(.fg_pd),
+    reactive_expr = shiny::reactive(.fg_ex),
+    reactive_j = shiny::reactive(c("S1", "S3")),
+    store = sg_store)
+}
+shiny::testServer(app_sg, {
+  .spy_input_messages(session, .sent_sg)
+  ids <- names(store_read(sg_store))
+  ok(
+    identical(length(ids), 21L) &&
+      all(startsWith(ids, "resultspace.sample_general.")),
+    "sample_general registers 21 keys (3 own + 18 attr4)"
+  )
+  session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
+  session$setInputs(`sg-tris_sample_general-subset` = "All")
+  session$setInputs(`sg-tris_sample_general-variable` = "time")
+  session$flushReact()
+  ok(
+    identical(store_read(sg_store)$resultspace.sample_general.xax_analysis,
+              "Surv"),
+    "user Surv pick syncs into the store (survival view choice)"
+  )
+  # generic tier: cascaded attr4 patch validated against the effective state
+  s4 <- list()
+  s4$ok <- agent_widget_apply(sg_root, paste0(
+    '{"resultspace.sample_general.xax_analysis":"General",',
+    '"resultspace.sample_general.xax_subset":"All",',
+    '"resultspace.sample_general.xax_variable":"group",',
+    '"resultspace.sample_general.attr4.xcut":"1",',
+    '"resultspace.sample_general.attr4.scorner":"right"}'))
+  s4$corner <- agent_widget_apply(sg_root,
+    '{"resultspace.sample_general.attr4.scorner": "volcano"}')
+  .sent_sg$s4 <- s4
+})
+r <- .sent_sg$s4$ok
+ok(
+  setequal(r$applied,
+           c("resultspace.sample_general.xax_analysis",
+             "resultspace.sample_general.xax_variable",
+             "resultspace.sample_general.attr4.xcut",
+             "resultspace.sample_general.attr4.scorner")),
+  "generic tier applies the sample cascade and cutoffs in one patch"
+)
+ok(
+  identical(r$applied_values$`resultspace.sample_general.attr4.scorner`,
+            "right"),
+  "corner choice validates against the patch's own xcut"
+)
+r <- .sent_sg$s4$corner
+ok(
+  length(r$rejected) == 1L,
+  "volcano corner without both cutoffs is rejected"
+)
+
+## ------------------------------- S4 result-space: analyst navbar -------
+# L1 registers the analysis navbar itself so the agent can switch
+# result-space tabs exactly like a user.
+.rs_root <- widget_store_new()
+.sent_rs <- new.env(); .sent_rs$msgs <- list()
+app_rs <- function(input, output, session) {
+  omicsViewer:::L1_result_space_module(
+    "rs", reactive_expr = shiny::reactive(.fg_ex),
+    reactive_phenoData = shiny::reactive(.fg_pd),
+    reactive_featureData = shiny::reactive(.fg_fd),
+    reactive_i = shiny::reactive(1), reactive_highlight = shiny::reactive(NULL),
+    store = .rs_root)
+}
+shiny::testServer(app_rs, {
+  .spy_input_messages(session, .sent_rs)
+  session$flushReact()
+  rec <- Filter(function(x) identical(x$id, "resultspace.analyst_tab"),
+                store_registry_view(.rs_root))[1]
+  ok(
+    identical(rec[[1]]$kind, "navbar") &&
+      setequal(rec[[1]]$allowed_values, c("Feature", "Geneshot", "Sample")),
+    "analyst navbar is registered with dataset-dependent tab choices"
+  )
+  # warm the ignoreInit swallow, then a user tab switch
+  session$setInputs(`rs-analyst` = "Feature")
+  session$flushReact()
+  session$setInputs(`rs-analyst` = "Sample")
+  session$flushReact()
+  ok(
+    identical(store_read(.rs_root)$resultspace.analyst_tab, "Sample"),
+    "user tab switch syncs into the store"
+  )
+  # external write: updateNavbarPage relays a message
+  .sent_rs$msgs <- list()
+  store_apply(.rs_root, list("resultspace.analyst_tab" = "Geneshot"),
+              origin = "agent")
+  session$flushReact()
+  ok(
+    any(vapply(.sent_rs$msgs, function(m)
+      grepl("(^|\\.)analyst$", m$id) &&
+        identical(m$msg$selected %||% m$msg$value, "Geneshot"), logical(1))),
+    "agent tab write pushes the navbar"
+  )
+  r <- agent_widget_apply(.rs_root,
+    '{"resultspace.analyst_tab": "Feature"}')
+  ok(
+    setequal(r$applied, "resultspace.analyst_tab"),
+    "generic tier applies the analyst tab"
+  )
+  r <- agent_widget_apply(.rs_root, '{"resultspace.analyst_tab": "ORA"}')
+  ok(
+    length(r$rejected) == 1L && grepl("Feature", r$rejected[[1]]$reason),
+    "tab absent from this dataset (ORA needs gene sets) is rejected"
+  )
+})
