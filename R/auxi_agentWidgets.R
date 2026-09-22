@@ -53,8 +53,8 @@ agent_widget_ids <- function(store) {
 #' @rdname agentWidgetHelpers
 agent_widget_list <- function(store, section = NULL) {
   if (!is.null(section)) {
-    section <- trimws(as.character(section)[1])
-    if (!nzchar(section))
+    section <- .agent_trim_scalar(section)
+    if (!nzchar(section) || agent_sentinel_string(section))
       section <- NULL
   }
   view <- store_registry_view(store, prefix = section)
@@ -107,7 +107,7 @@ agent_widget_describe <- function(store, id) {
     return(list())
   if (is.character(patch) && length(patch) == 1L) {
     txt <- trimws(patch)
-    if (!nzchar(txt) || txt %in% c("null", "NULL", "{}", "[]"))
+    if (!nzchar(txt) || agent_sentinel_string(txt))
       return(list())
     parsed <- tryCatch(
       jsonlite::fromJSON(txt, simplifyVector = FALSE),

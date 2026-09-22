@@ -152,3 +152,25 @@ STRING_NETWORK_OPACITY <- 0.7
 
 #' @description Font size for labels in STRING network visualization.
 STRING_NETWORK_FONT_SIZE <- 12
+
+# =============================================================================
+# Agent Tool Boundaries
+# =============================================================================
+
+#' @description Literal sentinel strings some LLM providers serialize for
+#' omitted optional tool arguments instead of JSON null (observed with glm
+#' flash models: "null"; also "{}"/"[]" for object/array-shaped optionals).
+#' Every agent-facing boundary treats these exactly like omitted values.
+#' One shared definition so the canonical widget store, the semantic apply
+#' validators, the generic widget tier, and the figure grammar cannot drift
+#' apart.
+AGENT_SENTINEL_STRINGS <- c("null", "NULL", "{}", "[]")
+
+#' @description Single-string sentinel test used at tool and validation
+#' boundaries.
+#' @keywords internal
+#' @rdname constants
+agent_sentinel_string <- function(x) {
+  is.character(x) && length(x) == 1L && !is.na(x) &&
+    x %in% AGENT_SENTINEL_STRINGS
+}

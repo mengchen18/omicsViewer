@@ -257,14 +257,11 @@ store_register <- function(store, ...) {
 ############################################################################
 
 # Some providers serialise omitted optional strings as literal sentinels
-# ("null", "{}", "[]"). Normalise at the store boundary so every widget
-# kind benefits instead of each tool patching its own arguments.
+# (see AGENT_SENTINEL_STRINGS in constants.R). Normalise at the store
+# boundary so every widget kind benefits instead of each tool patching its
+# own arguments.
 .widget_store_sentinel <- function(value) {
-  if (is.character(value) && length(value) == 1L &&
-      value %in% c("null", "{}", "[]"))
-    NULL
-  else
-    value
+  if (agent_sentinel_string(value)) NULL else value
 }
 
 .widget_store_allowed_values <- function(binding, effective) {

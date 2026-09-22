@@ -234,6 +234,44 @@ shiny::testServer(
         grepl("RdGy|RdYlBu", rejected_result@value$rejected[[1]]$reason),
       "set_widgets rejects invalid values per key with suggestions"
     )
+
+    # ---- provider sentinel sweep ---------------------------------------
+    # glm flash serializes omitted optionals as literal "null"/"{}"/"[]"
+    # strings. Guards the whole boundary class: no tool whose normalization
+    # happens inside the tool body may error or degrade on sentinels.
+    swept_listing <- tools$list_widgets(
+      section = "null", `_intent` = "sentinel sweep")
+    ok(
+      ut_cmp_identical(swept_listing@value$widget_count, 2L) &&
+        is.null(swept_listing@value$section),
+      "list_widgets treats a sentinel section as omitted"
+    )
+    swept_id_error <- tryCatch(
+      tools$get_widget(id = "{}", `_intent` = "sentinel sweep"),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("Unknown or not user-editable widget id", swept_id_error),
+      "get_widget reports a sentinel id as unknown (required-arg honesty)"
+    )
+    swept_figures <- tools$create_figure(
+      spec = list(
+        data_source = "expression",
+        layers = list(list(
+          geom = "boxplot", x = "sample__group", y = "__expression__",
+          fill = "sample__group"
+        )),
+        theme = "null", palette = "{}", facet_by = "null",
+        labels = list(title = "null")
+      ),
+      `_intent` = "sentinel sweep"
+    )
+    ok(
+      ut_cmp_identical(swept_figures@value$theme, "minimal") &&
+        ut_cmp_identical(swept_figures@value$palette, "default") &&
+        is.null(swept_figures@value$labels$title),
+      "figure tool applies defaults for sentinel optionals"
+    )
   }
 )
 

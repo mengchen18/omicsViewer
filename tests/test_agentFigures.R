@@ -55,6 +55,52 @@ ok(
   ut_cmp_identical(normalized$data_source, "expression"),
   "expression figure source is normalized"
 )
+
+# provider sentinel sweep (glm flash serializes omitted optionals as
+# literal "null"/"{}"/"[]" strings): every sentinel falls back to the
+# omitted-value default instead of erroring or rendering literally
+sentinel_spec <- list(
+  data_source = "expression",
+  features = "null",
+  samples = "[]",
+  layers = list(
+    list(geom = "point", x = "feature__score", y = "__expression__",
+         color = "null")
+  ),
+  theme = "null",
+  palette = "{}",
+  facet_by = "null",
+  x_transform = "null",
+  y_transform = "[]",
+  labels = list(title = "null", caption = "{}", x = "score")
+)
+sentinel_normalized <- agent_normalize_figure_spec(
+  sentinel_spec, fd, pd, mat, paste0("F", 1:3), character()
+)
+ok(
+  ut_cmp_identical(sentinel_normalized$theme, "minimal") &&
+    ut_cmp_identical(sentinel_normalized$palette, "default") &&
+    ut_cmp_identical(sentinel_normalized$x_transform, "identity") &&
+    ut_cmp_identical(sentinel_normalized$y_transform, "identity") &&
+    is.null(sentinel_normalized$facet_by),
+  "sentinel figure choices fall back to defaults"
+)
+ok(
+  is.null(sentinel_normalized$labels$title) &&
+    is.null(sentinel_normalized$labels$caption) &&
+    ut_cmp_identical(sentinel_normalized$labels$x, "score"),
+  "sentinel figure labels are dropped, real labels kept"
+)
+ok(
+  is.null(sentinel_normalized$layers[[1]]$mappings$color) &&
+    ut_cmp_identical(sentinel_normalized$layers[[1]]$mappings$x, "feature__score"),
+  "sentinel aesthetic mappings are dropped"
+)
+ok(
+  ut_cmp_identical(sentinel_normalized$features, paste0("F", 1:3)) &&
+    ut_cmp_identical(sentinel_normalized$samples, rownames(pd)),
+  "sentinel feature/sample arrays resolve to selection/all samples"
+)
 ok(
   ut_cmp_identical(normalized$features, paste0("F", 1:3)),
   "explicit figure feature IDs are retained"

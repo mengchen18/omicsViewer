@@ -60,6 +60,15 @@ Verified working (do not re-litigate without evidence):
 - Generic tier wire contract: ROOT store + full canonical ids; patch is a
   JSON-object string (schema can't express dynamic keys); ellmer
   tibble/array coercions normalized in `.agent_widget_normalize_patch`.
+- **Provider sentinel strings are a guarded invariant**: some providers
+  (glm flash) serialize omitted optionals as literal `"null"`/`"{}"`/
+  `"[]"` strings. One shared definition (`AGENT_SENTINEL_STRINGS` +
+  `agent_sentinel_string()` in constants.R) is applied at every boundary
+  (store validator, semantic apply validators, generic tier patch/section,
+  figure grammar scalar/choice/ids). Sweeps exist at both normalizer level
+  and tool level (test_aiAssistantTools.R sentinel sweep section); any new
+  tool/optional must keep them green — required args arriving as sentinels
+  still fail honestly with suggestions.
 - Tool bodies wrap store access in `isolate(withReactiveDomain(...))` —
   choices providers read module reactives (triset()).
 - Diff-only writes: snapshot restore through the store is additive and

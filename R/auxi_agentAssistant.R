@@ -637,13 +637,11 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 #' @rdname agentAssistantHelpers
 .agent_nullable_scalar <- function(x) {
   # Some providers serialize omitted optional string arguments as literal
-  # sentinel strings instead of JSON null (observed with glm flash models:
-  # "null"; also "{}"/"[]" for object/array-shaped optionals); normalize
-  # those artifacts to an empty string so downstream nzchar() logic treats
-  # the argument as absent. Same sentinel set as the widget-store boundary.
+  # sentinel strings instead of JSON null (see AGENT_SENTINEL_STRINGS);
+  # normalize those artifacts to an empty string so downstream nzchar()
+  # logic treats the argument as absent.
   x <- .agent_trim_scalar(x)
-  if (identical(x, "null") || identical(x, "NULL") ||
-      identical(x, "{}") || identical(x, "[]")) "" else x
+  if (agent_sentinel_string(x)) "" else x
 }
 
 agent_normalize_scatter_view <- function(space, quick_view_id = NULL,

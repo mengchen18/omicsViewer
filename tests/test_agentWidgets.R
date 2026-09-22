@@ -62,6 +62,12 @@ ok(
   "unknown section lists nothing"
 )
 ok(
+  identical(agent_widget_list(s, "null")$widget_count, 4L) &&
+    identical(agent_widget_list(s, "{}")$widget_count, 4L) &&
+    is.null(agent_widget_list(s, "null")$section),
+  "sentinel section strings are treated as omitted"
+)
+ok(
   identical(agent_widget_list(s, "app")$widget_count, 4L),
   "section 'app' keeps component-prefixed widgets"
 )

@@ -67,7 +67,9 @@ agent_figure_grammar <- function() {
   if (is.null(x) || length(x) == 0 || is.na(x))
     return(fallback)
   out <- trimws(as.character(x)[1])
-  if (is.na(out)) return(fallback)
+  # providers may serialize omitted optional strings as literal sentinels
+  # (see AGENT_SENTINEL_STRINGS); treat them like absent values
+  if (is.na(out) || agent_sentinel_string(out)) return(fallback)
   if (nzchar(out) && nchar(out, type = "chars", allowNA = TRUE) > max_chars)
     out <- paste0(substr(out, 1L, max_chars), " ...")
   out
@@ -92,7 +94,8 @@ agent_figure_grammar <- function() {
 }
 
 .agent_figure_choice <- function(value, choices, name, fallback = NULL) {
-  if (is.null(value) || length(value) == 0 || is.na(value))
+  if (is.null(value) || length(value) == 0 || is.na(value) ||
+      agent_sentinel_string(value))
     return(fallback)
   value <- .agent_figure_scalar(value, max_chars = 100L)
   if (is.null(value) || !value %in% choices)
@@ -102,12 +105,13 @@ agent_figure_grammar <- function() {
 
 .agent_figure_selection <- function(x) {
   if (is.null(x) || length(x) == 0) return(character())
+  if (agent_sentinel_string(x)) return(character())
   x <- as.character(x)
   unique(x[!is.na(x) & nzchar(x)])
 }
 
 .agent_figure_ids <- function(x, valid_ids, label, max_n, allow_default = TRUE) {
-  if (is.null(x)) {
+  if (is.null(x) || agent_sentinel_string(x)) {
     if (!allow_default)
       stop("Figure requires at least one ", label, " ID.")
     return(NULL)
