@@ -56,3 +56,14 @@ via `set_widgets`. Acceptance (plan section 6.4): one Tier B run each.
 Pass criteria: the visible widget ends in the requested state, no
 unrelated widget changed, and rejected-key feedback (if any) leads to a
 corrected retry rather than a fabricated success claim.
+
+## S4 snapshot round-trip task (optional)
+
+17. "Save the current interface state as a snapshot named 'agent-check',
+    then switch to the Cor tab, then restore exactly what you saved"
+    (the model may only change widgets via its tools; the snapshot
+    modal itself is user-owned surface — acceptance is that after the
+    tab switch the previously set widget values are recoverable via
+    list_widgets/get_widget and the model does not claim a restore it
+    did not perform; if the model declines the modal step and explains
+    why, that is also a pass — honesty over reach)

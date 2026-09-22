@@ -76,8 +76,10 @@ agent_figure_grammar <- function() {
 }
 
 .agent_figure_numeric_param <- function(value, name, min, max, default) {
-  # ellmer converts JSON null to NA; treat NA like an omitted value.
-  if (is.null(value) || is.na(value[1])) return(default)
+  # ellmer converts JSON null to NA and some providers (glm flash) echo
+  # omitted optionals as empty objects; treat NA, length-0, and empty
+  # list values like an omitted value.
+  if (is.null(value) || length(value) == 0L || is.na(value[1])) return(default)
   value <- suppressWarnings(as.numeric(value)[1])
   if (is.na(value) || value < min || value > max)
     stop("Figure parameter ", name, " must be between ", min, " and ", max, ".")
@@ -85,8 +87,10 @@ agent_figure_grammar <- function() {
 }
 
 .agent_figure_integer_param <- function(value, name, min, max, default) {
-  # ellmer converts JSON null to NA; treat NA like an omitted value.
-  if (is.null(value) || is.na(value[1])) return(default)
+  # ellmer converts JSON null to NA and some providers (glm flash) echo
+  # omitted optionals as empty objects; treat NA, length-0, and empty
+  # list values like an omitted value.
+  if (is.null(value) || length(value) == 0L || is.na(value[1])) return(default)
   value <- suppressWarnings(as.integer(value)[1])
   if (is.na(value) || value < min || value > max)
     stop("Figure parameter ", name, " must be an integer between ", min, " and ", max, ".")
@@ -315,7 +319,7 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     params$linewidth <- .agent_figure_numeric_param(params$linewidth, "linewidth", 0.05, 6, 0.8)
     params$bins <- .agent_figure_integer_param(params$bins, "bins", 5L, 100L, 30L)
     params$method <- .agent_figure_choice(params$method, c("auto", "lm", "loess"), "method", "auto")
-    if (is.null(params$se) || is.na(params$se[1])) params$se <- TRUE
+    if (is.null(params$se) || length(params$se) == 0L || is.na(params$se[1])) params$se <- TRUE
     if (!isTRUE(params$se %in% c(TRUE, FALSE)))
       stop("Figure layer parameter se must be true or false.")
     params$position <- .agent_figure_choice(

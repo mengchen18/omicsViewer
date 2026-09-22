@@ -25,16 +25,21 @@ arguments; the REGISTRY keeps the normalized shape (WP7 merge base); the
 normalizer accepts both shapes (idempotent) and exempts a verbatim full
 sample set from the 200-sample cap.
 
-**Update 2026-09-24 (latest): WP4 is COMPLETE** —
-`agent_summarize_log(path)` / `agent_summarize_logs(dir)` + registered
-print method in `auxi_agentLogging.R`; tests in
-`tests/test_agentLogSummary.R` (32, incl. real archived-fixture parse).
-Phase 1 (WP1–WP4) is now DONE. **Next: WP5** — benchmark task set
-(`tests/e2e_agent/tier_b_tasks.md` tasks 15–16 cover the S4 surface;
-optionally task 17 for the snapshot round-trip; check
-`tests/e2e_agent/provider.env` + `npm install` for the live Tier B
-baseline), then WP5b prompt workflows, re-run benchmarks, WP6, WP7
-(gated on tasks 10–11 after WP1–WP3).
+**Update 2026-09-24 (latest): WP5 + WP5b COMPLETE; live Tier B smoke
+validated; Phase 1 + WP5 done.** Task 17 added; system prompt carries
+the 4 workflows + exact-ID contract; tier_b.mjs settle loop is now
+log-aware (provider_request_start in flight) and waits for
+quiet-after-figure so revisions aren't cut off. Live smoke on
+glm-5.3-flash confirmed WP1 (orientation = one 1.6 KB overview call incl.
+scatter_view), WP3 (create→update round-trip, spec echo reuse), and
+surfaced + fixed a NEW sentinel class: glm flash echoes omitted optionals
+as EMPTY OBJECTS (`facet_ncol = {}`) —
+`.agent_figure_{numeric,integer}_param` + `params$se` now treat length-0
+values as omitted (regression-tested; live before/after: 3 spec failures
+→ 0, only the legitimate literal-color guard remains, which correctly
+steers to `palette`). Earlier 2026-09-24: WP1, WP3, WP4 complete (see
+plan §3 statuses). **Remaining: WP6 (figure templates), WP7 (patch-mode,
+gated on tasks 10–11 at the full ×3 phase-gate run), WP8+.**
 
 ## Where we are / how to resume
 

@@ -97,6 +97,31 @@ ok(
     ut_cmp_identical(sentinel_normalized$layers[[1]]$mappings$x, "feature__score"),
   "sentinel aesthetic mappings are dropped"
 )
+
+# glm flash also echoes omitted optionals as EMPTY OBJECTS on the spec
+# round-trip path (observed live 2026-09-24: facet_ncol = {} rejected
+# twice with "must be an integer between 1 and 6"): length-0 values must
+# behave exactly like omitted values in every param helper
+empty_object_spec <- list(
+  data_source = "feature_annotation",
+  layers = list(list(
+    geom = "point", x = "score", y = "score",
+    params = list(alpha = list(), size = integer(0), se = list())
+  )),
+  facet_ncol = list(),
+  facet_by = character(0)
+)
+empty_object_normalized <- agent_normalize_figure_spec(
+  empty_object_spec, fd, pd, mat, character(), character()
+)
+ok(
+  is.null(empty_object_normalized$facet_ncol) &&
+    is.null(empty_object_normalized$facet_by) &&
+    ut_cmp_identical(empty_object_normalized$layers[[1]]$params$alpha, 0.85) &&
+    ut_cmp_identical(empty_object_normalized$layers[[1]]$params$size, 1.8) &&
+    ut_cmp_identical(empty_object_normalized$layers[[1]]$params$se, TRUE),
+  "empty-object sentinels fall back to param defaults (live regression)"
+)
 ok(
   ut_cmp_identical(sentinel_normalized$features, paste0("F", 1:3)) &&
     ut_cmp_identical(sentinel_normalized$samples, rownames(pd)),

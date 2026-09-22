@@ -134,8 +134,26 @@ try {
   }, null, { timeout: 20000 }).catch(() => console.log(ts(), 'WARN: user bubble not detected'));
 
   // settle: poll chat text; done when a figure rendered or text is stable
-  // across consecutive polls (greeting excluded) with a generous LLM budget
-  let prev = '', stableRounds = 0, figureCount = 0;
+  // across consecutive polls (greeting excluded) with a generous LLM budget.
+  // The shinychat cancel-control probe misses some active streams (observed
+  // with glm flash: long silent continuation after tool results), so also
+  // treat "newest diagnostic log ends with provider_request_start" as
+  // active - that event has no matching assistant_response yet.
+  const { readdirSync: lsSync, statSync: stSync } = await import('node:fs');
+  const logRequestInFlight = () => {
+    try {
+      const logs = lsSync(LOGDIR).filter(f => f.endsWith('.jsonl'))
+        .map(f => ({ f, mtime: stSync(path.join(LOGDIR, f)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      if (!logs.length) return false;
+      const lines = readFileSync(path.join(LOGDIR, logs[0].f), 'utf8')
+        .split('\n').filter(l => l.trim());
+      if (!lines.length) return false;
+      const last = JSON.parse(lines[lines.length - 1]);
+      return last.event === 'provider_request_start';
+    } catch { return false; }
+  };
+  let prev = '', stableRounds = 0, figureCount = 0, figureReady = false;
   const deadline = Date.now() + 300000;
   while (Date.now() < deadline) {
     await new Promise(s => setTimeout(s, 3000));
@@ -151,11 +169,19 @@ try {
       })()
     }));
     figureCount = st.figures;
-    if (st.figures > 0 && st.figLoaded) { console.log(ts(), 'figure rendered'); break; }
-    if (st.streaming) { stableRounds = 0; prev = st.text; continue; }
+    if (st.figures > 0 && st.figLoaded) figureReady = true;
+    if (st.streaming || logRequestInFlight()) { stableRounds = 0; prev = st.text; continue; }
     if (st.text === prev && st.text.length > 200) {
       stableRounds++;
-      if (stableRounds >= 8) { console.log(ts(), 'chat settled (24s stable)'); break; }
+      // once a figure is rendered, settle after 18s of quiet so a pending
+      // revision (second figure) is still captured; text-only tasks use
+      // the original 24s stability rule
+      const needed = figureReady ? 6 : 8;
+      if (stableRounds >= needed) {
+        console.log(ts(), figureReady ? 'chat settled (figure ready, 18s quiet)'
+                                      : 'chat settled (24s stable)');
+        break;
+      }
     } else stableRounds = 0;
     prev = st.text;
   }

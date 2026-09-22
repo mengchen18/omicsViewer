@@ -370,6 +370,22 @@ covering each taxonomy class + a successful retry sequence.
 
 ### WP5: benchmark task set + prompt workflows
 
+**STATUS: complete (2026-09-24).** Tasks 1–16 were already in place;
+task 17 (optional snapshot round-trip, honesty-over-reach acceptance)
+added to `tests/e2e_agent/tier_b_tasks.md`. WP5b system prompt updated
+with the four workflows (volcano, find+select, expression boxplot,
+revise-last-figure via the returned `spec`) and the exact-ID contract,
+plus WP1/WP3-aware hints; still ~16 lines. Live Tier B smoke (glm-5.3-
+flash, tasks 1 + create/revise): overview-only orientation (1 call, 1.6 KB
+payload incl. scatter_view), create→update round-trip with self-correction;
+two harness hardenings landed (log-aware settle detection — shinychat's
+cancel-control probe misses silent streams; quiet-after-figure settle so
+revisions aren't cut off) and one live-found product fix: glm flash echoes
+omitted optionals as EMPTY OBJECTS (`facet_ncol = {}`) on the round-trip
+— param helpers now treat length-0 values as omitted (regression-tested;
+the "must be an integer between 1 and 6" double-failure disappeared in
+the post-fix run). Full ×3 benchmark re-run remains a phase-gate activity.
+
 **Change A — benchmark.** `tests/agent_benchmark_tasks.md` (or inst/):
 ~12 scripted tasks against `demo.RDS`:
 
@@ -716,8 +732,8 @@ render after selection — the exact missed regression) |
 | 2 | WP1 sections | M | **DONE** — auxi_agentAssistant.R, module_aiAssistant.R, L0 wiring (on-demand builder), test hooks sections pass-through, tests |
 | 3 | WP3 spec round-trip | S | **DONE** — module_aiAssistant.R + auxi_agentFigures.R (echo shape, idempotent normalizer, full-set sample exemption), tests |
 | 4 | WP4 log summarizer | M | **DONE** — auxi_agentLogging.R (agent_summarize_log + agent_summarize_logs + print method), new test file |
-| 5 | WP5b prompt workflows | S | module_aiAssistant.R |
-| 6 | re-run benchmark (Tier B), compare | S | tests/e2e_agent/ |
+| 5 | WP5b prompt workflows | S | **DONE** — module_aiAssistant.R (+ task 17, tier_b settle hardening, live smoke) |
+| 6 | re-run benchmark (Tier B), compare | S | **smoke done** (glm-5.3-flash; overview + round-trip validated, sentinel fix verified before/after); full ×3 at phase gate |
 | 7+ | WP6, WP7, WP8 (Phase 2) | M each | figures/app modules |
 | last | WP9–WP12 (Phase 3) | M/L | new file(s) |
 
