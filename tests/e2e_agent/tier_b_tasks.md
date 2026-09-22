@@ -41,6 +41,18 @@ via `set_widgets`. Acceptance (plan section 6.4): one Tier B run each.
 14. "Make the expression heatmap bottom margin larger" (numeric widget:
     `dataspace.expr_heatmap.margin_bottom`; assert slider/UI change)
 
+## S4 multi-select / table tasks
+
+15. "Switch to the Heatmap tab, cluster the rows with Spearman correlation
+    and complete linkage, and show Cell.line as the column annotation"
+    (multi-key patch incl. a JSON-array `annot_col` value; expects
+    `dataspace.expr_heatmap.{row_sort_by,cluster_row_dist,cluster_row_link,annot_col}`)
+16. "In the Feature table, show only the Gene.name and mean|Origin|RE
+    columns and enable multiple selection"
+    (`dataspace.tab_feature.{columns,multi_selection}`; assert header
+    change + switch flip; empty-column attempts must be rejected by the
+    min=1 bound, not silently accepted)
+
 Pass criteria: the visible widget ends in the requested state, no
 unrelated widget changed, and rejected-key feedback (if any) leads to a
 corrected retry rather than a fabricated success claim.
