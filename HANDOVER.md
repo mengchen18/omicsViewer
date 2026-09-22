@@ -1,113 +1,89 @@
 # HANDOVER — agent accuracy & widget control plane
 
-Written 2026-09-22 at the end of the S3 session. Read this first in a
-fresh context, then `AGENT_ACCURACY_PLAN.md` (canonical plan + status) and
-`AGENTS.md` (environment + commands). Delete or trim this file once absorbed.
+Written 2026-09-22 after the S4 heatmap-completion session. Read this
+first in a fresh context, then `AGENT_ACCURACY_PLAN.md` (canonical plan +
+status table) and `AGENTS.md` (environment + commands). Delete or trim
+this file once absorbed.
 
 ## Where things stand
 
-Branch `agent-driven-exploration`, working tree clean through the S3
-commit. DESCRIPTION is 2.1.1. The assistant works end-to-end with a real
-provider, and the **generic widget tier (S3)** is live: registry-driven
-`list_widgets` / `get_widget` / `set_widgets` tools over the canonical
-store, heatmap parameters registered on all three heatmap instances, .ESS
-snapshots carrying `widget_store`.
+Branch `agent-driven-exploration`, DESCRIPTION 2.1.1. S3 (generic widget
+tier) shipped previously; **S4 step 1 (heatmap completion) is now done**:
+the `multi_select` store kind plus the full 13-widget heatmap parameter
+panel (sorting, clustering, annotations, tooltips) registered on all
+three heatmap instances and covered by unit + Tier A tests.
 
-Commit map (S3 session, on top of the S2 history in git log):
+Commit map (newest first, on top of the S3 history in git log):
 
 | Change | What |
 |---|---|
-| S3 | generic tier + heatmap registration + snapshot bridge + observer-GC fix |
+| S4-1 | multi_select kind + heatmap sorting/clustering/annotation registration + tests |
 
-Verified working (do not re-litigate without evidence):
+Verified this session (do not re-litigate without evidence):
 
-- Unit suites: widgetStore 37, agentWidgets 31 (new), aiAssistantTools 16,
-  triselectorCascade 6, scatterSelection 6, quickViews 17, appState 30,
-  agentAssistant 35, agentFigures 22, agentLogging 21
-- Tier A browser: **40/40 × 2 consecutive runs** (incl. the new S3 section:
-  heatmap palette + margin via the `widgets` hook, per-key rejection
-  feedback, unknown-id suggestions, tab restoration afterwards)
-- Live Tier B (glm-5.3-flash), task "Switch to the Heatmap tab and change
-  the heatmap color panel to RdGy": model chained get_state →
-  `list_widgets(section="dataspace")` (26 widgets) → semantic
-  `set_omics_viewer_state` for the TAB → `set_widgets` with
-  `{"dataspace.expr_heatmap.heatmap_colors": "RdGy"}` → applied cleanly,
-  zero rejections — exactly the tier contract. Provider `"null"` sentinels
-  normalized at the boundary. Log archived under tests/e2e_agent/artifacts/.
+- Unit: widgetStore 48, agentWidgets 44, aiAssistantTools 19, appState 30,
+  agentAssistant 38, agentFigures 26, agentLogging 21, triselectorCascade 6,
+  quickViews 17, scatterSelection 6, shinyAuxi 10, tableWidgetState 5
+- Tier A browser: **48/48 × 2 consecutive runs** (new 4c section: five-key
+  sorting/clustering/annotation apply incl. JSON-array multi_select,
+  wholesale selection replacement, per-key rejection with
+  "Closest matches: General|All|Cell.line" quality suggestions)
 
-## The two bugs found this session (both latent, both fixed)
+## What S4-1 added (carry-forward rules)
 
-1. **Child-store read**: `store_read(child, ids = NULL)` returned empty —
-   `names(store$values)` was evaluated on the child env before resolving
-   the root. Fixed; unit-tested.
-2. **Observer GC** (the important one): Shiny holds observer dependencies
-   weakly in the reactive graph. Store-glue observers that (a) call
-   `store_epoch(store)()` inline (creating an ephemeral reactive each run)
-   and (b) are not referenced anywhere are **garbage collected between
-   flushes** — later store→UI pushes silently never fire. Reproduced
-   deterministically by calling `gc()` between applies. This caused the
-   sporadic Tier A stress/restore flakes attributed to timing before.
-   Fix pattern (now in heatmap + meta_scatter glue): create the epoch
-   reactive ONCE at module level and keep every store-glue observer in a
-   module-level list (`.heatmap_keep(...)` / `.scatter_keep(...)`).
-   **Rule for S4: every new store-glue observer must be retained.**
+- **`multi_select` kind** (auxi_widgetStore.R): value = character vector;
+  empty vector / empty JSON array / `""` all clear the selection; entries
+  validated against choices_provider/values; literal sentinel strings
+  (`"[]"`, `"null"`) remain omitted optionals per the shared
+  AGENT_SENTINEL_STRINGS invariant.
+- **Heatmap full registration** (heatmapshinyApp.R): 13 keys per instance
+  under `dataspace.{cor,expr,dyn}_heatmap.*`. UI→store sync (clearing a
+  multi-select syncs `character(0)`), seeding, and store→UI push follow
+  the proven S3 shape; server-side selectize ids (`rowSortBy`,
+  `annotRow`) push through `updateSelectizeInput`, everything else
+  `updateSelectInput`/`updateSliderInput`.
+- **New invariant — choices providers must never `req()`**: a
+  `shiny.validation` condition raised inside a choices_provider aborts
+  the whole `store_apply` transaction (`tryCatch(error=)` cannot catch
+  it). Heatmap providers read module reactives through defensive no-req
+  helpers (`.heatmap_hcl_names`, `.heatmap_fd_cols`, …) that mirror the
+  UI choices exactly. Apply this pattern to every future registration
+  whose choices come from module reactives.
+- **Observer retention** still mandatory: every store-glue observer goes
+  through `.heatmap_keep(...)` (or the module's equivalent).
+- **Snapshot status-path duplication intentionally kept for heatmaps**:
+  `observeEvent(status())` still restores heatmap keys directly (legacy
+  pre-S3 snapshots need it; seeding-vs-status ordering makes
+  store-held-key skipping unsafe). Both paths write identical values,
+  idempotently. The full re-route (store authoritative, status path
+  retired for migrated keys) stays the LAST S4 step, after every module
+  is migrated — see plan §6.4.
 
-## Architecture rules to carry forward
+## Next steps (S4 continuation, plan §6.4 order)
 
-- `reactive_selector1() %||% input$analysis` cascades: store-backed
-  (meta_scatter) vs store-less (feature_general, fgsea, geneshot, tables,
-  attr4) regimes both matter; `tests/test_triselectorCascade.R` guards both.
-- Generic tier wire contract: ROOT store + full canonical ids; patch is a
-  JSON-object string (schema can't express dynamic keys); ellmer
-  tibble/array coercions normalized in `.agent_widget_normalize_patch`.
-- **Provider sentinel strings are a guarded invariant**: some providers
-  (glm flash) serialize omitted optionals as literal `"null"`/`"{}"`/
-  `"[]"` strings. One shared definition (`AGENT_SENTINEL_STRINGS` +
-  `agent_sentinel_string()` in constants.R) is applied at every boundary
-  (store validator, semantic apply validators, generic tier patch/section,
-  figure grammar scalar/choice/ids). Sweeps exist at both normalizer level
-  and tool level (test_aiAssistantTools.R sentinel sweep section); any new
-  tool/optional must keep them green — required args arriving as sentinels
-  still fail honestly with suggestions.
-- Tool bodies wrap store access in `isolate(withReactiveDomain(...))` —
-  choices providers read module reactives (triset()).
-- Diff-only writes: snapshot restore through the store is additive and
-  idempotent; panel-status restoration stays authoritative until S4.
-- Registry/discovery show ONLY user-editable widgets (agent visibility ==
-  user editability). `store_registry_view` prefix match is
-  whole-component (`dataspace` ≠ `dataspace2`).
+1. **Tables (dataTable modules)** — next migration target; then any
+   remaining data-space widgets. Each is a small S2-style migration:
+   register bindings (no-req choices providers!), UI→store sync, seeding,
+   push with observer retention, per-key-resilient restore.
+2. Result-space modules (fgsea, ora, survival, string, …).
+3. Re-route snapshot save/restore fully through the store; retire
+   status-path duplication for migrated keys.
+4. Then WP1 (`sections` param on get_omics_viewer_state), WP3 (figure
+   spec round-trip), WP4 (log summarizer); re-run the Tier B task set
+   (tests/e2e_agent/tier_b_tasks.md) with a heatmap-annotation task added.
 
-## Known open threads (none blocking S4)
+## Known open threads (none blocking)
 
-1. Re-saving provider settings mid-stream kills the in-flight ellmer turn —
-   cosmetic, backlog
+1. Re-saving provider settings mid-stream kills the in-flight ellmer
+   turn — cosmetic, backlog
 2. WP4 log summarizer not built yet; logs are clean and archived per run
-3. WP1 (`sections` param) + WP3 (figure spec round-trip) pending
+3. WP1 + WP3 pending
 4. Demo's truncated sample defaults (`PCA|All|PC1(`) still cleanly rejected
 5. `store_apply` leaves `pending` entries for system-origin seeds whose
-   pushed value equals the current input (never acked) — harmless today
-   (pending is overwritten on the next write), revisit if ack bookkeeping
-   ever becomes user-visible
-
-## Next stage: S4 (per plan §6.4)
-
-Migrate remaining modules onto the store and make snapshots fully
-store-round-tripped:
-
-1. Tables (dataTable modules) then remaining heatmap widgets (sorting,
-   clustering, annotations), then result-space modules — each a small
-   S2-style migration (register bindings, UI→store sync, store→UI push
-   with observer retention, per-key-resilient restore)
-2. Re-route snapshot save/restore entirely through `store_snapshot`/
-   `store_restore` (the S3 bridge already embeds `widget_store` in .ESS;
-   make it authoritative and retire the status-path duplication for
-   migrated keys)
-3. Acceptance: snapshot round-trip equals store state exactly; Tier A
-   green across modules; each migration registers its widgets so the
-   generic tier covers them automatically
-4. Then WP1 (sections), WP3 (spec round-trip), WP4 (log summarizer);
-   re-run the Tier B task set (tests/e2e_agent/tier_b_tasks.md — now
-   includes the S3 generic-tier tasks 13–14)
+   pushed value equals the current input (never acked) — harmless today,
+   revisit if ack bookkeeping ever becomes user-visible. NOTE: multi_select
+   seeds (empty annotation selections) hit this regularly since pushing
+   `character(0)` onto an already-empty select fires no input change.
 
 ## Session workflow reminders
 

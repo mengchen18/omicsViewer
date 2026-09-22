@@ -2,10 +2,17 @@
 % Please edit documentation in R/constants.R
 \name{constants}
 \alias{constants}
+\alias{agent_sentinel_string}
 \title{Application Constants}
+\usage{
+agent_sentinel_string(x)
+}
 \description{
 This file contains named constants used throughout the omicsViewer application.
 Using named constants instead of "magic numbers" improves code readability,
 maintainability, and makes it easier to update values in a single location.
+
+Single-string sentinel test used at tool and validation
+boundaries.
 }
 \keyword{internal}

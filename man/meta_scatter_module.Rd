@@ -12,7 +12,8 @@ meta_scatter_module(
   source = "plotlyscattersource",
   reactive_x = reactive(NULL),
   reactive_y = reactive(NULL),
-  reactive_status = reactive(NULL)
+  reactive_status = reactive(NULL),
+  store = NULL
 )
 }
 \arguments{
@@ -31,6 +32,12 @@ meta_scatter_module(
 \item{reactive_y}{reactive value for pre-selected y-aixs}
 
 \item{reactive_status}{the status of scatter plot, e.g. x-, y-axis, color variable, shape variable, etc.}
+
+\item{store}{Child view of the canonical widget store
+(\code{\link{widget_store_child}}) for this scatter space. Axis and
+mode state lives in the store; the hand-rolled xax/yax/axisRequest
+sync machinery was replaced by the store protocol (plan section 6,
+phase S2).}
 }
 \description{
 Utility - scatter plot for meta shiny module

@@ -370,6 +370,63 @@ try {
     /Unknown widget id/.test(w3.rejected[0].reason) &&
     /dataspace\.expr_heatmap\./.test(w3.rejected[0].reason),
     JSON.stringify(w3.rejected || []));
+
+  // ---- 4c. S4 acceptance: heatmap completion ---------------------------
+  // Sorting, clustering, and annotation widgets (the multi_select kind's
+  // first live consumers) driven through the same store path.
+  const hmInput = (id) => p1.evaluate(
+    (k) => Shiny.shinyapp.$inputValues[k],
+    `app-dataspace-heatmapViewer-${id}`);
+  const w4 = await runHook(p1, 'widgets', {
+    patch: {
+      'dataspace.expr_heatmap.col_sort_by': 'none',
+      'dataspace.expr_heatmap.row_sort_by': 'hierarchical cluster',
+      'dataspace.expr_heatmap.cluster_row_dist': 'Spearman correlation',
+      'dataspace.expr_heatmap.cluster_row_link': 'complete',
+      'dataspace.expr_heatmap.annot_col': ['General|All|Cell.line']
+    }
+  });
+  record('S4 sorting/clustering/annotation apply succeeds',
+    !w4.hook_error, w4.hook_error || '');
+  record('receipt lists all five S4 keys applied',
+    ['dataspace.expr_heatmap.col_sort_by', 'dataspace.expr_heatmap.row_sort_by',
+     'dataspace.expr_heatmap.cluster_row_dist', 'dataspace.expr_heatmap.cluster_row_link',
+     'dataspace.expr_heatmap.annot_col']
+      .every(k => (w4.applied || []).includes(k)),
+    JSON.stringify(w4.applied || []));
+  await p1.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-colSortBy'] === 'none' &&
+    Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-rowSortBy'] === 'hierarchical cluster',
+    null, { timeout: 30000 });
+  record('sorting selects reflect agent-set values',
+    (await hmInput('colSortBy')) === 'none' &&
+    (await hmInput('rowSortBy')) === 'hierarchical cluster');
+  record('clustering selects reflect agent-set values',
+    (await hmInput('clusterRowDist')) === 'Spearman correlation' &&
+    (await hmInput('clusterRowLink')) === 'complete');
+  record('annotation multi-select reflects agent-set column',
+    JSON.stringify(await hmInput('annotCol')) ===
+      JSON.stringify(['General|All|Cell.line']),
+    JSON.stringify(await hmInput('annotCol')));
+  const w5 = await runHook(p1, 'widgets', {
+    patch: { 'dataspace.expr_heatmap.annot_col': ['Cell.line'] }
+  });
+  record('unknown annotation column rejected with suggestions',
+    !w5.hook_error && (w5.rejected || []).length === 1 &&
+    /Cell\.line|Unknown value/.test(w5.rejected[0].reason),
+    JSON.stringify(w5.rejected || []));
+  record('rejected annotation leaves selection unchanged',
+    JSON.stringify(await hmInput('annotCol')) ===
+      JSON.stringify(['General|All|Cell.line']));
+  const w6 = await runHook(p1, 'widgets', {
+    patch: { 'dataspace.expr_heatmap.annot_col': ['General|All|MDR'] }
+  });
+  await p1.waitForFunction(() =>
+    JSON.stringify(Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-annotCol']) ===
+      JSON.stringify(['General|All|MDR']), null, { timeout: 30000 });
+  record('multi-select write replaces the selection wholesale',
+    JSON.stringify(await hmInput('annotCol')) === JSON.stringify(['General|All|MDR']),
+    JSON.stringify(await hmInput('annotCol')));
   // return to the Feature tab so later isolation assertions keep their
   // baseline
   await runHook(p1, 'state', { data_space_tab: 'Feature' });

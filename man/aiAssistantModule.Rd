@@ -18,7 +18,8 @@ ai_assistant_module(
   selected_features,
   selected_samples,
   apply_state,
-  apply_scatter_view
+  apply_scatter_view,
+  store = NULL
 )
 }
 \arguments{
@@ -43,6 +44,11 @@ application-state update.}
 
 \item{apply_scatter_view}{Callback that validates and applies a proposed
 feature/sample scatter-axis update.}
+
+\item{store}{Canonical widget store (\code{\link{widget_store_new}})
+shared with the app modules. When given, the generic widget tier
+(\code{list_widgets}, \code{get_widget}, \code{set_widgets}) is
+registered alongside the curated tools (plan section 6.3, S3).}
 }
 \value{
 The UI returns Shiny tags. The server module is invoked for its side

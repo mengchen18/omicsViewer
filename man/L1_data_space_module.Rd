@@ -14,7 +14,8 @@ L1_data_space_module(
   reactive_x_f = reactive(NULL),
   reactive_y_f = reactive(NULL),
   cormat = reactive(NULL),
-  status = reactive(NULL)
+  status = reactive(NULL),
+  store = NULL
 )
 }
 \arguments{

@@ -15,6 +15,7 @@ widget_binding <- omicsViewer:::widget_binding
 store_register <- omicsViewer:::store_register
 store_read <- omicsViewer:::store_read
 store_apply <- omicsViewer:::store_apply
+store_registry_view <- omicsViewer:::store_registry_view
 
 mk <- function() {
   s <- widget_store_new()
@@ -297,4 +298,143 @@ r <- agent_widget_apply(hm_root,
 ok(
   length(r$rejected) == 1L && grepl(">= 1|<= 20", r$rejected[[1]]$reason),
   "out-of-bounds margins are rejected per key"
+)
+
+## ------------------------------------ S4 heatmap completion wiring ----
+# sorting, clustering, and annotation widgets are registered, synced, and
+# pushed exactly like the S3 palette/scale/margins
+reg <- Filter(function(x) startsWith(x$id, "dataspace.expr_heatmap."),
+              store_registry_view(hm_root))
+keyed <- setNames(reg, vapply(reg, function(x)
+  sub("^dataspace\\.expr_heatmap\\.", "", x$id), character(1)))
+ok(
+  identical(sort(vapply(reg, function(x) x$id, character(1))),
+            sort(paste0("dataspace.expr_heatmap.", c(
+              "heatmap_colors", "scale", "margin_bottom", "margin_right",
+              "col_sort_by", "row_sort_by", "cluster_col_dist",
+              "cluster_col_link", "cluster_row_dist", "cluster_row_link",
+              "annot_col", "annot_row", "tooltip_info")))),
+  "all 13 heatmap parameter widgets are registered"
+)
+ok(
+  identical(keyed$annot_col$kind, "multi_select") &&
+    identical(keyed$annot_row$kind, "multi_select") &&
+    identical(keyed$tooltip_info$kind, "multi_select"),
+  "annotation and tooltip widgets are multi_select bindings"
+)
+
+.sent_hm$msgs <- list()  # reset the spy sink for the S4 section
+hm_root2 <- widget_store_new()
+hm_store2 <- widget_store_child(hm_root2, "dataspace.expr_heatmap")
+app_hm2 <- function(input, output, session) {
+  omicsViewer:::iheatmapModule(
+    "hm",
+    mat = shiny::reactive(NULL),
+    pd = shiny::reactive(data.frame(group = c("A", "B"),
+                                    row.names = c("S1", "S2"))),
+    fd = shiny::reactive(data.frame(score = c(1, 2),
+                                    row.names = c("G1", "G2"))),
+    status = shiny::reactive(NULL),
+    store = hm_store2
+  )
+}
+shiny::testServer(app_hm2, {
+  .spy_input_messages(session, .sent_hm)
+  # initialize every parameter input so the seed observer fires
+  session$setInputs(`hm-heatmapColors` = "RdYlBu", `hm-scale` = "row",
+                    `hm-marginBottom` = 4, `hm-marginRight` = 4,
+                    `hm-colSortBy` = "none", `hm-rowSortBy` = "none",
+                    `hm-clusterColDist` = "Pearson correlation",
+                    `hm-clusterColLink` = "ward.D",
+                    `hm-clusterRowDist` = "Pearson correlation",
+                    `hm-clusterRowLink` = "ward.D",
+                    `hm-annotCol` = "group", `hm-annotRow` = "score",
+                    `hm-tooltipInfo` = "score")
+  session$flushReact()
+  seeded <- store_read(hm_store2)
+  ok(
+    identical(seeded$dataspace.expr_heatmap.col_sort_by, "none") &&
+      identical(seeded$dataspace.expr_heatmap.annot_col, "group") &&
+      identical(seeded$dataspace.expr_heatmap.cluster_col_link, "ward.D"),
+    "the seed observer stores defaults for the S4 keys"
+  )
+
+  # user edits sync (first change per observer is swallowed by the
+  # testServer ignoreInit quirk - the seed values above warmed them)
+  session$setInputs(`hm-colSortBy` = "group", `hm-annotCol` = character(0))
+  session$flushReact()
+  vals <- store_read(hm_store2)
+  ok(
+    identical(vals$dataspace.expr_heatmap.col_sort_by, "group"),
+    "user column-sort edit syncs into the store"
+  )
+  ok(
+    identical(vals$dataspace.expr_heatmap.annot_col, character(0)),
+    "clearing a multi-select input syncs character(0)"
+  )
+
+  # external writes push to the right updater (selectize for server-side
+  # rowSortBy/annotRow, plain select otherwise)
+  store_apply(hm_store2,
+    list(annot_col = "group", cluster_col_link = "complete",
+         row_sort_by = "score", annot_row = "score"),
+    origin = "agent")
+  session$flushReact()
+
+  # generic tier over the S4 keys: JSON arrays, per-key rejections
+  # (run inside the session: choices providers read module reactives)
+  s4 <- list()
+  s4$json_ok <- agent_widget_apply(hm_root2,
+    '{"dataspace.expr_heatmap.annot_col": [], "dataspace.expr_heatmap.cluster_row_link": "ward.D2"}')
+  s4$json_bad <- agent_widget_apply(hm_root2,
+    '{"dataspace.expr_heatmap.annot_col": ["notAColumn"]}')
+  s4$sort_bad <- agent_widget_apply(hm_root2,
+    '{"dataspace.expr_heatmap.row_sort_by": "hierarchical clustre"}')
+  .sent_hm$s4 <- s4
+})
+ok(
+  any(vapply(.sent_hm$msgs, function(m)
+    grepl("(^|\\.)annotCol$", m$id) && identical(m$msg$value, "group"),
+    logical(1))),
+  "agent annotation write pushes updateSelectInput to the widget"
+)
+ok(
+  any(vapply(.sent_hm$msgs, function(m)
+    grepl("(^|\\.)clusterColLink$", m$id) && identical(m$msg$value, "complete"),
+    logical(1))),
+  "agent linkage write pushes updateSelectInput to the widget"
+)
+ok(
+  any(vapply(.sent_hm$msgs, function(m)
+    grepl("(^|\\.)annotRow$", m$id) && identical(m$msg$value, "score"),
+    logical(1))),
+  "agent row-annotation write reaches the server-side selectize widget"
+)
+ok(
+  any(vapply(.sent_hm$msgs, function(m)
+    grepl("(^|\\.)rowSortBy$", m$id) && identical(m$msg$value, "score"),
+    logical(1))),
+  "agent row-sort write reaches the server-side selectize widget"
+)
+
+# generic tier over the S4 keys: JSON arrays, per-key rejections
+r <- .sent_hm$s4$json_ok
+ok(
+  identical(sort(r$applied), sort(c("dataspace.expr_heatmap.annot_col",
+                                    "dataspace.expr_heatmap.cluster_row_link"))) &&
+    identical(r$applied_values$dataspace.expr_heatmap.annot_col, character(0)),
+  "generic tier applies JSON-array multi_select values (empty array clears)"
+)
+r <- .sent_hm$s4$json_bad
+ok(
+  length(r$applied) == 0L && length(r$rejected) == 1L &&
+    grepl("notAColumn", r$rejected[[1]]$reason) &&
+    grepl("group", r$rejected[[1]]$reason),
+  "invalid multi_select entries are rejected with suggestions"
+)
+r <- .sent_hm$s4$sort_bad
+ok(
+  length(r$rejected) == 1L && grepl("hierarchical cluster",
+                                    r$rejected[[1]]$reason),
+  "invalid sort values are rejected with suggestions"
 )

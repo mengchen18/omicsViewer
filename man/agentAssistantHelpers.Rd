@@ -2,6 +2,7 @@
 % Please edit documentation in R/auxi_agentAssistant.R
 \name{agentAssistantHelpers}
 \alias{agentAssistantHelpers}
+\alias{.agent_suggest}
 \alias{agent_request_limit}
 \alias{agent_environment_config}
 \alias{agent_validate_provider_config}
@@ -11,9 +12,11 @@
 \alias{agent_search_annotations}
 \alias{agent_summarize_annotation}
 \alias{agent_normalize_state_update}
-\alias{agent_normalize_scatter_view}
+\alias{.agent_nullable_scalar}
 \title{Internal AI-assistant state and validation helpers}
 \usage{
+.agent_suggest(value, candidates, max = 3L)
+
 agent_request_limit()
 
 agent_environment_config()
@@ -63,17 +66,15 @@ agent_normalize_state_update(
   max_samples = 2000L
 )
 
-agent_normalize_scatter_view(
-  space,
-  quick_view_id = NULL,
-  x_axis = NULL,
-  y_axis = NULL,
-  quick_views = NULL,
-  feature_columns = character(),
-  sample_columns = character()
-)
+.agent_nullable_scalar(x)
 }
 \arguments{
+\item{value}{Rejected value (single string).}
+
+\item{candidates}{Character vector of valid values.}
+
+\item{max}{Maximum number of suggestions to return.}
+
 \item{provider}{Single provider name: openai or anthropic.}
 
 \item{model}{Optional model name. An empty value uses the provider default.}
@@ -136,6 +137,8 @@ agent_normalize_scatter_view(
 Provider configuration, compact state, annotation summaries, or a
   validated assistant update.
 
+A character vector of up to \code{max} suggestions (possibly empty).
+
 Integer request limit from 1 through 200. Default: 40.
 
 A list with provider, model, base URL, API key, configuration
@@ -171,6 +174,14 @@ These helpers provide the compact, JSON-like state bridge between the Shiny
 application and an optional ellmer-powered assistant. They deliberately
 return bounded metadata and summaries rather than expression matrices or API
 credentials.
+
+Used to make validation errors self-correcting: instead of a bare
+rejection, the model receives the nearest valid candidates and can retry
+without guessing. Scoring is deliberately cheap: exact case-insensitive
+match first, then substring containment (either direction), then prefix,
+and finally edit distance. Edit distance is skipped for very large
+candidate sets (e.g. feature ID spaces on real datasets) where it would
+dominate validation time.
 
 The limit applies to all provider requests in one Shiny session, including
 intermediate requests generated while a model resolves tool calls.

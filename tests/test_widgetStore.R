@@ -294,3 +294,94 @@ ok(
     identical(s$origins$app.theme, "agent"),
   "widget confirming a pending value acks it without logging an override"
 )
+
+## ------------------------------------------------- multi_select kind ----
+# S4: multi-selection widgets (heatmap annotations/tooltips). Value is a
+# character vector; empty vectors, empty lists, and "" all clear; entries
+# must all be allowed; sentinel strings stay omitted optionals.
+ms <- widget_store_new()
+store_register(ms,
+  widget_binding("hm.annot_col", "multi_select", label = "Annotations",
+    help = "Annotation columns",
+    choices_provider = function(v) c("group", "batch", "stage")),
+  widget_binding("hm.annot_row", "multi_select", label = "Row annotations",
+    help = "Row annotation columns",
+    choices_provider = function(v) c("score", "pathway")))
+r <- store_apply(ms, list(hm.annot_col = c("batch", "group")))
+ok(
+  identical(r$applied, "hm.annot_col") &&
+    identical(store_read(ms)$hm.annot_col, c("batch", "group")),
+  "multi_select applies a character vector"
+)
+ok(
+  ut_cmp_error(store_apply(ms, list(hm.annot_col = c("group", "celtype"))),
+    "Unknown value"),
+  "multi_select rejects values outside the allowed set"
+)
+r <- store_apply(ms, list(hm.annot_col = c("group", "celtype")),
+                 strict = FALSE)
+ok(
+  identical(r$applied, character()) && length(r$rejected) == 1L &&
+    grepl("celtype", r$rejected[[1]]$reason),
+  "multi_select rejections are per key under strict=FALSE"
+)
+# JSON arrays arrive as lists (simplifyVector = FALSE); "" clears
+r <- store_apply(ms, list(hm.annot_col = list("stage")))
+ok(
+  identical(store_read(ms)$hm.annot_col, "stage"),
+  "multi_select unlists JSON array values"
+)
+r <- store_apply(ms, list(hm.annot_col = ""))
+ok(
+  identical(r$applied, "hm.annot_col") &&
+    identical(store_read(ms)$hm.annot_col, character(0)),
+  "an empty string clears a multi_select"
+)
+r <- store_apply(ms, list(hm.annot_col = list()))
+ok(
+  identical(store_read(ms)$hm.annot_col, character(0)),
+  "an empty JSON array clears a multi_select"
+)
+# sentinel strings are omitted optionals, not writes
+r <- store_apply(ms, list(hm.annot_col = "[]"))
+ok(
+  identical(r$applied, character()) &&
+    identical(store_read(ms)$hm.annot_col, character(0)),
+  "a literal '[]' sentinel is dropped like an omitted optional"
+)
+# user sync from a cleared multi-select input (character(0))
+store_sync_from_ui(ms, "hm.annot_row", c("score", "pathway"))
+store_sync_from_ui(ms, "hm.annot_row", character(0))
+ok(
+  identical(store_read(ms)$hm.annot_row, character(0)),
+  "clearing a multi-select input syncs character(0) into the store"
+)
+# ack semantics on vectors
+store_apply(ms, list(hm.annot_row = c("score")))
+ok(
+  isFALSE(store_ack(ms, "hm.annot_row", c("score"))),
+  "acks compare multi_select vectors by identity"
+)
+# snapshot round-trip keeps vectors (and empties) intact
+snap <- store_snapshot(ms)
+ms2 <- widget_store_new()
+store_register(ms2,
+  widget_binding("hm.annot_col", "multi_select", label = "A", help = "a",
+    choices_provider = function(v) c("group", "batch", "stage")),
+  widget_binding("hm.annot_row", "multi_select", label = "R", help = "r",
+    choices_provider = function(v) c("score", "pathway")))
+store_restore(ms2, snap)
+vals <- store_read(ms2)
+ok(
+  identical(vals$hm.annot_col, character(0)) &&
+    identical(vals$hm.annot_row, "score"),
+  "multi_select values survive the snapshot round-trip"
+)
+# registry view exposes the kind and allowed values
+view <- Filter(function(r) identical(r$id, "hm.annot_col"),
+               store_registry_view(ms))[[1]]
+ok(
+  identical(view$kind, "multi_select") &&
+    identical(view$allowed_values, c("group", "batch", "stage")),
+  "registry view reports multi_select bindings with allowed values"
+)

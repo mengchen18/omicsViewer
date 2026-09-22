@@ -10,6 +10,7 @@ triselector_module(
   reactive_selector1 = reactive(NULL),
   reactive_selector2 = reactive(NULL),
   reactive_selector3 = reactive(NULL),
+  reactive_axis_request = reactive(NULL),
   label = "Group Label:"
 )
 }

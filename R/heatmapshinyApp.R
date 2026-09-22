@@ -183,8 +183,9 @@ iheatmapClear <- function(id) {
 #' @param status heatmap states
 #' @param store Optional child view of the canonical widget store
 #'   (\code{\link{widget_store_child}}) for this heatmap instance. When
-#'   given, the color palette, scaling, and margin widgets are registered
-#'   as agent-controllable bindings (control plane, plan section 6, S3).
+#'   given, every parameter-panel widget (palette, scaling, margins,
+#'   sorting, clustering, annotations, tooltips) is registered as an
+#'   agent-controllable binding (control plane, plan section 6, S3+S4).
 #' @importFrom RColorBrewer brewer.pal
 #' @name iheatmap
 #'
@@ -294,15 +295,45 @@ iheatmapModule <- function(
   pre_ord_col <- reactiveVal()
 
   # ------------------------------------------------------------------
-  # Canonical widget-store bindings (control plane, plan section 6, S3).
-  # The S3 generic agent tier drives these keys through store_apply; user
-  # edits sync back below. The status observer below still restores legacy
-  # snapshot state directly - the store path is additive until S4 migrates
-  # the remaining heatmap widgets.
+  # Canonical widget-store bindings (control plane, plan section 6, S3+S4).
+  # The generic agent tier drives these keys through store_apply; user
+  # edits sync back below. S4 completes the parameter panel: sorting,
+  # clustering, and annotation widgets join the S3 palette/scale/margins.
+  # The status observer below still restores legacy snapshot state
+  # directly (kept for pre-S3 snapshots; both paths are idempotent).
   # ------------------------------------------------------------------
   if (!is.null(store)) {
     .heatmap_palettes <- c(
       "BrBG", "PiYG", "PRGn", "PuOr", "RdBu", "RdGy", "RdYlBu", "RdYlGn")
+    .heatmap_distances <- c(
+      "Pearson correlation", "Euclidean", "Maximum", "Manhattan",
+      "Canberra", "Binary", "Minkowski", "Spearman correlation")
+    .heatmap_linkages <- c(
+      "ward.D", "ward.D2", "single", "complete", "average",
+      "mcquitty", "median", "centroid")
+    # Defensive choice sources for the store validators: they read module
+    # reactives WITHOUT req(), because a shiny.validation condition raised
+    # inside a choices_provider would abort the whole store_apply
+    # transaction (tryCatch(error=) cannot catch it). They mirror exactly
+    # what the choices-update observers offer in the UI.
+    .heatmap_hcl_names <- function(which) {
+      if (is.null(mat())) return(character(0))
+      dl <- attr(mat(), which)
+      if (is.null(dl) || is.null(names(dl))) return(character(0))
+      paste("HCL", names(dl))
+    }
+    .heatmap_fd_cols <- function() {
+      if (is.null(fd())) return(character(0))
+      gs <- attr(fd(), "GS")
+      gsn <- if (is.null(gs)) character(0) else paste0("GS|", levels(gs$gsId))
+      c(colnames(fd()), gsn)
+    }
+    .heatmap_col_choices <- function()
+      c(.heatmap_hcl_names("colDendrogram"), "hierarchical cluster", "none",
+        colnames(pd()))
+    .heatmap_row_choices <- function()
+      c(.heatmap_hcl_names("rowDendrogram"), "none", "hierarchical cluster",
+        .heatmap_fd_cols())
     store_register(
       store,
       widget_binding("heatmap_colors", "select", label = "Heatmap color panel",
@@ -317,12 +348,51 @@ iheatmapModule <- function(
         min = 1L, max = 20L),
       widget_binding("margin_right", "integer", label = "Right margin",
         help = "Right plot margin in lines, from 1 through 20",
-        min = 1L, max = 20L)
+        min = 1L, max = 20L),
+      widget_binding("col_sort_by", "select", label = "Sort columns by",
+        help = paste("Column ordering: a precomputed dendrogram (HCL entries),",
+                     "'hierarchical cluster', 'none', or a phenotype",
+                     "annotation column"),
+        choices_provider = function(v) .heatmap_col_choices()),
+      widget_binding("cluster_col_dist", "select", label = "Column distance",
+        help = "Distance measure for column hierarchical clustering",
+        values = .heatmap_distances),
+      widget_binding("cluster_col_link", "select", label = "Column linkage",
+        help = "Linkage method for column hierarchical clustering",
+        values = .heatmap_linkages),
+      widget_binding("row_sort_by", "select", label = "Sort rows by",
+        help = paste("Row ordering: a precomputed dendrogram (HCL entries),",
+                     "'none', 'hierarchical cluster', a feature annotation",
+                     "column, or a gene set (GS| prefixed)"),
+        choices_provider = function(v) .heatmap_row_choices()),
+      widget_binding("cluster_row_dist", "select", label = "Row distance",
+        help = "Distance measure for row hierarchical clustering",
+        values = .heatmap_distances),
+      widget_binding("cluster_row_link", "select", label = "Row linkage",
+        help = "Linkage method for row hierarchical clustering",
+        values = .heatmap_linkages),
+      widget_binding("annot_col", "multi_select", label = "Column annotations",
+        help = paste("Phenotype annotation columns drawn as color bars",
+                     "above the heatmap; empty clears the bars"),
+        choices_provider = function(v) colnames(pd())),
+      widget_binding("annot_row", "multi_select", label = "Row annotations",
+        help = paste("Feature annotation columns (or GS| gene sets) drawn as",
+                     "color bars beside the heatmap; empty clears the bars"),
+        choices_provider = function(v) .heatmap_fd_cols()),
+      widget_binding("tooltip_info", "multi_select", label = "Tooltips",
+        help = paste("Feature and phenotype columns shown in the hover",
+                     "tooltip; empty clears the tooltip"),
+        choices_provider = function(v) c(colnames(fd()), colnames(pd())))
     )
     .heatmap_store_root <- if (is.null(store$parent)) store else store$parent
     .heatmap_store_keys <- c(
       heatmap_colors = "heatmapColors", scale = "scale",
-      margin_bottom = "marginBottom", margin_right = "marginRight")
+      margin_bottom = "marginBottom", margin_right = "marginRight",
+      col_sort_by = "colSortBy", row_sort_by = "rowSortBy",
+      cluster_col_dist = "clusterColDist", cluster_col_link = "clusterColLink",
+      cluster_row_dist = "clusterRowDist", cluster_row_link = "clusterRowLink",
+      annot_col = "annotCol", annot_row = "annotRow",
+      tooltip_info = "tooltipInfo")
     # Create the epoch reactive ONCE and keep strong references to every
     # store-glue observer: observers whose dependencies are only weakly
     # held by the reactive graph are otherwise garbage collected between
@@ -348,6 +418,35 @@ iheatmapModule <- function(
     .heatmap_keep(observeEvent(input$marginRight, {
       store_sync_from_ui(store, "margin_right", input$marginRight)
     }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$colSortBy, {
+      store_sync_from_ui(store, "col_sort_by", input$colSortBy)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$rowSortBy, {
+      store_sync_from_ui(store, "row_sort_by", input$rowSortBy)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$clusterColDist, {
+      store_sync_from_ui(store, "cluster_col_dist", input$clusterColDist)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$clusterColLink, {
+      store_sync_from_ui(store, "cluster_col_link", input$clusterColLink)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$clusterRowDist, {
+      store_sync_from_ui(store, "cluster_row_dist", input$clusterRowDist)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$clusterRowLink, {
+      store_sync_from_ui(store, "cluster_row_link", input$clusterRowLink)
+    }, ignoreInit = TRUE))
+    # multi-select inputs report character(0) when cleared; observeEvent
+    # treats that as a change (only NULL is ignored), so clearing syncs too
+    .heatmap_keep(observeEvent(input$annotCol, {
+      store_sync_from_ui(store, "annot_col", input$annotCol)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$annotRow, {
+      store_sync_from_ui(store, "annot_row", input$annotRow)
+    }, ignoreInit = TRUE))
+    .heatmap_keep(observeEvent(input$tooltipInfo, {
+      store_sync_from_ui(store, "tooltip_info", input$tooltipInfo)
+    }, ignoreInit = TRUE))
 
     # Seed unset keys with the widget defaults once the inputs exist, so
     # discovery tools report real current values from the start. Restores
@@ -357,7 +456,15 @@ iheatmapModule <- function(
       if (.heatmap_seeded) return(NULL)
       vals <- list(
         heatmap_colors = input$heatmapColors, scale = input$scale,
-        margin_bottom = input$marginBottom, margin_right = input$marginRight)
+        margin_bottom = input$marginBottom, margin_right = input$marginRight,
+        col_sort_by = input$colSortBy, row_sort_by = input$rowSortBy,
+        cluster_col_dist = input$clusterColDist,
+        cluster_col_link = input$clusterColLink,
+        cluster_row_dist = input$clusterRowDist,
+        cluster_row_link = input$clusterRowLink,
+        annot_col = input$annotCol %||% character(0),
+        annot_row = input$annotRow %||% character(0),
+        tooltip_info = input$tooltipInfo %||% character(0))
       if (any(vapply(vals, is.null, logical(1))))
         return(NULL)
       .heatmap_seeded <<- TRUE
@@ -374,6 +481,17 @@ iheatmapModule <- function(
     # them); user clicks sync back through the observers above.
     # Shape mirrors meta_scatter's proven axis-mode push: epoch watch +
     # return()-based guards (no for/next control flow inside observe()).
+    # rowSortBy/annotRow are server-side selectize inputs; their update
+    # goes through updateSelectizeInput exactly like the status path.
+    .heatmap_push_input <- function(key, input_id, value) {
+      if (startsWith(key, "margin_")) {
+        updateSliderInput(session, input_id, value = value)
+      } else if (input_id %in% c("rowSortBy", "annotRow")) {
+        updateSelectizeInput(session, input_id, selected = value)
+      } else {
+        updateSelectInput(session, input_id, selected = value)
+      }
+    }
     .heatmap_keep(observe({
       .heatmap_epoch()
       vals <- store_read(store, names(.heatmap_store_keys))
@@ -383,11 +501,7 @@ iheatmapModule <- function(
         value <- vals[[full]]
         if (is.null(value) || is.null(pending[[full]]))
           return(NULL)
-        input_id <- .heatmap_store_keys[[key]]
-        if (startsWith(key, "margin_"))
-          updateSliderInput(session, input_id, value = value)
-        else
-          updateSelectInput(session, input_id, selected = value)
+        .heatmap_push_input(key, .heatmap_store_keys[[key]], value)
       }))
     }))
   }

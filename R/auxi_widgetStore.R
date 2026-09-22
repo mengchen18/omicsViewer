@@ -35,7 +35,8 @@ NULL
 
 .widget_store_kinds <- c(
   "string", "numeric", "integer", "boolean", "enum",
-  "select", "select_cascaded", "tabset", "navbar", "checkbox", "slider"
+  "select", "select_cascaded", "multi_select", "tabset", "navbar",
+  "checkbox", "slider"
 )
 
 #' Create a canonical widget store
@@ -88,6 +89,9 @@ widget_store_child <- function(store, prefix) {
 #'
 #' @param id Canonical dotted id (unique per store).
 #' @param kind Widget kind; selects the value validator.
+#'   \code{multi_select} is the multi-selection counterpart of
+#'   \code{select}: the value is a character vector (possibly empty;
+#'   empty clears the selection) whose entries must all be allowed.
 #' @param label Short human/model-facing label.
 #' @param help One-sentence help text shared by tooltips and the registry.
 #' @param depends_on Canonical ids this widget's choices depend on (for
@@ -116,7 +120,8 @@ widget_store_child <- function(store, prefix) {
 widget_binding <- function(id,
                            kind = c("string", "numeric", "integer", "boolean",
                                     "enum", "select", "select_cascaded",
-                                    "tabset", "navbar", "checkbox", "slider"),
+                                    "multi_select", "tabset", "navbar",
+                                    "checkbox", "slider"),
                            label = "",
                            help = "",
                            depends_on = character(),
@@ -289,6 +294,41 @@ store_register <- function(store, ...) {
         hint <- .agent_suggest_text(value, allowed)
         return(list(error = paste0(
           "Unknown value for ", binding$id, ": ", value, ".", hint,
+          " Allowed: ", paste(head(allowed, 10), collapse = ", "))))
+      }
+    }
+    return(list(value = value))
+  }
+
+  if (kind == "multi_select") {
+    # JSON arrays arrive as lists (fromJSON(simplifyVector = FALSE));
+    # empty vectors, empty lists, and a single empty string all mean
+    # "clear the selection" rather than "invalid"
+    if (is.list(value)) {
+      if (!length(value))
+        return(list(value = character(0)))
+      value <- unlist(value, use.names = FALSE)
+    }
+    if (is.factor(value))
+      value <- as.character(value)
+    if (!is.character(value))
+      return(list(error = paste(
+        binding$id, "requires a character vector of selected values.")))
+    value <- trimws(value)
+    if (any(is.na(value)))
+      return(list(error = paste(binding$id, "requires non-empty strings.")))
+    if (length(value) == 1L && !nzchar(value))
+      return(list(value = character(0)))
+    if (any(!nzchar(value)))
+      return(list(error = paste(binding$id, "requires non-empty strings.")))
+    allowed <- .widget_store_allowed_values(binding, effective)
+    if (!is.null(allowed)) {
+      bad <- setdiff(value, allowed)
+      if (length(bad)) {
+        return(list(error = paste0(
+          "Unknown value(s) for ", binding$id, ": ",
+          paste(head(bad, 5), collapse = ", "), ".",
+          .agent_suggest_text(bad[[1]], allowed),
           " Allowed: ", paste(head(allowed, 10), collapse = ", "))))
       }
     }
