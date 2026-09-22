@@ -572,6 +572,11 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 
   normalize_ids <- function(x, ids, label, max_n) {
     if (is.null(x)) return(NULL)
+    # providers may serialize omitted array optionals as literal "null" /
+    # "[]" strings (glm flash); treat them as absent
+    if (is.character(x) && length(x) == 1L &&
+        x %in% c("null", "NULL", "[]", "{}"))
+      return(NULL)
     x <- as.character(x)
     if (any(is.na(x)) || any(!nzchar(x)))
       stop(label, " must contain non-empty IDs.")
@@ -597,7 +602,8 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 
   normalize_tab <- function(x, choices, label) {
     if (is.null(x)) return(NULL)
-    x <- .agent_trim_scalar(x)
+    x <- .agent_nullable_scalar(x)
+    if (!nzchar(x)) return(NULL)
     if (!x %in% choices)
       stop("Unknown ", label, " tab: ", x, ".",
            .agent_suggest_text(x, choices))
@@ -630,12 +636,14 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 #' @keywords internal
 #' @rdname agentAssistantHelpers
 .agent_nullable_scalar <- function(x) {
-  # Some providers serialize omitted optional string arguments as the literal
-  # string "null" instead of JSON null (observed with glm flash models);
-  # normalize that artifact to an empty string so downstream nzchar() logic
-  # treats the argument as absent.
+  # Some providers serialize omitted optional string arguments as literal
+  # sentinel strings instead of JSON null (observed with glm flash models:
+  # "null"; also "{}"/"[]" for object/array-shaped optionals); normalize
+  # those artifacts to an empty string so downstream nzchar() logic treats
+  # the argument as absent. Same sentinel set as the widget-store boundary.
   x <- .agent_trim_scalar(x)
-  if (identical(x, "null")) "" else x
+  if (identical(x, "null") || identical(x, "NULL") ||
+      identical(x, "{}") || identical(x, "[]")) "" else x
 }
 
 agent_normalize_scatter_view <- function(space, quick_view_id = NULL,

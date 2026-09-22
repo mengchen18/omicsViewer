@@ -131,6 +131,45 @@ ok(
   "unknown assistant feature IDs are rejected"
 )
 
+# provider sentinel artifacts (glm flash serializes omitted optionals as
+# literal "null"/"{}" strings): they must be treated as absent, not rejected
+sentinel_update <- agent_normalize_state_update(
+  update = list(
+    data_space_tab = "Heatmap",
+    analysis_space_tab = "null",
+    features = "null",
+    samples = "[]"
+  ),
+  data_tabs = c("Feature", "Sample", "Heatmap"),
+  analysis_tabs = c("Feature", "ORA"),
+  feature_ids = rownames(fd),
+  sample_ids = rownames(pd)
+)
+ok(
+  ut_cmp_identical(sentinel_update, list(data_space_tab = "Heatmap")),
+  "literal 'null' tab/selection sentinels are treated as omitted"
+)
+ok(
+  ut_cmp_error(
+    agent_normalize_scatter_view(
+      space = "feature", x_axis = "{}", y_axis = "ttest|A_vs_B|log.fdr",
+      feature_columns = colnames(fd)
+    ),
+    "requires either quick_view_id or both"
+  ),
+  "scatter-view string sentinels are treated as omitted axes"
+)
+ok(
+  ut_cmp_error(
+    agent_normalize_state_update(
+      list(data_space_tab = "{}"),
+      c("Feature", "Sample"), c("Feature"), rownames(fd), rownames(pd)
+    ),
+    "contains no changes"
+  ),
+  "sentinel-only updates still report no changes"
+)
+
 views <- data.frame(
   id = "volcano", label = "Volcano", x = "ttest|A_vs_B|mean.diff",
   y = "ttest|A_vs_B|log.fdr", description = "volcano", source = "auto",
