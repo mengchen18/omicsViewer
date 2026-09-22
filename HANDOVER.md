@@ -16,14 +16,51 @@ result-space step 1 is COMPLETE:
 |---|---|
 | this session | result-space step 1: `resultspace.analyst_tab` navbar + `resultspace.feature_general.*` (23 keys) + `resultspace.sample_general.*` (21 keys) + store-aware shared attr4 panel (`<prefix>.attr4.*`, 18 keys per instance) |
 
-**Next session continues S4 result-space** in this suggested order:
+**Next session continues S4** in this suggested order:
 gsList → ora → fgsea → barplotGsea → string → survival → PTMotif →
 doseResponse → batch → contTableStats → roc_pr → geneshot → attr4
 (figure tab). meta_scatter's embedded attr4 can now simply pass its
 child store to `attr4selector_module` (the panel became store-aware this
 session; meta_scatter still runs it store-less — migrating it is a
-two-line change plus test updates). Embedded dataTableDownload instances
-need nothing (buttons only).
+two-line change plus test updates).
+
+### Reconnaissance already done (read-only, no code changed)
+
+- **gsList is a DATA-space module** (L1_module_data_space.R:512,
+  `eset_gslist_tab` — the "GSList" tab), despite sitting first in the
+  historical order list. It is one `dataTableDownload_module` instance
+  and NOTHING else — see the dataTableDownload notes below for the
+  design question its migration actually is.
+- **dataTableDownload_module** (R/module_dataTableDownload.R) is NOT the
+  S4-2 dataTable_module: it has NO multisel switch and NO column
+  selector. Its only user-editable state is **DT row selection**
+  (always single mode: `formatTab(sel = 0)`) plus browser-local table
+  state (search/order/pagination → tab_status path per the S4-2 rule).
+  Row selection is REAL state though: gsList rows feed
+  `selectedFeatures(tab_gslist())` (they SET the app feature
+  selection), ORA's `stab` rows drive the overlap table (`hd` reads
+  `vi()`). So the open design question: register row selection as a
+  store key? Push would be a NEW pattern (write a reactiveVal feeding
+  `formatTab`'s `selected = selectedRows()` → table re-render; NOT an
+  `update*Input` call); sync already exists via
+  `input$table_rows_selected` (mirrored into the module return/status
+  as `rows_selected`/`selected_rows`). Decide scope deliberately —
+  selections are data state (meta_scatter precedent keeps click/lasso
+  selections OUT of the store), but gsList row selection is a
+  first-class selection mechanism in the UI.
+- **ora** (enrichment_analysis_module, R/module_ora.R): user-editable
+  surface is exactly ONE triselector ("Collapse features on",
+  `tris_ora`) → `xax_{analysis,subset,variable}` keys, same pattern as
+  feature_general but triset = `trisetter(meta = fdata, combine =
+  "none")` (fdata columns only, GS| entries included, NO Feature|Auto|
+  rows, NO Surv filtering). Status contract:
+  `reactive(list(xax = v1()))`. Plus two embedded dataTableDownload
+  tables (ORA results + overlap genes) covered by the note above.
+  Demo data: ORA/fGSEA tabs exist live (tallGS attaches GS on load).
+- **Not yet read**: fgsea, barplotGsea, string, survival, PTMotif,
+  doseResponse, batch, contTableStats, roc_pr, geneshot — start the
+  next session by reading them (sizes: batch 521, geneshot 276, string
+  288 lines; the rest are small).
 
 ## What landed this session (architecture notes)
 
@@ -77,7 +114,8 @@ need nothing (buttons only).
    exist in the live app (don't use ORA as a "dataset-absent tab"
    negative — Response/SeqLogo work).
 
-## Validation status (all green)
+## Validation status (all green — as of commit b996087; the post-commit
+## reconnaissance above was read-only, no source changes after it)
 
 - Unit board: widgetStore 52, agentWidgets **71** (20 new result-space
   tests), aiAssistantTools 19, appState 30, tableWidgetState 5,
