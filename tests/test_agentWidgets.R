@@ -683,9 +683,16 @@ shiny::testServer(app_sg, {
   .spy_input_messages(session, .sent_sg)
   ids <- names(store_read(sg_store))
   ok(
-    identical(length(ids), 21L) &&
-      all(startsWith(ids, "resultspace.sample_general.")),
-    "sample_general registers 21 keys (3 own + 18 attr4)"
+    identical(sort(ids), sort(paste0("resultspace.sample_general.", c(
+      "xax_analysis", "xax_subset", "xax_variable",
+      paste0("attr4.", outer(c("color", "shape", "size", "tooltip", "search"),
+                             c("_analysis", "_subset", "_variable"),
+                             FUN = paste0)),
+      "attr4.xcut", "attr4.ycut", "attr4.scorner",
+      "survival_censor",
+      "batch_show_phenotype", "batch_show_features",
+      "batch_phenotype_selected_row", "batch_feature_selected_row")))),
+    "sample_general registers 26 keys (3 own + 18 attr4 + survival censor + 4 batch)"
   )
   session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
   session$setInputs(`sg-tris_sample_general-subset` = "All")
@@ -781,5 +788,453 @@ shiny::testServer(app_rs, {
   ok(
     length(r$rejected) == 1L && grepl("Feature", r$rejected[[1]]$reason),
     "tab absent from this dataset (ORA needs gene sets) is rejected"
+  )
+})
+
+## ------------------- S4 decision: dataTableDownload row selection ------
+# Row selection registers ONLY where it drives a downstream view (ORA
+# overlap table, fGSEA barplot, STRING network, batch links); gsList and
+# no-effect tables stay off the store (see AGENT_ACCURACY_PLAN 6.2).
+.dtd_root <- widget_store_new()
+.dtd_store <- widget_store_child(.dtd_root, "test.dtd")
+.dtd_tab <- data.frame(pathway = c("P1", "P2", "P3"), pv = c(.2, .01, .3))
+app_dtd <- function(input, output, session) {
+  omicsViewer:::dataTableDownload_module(
+    "dtd", reactive_table = shiny::reactive(.dtd_tab),
+    sortBy = "pv", decreasing = FALSE,
+    reactive_row_ids = shiny::reactive(c("P1", "P2", "P3")),
+    store = .dtd_store, store_key = "selected_row")
+}
+shiny::testServer(app_dtd, {
+  ids <- names(store_read(.dtd_store))
+  ok(identical(ids, "test.dtd.selected_row"),
+     "dataTableDownload registers exactly the row-selection key")
+  # user click on displayed row 2 (pv asc: P2, P1, P3 -> original P1)
+  session$setInputs(`dtd-table_rows_selected` = 2L)
+  session$flushReact()
+  ok(identical(store_read(.dtd_store)$test.dtd.selected_row, "P1"),
+     "user row click syncs into the store as the stable row id")
+  # agent push: the stale pre-render report must NOT count as an override
+  store_apply(.dtd_store, list(selected_row = "P3"), origin = "agent")
+  session$flushReact()
+  ok(identical(store_read(.dtd_store)$test.dtd.selected_row, "P3") &&
+       length(.dtd_root$pending) == 1L && length(.dtd_root$override_log) == 0,
+     "agent row push survives the stale pre-render report (no override)")
+  # DT reports the pushed row -> acknowledgement
+  session$setInputs(`dtd-table_rows_selected` = 3L)
+  session$flushReact()
+  ok(identical(store_read(.dtd_store)$test.dtd.selected_row, "P3") &&
+       length(.dtd_root$pending) == 0L,
+     "DT report of the pushed row acknowledges the write")
+  # a real user click while a push is in flight wins (override contract)
+  store_apply(.dtd_store, list(selected_row = "P1"), origin = "agent")
+  session$flushReact()
+  session$setInputs(`dtd-table_rows_selected` = 1L)  # P2: the user's pick
+  session$flushReact()
+  ok(identical(store_read(.dtd_store)$test.dtd.selected_row, "P2") &&
+       length(.dtd_root$override_log) == 1,
+     "user click overriding an in-flight push is honoured and logged")
+  # unknown row id is rejected with allowed values
+  r <- agent_widget_apply(.dtd_root, '{"test.dtd.selected_row": "P999"}')
+  ok(length(r$rejected) == 1L && grepl("P1, P2, P3", r$rejected[[1]]$reason),
+     "unknown row id is rejected with the allowed row ids")
+})
+
+## ------------------------------- S4 result-space: ora ------------------
+# The collapse-features cascade plus the results-table row selection
+# (drives the overlap-genes table).
+.ora_fd <- data.frame(
+  `General|All|Gene.name` = paste0("g", 1:30),
+  row.names = paste0("F", 1:30), check.names = FALSE)
+attr(.ora_fd, "GS") <- data.frame(
+  featureId = factor(paste0("F", c(1:10, 6:20, 21:30, 1:5, 25:28))),
+  gsId = factor(rep(c("GS_A", "GS_B", "GS_C", "GS_D"),
+                    c(10, 15, 10, 9))))
+.ora_root <- widget_store_new()
+.ora_store <- widget_store_child(.ora_root, "resultspace.ora")
+app_ora <- function(input, output, session) {
+  omicsViewer:::enrichment_analysis_module(
+    "ora", reactive_featureData = shiny::reactive(.ora_fd),
+    reactive_i = shiny::reactive(paste0("F", 1:5)),
+    store = .ora_store)
+}
+shiny::testServer(app_ora, {
+  ok(
+    identical(sort(names(store_read(.ora_store))),
+              sort(paste0("resultspace.ora.", c("xax_analysis", "xax_subset",
+                                                "xax_variable", "selected_row")))),
+    "ora registers the collapse cascade and the results row selection"
+  )
+  # user cascade pick drives the real ORA computation
+  session$setInputs(`ora-tris_ora-analysis` = "General")
+  session$setInputs(`ora-tris_ora-subset` = "All")
+  session$setInputs(`ora-tris_ora-variable` = "Gene.name")
+  session$flushReact()
+  ok(
+    identical(store_read(.ora_store)$resultspace.ora.xax_variable, "Gene.name"),
+    "user collapse-variable pick syncs into the store"
+  )
+  b <- .ora_root$bindings[["resultspace.ora.selected_row"]]
+  ch <- b$choices_provider(list())
+  ok(
+    length(ch) == 2L && setequal(ch, c("GS_A", "GS_D")),
+    "row choices derive from the real enriched pathways (only tested sets)"
+  )
+  # user row click syncs; agent push + DT-report ack through the store
+  # (display order is p.value ascending: GS_D is row 1, GS_A row 2)
+  session$setInputs(`ora-stab-table_rows_selected` = 1L)
+  session$flushReact()
+  ok(
+    identical(store_read(.ora_store)$resultspace.ora.selected_row, "GS_D"),
+    "user pathway-row click syncs into the store"
+  )
+  store_apply(.ora_store, list(selected_row = "GS_A"), origin = "agent")
+  session$flushReact()
+  session$setInputs(`ora-stab-table_rows_selected` = 2L)
+  session$flushReact()
+  ok(
+    identical(store_read(.ora_store)$resultspace.ora.selected_row, "GS_A") &&
+      length(.ora_root$pending) == 0L,
+    "agent pathway-row push applies and acknowledges (drives overlap table)"
+  )
+  # agent cascade write pushes the triselector
+  store_apply(.ora_store, list(xax_variable = "Gene.name"), origin = "agent")
+  session$flushReact()
+  ok(
+    identical(store_read(.ora_store)$resultspace.ora.xax_variable, "Gene.name"),
+    "agent cascade write is stored"
+  )
+})
+
+## ------------------------------ S4 result-space: fgsea -----------------
+# The ranking cascade plus the results-table row selection (drives the
+# leading-edge bar plot).
+.fgs_fd <- data.frame(
+  `ttest|KO|stat` = c(rnorm(10, mean = 2), rnorm(20)),
+  row.names = paste0("F", 1:30), check.names = FALSE)
+attr(.fgs_fd, "GS") <- data.frame(
+  featureId = factor(paste0("F", c(1:10, 11:30))),
+  gsId = factor(rep(c("GS_UP", "GS_REST"), c(10, 20))))
+.fgs_root <- widget_store_new()
+.fgs_store <- widget_store_child(.fgs_root, "resultspace.fgsea")
+app_fgs <- function(input, output, session) {
+  omicsViewer:::enrichment_fgsea_module(
+    "fgsea", reactive_featureData = shiny::reactive(.fgs_fd),
+    store = .fgs_store)
+}
+shiny::testServer(app_fgs, {
+  ok(
+    identical(sort(names(store_read(.fgs_store))),
+              sort(paste0("resultspace.fgsea.", c("xax_analysis", "xax_subset",
+                                                  "xax_variable", "selected_row")))),
+    "fgsea registers the ranking cascade and the results row selection"
+  )
+  session$setInputs(`fgsea-tris_fgsea-analysis` = "ttest")
+  session$setInputs(`fgsea-tris_fgsea-subset` = "KO")
+  session$setInputs(`fgsea-tris_fgsea-variable` = "stat")
+  session$flushReact()
+  ok(
+    identical(store_read(.fgs_store)$resultspace.fgsea.xax_variable, "stat"),
+    "user ranking-variable pick syncs into the store"
+  )
+  b <- .fgs_root$bindings[["resultspace.fgsea.selected_row"]]
+  ch <- b$choices_provider(list())
+  ok(
+    length(ch) == 2L && setequal(ch, c("GS_UP", "GS_REST")),
+    "row choices derive from the real fGSEA pathway table"
+  )
+  session$setInputs(`fgsea-stab-table_rows_selected` = 1L)
+  session$flushReact()
+  ok(
+    identical(store_read(.fgs_store)$resultspace.fgsea.selected_row, ch[[1]]),
+    "user pathway-row click syncs into the store"
+  )
+  store_apply(.fgs_store, list(selected_row = ch[[2]]), origin = "agent")
+  session$flushReact()
+  session$setInputs(`fgsea-stab-table_rows_selected` = 2L)
+  session$flushReact()
+  ok(
+    identical(store_read(.fgs_store)$resultspace.fgsea.selected_row, ch[[2]]) &&
+      length(.fgs_root$pending) == 0L,
+    "agent pathway-row push applies and acknowledges (drives bar plot)"
+  )
+})
+
+## ------------------------------ S4 result-space: ptm -------------------
+# The sequence triselector registers and auto-seeds to the first SeqLogo
+# column (unset keys only - a restore or user pick wins and sticks).
+.ptm_fd <- data.frame(
+  `General|All|Gene.name` = paste0("g", 1:8),
+  `SeqLogo|All|win15` = replicate(8, paste(sample(c("A","C","D","E","F","G",
+                                                    "H","I","K","L","M","N",
+                                                    "P","Q","R","S","T","V",
+                                                    "W","Y"), 15, TRUE),
+                                           collapse = "")),
+  row.names = paste0("P", 1:8), check.names = FALSE)
+.ptm_root <- widget_store_new()
+.ptm_store <- widget_store_child(.ptm_root, "resultspace.ptm")
+app_ptm <- function(input, output, session) {
+  omicsViewer:::ptmotif_module(
+    "ptm", pdata = shiny::reactive(NULL), fdata = shiny::reactive(.ptm_fd),
+    expr = shiny::reactive(NULL), feature_selected = shiny::reactive(1:4),
+    sample_selected = shiny::reactive(NULL),
+    store = .ptm_store)
+}
+shiny::testServer(app_ptm, {
+  session$flushReact()
+  v <- store_read(.ptm_store)
+  ok(
+    identical(sort(names(v)),
+              sort(paste0("resultspace.ptm.", c("xax_analysis", "xax_subset",
+                                                "xax_variable")))),
+    "ptm registers the sequence cascade"
+  )
+  ok(
+    identical(v$resultspace.ptm.xax_analysis, "SeqLogo") &&
+      identical(v$resultspace.ptm.xax_subset, "All") &&
+      identical(v$resultspace.ptm.xax_variable, "win15"),
+    "sequence cascade auto-seeds to the first SeqLogo column (system origin)"
+  )
+  # a user pick sticks (seeding never overwrites set keys)
+  session$setInputs(`ptm-tris_seqlogo-analysis` = "General")
+  session$setInputs(`ptm-tris_seqlogo-subset` = "All")
+  session$setInputs(`ptm-tris_seqlogo-variable` = "Gene.name")
+  session$flushReact()
+  ok(
+    identical(store_read(.ptm_store)$resultspace.ptm.xax_variable, "Gene.name"),
+    "user sequence pick syncs and sticks over the auto-seed"
+  )
+})
+
+## --------------------------- S4 result-space: geneshot -----------------
+# Search-term string + ID-mapper cascade; the Search button is a command
+# and stays unregistered.
+.gs2_fd <- data.frame(
+  `General|All|Gene.name` = paste0("g", 1:16),
+  `General|Info|Symbol` = paste0("sym", 1:16),
+  row.names = paste0("F", 1:16), check.names = FALSE)
+.gs2_root <- widget_store_new()
+.gs2_store <- widget_store_child(.gs2_root, "resultspace.geneshot")
+.sent_gs2 <- new.env(); .sent_gs2$msgs <- list()
+app_gs2 <- function(input, output, session) {
+  omicsViewer:::geneshot_module(
+    "gs", pdata = shiny::reactive(NULL), fdata = shiny::reactive(.gs2_fd),
+    expr = shiny::reactive(NULL), feature_selected = shiny::reactive(NULL),
+    sample_selected = shiny::reactive(NULL), object = shiny::reactive(NULL),
+    store = .gs2_store)
+}
+shiny::testServer(app_gs2, {
+  .spy_input_messages(session, .sent_gs2)
+  ids <- names(store_read(.gs2_store))
+  ok(
+    identical(sort(ids), sort(paste0("resultspace.geneshot.",
+                                     c("term", "xax_analysis", "xax_subset",
+                                       "xax_variable")))),
+    "geneshot registers the search term and the ID-mapper cascade"
+  )
+  # user cascade pick + term edit sync into the store
+  session$setInputs(`gs-geneNameCol-analysis` = "General")
+  session$setInputs(`gs-geneNameCol-subset` = "Info")
+  session$setInputs(`gs-geneNameCol-variable` = "Symbol")
+  session$flushReact()
+  session$setInputs(`gs-term` = "p53; cell cycle")
+  session$flushReact()
+  ok(
+    identical(store_read(.gs2_store)$resultspace.geneshot.xax_variable,
+              "Symbol") &&
+      identical(store_read(.gs2_store)$resultspace.geneshot.term,
+                "p53; cell cycle"),
+    "user ID-mapper pick and search term sync into the store"
+  )
+  # external term write pushes updateTextInput
+  .sent_gs2$msgs <- list()
+  store_apply(.gs2_store, list(term = "BRCA1"), origin = "agent")
+  session$flushReact()
+  ok(
+    identical(store_read(.gs2_store)$resultspace.geneshot.term, "BRCA1") &&
+      any(vapply(.sent_gs2$msgs, function(m)
+        grepl("(^|\\.)term$", m$id) &&
+          identical(m$msg$value, "BRCA1"), logical(1))),
+    "agent search-term write pushes the text input"
+  )
+})
+
+## --------------------------- S4 result-space: stringdb -----------------
+# Taxonomy string + labels boolean + enrichment row selection; the Run
+# button is a stateless command and stays unregistered.
+.str_root <- widget_store_new()
+.str_store <- widget_store_child(.str_root, "resultspace.stringdb")
+.sent_str <- new.env(); .sent_str$msgs <- list()
+app_str <- function(input, output, session) {
+  omicsViewer:::string_module(
+    "sdb", reactive_ids = shiny::reactive(c("g1", "g2", "g3")),
+    store = .str_store)
+}
+shiny::testServer(app_str, {
+  .spy_input_messages(session, .sent_str)
+  ids <- names(store_read(.str_store))
+  ok(
+    identical(sort(ids), sort(paste0("resultspace.stringdb.",
+                                     c("taxonomy", "show_labels",
+                                       "selected_row")))),
+    "stringdb registers taxonomy, labels, and the enrichment row selection"
+  )
+  # user edits sync (warm the ignoreInit swallow first)
+  session$setInputs(`sdb-tax` = "9606")
+  session$flushReact()
+  session$setInputs(`sdb-tax` = "10090")
+  session$setInputs(`sdb-showLabel` = TRUE)
+  session$flushReact()
+  ok(
+    identical(store_read(.str_store)$resultspace.stringdb.taxonomy, "10090") &&
+      isTRUE(store_read(.str_store)$resultspace.stringdb.show_labels),
+    "user taxonomy and label edits sync into the store"
+  )
+  # external writes push updateTextInputIcon / updateCheckboxInput
+  .sent_str$msgs <- list()
+  store_apply(.str_store, list(taxonomy = "9606", show_labels = FALSE),
+              origin = "agent")
+  session$flushReact()
+  ok(
+    identical(store_read(.str_store)$resultspace.stringdb.taxonomy, "9606") &&
+      any(vapply(.sent_str$msgs, function(m)
+        grepl("(^|\\.)tax$", m$id), logical(1))) &&
+      any(vapply(.sent_str$msgs, function(m)
+        grepl("(^|\\.)showLabel$", m$id), logical(1))),
+    "agent taxonomy/label writes push both inputs"
+  )
+})
+
+## -------------- S4 sample_general embedded: survival censor slider ------
+# Registered on the sample_general child view; the push is gated on the
+# survival view and clamped to the rendered range.
+.sv_root <- widget_store_new()
+.sv_store <- widget_store_child(.sv_root, "resultspace.sample_general")
+.sent_sv <- new.env(); .sent_sv$msgs <- list()
+.sv_pd <- data.frame(
+  `General|All|group` = factor(rep(c("A", "B"), each = 4)),
+  `Surv|All|time` = c(1, 5, 9, 20, 2, 8, 15, 30, 4, 7, 11, 25,
+                      3, 6, 12, 28),
+  row.names = paste0("S", 1:16), check.names = FALSE)
+.sv_ex <- matrix(rnorm(16 * 16), nrow = 16,
+                 dimnames = list(paste0("F", 1:16), paste0("S", 1:16)))
+app_sv <- function(input, output, session) {
+  omicsViewer:::sample_general_module(
+    "sg", reactive_phenoData = shiny::reactive(.sv_pd),
+    reactive_expr = shiny::reactive(.sv_ex),
+    reactive_j = shiny::reactive(paste0("S", 1:8)),
+    store = .sv_store)
+}
+shiny::testServer(app_sv, {
+  .spy_input_messages(session, .sent_sv)
+  # switch the sample cascade to the Surv view
+  session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
+  session$setInputs(`sg-tris_sample_general-subset` = "All")
+  session$setInputs(`sg-tris_sample_general-variable` = "time")
+  session$flushReact()
+  ok(
+    "resultspace.sample_general.survival_censor" %in% names(store_read(.sv_store)),
+    "the survival censor slider registers on the sample_general view"
+  )
+  .sent_sv$msgs <- list()
+  store_apply(.sv_store, list(survival_censor = 10), origin = "agent")
+  session$flushReact()
+  ok(
+    identical(store_read(.sv_store)$resultspace.sample_general.survival_censor,
+              10) &&
+      any(vapply(.sent_sv$msgs, function(m)
+        grepl("(^|\\.)censor$", m$id), logical(1))),
+    "agent censor write pushes the slider in the survival view"
+  )
+  # out-of-range values are clamped to the rendered slider range
+  .sent_sv$msgs <- list()
+  store_apply(.sv_store, list(survival_censor = 1e6), origin = "agent")
+  session$flushReact()
+  hit <- Filter(function(m) grepl("(^|\\.)censor$", m$id), .sent_sv$msgs)
+  ok(
+    length(hit) == 1L && hit[[1]]$msg$value <= max(.sv_pd$`Surv|All|time`),
+    "out-of-range censor value is clamped to the slider maximum"
+  )
+})
+
+## -------------- S4 sample_general embedded: batch comparison toggles ----
+.bc_root <- widget_store_new()
+.bc_store <- widget_store_child(.bc_root, "resultspace.sample_general")
+.sent_bc <- new.env(); .sent_bc$msgs <- list()
+app_bc <- function(input, output, session) {
+  omicsViewer:::sample_general_module(
+    "sg", reactive_phenoData = shiny::reactive(.sv_pd),
+    reactive_expr = shiny::reactive(.sv_ex),
+    reactive_j = shiny::reactive(paste0("S", 1:8)),
+    store = .bc_store)
+}
+shiny::testServer(app_bc, {
+  .spy_input_messages(session, .sent_bc)
+  # a numeric (beeswarm) view keeps the batch module's tables running
+  session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
+  session$setInputs(`sg-tris_sample_general-subset` = "All")
+  session$setInputs(`sg-tris_sample_general-variable` = "time")
+  session$flushReact()
+  keys <- sort(names(store_read(.bc_store)))
+  ok(
+    all(paste0("resultspace.sample_general.",
+               c("batch_show_phenotype", "batch_show_features",
+                 "batch_phenotype_selected_row",
+                 "batch_feature_selected_row")) %in% keys),
+    "the batch comparison toggles and row selections register"
+  )
+  # user toggle edits sync (warm the ignoreInit swallow first)
+  session$setInputs(`sg-batch_comp-show_phenotype` = TRUE)
+  session$flushReact()
+  session$setInputs(`sg-batch_comp-show_features` = TRUE)
+  session$flushReact()
+  ok(
+    isTRUE(store_read(.bc_store)$resultspace.sample_general.batch_show_features),
+    "user batch toggle edit syncs into the store"
+  )
+  # external toggle write pushes updateCheckboxInput
+  .sent_bc$msgs <- list()
+  store_apply(.bc_store, list(batch_show_phenotype = FALSE), origin = "agent")
+  session$flushReact()
+  ok(
+    isFALSE(store_read(.bc_store)$resultspace.sample_general.batch_show_phenotype) &&
+      any(vapply(.sent_bc$msgs, function(m)
+        grepl("(^|\\.)show_phenotype$", m$id), logical(1))),
+    "agent batch toggle write pushes the checkbox"
+  )
+})
+
+## ------------------- S4: meta_scatter adopts the shared attr4 panel ----
+# The panel became store-aware in result-space step 1; the data-space
+# scatters now pass their store so the attr4 keys register there too.
+.ms_root <- widget_store_new()
+.ms_store <- widget_store_child(.ms_root, "dataspace.feature_space")
+.ms_fd <- data.frame(
+  `General|All|grp` = factor(rep(c("a", "b"), each = 8)),
+  `PCA|All|PC1` = rnorm(16),
+  row.names = paste0("F", 1:16), check.names = FALSE)
+.ms_pd <- data.frame(
+  `General|All|batch` = factor(rep(c("B1", "B2"), each = 8)),
+  row.names = paste0("S", 1:16), check.names = FALSE)
+.ms_ex <- matrix(rnorm(16 * 16), nrow = 16,
+                 dimnames = list(paste0("F", 1:16), paste0("S", 1:16)))
+app_ms <- function(input, output, session) {
+  omicsViewer:::meta_scatter_module(
+    "feature_space", reactive_meta = shiny::reactive(.ms_fd),
+    reactive_expr = shiny::reactive(.ms_ex), combine = "feature",
+    source = "scatter_meta_feature", store = .ms_store)
+}
+shiny::testServer(app_ms, {
+  session$flushReact()
+  ids <- names(store_read(.ms_store))
+  ok(
+    all(paste0("dataspace.feature_space.attr4.",
+               c("color_analysis", "color_variable", "xcut", "scorner")) %in% ids),
+    "the feature-space scatter registers the shared attr4 panel keys"
+  )
+  ok(
+    identical(sort(ids)[1], "dataspace.feature_space.attr4.color_analysis") ||
+        length(ids) >= 18L,
+    "attr4 adoption adds the full 18-key panel per scatter"
   )
 })

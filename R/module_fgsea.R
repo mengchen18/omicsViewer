@@ -31,6 +31,12 @@ enrichment_fgsea_ui <- function(id) {
 #' @param id module id
 #' @param reactive_featureData reactive feature data
 #' @param reactive_status reactive status for restoring saved sessions
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{resultspace.fgsea}. When given, the ranking-variable cascade and
+#'   the results-table row selection (which drives the leading-edge bar
+#'   plot) register on the store; when NULL the legacy status-restore path
+#'   is kept.
 #' @importFrom stringr str_split_fixed
 #' @importFrom DT renderDataTable datatable
 #' @importFrom fastmatch fmatch
@@ -53,7 +59,8 @@ enrichment_fgsea_ui <- function(id) {
 # }
 # shinyApp(ui, server)
 
-enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = reactive(NULL)) {
+enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = reactive(NULL),
+                                   store = NULL) {
 
   moduleServer(id, function(input, output, session) {
 
@@ -65,13 +72,97 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
     str_split_fixed(cn, "\\|", n = 3)
   })
 
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # The ranking-variable cascade is driven by store_watch selectors
+  # (meta_scatter pattern); the results-table row selection registers
+  # through dataTableDownload_module (it drives the leading-edge bar plot).
+  # ------------------------------------------------------------------
+  .fgs_store_observers <- list()
+  .fgs_keep <- function(obs) {
+    .fgs_store_observers[[length(.fgs_store_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
   xax <- reactiveVal()
-  v1 <- triselector_module(
-    "tris_fgsea", reactive_x = triset, label = "Input variable",
-    reactive_selector1 = reactive(xax()$v1),
-    reactive_selector2 = reactive(xax()$v2),
-    reactive_selector3 = reactive(xax()$v3)
+  if (!is.null(store)) {
+    .fgs_ts <- function() {
+      fd <- tryCatch(reactive_featureData(),
+                     shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(fd)) return(NULL)
+      cn <- colnames(fd)[vapply(fd, is.numeric, logical(1)) &
+                           !grepl("^GS\\|", colnames(fd))]
+      if (length(cn) == 0L) return(NULL)
+      str_split_fixed(cn, "\\|", n = 3)
+    }
+    .fgs_ts1 <- function() {
+      ts <- .fgs_ts()
+      if (is.null(ts)) character(0) else unique(ts[, 1])
+    }
+    .fgs_ts2 <- function(a) {
+      ts <- .fgs_ts()
+      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+      else unique(ts[ts[, 1] %in% a, 2])
+    }
+    .fgs_ts3 <- function(a, b) {
+      ts <- .fgs_ts()
+      if (is.null(ts)) character(0)
+      else {
+        i <- rep(TRUE, nrow(ts))
+        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+        unique(ts[i, 3])
+      }
+    }
+    kf1 <- paste0(store$prefix, ".xax_analysis")
+    kf2 <- paste0(store$prefix, ".xax_subset")
+    store_register(
+      store,
+      widget_binding("xax_analysis", "select",
+        label = "Ranking category",
+        help = paste("Annotation category of the ranking statistic the",
+                     "enrichment scores are computed from"),
+        choices_provider = function(v) .fgs_ts1()),
+      widget_binding("xax_subset", "select", label = "Ranking subcategory",
+        help = "Subcategory within the ranking category",
+        depends_on = "xax_analysis",
+        choices_provider = function(v) .fgs_ts2(v[[kf1]])),
+      widget_binding("xax_variable", "select_cascaded", label = "Ranking variable",
+        help = paste("Numeric feature annotation the features are ranked by",
+                     "for the enrichment analysis"),
+        depends_on = c("xax_analysis", "xax_subset"),
+        choices_provider = function(v) .fgs_ts3(v[[kf1]], v[[kf2]]))
     )
+    v1 <- triselector_module(
+      "tris_fgsea", reactive_x = triset, label = "Input variable",
+      reactive_selector1 = store_watch(store, "xax_analysis"),
+      reactive_selector2 = store_watch(store, "xax_subset"),
+      reactive_selector3 = store_watch(store, "xax_variable"),
+      reactive_axis_request = store_epoch(store))
+    .fgs_read_tris <- function(sel)
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    .fgs_component_set <- function(sel)
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    .fgs_keep(observe({
+      xv <- .fgs_read_tris(v1)
+      if (.fgs_component_set(xv)) {
+        store_sync_from_ui(store, "xax_analysis", xv$analysis)
+        store_sync_from_ui(store, "xax_subset", xv$subset)
+        store_sync_from_ui(store, "xax_variable", xv$variable)
+      }
+    }))
+  } else {
+    v1 <- triselector_module(
+      "tris_fgsea", reactive_x = triset, label = "Input variable",
+      reactive_selector1 = reactive(xax()$v1),
+      reactive_selector2 = reactive(xax()$v2),
+      reactive_selector3 = reactive(xax()$v3)
+      )
+  }
   
   gsInfo <- reactive({
     fdgs <- attr(reactive_featureData(), "GS")
@@ -115,7 +206,17 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
     "stab",
     reactive_table = reactive(tab()$table),
     reactive_cols = reactive(setdiff(colnames(tab()$table), "leadingEdge")),
-    prefix = "fgsea_"
+    prefix = "fgsea_",
+    reactive_row_ids = reactive({
+      t <- tryCatch(tab()$table, shiny.silent.error = function(e) NULL,
+                    error = function(e) NULL)
+      if (is.data.frame(t) && "pathway" %in% colnames(t))
+        as.character(t$pathway) else NULL
+    }),
+    store = store, store_key = "selected_row",
+    store_label = "Selected pathway",
+    store_help = paste("Gene set whose row is selected in the results table;",
+                       "highlights its leading edge in the bar plot above")
   )
   
   output$bplot <- renderPlotly({
@@ -145,8 +246,23 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    xax(NULL)
-    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient, meta_scatter style)
+      if (identical(length(s$xax), 3L)) {
+        tr <- lapply(s$xax, function(x)
+          if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
+        patch <- list()
+        if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
+        if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
+        if (!is.null(tr[[3]])) patch$xax_variable <- tr[[3]]
+        if (length(patch))
+          tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+      }
+    } else {
+      xax(NULL)
+      xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    }
     })
 
   reactive(list(xax = v1()))

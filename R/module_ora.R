@@ -28,6 +28,12 @@ enrichment_analysis_ui <- function(id) {
 #' @param id module id
 #' @param reactive_featureData reactive feature data
 #' @param reactive_i reactive index of rows to be selected (for ORA)
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{resultspace.ora}. When given, the collapse-features cascade and
+#'   the results-table row selection (which drives the overlap-genes
+#'   table) register on the store; when NULL the legacy status-restore
+#'   path is kept.
 #' @importFrom fastmatch fmatch
 #' @importFrom stats cutree
 #' @examples
@@ -51,7 +57,8 @@ enrichment_analysis_ui <- function(id) {
 
 
 enrichment_analysis_module <- function(
-  id, reactive_featureData, reactive_i, reactive_status = reactive(NULL)
+  id, reactive_featureData, reactive_i, reactive_status = reactive(NULL),
+  store = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -66,13 +73,97 @@ enrichment_analysis_module <- function(
     trisetter(meta = reactive_featureData(), combine = "none")
   })
 
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # The collapse-features cascade is driven by store_watch selectors
+  # (meta_scatter pattern); the results-table row selection registers
+  # through dataTableDownload_module (it drives the overlap-genes table).
+  # ------------------------------------------------------------------
+  .ora_store_observers <- list()
+  .ora_keep <- function(obs) {
+    .ora_store_observers[[length(.ora_store_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
   xax <- reactiveVal()
-  v1 <- triselector_module(
-    "tris_ora", reactive_x = triset, label = "Collapse features on",
-    reactive_selector1 = reactive(xax()$v1),
-    reactive_selector2 = reactive(xax()$v2),
-    reactive_selector3 = reactive(xax()$v3)
+  if (!is.null(store)) {
+    .ora_ts <- function() {
+      fd <- tryCatch(reactive_featureData(),
+                     shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(fd)) return(NULL)
+      ts <- tryCatch(trisetter(meta = fd, combine = "none"),
+                     shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) NULL else ts
+    }
+    .ora_ts1 <- function() {
+      ts <- .ora_ts()
+      if (is.null(ts)) character(0) else unique(ts[, 1])
+    }
+    .ora_ts2 <- function(a) {
+      ts <- .ora_ts()
+      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+      else unique(ts[ts[, 1] %in% a, 2])
+    }
+    .ora_ts3 <- function(a, b) {
+      ts <- .ora_ts()
+      if (is.null(ts)) character(0)
+      else {
+        i <- rep(TRUE, nrow(ts))
+        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+        unique(ts[i, 3])
+      }
+    }
+    ko1 <- paste0(store$prefix, ".xax_analysis")
+    ko2 <- paste0(store$prefix, ".xax_subset")
+    store_register(
+      store,
+      widget_binding("xax_analysis", "select",
+        label = "Collapse category",
+        help = paste("Annotation category whose values the input features",
+                     "are collapsed on before testing over-representation"),
+        choices_provider = function(v) .ora_ts1()),
+      widget_binding("xax_subset", "select", label = "Collapse subcategory",
+        help = "Subcategory within the collapse category",
+        depends_on = "xax_analysis",
+        choices_provider = function(v) .ora_ts2(v[[ko1]])),
+      widget_binding("xax_variable", "select_cascaded", label = "Collapse variable",
+        help = paste("Variable the input features are collapsed on",
+                     "(feature annotation column)"),
+        depends_on = c("xax_analysis", "xax_subset"),
+        choices_provider = function(v) .ora_ts3(v[[ko1]], v[[ko2]]))
     )
+    v1 <- triselector_module(
+      "tris_ora", reactive_x = triset, label = "Collapse features on",
+      reactive_selector1 = store_watch(store, "xax_analysis"),
+      reactive_selector2 = store_watch(store, "xax_subset"),
+      reactive_selector3 = store_watch(store, "xax_variable"),
+      reactive_axis_request = store_epoch(store))
+    .ora_read_tris <- function(sel)
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    .ora_component_set <- function(sel)
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    .ora_keep(observe({
+      xv <- .ora_read_tris(v1)
+      if (.ora_component_set(xv)) {
+        store_sync_from_ui(store, "xax_analysis", xv$analysis)
+        store_sync_from_ui(store, "xax_subset", xv$subset)
+        store_sync_from_ui(store, "xax_variable", xv$variable)
+      }
+    }))
+  } else {
+    v1 <- triselector_module(
+      "tris_ora", reactive_x = triset, label = "Collapse features on",
+      reactive_selector1 = reactive(xax()$v1),
+      reactive_selector2 = reactive(xax()$v2),
+      reactive_selector3 = reactive(xax()$v3)
+      )
+  }
 
   size_bg <- reactiveVal()
   rii <- reactiveVal()
@@ -176,7 +267,17 @@ enrichment_analysis_module <- function(
       oraTab()
     }),
     reactive_cols = reactive( setdiff(colnames(oraTab()), "overlap_ids") ),
-    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE, pageLength = ENRICHMENT_TABLE_PAGE_LENGTH
+    prefix = "ORA_", sortBy = "p.value", decreasing = FALSE, pageLength = ENRICHMENT_TABLE_PAGE_LENGTH,
+    reactive_row_ids = reactive({
+      t <- tryCatch(oraTab(), shiny.silent.error = function(e) NULL,
+                    error = function(e) NULL)
+      if (is.data.frame(t) && "pathway" %in% colnames(t))
+        as.character(t$pathway) else NULL
+    }),
+    store = store, store_key = "selected_row",
+    store_label = "Selected pathway",
+    store_help = paste("Gene set whose row is selected in the results table;",
+                       "drives the overlap-genes table below")
   )
 
   hd <- reactive({
@@ -212,8 +313,23 @@ enrichment_analysis_module <- function(
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    xax(NULL)
-    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient, meta_scatter style)
+      if (identical(length(s$xax), 3L)) {
+        tr <- lapply(s$xax, function(x)
+          if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
+        patch <- list()
+        if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
+        if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
+        if (!is.null(tr[[3]])) patch$xax_variable <- tr[[3]]
+        if (length(patch))
+          tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+      }
+    } else {
+      xax(NULL)
+      xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    }
   })
 
   reactive(list(xax = v1()))

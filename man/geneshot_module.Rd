@@ -12,7 +12,8 @@ geneshot_module(
   feature_selected,
   sample_selected,
   object,
-  reactive_status = reactive(NULL)
+  reactive_status = reactive(NULL),
+  store = NULL
 )
 }
 \arguments{
@@ -42,6 +43,13 @@ consistency.}
 
 \item{reactive_status}{Reactive expression. Returns a list containing saved
 state for session restoration. Optional. Default: \code{reactive(NULL)}.}
+
+\item{store}{Optional child view of the canonical widget store
+(\code{\link{widget_store_child}}) for this module, e.g.
+\code{resultspace.geneshot}. When given, the search-term input and
+the ID-mapper cascade register on the store; when NULL the legacy
+status-restore path is kept. The Search button is deliberately not
+registered: it is a stateless command, not a widget value.}
 }
 \value{
 A reactive expression returning a list with module state for session saving.

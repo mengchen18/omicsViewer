@@ -122,9 +122,16 @@ geneshot_ui <- function(id) {
 #'
 #' @keywords internal
 #'
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{resultspace.geneshot}. When given, the search-term input and
+#'   the ID-mapper cascade register on the store; when NULL the legacy
+#'   status-restore path is kept. The Search button is deliberately not
+#'   registered: it is a stateless command, not a widget value.
+#'
 geneshot_module <- function(
   id, pdata, fdata, expr, feature_selected, sample_selected, object,
-  reactive_status = reactive(NULL)
+  reactive_status = reactive(NULL), store = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -137,14 +144,124 @@ geneshot_module <- function(
     str_split_fixed(cn, "\\|", n = 3)
   })
 
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # The search term and the ID-mapper cascade register on the store; the
+  # cascade is driven by store_watch selectors (meta_scatter pattern).
+  # ------------------------------------------------------------------
+  .gs_store_observers <- list()
+  .gs_keep <- function(obs) {
+    .gs_store_observers[[length(.gs_store_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
   xax <- reactiveVal()
-  v1 <- triselector_module(
-    "geneNameCol", reactive_x = triset, label = "Map ID",
-    reactive_selector1 = reactive(xax()$v1),
-    reactive_selector2 = reactive(xax()$v2),
-    reactive_selector3 = reactive(xax()$v3)
-  )
-  
+  if (!is.null(store)) {
+    .gs_ts <- function() {
+      fd <- tryCatch(fdata(), shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(fd)) return(NULL)
+      cn <- colnames(fd)[!vapply(fd, is.numeric, logical(1)) &
+                           !grepl("^GS\\|", colnames(fd))]
+      if (length(cn) == 0L) return(NULL)
+      str_split_fixed(cn, "\\|", n = 3)
+    }
+    .gs_ts1 <- function() {
+      ts <- .gs_ts()
+      if (is.null(ts)) character(0) else unique(ts[, 1])
+    }
+    .gs_ts2 <- function(a) {
+      ts <- .gs_ts()
+      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+      else unique(ts[ts[, 1] %in% a, 2])
+    }
+    .gs_ts3 <- function(a, b) {
+      ts <- .gs_ts()
+      if (is.null(ts)) character(0)
+      else {
+        i <- rep(TRUE, nrow(ts))
+        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+        unique(ts[i, 3])
+      }
+    }
+    kg1 <- paste0(store$prefix, ".xax_analysis")
+    kg2 <- paste0(store$prefix, ".xax_subset")
+    store_register(
+      store,
+      widget_binding("term", "string", label = "Search terms",
+        help = paste("Semicolon-separated literature search terms for the",
+                     "Geneshot AutoRIF query")),
+      widget_binding("xax_analysis", "select", label = "ID mapper category",
+        help = "Annotation category used to map Geneshot genes to features",
+        choices_provider = function(v) .gs_ts1()),
+      widget_binding("xax_subset", "select", label = "ID mapper subcategory",
+        help = "Subcategory within the ID-mapper category",
+        depends_on = "xax_analysis",
+        choices_provider = function(v) .gs_ts2(v[[kg1]])),
+      widget_binding("xax_variable", "select_cascaded", label = "ID mapper column",
+        help = paste("Feature annotation column Geneshot genes are matched",
+                     "against for the overlap highlight"),
+        depends_on = c("xax_analysis", "xax_subset"),
+        choices_provider = function(v) .gs_ts3(v[[kg1]], v[[kg2]]))
+    )
+    v1 <- triselector_module(
+      "geneNameCol", reactive_x = triset, label = "Map ID",
+      reactive_selector1 = store_watch(store, "xax_analysis"),
+      reactive_selector2 = store_watch(store, "xax_subset"),
+      reactive_selector3 = store_watch(store, "xax_variable"),
+      reactive_axis_request = store_epoch(store))
+    .gs_read_tris <- function(sel)
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    .gs_component_set <- function(sel)
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    .gs_keep(observe({
+      xv <- .gs_read_tris(v1)
+      if (.gs_component_set(xv)) {
+        store_sync_from_ui(store, "xax_analysis", xv$analysis)
+        store_sync_from_ui(store, "xax_subset", xv$subset)
+        store_sync_from_ui(store, "xax_variable", xv$variable)
+      }
+    }))
+    .gs_keep(observeEvent(input$term, {
+      if (!is.null(input$term) && nzchar(input$term))
+        store_sync_from_ui(store, "term", input$term)
+    }, ignoreInit = TRUE))
+    # seed the term once it exists and is non-empty; the cascade has no
+    # meaningful default and fills on the first pick
+    .gs_seeded <- FALSE
+    .gs_keep(observe({
+      if (.gs_seeded) return(NULL)
+      if (is.null(input$term)) return(NULL)
+      .gs_seeded <<- TRUE
+      held <- store_read(store, "term")
+      if (is.null(held[[paste0(store$prefix, ".term")]]) &&
+          nzchar(input$term))
+        tryCatch(store_apply(store, list(term = input$term),
+                             origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+    # store -> UI push for external writes only (pending entries mark them)
+    .gs_epoch <- store_epoch(store)
+    .gs_root_store <- if (is.null(store$parent)) store else store$parent
+    .gs_keep(observe({
+      .gs_epoch()
+      tm <- store_read(store, "term")[[1]]
+      if (!is.null(tm) &&
+          !is.null(.gs_root_store$pending[[paste0(store$prefix, ".term")]]))
+        updateTextInput(session, "term", value = tm)
+    }))
+  } else {
+    v1 <- triselector_module(
+      "geneNameCol", reactive_x = triset, label = "Map ID",
+      reactive_selector1 = reactive(xax()$v1),
+      reactive_selector2 = reactive(xax()$v2),
+      reactive_selector3 = reactive(xax()$v3)
+    )
+  }
 
   
   rif <- reactiveVal()
@@ -260,9 +377,25 @@ geneshot_module <- function(
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    xax(NULL)
-    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
-    updateTextInput(session, inputId = "term", value = s$term)
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient, meta_scatter style)
+      patch <- list()
+      if (!is.null(s$term) && nzchar(s$term)) patch$term <- s$term
+      if (identical(length(s$xax), 3L)) {
+        tr <- lapply(s$xax, function(x)
+          if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
+        if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
+        if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
+        if (!is.null(tr[[3]])) patch$xax_variable <- tr[[3]]
+      }
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                 error = function(e) NULL)
+    } else {
+      xax(NULL)
+      xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+      updateTextInput(session, inputId = "term", value = s$term)
+    }
     })
 
   rv <- reactiveValues()

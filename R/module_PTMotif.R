@@ -20,7 +20,7 @@ ptmotif_ui <- function(id) {
 
 ptmotif_module <- function(
   id, pdata, fdata, expr, feature_selected, sample_selected, background,
-  reactive_status = reactive(NULL)
+  reactive_status = reactive(NULL), store = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -34,21 +34,118 @@ ptmotif_module <- function(
     str_split_fixed(i, "\\|", n = 3)
     })
 
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # The sequence triselector is driven by store_watch selectors; the
+  # first-choice auto-default seeds the store once (unset keys only,
+  # restore/user-first-wins) instead of resetting on every fdata change.
+  # ------------------------------------------------------------------
+  .ptm_store_observers <- list()
+  .ptm_keep <- function(obs) {
+    .ptm_store_observers[[length(.ptm_store_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
   xax <- reactiveVal()
-  observe({
-    xax(list(
-      v1 = triset()[1, 1],
-      v2 = triset()[1, 2],
-      v3 = triset()[1, 3]
-      ))
-    })
-
-  v1 <- triselector_module(
-    "tris_seqlogo", reactive_x = triset, label = 'Sequence',
-    reactive_selector1 = reactive(xax()$v1),
-    reactive_selector2 = reactive(xax()$v2),
-    reactive_selector3 = reactive(xax()$v3)
+  if (!is.null(store)) {
+    .ptm_ts <- function() {
+      fd <- tryCatch(fdata(), shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(fd)) return(NULL)
+      i <- grep("^SeqLogo\\|", colnames(fd), value = TRUE)
+      if (length(i) == 0L) return(NULL)
+      str_split_fixed(i, "\\|", n = 3)
+    }
+    .ptm_ts1 <- function() {
+      ts <- .ptm_ts()
+      if (is.null(ts)) character(0) else unique(ts[, 1])
+    }
+    .ptm_ts2 <- function(a) {
+      ts <- .ptm_ts()
+      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+      else unique(ts[ts[, 1] %in% a, 2])
+    }
+    .ptm_ts3 <- function(a, b) {
+      ts <- .ptm_ts()
+      if (is.null(ts)) character(0)
+      else {
+        i <- rep(TRUE, nrow(ts))
+        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+        unique(ts[i, 3])
+      }
+    }
+    kp1 <- paste0(store$prefix, ".xax_analysis")
+    kp2 <- paste0(store$prefix, ".xax_subset")
+    store_register(
+      store,
+      widget_binding("xax_analysis", "select", label = "Sequence category",
+        help = "Annotation category of the sequence-window column",
+        choices_provider = function(v) .ptm_ts1()),
+      widget_binding("xax_subset", "select", label = "Sequence subcategory",
+        help = "Subcategory within the sequence category",
+        depends_on = "xax_analysis",
+        choices_provider = function(v) .ptm_ts2(v[[kp1]])),
+      widget_binding("xax_variable", "select_cascaded", label = "Sequence column",
+        help = paste("Feature annotation column holding the sequence windows",
+                     "around modification sites"),
+        depends_on = c("xax_analysis", "xax_subset"),
+        choices_provider = function(v) .ptm_ts3(v[[kp1]], v[[kp2]]))
     )
+    v1 <- triselector_module(
+      "tris_seqlogo", reactive_x = triset, label = 'Sequence',
+      reactive_selector1 = store_watch(store, "xax_analysis"),
+      reactive_selector2 = store_watch(store, "xax_subset"),
+      reactive_selector3 = store_watch(store, "xax_variable"),
+      reactive_axis_request = store_epoch(store))
+    .ptm_read_tris <- function(sel)
+      tryCatch(sel(), shiny.silent.error = function(e) NULL,
+               error = function(e) NULL)
+    .ptm_component_set <- function(sel)
+      !is.null(sel) &&
+        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
+        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
+        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
+    .ptm_keep(observe({
+      xv <- .ptm_read_tris(v1)
+      if (.ptm_component_set(xv)) {
+        store_sync_from_ui(store, "xax_analysis", xv$analysis)
+        store_sync_from_ui(store, "xax_subset", xv$subset)
+        store_sync_from_ui(store, "xax_variable", xv$variable)
+      }
+    }))
+    # auto-default to the first available sequence column, but only while
+    # the keys are unset (a restore or user pick wins and sticks)
+    .ptm_keep(observe({
+      ts <- tryCatch(triset(), shiny.silent.error = function(e) NULL,
+                    error = function(e) NULL)
+      if (is.null(ts) || nrow(ts) == 0L) return(NULL)
+      held <- store_read(store, c("xax_analysis", "xax_subset", "xax_variable"))
+      patch <- list()
+      if (is.null(held[[paste0(store$prefix, ".xax_analysis")]]))
+        patch$xax_analysis <- ts[1, 1]
+      if (is.null(held[[paste0(store$prefix, ".xax_subset")]]))
+        patch$xax_subset <- ts[1, 2]
+      if (is.null(held[[paste0(store$prefix, ".xax_variable")]]))
+        patch$xax_variable <- ts[1, 3]
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+  } else {
+    observe({
+      xax(list(
+        v1 = triset()[1, 1],
+        v2 = triset()[1, 2],
+        v3 = triset()[1, 3]
+        ))
+      })
+    v1 <- triselector_module(
+      "tris_seqlogo", reactive_x = triset, label = 'Sequence',
+      reactive_selector1 = reactive(xax()$v1),
+      reactive_selector2 = reactive(xax()$v2),
+      reactive_selector3 = reactive(xax()$v3)
+      )
+  }
 
   scc <- reactive({
     req(v1())
@@ -175,8 +272,23 @@ ptmotif_module <- function(
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    xax(NULL)
-    xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient, meta_scatter style)
+      if (identical(length(s$xax), 3L)) {
+        tr <- lapply(s$xax, function(x)
+          if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
+        patch <- list()
+        if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
+        if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
+        if (!is.null(tr[[3]])) patch$xax_variable <- tr[[3]]
+        if (length(patch))
+          tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+      }
+    } else {
+      xax(NULL)
+      xax(list(v1 = s$xax[[1]], v2 = s$xax[[2]], v3 = s$xax[[3]]))
+    }
   })
 
   reactive(list(xax = v1()))

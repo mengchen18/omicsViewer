@@ -9,7 +9,8 @@ batch_comparison_module(
   reactive_expr,
   reactive_phenoData,
   reactive_featureData,
-  reactive_i_samples
+  reactive_i_samples,
+  store = NULL
 )
 }
 \arguments{
@@ -26,6 +27,12 @@ feature metadata.}
 
 \item{reactive_i_samples}{Reactive expression. Returns integer vector of
 selected sample indices.}
+
+\item{store}{Optional child view of the canonical widget store
+(\code{\link{widget_store_child}}); when given, the two comparison
+toggles and the two results-table row selections register on the
+store (the sample_general owner passes its own child so keys land at
+\code{resultspace.sample_general.batch_*}).}
 }
 \value{
 Reactive value containing information about the selected row from the

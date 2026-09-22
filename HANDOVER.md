@@ -1,147 +1,141 @@
 # HANDOVER — agent accuracy & widget control plane
 
-Written 2026-09-23 at the end of the S4-3 result-space step-1 session
-(feature_general + sample_general + analyst navbar + shared attr4 panel).
-Read this first in a fresh context, then `AGENT_ACCURACY_PLAN.md`
-(canonical plan + status table, new row `1⅞+⅞`) and `AGENTS.md`
-(environment + commands). Delete or trim this file once absorbed.
+Written 2026-09-23 at the end of the S4 steps-2/3 session (dataTableDownload
+decision settled; ora/fgsea/ptm/geneshot/string/survival/batch migrated;
+meta_scatter attr4 adopted). Read this first in a fresh context, then
+`AGENT_ACCURACY_PLAN.md` (canonical plan + status table, new row `2`) and
+`AGENTS.md` (environment + commands). Delete or trim this file once absorbed.
 
 ## Where we are / how to resume
 
 Branch `agent-driven-exploration`, working tree clean through this
-session's commit. DESCRIPTION 2.1.1. Data-space is COMPLETE (S4-1/S4-2);
-result-space step 1 is COMPLETE:
+session's commit. DESCRIPTION 2.1.1. Every user-editable widget in the app
+is now on the store except the documented exclusions below.
 
 | Change | What |
 |---|---|
-| this session | result-space step 1: `resultspace.analyst_tab` navbar + `resultspace.feature_general.*` (23 keys) + `resultspace.sample_general.*` (21 keys) + store-aware shared attr4 panel (`<prefix>.attr4.*`, 18 keys per instance) |
+| this session | dataTableDownload row-selection decision + shared `store`/`store_key` support; ORA + fGSEA + PTMotif + Geneshot + String + survival censor + batch comparison migrations; meta_scatter attr4 adoption; Tier A drift-race harness fix |
 
-**Next session continues S4** in this suggested order:
-gsList → ora → fgsea → barplotGsea → string → survival → PTMotif →
-doseResponse → batch → contTableStats → roc_pr → geneshot → attr4
-(figure tab). meta_scatter's embedded attr4 can now simply pass its
-child store to `attr4selector_module` (the panel became store-aware this
-session; meta_scatter still runs it store-less — migrating it is a
-two-line change plus test updates).
+**Next session should close S4**: the only remaining S4 deliverable is the
+**snapshot save/restore re-route through the store** (plan §6.4 row S4:
+"snapshot round-trip equals store state exactly"). Every module currently
+keeps dual, idempotent status paths (legacy tab_status/observeEvent +
+store). Plan of attack: make `app_state`/`.ESS` snapshot assembly read
+`store_snapshot()` as the single source, keep per-key-resilient restores
+(strict=FALSE), then verify a save→reload round-trip equals the store
+state exactly (new test; watch for the observer-GC and seeding-race traps
+below). After that: WP1 (`sections` param on `get_omics_viewer_state`),
+WP3 (figure spec round-trip), WP4 (log summarizer).
 
-### Reconnaissance already done (read-only, no code changed)
+### The settled dataTableDownload decision (do not re-litigate)
 
-- **gsList is a DATA-space module** (L1_module_data_space.R:512,
-  `eset_gslist_tab` — the "GSList" tab), despite sitting first in the
-  historical order list. It is one `dataTableDownload_module` instance
-  and NOTHING else — see the dataTableDownload notes below for the
-  design question its migration actually is.
-- **dataTableDownload_module** (R/module_dataTableDownload.R) is NOT the
-  S4-2 dataTable_module: it has NO multisel switch and NO column
-  selector. Its only user-editable state is **DT row selection**
-  (always single mode: `formatTab(sel = 0)`) plus browser-local table
-  state (search/order/pagination → tab_status path per the S4-2 rule).
-  Row selection is REAL state though: gsList rows feed
-  `selectedFeatures(tab_gslist())` (they SET the app feature
-  selection), ORA's `stab` rows drive the overlap table (`hd` reads
-  `vi()`). So the open design question: register row selection as a
-  store key? Push would be a NEW pattern (write a reactiveVal feeding
-  `formatTab`'s `selected = selectedRows()` → table re-render; NOT an
-  `update*Input` call); sync already exists via
-  `input$table_rows_selected` (mirrored into the module return/status
-  as `rows_selected`/`selected_rows`). Decide scope deliberately —
-  selections are data state (meta_scatter precedent keeps click/lasso
-  selections OUT of the store), but gsList row selection is a
-  first-class selection mechanism in the UI.
-- **ora** (enrichment_analysis_module, R/module_ora.R): user-editable
-  surface is exactly ONE triselector ("Collapse features on",
-  `tris_ora`) → `xax_{analysis,subset,variable}` keys, same pattern as
-  feature_general but triset = `trisetter(meta = fdata, combine =
-  "none")` (fdata columns only, GS| entries included, NO Feature|Auto|
-  rows, NO Surv filtering). Status contract:
-  `reactive(list(xax = v1()))`. Plus two embedded dataTableDownload
-  tables (ORA results + overlap genes) covered by the note above.
-  Demo data: ORA/fGSEA tabs exist live (tallGS attaches GS on load).
-- **Not yet read**: fgsea, barplotGsea, string, survival, PTMotif,
-  doseResponse, batch, contTableStats, roc_pr, geneshot — start the
-  next session by reading them (sizes: batch 521, geneshot 276, string
-  288 lines; the rest are small).
+Row selection registers ONLY where the click drives a downstream view with
+no other agent interface: ORA results→overlap table, fGSEA results→
+leading-edge barplot, STRING enrichment→network highlight, batch tables→
+sample link (all done). gsList deliberately OFF: its click writes the
+app-wide feature selection that `set_omics_viewer_state` already controls
+(circular choices — the table lists the CURRENT selection's memberships);
+snapshot persistence stays on its existing tab_status path. No-effect
+tables (ORA overlapTab, doseResponse ×2, PTMotif ×4, geneshot autorif,
+feature/sample general meta tables) stay OFF — cosmetic row highlight is
+zero capability value. Action buttons (Run, Search) are commands, not
+widget values — never registered. Full text in plan §6.2.
+
+Documented no-widget no-ops: barplotGsea (helper module, never
+instantiated in the app), doseResponse, factorIndependency
+(contTableStats), plot_roc_pr — display-only, nothing to register.
 
 ## What landed this session (architecture notes)
 
-- `R/module_figureAttr4.R`: `store` param; registers 5 cascades
-  (color/shape/size/tooltip/search) + xcut/ycut strings + scorner
-  (select; choices derive from the patch's own effective cutoffs —
-  volcano needs both). Status restore routes through the store when
-  store-backed; legacy s1/s2/s3 path kept for store-less callers.
-  The hidden `searchon` select stays UNregistered (dormant wiring:
-  searchValue is never fed from input$searchon).
-- `R/module_feature_general.R`: `store` param; xax cascade (Surv
-  excluded), plot_type enum, regression_line mirrored through the
-  showRegLine reactiveVal (pushes re-render regTickBox). Status xax
-  restore goes through the store; plot_type/attr4 legacy paths kept.
-- `R/module_sample_general.R`: twin; cascade keeps Surv (survival
-  view); batch-comparison link routes through
-  `store_apply(origin="system")` via `.sg_apply_triple`.
-- `R/L1_module_result_space.R`: `store` param; child stores
-  `resultspace.{feature_general,sample_general}` + navbar binding
-  `resultspace.analyst_tab` (kind navbar; choices provider mirrors the
-  renderUI tab logic incl. GS/ResponseCurve/StringDB/SeqLogo and
-  additionalTabs).
-- `R/L0_module_app.R`: passes `store = app_store` to the result space.
+- `R/module_dataTableDownload.R`: `store`/`store_key`/`store_label`/
+  `store_help` params; single `select` binding with choices =
+  `reactive_row_ids()` (call sites now pass semantic ids: ORA/fgsea
+  pathway, string term, batch variable/feature names). **New push
+  pattern**: a desired-row-id reactiveVal feeds `formatTab`'s
+  `selection$selected`, so pushes re-render the table with the row
+  preselected; DT's report acks via the normal sync observer. Guard: a
+  push-time snapshot of `input$table_rows_selected` marks the stale
+  pre-render report as not-a-user-override; any real input CHANGE wins
+  (override log). Id↔row mapping goes through `tabsort()$index` in both
+  directions (ORA display order ≠ ids order: tabsort re-sorts by p.value).
+- `R/module_ora.R` / `R/module_fgsea.R`: `store` param; xax cascade via
+  store_watch + store_epoch (meta_scatter pattern); `selected_row` on the
+  results table; status restores routed through store_apply(origin=
+  "restore") with the legacy path kept for store-less callers.
+- `R/module_PTMotif.R`: cascade + seeding that writes the store ONCE per
+  unset key (the old observer reset the selection on every fdata change —
+  now a restore/user pick sticks).
+- `R/module_geneshot.R`: `term` (string; empty never seeded/pushed) +
+  ID-mapper cascade; Search button unregistered.
+- `R/module_string.R`: taxonomy (string) + show_labels (boolean) +
+  `selected_row` (term ids; strtab_df factored out of the eventReactive).
+- `R/module_survival.R`: censor slider registered on the sample_general
+  child view directly (key `survival_censor` — no child-of-child needed);
+  push gated on the survival checkpoint and clamped to the rendered range.
+- `R/module_batch_comparison.R`: two boolean toggles + two row-selection
+  keys, all on the sample_general child (`batch_*`).
+- `R/L1_module_result_space.R`: child stores created + passed for
+  ora/fgsea/stringdb/ptm/geneshot.
+- `R/module_meta_scatter.R`: attr4selector call now passes `store` (both
+  data-space scatters register the 18-key panel under
+  `dataspace.{feature,sample}_space.attr4.*`).
 
 ## Rules discovered this session (do not re-learn)
 
-1. **`c()` splices list ARGUMENTS one level**: `c(binds, widget_binding(...))`
-   flattens the trailing record into its fields and store_register dies
-   with `$ operator is invalid for atomic vectors`. Wrap appended
-   records: `c(binds, list(widget_binding(...)))`.
-2. **Child-of-child store views are unsupported** (`.widget_store_key`
-   and `store_register` assume one prefix level). attr4 therefore builds
-   its `<prefix>.attr4.*` namespace directly off the ROOT via
-   `widget_store_child(root, paste0(prefix, ".attr4"))`.
-3. **Pre-existing state-bridge gap (NOT a regression, confirmed on
-   stashed code)**: `apply_agent_state` feature patches are transient —
-   the `esv_status(NULL→full_state)` restore roundtrip re-derives `ri`
-   from the data-space module return and empties it. Analysis-panel
-   content therefore needs selections made through the real UI. Candidate
-   future fix (out of scope): patch `panels$data_space` table selections
-   inside apply_agent_state, or defer the v1()-watch while restoring.
-4. **DT table interaction quirks** (Tier A): os-select style — plain
-   clicks accumulate, ctrl-click REPLACES; the DT redraw on tab return
-   can swallow one click (self-correcting loop in tier_a 4e); tab
-   re-renders reset the multi-selection switch to its default (DOM
-   bootstrap-switch class is the reliable state source, not
-   `$inputValues` right after a tab switch).
-5. Demo data: `General|All|MDR` is NUMERIC (beeswarm, not contingency —
-   use TP53.Status/Origin for categorical views); raw demo.RDS lacks the
-   GS attr but `readESVObj → tallGS` attaches it, so ORA/fGSEA tabs DO
-   exist in the live app (don't use ORA as a "dataset-absent tab"
-   negative — Response/SeqLogo work).
+1. **Selectize choices land after the value**: an updateSelectInput
+   `selected` message can be processed before the `choices` message, so a
+   browser test that selectize.setValue()s right after the input map shows
+   the value races an empty option list (reproduced on clean HEAD —
+   machine timing, not S4 code). Fix pattern: waitForFunction that the
+   selectize has >0 options before driving it (tier_a 3b).
+2. **testServer runs the INSTALLED package** — stashing source changes
+   does not change app behavior; always `install.packages(..., type=
+   'source')` before drawing conclusions from app-level tests. Stale R
+   processes on the port answer with the OLD app (cost a confusing
+   debug: "welcome screen" was a previous run's app).
+3. **Receipt `skipped` is serialized as `unchanged`** by
+   agent_widget_apply — browser no-op assertions must check
+   `receipt.unchanged`, not `receipt.skipped`. Diff-only receipts also
+   mean "applied lists 3 keys" assertions are wrong when a key was
+   already equal — re-apply the patch and assert all keys are unchanged.
+4. vectORATall needs BOTH GS columns as factors and ≥ minOverlap
+   enriched features — synthetic test gene sets must be non-degenerate
+   (identical sets filter to zero rows via the p/OR cutoff).
+5. DT push flow (new pattern, browser-verified end to end): agent patch →
+   epoch observer sets desired id → re-render preselects → DT reports →
+   sync observer acks. A user click during the push window overrides and
+   logs — do not "fix" that away; it is the store's user-wins contract.
 
-## Validation status (all green — as of commit b996087; the post-commit
-## reconnaissance above was read-only, no source changes after it)
+## Validation status (all green — as of this session's commit)
 
-- Unit board: widgetStore 52, agentWidgets **71** (20 new result-space
-  tests), aiAssistantTools 19, appState 30, tableWidgetState 5,
-  agentAssistant 38, agentFigures 26, agentLogging 21,
-  triselectorCascade 6, quickViews 17, scatterSelection 6, shinyAuxi 10
-- Tier A browser: **74/74 × 2 consecutive runs** (new section 4e:
-  result-space navbar, sample cascade Surv→survival / Origin→contingency,
-  feature cascade + Curve→ROC/PR, attr4 color cascade, three rejection
-  cases; features selected through the real Feature table per rule 3)
+- Unit board: widgetStore 52, agentWidgets **105** (17 new: dtd 6, ora 4,
+  fgsea 4, ptm 3, geneshot 2, string 2, survival 2, batch 2, attr4 2),
+  aiAssistantTools 19, appState 30, tableWidgetState 5, agentAssistant 38,
+  agentFigures 26, agentLogging 21, triselectorCascade 6, quickViews 17,
+  scatterSelection 6, shinyAuxi 10, ora 23, motif 6, dose_response 60
+- Tier A browser: **83/83 ×2 consecutive runs** (new section 4f: fGSEA
+  ranking cascade, user row click → store no-op receipt, agent pathway
+  push → table re-render, unknown-pathway rejection; plus the 3b
+  selectize-options race fix). ORA specifics are unit-covered (live ORA
+  row-driving needs ≥4 selected features and demo enrichment luck —
+  fGSEA covers the identical dataTableDownload machinery in-browser).
 - NOT yet run: live Tier B (tasks 15–16 in tests/e2e_agent/tier_b_tasks.md
-  cover the S4 surface incl. these keys) — run when a provider is
-  configured; no new task added for result-space step 1 (covered by 15–16)
+  cover the S4 surface) — run when a provider is configured.
 
-## Migration recipe (unchanged, proven five times now)
+## Migration recipe (unchanged, proven; row selection variant in dataTableDownload)
 
 1. `store = NULL` param + roxygen `@param store`.
 2. `store_register` every user-editable widget (kinds: string/numeric/
    integer/boolean/enum/select/select_cascaded/multi_select/tabset/
    navbar/checkbox/slider).
 3. Choices providers must never `req()`; read module reactives through
-   defensive no-req helpers (see `.a4_ts`, `.fg_ts`, `.sg_ts`).
+   defensive no-req helpers.
 4. UI→store sync per widget (`store_sync_from_ui`, ack-aware); module
    state (reactiveVals) watches the val itself.
 5. Seeding: one observer, `origin="system", strict=FALSE`, skip held keys.
 6. Store→UI push: ONE epoch observer; cascaded triselectors need no
-   direct push (store_watch selectors drive the triselector module).
+   direct push (store_watch selectors drive the triselector module);
+   DT row selection pushes through the desired-id reactiveVal (re-render).
 7. Observer retention mandatory (`.xx_keep(...)` lists).
 8. Keep legacy status() paths (dual, idempotent) until the final re-route.
 9. Tests: extend tests/test_agentWidgets.R + a tier_a section per module
@@ -151,6 +145,7 @@ two-line change plus test updates).
 
 - Reinstall after every source change
   (`Rscript -e "install.packages('<repo>', repos=NULL, type='source')"`)
-- Kill orphaned R processes on ports 7775–7786 before browser runs
+- Kill orphaned R processes on ports 7775–7786 (and 7790+) before browser
+  runs — they answer with the stale app
 - Tier A convention is ×2 consecutive runs; provider.env is gitignored
 - Log timestamps are UTC (user is UTC+2)

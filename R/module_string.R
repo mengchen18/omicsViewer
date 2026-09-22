@@ -83,7 +83,16 @@ string_ui <- function(id) {
 #'
 #' @param reactive_status Reactive expression. Returns a list containing
 #'   saved state for session restoration (tax ID, label settings). Optional.
-#'   Default: \code{reactive(NULL)}.
+#'   Default: 
+#'
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{resultspace.stringdb}. When given, the taxonomy input, the
+#'   labels checkbox, and the enrichment-table row selection (which
+#'   highlights network nodes) register on the store; when NULL the legacy
+#'   status-restore path is kept. The Run button is deliberately not
+#'   registered: it is a stateless command (an API query trigger), not a
+#'   widget value.\code{reactive(NULL)}.
 #'
 #' @param active Reactive expression. Returns a logical indicating whether
 #'   the module should auto-run on initialization. Used for session restoration.
@@ -122,12 +131,71 @@ string_ui <- function(id) {
 #' @importFrom networkD3 renderForceNetwork forceNetworkOutput
 #'
 string_module <- function(
-  id, reactive_ids, reactive_status = reactive(NULL), active = reactive(FALSE)
+  id, reactive_ids, reactive_status = reactive(NULL), active = reactive(FALSE),
+  store = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+  
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # Taxonomy code, network-label toggle, and the enrichment row selection
+  # (drives the network highlight) register on the store. The Run button
+  # stays unregistered (stateless command). Observer retention mandatory.
+  # ------------------------------------------------------------------
+  .str_store_observers <- list()
+  .str_keep <- function(obs) {
+    .str_store_observers[[length(.str_store_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
+  if (!is.null(store)) {
+    store_register(
+      store,
+      widget_binding("taxonomy", "string", label = "Taxonomy code",
+        help = paste("NCBI taxonomy identifier of the organism queried in",
+                     "the STRING database (9606 = human)")),
+      widget_binding("show_labels", "boolean", label = "Show network labels",
+        help = "Draw gene labels on the interaction network")
+    )
+    .str_root_store <- if (is.null(store$parent)) store else store$parent
+    .str_keep(observeEvent(input$tax, {
+      if (!is.null(input$tax) && nzchar(input$tax))
+        store_sync_from_ui(store, "taxonomy", input$tax)
+    }, ignoreInit = TRUE))
+    .str_keep(observeEvent(input$showLabel, {
+      if (!is.null(input$showLabel))
+        store_sync_from_ui(store, "show_labels", input$showLabel)
+    }, ignoreInit = TRUE))
+    # seed once the inputs exist (restore-first-wins)
+    .str_seeded <- FALSE
+    .str_keep(observe({
+      if (.str_seeded) return(NULL)
+      if (is.null(input$tax) || is.null(input$showLabel)) return(NULL)
+      .str_seeded <<- TRUE
+      vals <- list(taxonomy = input$tax, show_labels = input$showLabel)
+      held <- store_read(store, names(vals))
+      patch <- vals[vapply(names(vals), function(k)
+        is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+    # store -> UI push for external writes only (pending entries mark them)
+    .str_epoch <- store_epoch(store)
+    .str_keep(observe({
+      .str_epoch()
+      tx <- store_read(store, "taxonomy")[[1]]
+      if (!is.null(tx) &&
+          !is.null(.str_root_store$pending[[paste0(store$prefix, ".taxonomy")]]))
+        updateTextInputIcon(session, "tax", value = tx)
+      lb <- store_read(store, "show_labels")[[1]]
+      if (!is.null(lb) &&
+          !is.null(.str_root_store$pending[[paste0(store$prefix, ".show_labels")]]))
+        updateCheckboxInput(session, "showLabel", value = lb)
+    }))
+  }
   
   overflow <- reactive({
     length(reactive_ids()) > STRING_MAX_GENES
@@ -255,13 +323,25 @@ string_module <- function(
     stringD3Net(ntwk = nk(), gsa = gs(), i = highlightP(), label = input$showLabel)
   })
   
+  strtab_df <- eventReactive(gs(), {
+    req(!nores())
+    req(!overflow())
+    req(nrow(gs()) > 0)
+    gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
+  })
+  
   tt <- dataTableDownload_module(
-    "strtab", reactive_table = eventReactive(gs(), {
-      req(!nores())
-      req(!overflow())
-      req(nrow(gs()) > 0)
-      gs()[, c("category", "term", "gene number", "background number", "p value", "fdr", "description")]
-    }), prefix = "FeatureTable_"
+    "strtab", reactive_table = strtab_df, prefix = "FeatureTable_",
+    reactive_row_ids = reactive({
+      df <- tryCatch(strtab_df(), shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.data.frame(df) && "term" %in% colnames(df))
+        as.character(df$term) else NULL
+    }),
+    store = store, store_key = "selected_row",
+    store_label = "Selected enrichment term",
+    store_help = paste("STRING enrichment term whose row is selected;",
+                       "highlights its genes in the network")
   )
 
   observe({
@@ -272,8 +352,18 @@ string_module <- function(
   observeEvent(reactive_status(), {
     if (is.null(s <- reactive_status()))
       return()
-    updateTextInputIcon(session, "tax", value = s$tax)
-    updateCheckboxInput(session, "showLabel", value = s$showLabel)
+    if (!is.null(store)) {
+      # single transactional path (per-key resilient, meta_scatter style)
+      patch <- list()
+      if (!is.null(s$tax) && nzchar(s$tax)) patch$taxonomy <- s$tax
+      if (!is.null(s$showLabel)) patch$show_labels <- s$showLabel
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                 error = function(e) NULL)
+    } else {
+      updateTextInputIcon(session, "tax", value = s$tax)
+      updateCheckboxInput(session, "showLabel", value = s$showLabel)
+    }
     if (active())
       shinyjs::click("run")
     })

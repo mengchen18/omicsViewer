@@ -22,6 +22,12 @@ survival_ui <- function(id) {
 #' @param reactive_resp reponse value, in the format 1, 345, 345+, 23, 45, 355+
 #' @param reactive_strata strata variable
 #' @param reactive_checkpoint checkpoint
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}); when given, the censor-time
+#'   slider registers under this view (the sample_general owner passes its
+#'   own child so the key lands at
+#'   \code{resultspace.sample_general.survival_censor}). The push is gated
+#'   on the checkpoint because the slider only exists in the survival view.
 #' @importFrom survminer ggsurvplot surv_pvalue
 #' @importFrom survival survfit Surv
 #' @examples
@@ -50,12 +56,77 @@ survival_ui <- function(id) {
 #' # shinyApp(ui, server)
 #'
 survival_module <- function(
-  id, reactive_resp, reactive_strata, reactive_checkpoint = reactive(TRUE)
+  id, reactive_resp, reactive_strata, reactive_checkpoint = reactive(TRUE),
+  store = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+
+  # ------------------------------------------------------------------
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # The censor slider is the module's only user-editable widget; its
+  # bounds derive from the data, so the binding keeps them open and the
+  # push clamps to the rendered range. Observer retention mandatory.
+  # ------------------------------------------------------------------
+  .sv_store_observers <- list()
+  .sv_keep <- function(obs) {
+    .sv_store_observers[[length(.sv_store_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
+  if (!is.null(store)) {
+    .sv_range <- function() {
+      d <- tryCatch(dat(), shiny.silent.error = function(e) NULL,
+                    error = function(e) NULL)
+      if (is.null(d) || is.null(d$time)) return(NULL)
+      rg <- suppressWarnings(range(d$time, na.rm = TRUE))
+      if (any(!is.finite(rg))) return(NULL)
+      rg
+    }
+    store_register(
+      store,
+      widget_binding("survival_censor", "numeric", label = "Censor time",
+        help = paste("Time at which the Kaplan-Meier analysis",
+                     "right-censors observations"),
+        choices_provider = NULL)
+    )
+    .sv_root_store <- if (is.null(store$parent)) store else store$parent
+    .sv_keep(observeEvent(input$censor, {
+      if (!is.null(input$censor))
+        store_sync_from_ui(store, "survival_censor", input$censor)
+    }, ignoreInit = TRUE))
+    # seed once the slider exists (restore-first-wins)
+    .sv_seeded <- FALSE
+    .sv_keep(observe({
+      if (.sv_seeded) return(NULL)
+      if (is.null(input$censor)) return(NULL)
+      .sv_seeded <<- TRUE
+      held <- store_read(store, "survival_censor")
+      if (is.null(held[[paste0(store$prefix, ".survival_censor")]]))
+        tryCatch(store_apply(store,
+                             list(survival_censor = input$censor),
+                             origin = "system", strict = FALSE),
+                 error = function(e) NULL)
+    }))
+    # store -> UI push, gated on the survival view (the slider is
+    # renderUI'd only there) and clamped to the rendered range
+    .sv_epoch <- store_epoch(store)
+    .sv_keep(observe({
+      .sv_epoch()
+      cv <- store_read(store, "survival_censor")[[1]]
+      if (is.null(cv) ||
+          is.null(.sv_root_store$pending[[paste0(store$prefix, ".survival_censor")]]))
+        return(NULL)
+      ck <- tryCatch(reactive_checkpoint(), shiny.silent.error = function(e) FALSE,
+                     error = function(e) FALSE)
+      if (!isTRUE(ck)) return(NULL)
+      rg <- .sv_range()
+      if (!is.null(rg))
+        cv <- min(max(cv, rg[1]), rg[2])
+      updateSliderInput(session, "censor", value = cv)
+    }))
+  }
 
   dat <- reactive({
     req(reactive_checkpoint())

@@ -259,6 +259,13 @@ try {
   await p1.waitForFunction(() =>
     Shiny.shinyapp.$inputValues['app-dataspace-feature_space-tris_main_scatter2-variable'] === 'log.fdr',
     null, { timeout: 30000 });
+  // wait for the variable selectize to actually carry its choices before
+  // drifting (the selected value lands via one message, the options via
+  // another; a fast value-wait can win the race on a slow machine)
+  await p1.waitForFunction(() => {
+    const el = document.querySelector('#app-dataspace-feature_space-tris_main_scatter2-variable');
+    return el && el.selectize && Object.keys(el.selectize.options).length > 0;
+  }, null, { timeout: 30000 });
   await p1.evaluate(() => {
     const el = document.querySelector('#app-dataspace-feature_space-tris_main_scatter2-variable');
     if (el && el.selectize) el.selectize.setValue('log.pvalue');
@@ -647,6 +654,85 @@ try {
     JSON.stringify(w17.rejected || []));
   record('rejected tab leaves the navbar on Feature',
     (await rsInput('analyst')) === 'Feature');
+
+  // ---- 4f. S4 acceptance: enrichment tables (fGSEA) -------------------
+  // The ranking cascade plus the dataTableDownload row selection (the
+  // settled S4 decision: row selection registers where it drives a
+  // downstream view - here the leading-edge bar plot). The same machinery
+  // backs the ORA overlap table (unit-covered in test_agentWidgets.R).
+  const w18 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.analyst_tab': 'fGSEA' }
+  });
+  record('fGSEA tab apply succeeds', !w18.hook_error, w18.hook_error || '');
+  await waitRsInput('analyst', 'fGSEA');
+  const w19 = await runHook(p1, 'widgets', {
+    patch: {
+      'resultspace.fgsea.xax_analysis': 'PCA',
+      'resultspace.fgsea.xax_subset': 'All',
+      'resultspace.fgsea.xax_variable': 'PC1(10.5%)'
+    }
+  });
+  record('fGSEA ranking cascade applies', !w19.hook_error, w19.hook_error || '');
+  // re-apply the same patch: every key must now be a no-op (unchanged),
+  // proving the whole triple holds the requested values even when a key
+  // was already equal before the first apply (diff-only receipts)
+  const w19b = await runHook(p1, 'widgets', {
+    patch: {
+      'resultspace.fgsea.xax_analysis': 'PCA',
+      'resultspace.fgsea.xax_subset': 'All',
+      'resultspace.fgsea.xax_variable': 'PC1(10.5%)'
+    }
+  });
+  record('all three ranking keys hold the requested values',
+    ['resultspace.fgsea.xax_analysis',
+     'resultspace.fgsea.xax_subset',
+     'resultspace.fgsea.xax_variable']
+      .every(k => (w19.applied || []).includes(k) ||
+                  (w19b.unchanged || []).includes(k)),
+    JSON.stringify({ applied: w19.applied, unchanged: w19b.unchanged }));
+  await waitRsInput('fgsea-tris_fgsea-variable', 'PC1(10.5%)');
+  record('fGSEA ranking select reflects agent-set variable',
+    (await rsInput('fgsea-tris_fgsea-variable')) === 'PC1(10.5%)');
+  const fgRows = p1.locator('#app-resultspace-fgsea-stab-table tbody tr');
+  await fgRows.nth(1).waitFor({ timeout: 60000 });
+  record('fGSEA results table renders for the ranking variable', true);
+  const fgPathway = async (i) => {
+    await fgRows.nth(i).waitFor({ timeout: 30000 });
+    return (await fgRows.nth(i).locator('td').first().innerText()).trim();
+  };
+  const path1 = await fgPathway(0);
+  const path2 = await fgPathway(1);
+  // user row click lands in the store (verified via the no-diff receipt)
+  await fgRows.nth(1).click();
+  await p1.waitForFunction(() =>
+    (Shiny.shinyapp.$inputValues['app-resultspace-fgsea-stab-table_rows_selected'] || [])[0] === 2,
+    null, { timeout: 30000 });
+  const w20 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.fgsea.selected_row': path2 }
+  });
+  record('user row click reached the store (same-value patch is a no-op)',
+    !w20.hook_error && (w20.applied || []).length === 0 &&
+      (w20.unchanged || []).includes('resultspace.fgsea.selected_row'),
+    JSON.stringify({ applied: w20.applied, unchanged: w20.unchanged }));
+  // agent push of another pathway re-renders the table with that row
+  // preselected; DT reports it and the write acknowledges
+  const w21 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.fgsea.selected_row': path1 }
+  });
+  record('agent pathway-row push applies',
+    !w21.hook_error && (w21.applied || []).includes('resultspace.fgsea.selected_row'),
+    JSON.stringify(w21.applied || []));
+  await p1.waitForFunction(() =>
+    (Shiny.shinyapp.$inputValues['app-resultspace-fgsea-stab-table_rows_selected'] || [])[0] === 1,
+    null, { timeout: 30000 });
+  record('table re-renders with the agent-selected pathway row', true);
+  const w23 = await runHook(p1, 'widgets', {
+    patch: { 'resultspace.fgsea.selected_row': 'NOT_A_PATHWAY' }
+  });
+  record('unknown pathway rejected with allowed values',
+    !w23.hook_error && (w23.rejected || []).length === 1 &&
+      /Allowed:/.test(w23.rejected[0].reason),
+    JSON.stringify(w23.rejected || []));
 
   // ---- 5. cross-session isolation -------------------------------------
   const s2 = await openSession(browser);

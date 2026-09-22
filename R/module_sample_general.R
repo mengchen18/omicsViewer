@@ -269,7 +269,8 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   ## survival
   survival_module('sample_general_surv',
              reactive_resp = reactive(pheno()$value), reactive_strata = select,
-             reactive_checkpoint = reactive(pheno()$type == "surv")
+             reactive_checkpoint = reactive(pheno()$type == "surv"),
+             store = store
   )
 
   ## table
@@ -302,7 +303,8 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     reactive_expr = reactive_expr,
     reactive_phenoData = reactive_phenoData,
     reactive_featureData = reactive(NULL),  # No feature data available in this context
-    reactive_i_samples = reactive_i_samples
+    reactive_i_samples = reactive_i_samples,
+    store = store
   )
 
   # Update triselector when a row is selected from batch comparison

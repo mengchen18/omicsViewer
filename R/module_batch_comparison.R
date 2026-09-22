@@ -77,6 +77,11 @@ batch_comparison_ui <- function(id) {
 #'   feature metadata.
 #' @param reactive_i_samples Reactive expression. Returns integer vector of
 #'   selected sample indices.
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}); when given, the two comparison
+#'   toggles and the two results-table row selections register on the
+#'   store (the sample_general owner passes its own child so keys land at
+#'   \code{resultspace.sample_general.batch_*}).
 #'
 #' @return
 #' Reactive value containing information about the selected row from the
@@ -90,15 +95,78 @@ batch_comparison_ui <- function(id) {
 #' @importFrom stats wilcox.test fisher.test p.adjust pchisq coef
 #' @importFrom survival survdiff survfit coxph Surv
 #'
+#' @keywords internal
 batch_comparison_module <- function(
   id,
   reactive_expr,
   reactive_phenoData,
   reactive_featureData,
-  reactive_i_samples
+  reactive_i_samples,
+  store = NULL
 ) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    # ----------------------------------------------------------------
+    # Canonical widget-store bindings (control plane, plan section 6,
+    # S4). The two comparison toggles and the two results-table row
+    # selections register on the store; the selections feed the link back
+    # to the sample-general cascade (last_selected). The sample_general
+    # owner passes its own child view so keys land at
+    # resultspace.sample_general.batch_*. Observer retention mandatory.
+    # ----------------------------------------------------------------
+    .bc_store_observers <- list()
+    .bc_keep <- function(obs) {
+      .bc_store_observers[[length(.bc_store_observers) + 1L]] <<- obs
+      invisible(obs)
+    }
+    if (!is.null(store)) {
+      store_register(
+        store,
+        widget_binding("batch_show_phenotype", "boolean",
+          label = "Compare phenotype variables",
+          help = paste("Test all phenotype variables between selected and",
+                       "unselected samples")),
+        widget_binding("batch_show_features", "boolean",
+          label = "Compare features",
+          help = paste("Test all molecular features between selected and",
+                       "unselected samples"))
+      )
+      .bc_root_store <- if (is.null(store$parent)) store else store$parent
+      .bc_keep(observeEvent(input$show_phenotype, {
+        if (!is.null(input$show_phenotype))
+          store_sync_from_ui(store, "batch_show_phenotype", input$show_phenotype)
+      }, ignoreInit = TRUE))
+      .bc_keep(observeEvent(input$show_features, {
+        if (!is.null(input$show_features))
+          store_sync_from_ui(store, "batch_show_features", input$show_features)
+      }, ignoreInit = TRUE))
+      .bc_seeded <- FALSE
+      .bc_keep(observe({
+        if (.bc_seeded) return(NULL)
+        if (is.null(input$show_phenotype) || is.null(input$show_features))
+          return(NULL)
+        .bc_seeded <<- TRUE
+        vals <- list(batch_show_phenotype = input$show_phenotype,
+                     batch_show_features = input$show_features)
+        held <- store_read(store, names(vals))
+        patch <- vals[vapply(names(vals), function(k)
+          is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
+        if (length(patch))
+          tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+                   error = function(e) NULL)
+      }))
+      .bc_epoch <- store_epoch(store)
+      .bc_keep(observe({
+        .bc_epoch()
+        pv <- store_read(store, "batch_show_phenotype")[[1]]
+        if (!is.null(pv) && !is.null(.bc_root_store$pending[[paste0(store$prefix, ".batch_show_phenotype")]]))
+          updateCheckboxInput(session, "show_phenotype", value = pv)
+        fv <- store_read(store, "batch_show_features")[[1]]
+        if (!is.null(fv) && !is.null(.bc_root_store$pending[[paste0(store$prefix, ".batch_show_features")]]))
+          updateCheckboxInput(session, "show_features", value = fv)
+      }))
+    }
 
     # Helper function: Detect variable type
     detectVarType <- function(col_name, values, pd) {
@@ -463,7 +531,17 @@ batch_comparison_module <- function(
       "phenotype_table",
       reactive_table = phenotype_results,
       pageLength = 8,
-      prefix = "batch_comparison_phenotype_"
+      prefix = "batch_comparison_phenotype_",
+      reactive_row_ids = reactive({
+        t <- tryCatch(phenotype_results(), shiny.silent.error = function(e) NULL,
+                      error = function(e) NULL)
+        if (is.data.frame(t) && "variable_name" %in% colnames(t))
+          as.character(t$variable_name) else NULL
+      }),
+      store = store, store_key = "batch_phenotype_selected_row",
+      store_label = "Selected phenotype variable",
+      store_help = paste("Phenotype-comparison row selected in the batch",
+                         "results table; drives the sample link")
     )
 
     # Render features table and capture selection
@@ -471,7 +549,17 @@ batch_comparison_module <- function(
       "features_table",
       reactive_table = features_results,
       pageLength = 8,
-      prefix = "batch_comparison_features_"
+      prefix = "batch_comparison_features_",
+      reactive_row_ids = reactive({
+        t <- tryCatch(features_results(), shiny.silent.error = function(e) NULL,
+                      error = function(e) NULL)
+        if (is.data.frame(t) && "feature_name" %in% colnames(t))
+          as.character(t$feature_name) else NULL
+      }),
+      store = store, store_key = "batch_feature_selected_row",
+      store_label = "Selected feature",
+      store_help = paste("Feature-comparison row selected in the batch",
+                         "results table; drives the sample link")
     )
 
     # Track the last selected row from either table

@@ -8,7 +8,8 @@ string_module(
   id,
   reactive_ids,
   reactive_status = reactive(NULL),
-  active = reactive(FALSE)
+  active = reactive(FALSE),
+  store = NULL
 )
 }
 \arguments{
@@ -21,11 +22,20 @@ protein/gene identifiers to query. Maximum of 300 features allowed
 
 \item{reactive_status}{Reactive expression. Returns a list containing
 saved state for session restoration (tax ID, label settings). Optional.
-Default: \code{reactive(NULL)}.}
+Default:}
 
 \item{active}{Reactive expression. Returns a logical indicating whether
 the module should auto-run on initialization. Used for session restoration.
 Default: \code{reactive(FALSE)}.}
+
+\item{store}{Optional child view of the canonical widget store
+(\code{\link{widget_store_child}}) for this module, e.g.
+\code{resultspace.stringdb}. When given, the taxonomy input, the
+labels checkbox, and the enrichment-table row selection (which
+highlights network nodes) register on the store; when NULL the legacy
+status-restore path is kept. The Run button is deliberately not
+registered: it is a stateless command (an API query trigger), not a
+widget value.\code{reactive(NULL)}.}
 }
 \value{
 A reactive expression returning a list with:

@@ -13,7 +13,8 @@ L1_result_space_module(
   reactive_highlight = reactive(NULL),
   additionalTabs = NULL,
   object = NULL,
-  status = reactive(NULL)
+  status = reactive(NULL),
+  store = NULL
 )
 }
 \arguments{
@@ -34,6 +35,11 @@ L1_result_space_module(
 \item{object}{originally loaded object, mostly an \code{ExpressionSet} or \code{SummarizedExperiment} object}
 
 \item{status}{intial status}
+
+\item{store}{Root of the canonical widget store
+(\code{\link{widget_store_new}}). Result-space child stores are
+derived from it (\code{resultspace.*}) and the analyst tab navbar is
+registered for agent control.}
 }
 \description{
 Utility L1 result space ui

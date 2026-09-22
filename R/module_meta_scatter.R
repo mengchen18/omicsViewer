@@ -373,7 +373,8 @@ meta_scatter_module <- function(
     attr4select <- attr4selector_module(
       "a4selector",
       reactive_meta = reactive_meta, reactive_expr = reactive_expr,
-      reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status
+      reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status,
+      store = store
     )
 
     xycoord <- reactive({

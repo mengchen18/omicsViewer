@@ -43,9 +43,19 @@ L1_result_space_module <- function(
     # ------------------------------------------------------------------
     store_feature_general <- NULL
     store_sample_general <- NULL
+    store_ora <- NULL
+    store_fgsea <- NULL
+    store_stringdb <- NULL
+    store_ptm <- NULL
+    store_geneshot <- NULL
     if (!is.null(store)) {
       store_feature_general <- widget_store_child(store, "resultspace.feature_general")
       store_sample_general <- widget_store_child(store, "resultspace.sample_general")
+      store_ora <- widget_store_child(store, "resultspace.ora")
+      store_fgsea <- widget_store_child(store, "resultspace.fgsea")
+      store_stringdb <- widget_store_child(store, "resultspace.stringdb")
+      store_ptm <- widget_store_child(store, "resultspace.ptm")
+      store_geneshot <- widget_store_child(store, "resultspace.geneshot")
       store_rs <- widget_store_child(store, "resultspace")
       # tab titles in renderUI order; providers must never req()
       .rs_tab_choices <- function() {
@@ -121,13 +131,15 @@ L1_result_space_module <- function(
     # session restore finished
     v2 <- enrichment_fgsea_module("fgsea",
       reactive_featureData = reactive_featureData,
-      reactive_status = reactive(status()$analyst_fgsea)
+      reactive_status = reactive(status()$analyst_fgsea),
+      store = store_fgsea
     )
 
     # session restore finished
     v3 <- enrichment_analysis_module("ora",
       reactive_i = reactive_i, reactive_featureData = reactive_featureData,
-      reactive_status = reactive(status()$analyst_ora)
+      reactive_status = reactive(status()$analyst_ora),
+      store = store_ora
     )
 
     # session restore finished
@@ -137,7 +149,8 @@ L1_result_space_module <- function(
         i <- grep("^StringDB\\|", colnames(reactive_featureData()))
         reactive_featureData()[reactive_i(), i[1]]
       }), reactive_status = reactive(NULL),
-      active = reactive(status()$analyst_active_tab == "StringDB")
+      active = reactive(status()$analyst_active_tab == "StringDB"),
+      store = store_stringdb
     )
 
     # session restore finished
@@ -154,7 +167,8 @@ L1_result_space_module <- function(
       "geneshotTab",
       fdata = reactive_featureData,
       feature_selected = reactive_i,
-      reactive_status = reactive(status()$analyst_gene_shot)
+      reactive_status = reactive(status()$analyst_gene_shot),
+      store = store_geneshot
     )
 
     # session restore finished
@@ -162,7 +176,8 @@ L1_result_space_module <- function(
       "ptm",
       fdata = reactive_featureData,
       feature_selected = reactive_i,
-      reactive_status = reactive(status()$analyst_ptm)
+      reactive_status = reactive(status()$analyst_ptm),
+      store = store_ptm
       # ,
       # background = reactive( attr(object(), "ptm.seq.window") )
       # background = reactive({
