@@ -402,13 +402,15 @@ tooltips (one source of truth). Tools: `search_ui_capabilities(query)`,
 `get_ui_capability(id)`. `get_omics_viewer_state` overview then lists only
 capability counts, not contents.
 
-### WP10: state token (optional)
+### WP10: state token — RESOLVED BY CONSTRUCTION (control plane)
 
-`get_*` results carry `state_version`; `set_*` accept an optional echoed
-token; mismatch ⇒ instructive error. **Trigger:** only if WP4 logs show
-stale-state failures (e.g. model overwrites a user's mid-conversation
-manual selection). Current validation already rejects stale IDs/tabs, so
-expected benefit is narrow; friction is real.
+The widget store's **global epoch is the state token** (bumped once per
+applying transaction, readable via `store_epoch()`), and WP1's deferred
+`scatter_view` mechanism records exactly how it would be used
+(get_state echo → changed-keys-only responses). No standalone work
+remains; reopen only if WP4 logs show stale-state failures (model
+overwrites a user's mid-conversation manual selection) that per-key
+re-validation doesn't already catch.
 
 ### WP11: conversation-in-snapshot (history persistence)
 

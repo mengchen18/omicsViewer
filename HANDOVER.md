@@ -1,55 +1,66 @@
 # HANDOVER — agent accuracy & widget control plane
 
-Written 2026-09-23 at the end of the S4-completion session (snapshot
-save/restore re-routed through the store; round-trip equality verified at
-app level + in the browser). **S4 is COMPLETE — the whole §6 control plane
-(S1–S4) is done.** Read this first in a fresh context, then
-`AGENT_ACCURACY_PLAN.md` (canonical plan + status table, rows through
-`2½`) and `AGENTS.md` (environment + commands). Delete or trim this file
-once absorbed.
+Written 2026-09-23 at the end of the S4-completion session + decision
+review (snapshot save/restore re-routed through the store; round-trip
+equality verified; the WP1/WP7 open decisions settled with evidence).
+**S4 is COMPLETE — the whole §6 control plane (S1–S4) is done and the
+Phase-1 design decisions are settled.** Read this first in a fresh
+context, then `AGENT_ACCURACY_PLAN.md` (status table rows through `2½`;
+WP1 decision + disclosure ladder in §3-WP1; WP7/WP10 updated) and
+`AGENTS.md` (environment + commands). Delete or trim this file once
+absorbed.
 
 ## Where we are / how to resume
 
 Branch `agent-driven-exploration`, working tree clean through this
-session's commit. DESCRIPTION 2.1.1.
+session's commits. DESCRIPTION 2.1.1.
 
 | Change | What |
 |---|---|
-| this session | S4 completion: legacy status restores re-routed through the store (heatmap 13 keys, dataTable columns/switch, feature_general plot_type/regline, analyst navbar, NEW `dataspace.active_tab` binding); `app_module` gained an injectable `store` param; `store` test-hook op; round-trip equality tests (unit appState + tier_a 4g) |
+| last session | S4 completion: store re-routes, `dataspace.active_tab`, round-trip tests (unit appState + tier_a 4g) |
+| decision review | WP1 overview settled (scatter_view on the ground floor, read from the store); WP7 settled (update_figure confirmed core surface → WP3 hard prerequisite); WP10 closed by construction |
 
-**Next session starts the post-control-plane accuracy work** (plan §3/§7,
-all groundwork is now in place — every widget is store-backed and the
-snapshot path is canonical):
+**Next session goes straight to implementation** (all groundwork +
+decisions done):
 
-1. **WP1 — `sections` parameter on `get_omics_viewer_state`** (plan §3
-   WP1): `agent_compact_state()` gains `sections`; default overview =
-   dataset, tabs, selection counts + ≤20 example IDs, quick-view id+label
-   lists only, `available_sections`, `state_policy`. Requested sections
-   return today's full payloads (annotations / quick_views / panels /
-   figure_grammar). Touch points: `auxi_agentAssistant.R`
-   (`agent_compact_state`), `module_aiAssistant.R` (tool schema +
-   description), `L0_module_app.R` (`agent_state` builds eagerly today —
-   build on demand from parts). Tests: `test_agentAssistant.R`. Open
-   decision from the plan: include current scatter x/y axes in the
-   overview (recommended) vs fully opt-in panels.
-2. **WP3 — figure spec round-trip**: `render_assistant_figure()` includes
-   the full normalized spec in the tool result; store normalized specs in
-   the session `figures()` registry. Tests: `test_aiAssistantTools.R`
-   (create → result contains spec; spec re-submitted as update normalizes
-   identically).
+1. **WP1 — `sections` parameter on `get_omics_viewer_state`** (decision
+   SETTLED — do not re-litigate): default overview = dataset, active
+   tabs, available tabs, selection counts + ≤20 example IDs, quick-view
+   id+label lists, **`scatter_view`** (x/y axis triples + axis_mode of
+   BOTH data-space scatters via `store_read(app_store, ...)` — keys
+   `dataspace.{feature,sample}_space.{x,y}_{analysis,subset,variable}`
+   + `.axis_mode`), `available_sections`, `state_policy`. Requested
+   sections return today's full payloads (annotations / quick_views /
+   panels / figure_grammar). Measured on demo.RDS: full state 18.4 KB →
+   overview ~1.3 KB (14× cut; annotations alone were 73%). Touch points:
+   `auxi_agentAssistant.R` (`agent_compact_state`),
+   `module_aiAssistant.R` (tool schema + description),
+   `R/L0_module_app.R` (`agent_state` builds eagerly today — build on
+   demand from parts). Tests: `test_agentAssistant.R`.
+2. **WP3 — figure spec round-trip** (HARD PREREQUISITE — user-confirmed
+   that `update_figure` is core surface): `render_assistant_figure()`
+   includes the full normalized spec in the tool result; store normalized
+   specs in the session `figures()` registry. Tests:
+   `test_aiAssistantTools.R` (create → result contains spec; spec
+   re-submitted as update normalizes identically).
 3. **WP4 — log summarizer** `agent_summarize_log(path)` in
    `auxi_agentLogging.R`: event counts, per-tool call counts, error
    taxonomy (regex classes: unknown_id/column/tab, invalid_figure_spec,
    invalid_argument, no_dataset, request_limit, provider_failure),
    first-attempt success rate, retry outcomes, most-rejected arguments.
-   New `tests/test_agentLogSummary.R` with a synthetic JSONL fixture.
-4. Then WP5 (benchmark tasks — file exists? check
-   `tests/agent_benchmark_tasks.md`), and the deferred WP7 patch-mode
-   `update_figure` (cheap once WP3's registry exists).
+   New `tests/test_agentLogSummary.R` with a synthetic JSONL fixture
+   (REAL fixtures now archived at
+   `tests/e2e_agent/artifacts/decision-evidence-20260923/` — 9 JSONL
+   logs; 3 of 5 real get_state calls wanted the current view).
+4. Then WP5 (benchmark tasks — `tests/e2e_agent/tier_b_tasks.md`, tasks
+   15–16 cover the S4 surface; optionally add a task 17 for the snapshot
+   round-trip), WP6 figure templates, and WP7 patch-mode `update_figure`
+   (gated on tasks 10–11 revision failures after WP1–WP3).
 
-Also still open (small, from earlier sessions): live Tier B runs when a
-provider is configured (tasks 15–16 in `tests/e2e_agent/tier_b_tasks.md`
-cover the S4 surface; the round-trip could be added as a task 17).
+Also open (task, not decision): live Tier B baseline — the app prints
+`Using model = "gpt-5.6-terra"` (env-configured), but Tier B needs
+`tests/e2e_agent/provider.env` (gitignored) + `npm install` there once.
+Check that first for before/after numbers around WP1.
 
 ## What landed this session (architecture notes)
 
