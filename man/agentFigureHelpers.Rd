@@ -5,6 +5,8 @@
 \alias{agent_figure_grammar}
 \alias{agent_figure_spec_echo}
 \alias{agent_normalize_figure_spec}
+\alias{agent_figure_templates}
+\alias{agent_figure_template_spec}
 \alias{agent_build_figure_data}
 \alias{agent_build_figure_plot}
 \alias{agent_render_figure}
@@ -24,6 +26,23 @@ agent_normalize_figure_spec(
   selected_samples = character()
 )
 
+agent_figure_templates()
+
+agent_figure_template_spec(
+  template = NULL,
+  x = NULL,
+  y = NULL,
+  color = NULL,
+  label_top_n = NULL,
+  title = NULL,
+  space = NULL,
+  feature_data,
+  sample_data,
+  expression = NULL,
+  selected_features = character(),
+  selected_samples = character()
+)
+
 agent_build_figure_data(spec, feature_data, sample_data, expression)
 
 agent_build_figure_plot(data, spec)
@@ -39,11 +58,29 @@ agent_figure_html(figure, spec, figure_id)
 
 \item{sample_data}{Sample metadata.}
 
-\item{expression}{Expression matrix.}
+\item{expression}{Expression matrix (passed through to normalization).}
 
-\item{selected_features}{Current semantic feature selection.}
+\item{selected_features}{Current semantic feature selection (expression-mode
+boxplot source).}
 
 \item{selected_samples}{Current semantic sample selection.}
+
+\item{template}{Template name: one of volcano, scatter, boxplot, histogram.}
+
+\item{x}{Required x column (grouping column for boxplot).}
+
+\item{y}{Optional y column (fold-change significance for volcano; omitted y
+selects expression mode for boxplot).}
+
+\item{color}{Optional column mapped to point color or fill.}
+
+\item{label_top_n}{Optional integer 0-50: label top features (volcano,
+ranked by y) or the first rows (scatter); unsupported elsewhere.}
+
+\item{title}{Optional plot title.}
+
+\item{space}{Optional "feature" or "sample" disambiguation when a column
+name exists in both annotation spaces.}
 
 \item{data}{Plotting data from \code{\link{agent_build_figure_data}}.}
 
@@ -60,12 +97,19 @@ Figure grammar/catalog objects, normalized specifications, bounded
   plotting data, ggplot objects, rendered files, or server-generated HTML.
 
 A JSON-like description of supported data sources, geoms, aesthetic
-  mappings, transformations, themes, palettes, and hard limits.
+  mappings, transformations, themes, palettes, templates (WP6), and hard
+  limits.
 
 A JSON-like spec in the documented input shape; normalizing it
   again reproduces \code{spec} exactly.
 
 A normalized specification with only allowlisted keys and values.
+
+A JSON-like description of every supported template with its named
+  arguments and their semantics.
+
+A list with \code{template} (the validated template name) and
+  \code{spec} (the normalized specification).
 
 A data.frame with reserved ID/expression columns and original
   annotation column names.
@@ -92,5 +136,16 @@ schema-driven argument conversion drop properties that are not in the
 declared schema, so a model echoing the result verbatim would otherwise
 lose the axis mappings. The session registry keeps the normalized shape
 (the canonical base for a future patch-mode update_figure).
+
+Templates (WP6) are the concise path through \code{create_figure}: a few
+well-named columns expand server-side into a full validated specification.
+The generic grammar remains the advanced path for multi-layer figures.
+
+WP6: templates are the concise \code{create_figure} path. A few well-named
+columns (\code{x}, \code{y}, \code{color}, \code{label_top_n}, \code{title},
+\code{space}) expand server-side into a complete specification that is
+normalized and validated by \code{\link{agent_normalize_figure_spec}}, so
+template figures carry the full WP3 round-trip spec and remain revisable
+through \code{update_figure}. The generic grammar stays the advanced path.
 }
 \keyword{internal}

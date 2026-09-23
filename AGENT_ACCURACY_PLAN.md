@@ -415,15 +415,24 @@ suggested matches or search_annotations"). Keep the whole prompt ≤ ~40 lines.
 
 ## 4. Phase 2 — composition accuracy & new capabilities
 
-### WP6: figure templates
+### WP6: figure templates — **DONE** (2026-09-24)
 
-`create_figure(template = "...", ...)` where template is an enum
-(`volcano`, `scatter`, `boxplot`, `barplot`, `histogram`, `density`,
-`line`) and a few well-named arguments (`x`, `y`, `color`, `label_top_n`).
-Server-side `agent_figure_template_spec()` expands to a full validated spec
-(also returned via WP3 round-trip, so follow-up customization flows through
-`update_figure`). Generic grammar stays as the advanced path. `pca`
-template optional — needs server-side projection; decide later.
+`create_figure(template = "...", ...)` with the settled decision-4 enum
+(`volcano`, `scatter`, `boxplot`, `histogram`; `density`/`barplot` stay
+log-gated, `pca` deferred) and well-named arguments (`x`, `y`, `color`,
+`label_top_n`, `title`, `space`). Server-side
+`agent_figure_template_spec()` (auxi_agentFigures.R) expands to a full
+validated spec and returns it via the WP3 round-trip, so follow-up
+customization flows through `update_figure`. Generic grammar stays the
+advanced path. Space disambiguation (`space='feature'|'sample'`) resolves
+column names that exist in both annotation spaces; volcano `label_top_n`
+reorders the plotted rows by significance (highest y first, the app's
+log.pvalue/log.fdr convention) so the capped label layer marks the most
+significant features; boxplot without `y` plots the selected features'
+expression grouped by a sample column. Templates are advertised through the
+`figure_grammar` state section (`agent_figure_templates()`). Live smoke
+(glm-5.3-flash): "make a volcano plot, label top 5" → ONE state call + ONE
+template create_figure, first-attempt success.
 
 ### WP7: patch-mode `update_figure`
 
@@ -734,7 +743,9 @@ render after selection — the exact missed regression) |
 | 4 | WP4 log summarizer | M | **DONE** — auxi_agentLogging.R (agent_summarize_log + agent_summarize_logs + print method), new test file |
 | 5 | WP5b prompt workflows | S | **DONE** — module_aiAssistant.R (+ task 17, tier_b settle hardening, live smoke) |
 | 6 | re-run benchmark (Tier B), compare | S | **smoke done** (glm-5.3-flash; overview + round-trip validated, sentinel fix verified before/after); full ×3 at phase gate |
-| 7+ | WP6, WP7, WP8 (Phase 2) | M each | figures/app modules |
+| 7 | WP6 figure templates | M | **DONE** (2026-09-24) — auxi_agentFigures.R (`agent_figure_template_spec`/`agent_figure_templates`, sentinel-hardened param helpers) + module_aiAssistant.R (template args on create_figure, template-aware prompt workflows); unit 60+33 green, Tier A 93/93 ×2, live Tier B volcano smoke first-attempt success |
+| 7b | WP7 patch-mode update_figure | M | **GATED** (decision 5): build only if tasks 10–11 first-attempt success < 2/3 at the full ×3 phase-gate run |
+| 8 | WP8 enrichment/table tools | M | after WP7 gate |
 | last | WP9–WP12 (Phase 3) | M/L | new file(s) |
 
 WP2 before WP1 deliberately: suggestions are self-contained and safe;

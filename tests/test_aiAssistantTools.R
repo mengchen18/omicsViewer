@@ -9,6 +9,7 @@ if (!requireNamespace("ellmer", quietly = TRUE) ||
 
 fd <- data.frame(
   score = c(1, 2, 3),
+  logFdr = c(5, 4, 3),
   category = c("kinase", "phosphatase", "kinase"),
   row.names = c("Gene1", "Gene2", "Gene3"),
   check.names = FALSE
@@ -338,6 +339,110 @@ shiny::testServer(
         ut_cmp_identical(swept_figures@value$palette, "default") &&
         is.null(swept_figures@value$labels$title),
       "figure tool applies defaults for sentinel optionals"
+    )
+
+    # ---- WP6: figure templates ---------------------------------------
+    template_error <- tryCatch(
+      tools$create_figure(
+        template = "volcano", x = "score", y = "category",
+        `_intent` = "unit test"
+      ),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("must be numeric", template_error),
+      "template path validates through the server-side expansion"
+    )
+    conflict_error <- tryCatch(
+      tools$create_figure(
+        template = "volcano", x = "score", y = "score",
+        spec = list(layers = list(list(geom = "point", x = "score", y = "score"))),
+        `_intent` = "unit test"
+      ),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("not both", conflict_error),
+      "template and full spec are mutually exclusive"
+    )
+    missing_error <- tryCatch(
+      tools$create_figure(`_intent` = "unit test"),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("requires either a template", missing_error),
+      "create_figure without template or spec is rejected"
+    )
+    unknown_column_error <- tryCatch(
+      tools$create_figure(
+        template = "volcano", x = "score", y = "log.fdr",
+        `_intent` = "unit test"
+      ),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("Closest matches", unknown_column_error) &&
+        grepl("logFdr", unknown_column_error),
+      "template unknown columns suggest the closest match"
+    )
+
+    volcano_result <- tools$create_figure(
+      template = "volcano",
+      x = "score",
+      y = "logFdr",
+      label_top_n = 1L,
+      title = "RE vs ME",
+      `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(volcano_result@value$template, "volcano") &&
+        ut_cmp_identical(volcano_result@value$data_source, "feature_annotation") &&
+        ut_cmp_identical(volcano_result@value$layers[[2]]$geom, "vline") &&
+        ut_cmp_identical(volcano_result@value$layers[[3]]$geom, "label") &&
+        ut_cmp_identical(volcano_result@value$spec$features[[1]], "Gene1") &&
+        ut_cmp_identical(volcano_result@value$labels$title, "RE vs ME"),
+      "volcano template renders through the tool with metadata and labels"
+    )
+
+    boxplot_result <- tools$create_figure(
+      template = "boxplot", x = "group",
+      `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(boxplot_result@value$data_source, "expression") &&
+        ut_cmp_identical(boxplot_result@value$template, "boxplot") &&
+        ut_cmp_identical(boxplot_result@value$spec$layers[[1]]$x, "sample__group") &&
+        ut_cmp_identical(boxplot_result@value$spec$layers[[1]]$fill, "sample__group") &&
+        ut_cmp_identical(boxplot_result@value$spec$features, c("Gene1", "Gene2", "Gene3")),
+      "boxplot expression mode uses the selected features and namespaced grouping"
+    )
+
+    swept_template <- tools$create_figure(
+      template = "scatter", x = "score", y = "logFdr",
+      color = "null", label_top_n = "null", title = "null", space = "{}",
+      `_intent` = "sentinel sweep"
+    )
+    ok(
+      ut_cmp_identical(swept_template@value$data_source, "feature_annotation") &&
+        is.null(swept_template@value$spec$layers[[1]]$color) &&
+        length(swept_template@value$spec$layers) == 1L &&
+        grepl("score", swept_template@value$labels$title, fixed = TRUE),
+      "template tool treats sentinel optionals exactly like omitted values"
+    )
+
+    template_revision <- volcano_result@value$spec
+    template_revision$labels$title <- "Volcano, revised"
+    template_revision$theme <- "classic"
+    revised_template_figure <- tools$update_figure(
+      figure_id = volcano_result@value$figure_id,
+      spec = template_revision,
+      `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(revised_template_figure@value$labels$title, "Volcano, revised") &&
+        ut_cmp_identical(revised_template_figure@value$theme, "classic") &&
+        is.null(revised_template_figure@value$template),
+      "template figures revise through the echoed spec (WP3 round-trip)"
     )
   }
 )

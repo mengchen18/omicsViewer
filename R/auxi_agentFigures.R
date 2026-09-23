@@ -27,11 +27,15 @@ NULL
 .agent_figure_transforms <- c("identity", "log2", "log10", "reverse", "sqrt")
 .agent_figure_themes <- c("minimal", "classic", "light", "grey", "bw")
 .agent_figure_palettes <- c("default", "colorblind", "sequential", "diverging", "grey")
+# WP6 figure templates (plan decision 4: volcano/boxplot/histogram/scatter
+# ship now; density/barplot stay log-gated; pca is deferred)
+.agent_figure_templates <- c("volcano", "scatter", "boxplot", "histogram")
 
 #' Describe the allowlisted model-facing figure grammar
 #'
 #' @return A JSON-like description of supported data sources, geoms, aesthetic
-#'   mappings, transformations, themes, palettes, and hard limits.
+#'   mappings, transformations, themes, palettes, templates (WP6), and hard
+#'   limits.
 #' @keywords internal
 #' @rdname agentFigureHelpers
 agent_figure_grammar <- function() {
@@ -52,6 +56,7 @@ agent_figure_grammar <- function() {
     transforms = .agent_figure_transforms,
     themes = .agent_figure_themes,
     palettes = .agent_figure_palettes,
+    templates = agent_figure_templates(),
     limits = list(
       max_layers = 12L,
       max_annotation_rows = 20000L,
@@ -77,9 +82,9 @@ agent_figure_grammar <- function() {
 
 .agent_figure_numeric_param <- function(value, name, min, max, default) {
   # ellmer converts JSON null to NA and some providers (glm flash) echo
-  # omitted optionals as empty objects; treat NA, length-0, and empty
-  # list values like an omitted value.
-  if (is.null(value) || length(value) == 0L || is.na(value[1])) return(default)
+  # omitted optionals as empty objects or literal sentinels; treat NA,
+  # length-0, empty-list, and sentinel-string values like an omitted value.
+  if (.agent_param_absent(value)) return(default)
   value <- suppressWarnings(as.numeric(value)[1])
   if (is.na(value) || value < min || value > max)
     stop("Figure parameter ", name, " must be between ", min, " and ", max, ".")
@@ -88,13 +93,18 @@ agent_figure_grammar <- function() {
 
 .agent_figure_integer_param <- function(value, name, min, max, default) {
   # ellmer converts JSON null to NA and some providers (glm flash) echo
-  # omitted optionals as empty objects; treat NA, length-0, and empty
-  # list values like an omitted value.
-  if (is.null(value) || length(value) == 0L || is.na(value[1])) return(default)
+  # omitted optionals as empty objects or literal sentinels; treat NA,
+  # length-0, empty-list, and sentinel-string values like an omitted value.
+  if (.agent_param_absent(value)) return(default)
   value <- suppressWarnings(as.integer(value)[1])
   if (is.na(value) || value < min || value > max)
     stop("Figure parameter ", name, " must be an integer between ", min, " and ", max, ".")
   value
+}
+
+.agent_param_absent <- function(value) {
+  is.null(value) || length(value) == 0L || is.na(value[1]) ||
+    (is.character(value) && agent_sentinel_string(value[1]))
 }
 
 .agent_figure_choice <- function(value, choices, name, fallback = NULL) {
@@ -103,7 +113,8 @@ agent_figure_grammar <- function() {
     return(fallback)
   value <- .agent_figure_scalar(value, max_chars = 100L)
   if (is.null(value) || !value %in% choices)
-    stop("Unsupported figure ", name, ": ", value)
+    stop("Unsupported figure ", name, ": ", value, ".",
+         .agent_suggest_text(value, choices))
   value
 }
 
@@ -368,6 +379,343 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     theme = theme,
     palette = palette,
     labels = labels
+  )
+}
+
+#' Describe the allowlisted figure templates
+#'
+#' Templates (WP6) are the concise path through \code{create_figure}: a few
+#' well-named columns expand server-side into a full validated specification.
+#' The generic grammar remains the advanced path for multi-layer figures.
+#'
+#' @return A JSON-like description of every supported template with its named
+#'   arguments and their semantics.
+#' @keywords internal
+#' @rdname agentFigureHelpers
+agent_figure_templates <- function() {
+  list(
+    volcano = list(
+      description = paste(
+        "Volcano plot of feature-level differential-analysis results:",
+        "fold change on x, log-scale significance on y (higher = more",
+        "significant, e.g. a log.pvalue or log.fdr column), a zero",
+        "fold-change reference line, and optional labels on the most",
+        "significant features."
+      ),
+      arguments = list(
+        x = "Required numeric feature column: fold change (e.g. a ttest mean.diff column).",
+        y = "Required numeric feature column: log-scale significance where higher = more significant (e.g. a log.fdr or log.pvalue column).",
+        color = "Optional feature column mapped to point color.",
+        label_top_n = "Optional integer 0-50: label the n features ranked by y, highest first. Default 0 (no labels).",
+        title = "Optional title; defaults to 'Volcano: <x> vs <y>'."
+      )
+    ),
+    scatter = list(
+      description = paste(
+        "Scatter plot of one annotation column against another in either",
+        "the feature or the sample space, with optional point coloring",
+        "and optional labels."
+      ),
+      arguments = list(
+        x = "Required column for the x axis.",
+        y = "Required column for the y axis.",
+        color = "Optional column mapped to point color (same space as x/y).",
+        label_top_n = "Optional integer 0-50: label the first n rows in data order. Default 0 (no labels).",
+        title = "Optional title; defaults to '<x> vs <y>'.",
+        space = "Optional 'feature' or 'sample'; required to disambiguate when a column name exists in both spaces."
+      )
+    ),
+    boxplot = list(
+      description = paste(
+        "Boxplot of a numeric column grouped by a categorical column.",
+        "Without y it plots the expression distribution of the currently",
+        "selected features grouped by a sample annotation column."
+      ),
+      arguments = list(
+        x = "Required grouping column: a categorical annotation column, or (when y is omitted) a sample annotation column.",
+        y = "Optional numeric column; omit it to plot the expression of the selected features (__expression__) by a sample grouping.",
+        color = "Optional column mapped to fill (defaults to the grouping column x).",
+        title = "Optional title; defaults to '<y> by <x>' (or 'Expression by <x>')."
+      )
+    ),
+    histogram = list(
+      description = "Histogram of one numeric annotation column.",
+      arguments = list(
+        x = "Required numeric column.",
+        color = "Optional column mapped to fill for grouped histograms.",
+        title = "Optional title; defaults to 'Distribution of <x>'."
+      )
+    )
+  )
+}
+
+.agent_template_space <- function(space) {
+  value <- .agent_figure_scalar(space, max_chars = 100L)
+  if (is.null(value)) return(NULL)
+  if (!value %in% c("feature", "sample"))
+    stop("Figure template space must be 'feature' or 'sample', not: ", value, ".")
+  value
+}
+
+# Resolve a template column argument against both annotation spaces.
+# Returns list(column, space) or NULL for an absent optional column; errors
+# carry closest-match suggestions (WP2 control surface) and name the space
+# conflict when a column exists in both spaces and none was pinned.
+.agent_template_column <- function(value, role, feature_data, sample_data,
+                                   space = NULL, required = TRUE) {
+  column <- .agent_figure_scalar(value, max_chars = 500L)
+  if (is.null(column)) {
+    if (required)
+      stop("Figure template requires a ", role, " column.")
+    return(NULL)
+  }
+  feature_columns <- colnames(feature_data)
+  sample_columns <- colnames(sample_data)
+  in_feature <- column %in% feature_columns
+  in_sample <- column %in% sample_columns
+  if (!in_feature && !in_sample)
+    stop("Unknown figure template ", role, " column: ", column, ".",
+         .agent_suggest_text(column, c(feature_columns, sample_columns),
+                             search_hint = "search_annotations"))
+  space <- .agent_template_space(space)
+  if (!is.null(space)) {
+    columns <- if (identical(space, "feature")) feature_columns else sample_columns
+    if (!column %in% columns)
+      stop("Unknown ", space, "-space figure template ", role, " column: ", column, ".",
+           .agent_suggest_text(column, columns, search_hint = "search_annotations"))
+    return(list(column = column, space = space))
+  }
+  if (in_feature && in_sample)
+    stop("Figure template ", role, " column exists in both the feature and the sample annotations: ",
+         column, ". Pass space='feature' or space='sample' to disambiguate.")
+  list(column = column, space = if (in_feature) "feature" else "sample")
+}
+
+.agent_template_volcano <- function(x, y, color, label_top_n, title,
+                                    feature_data, sample_data) {
+  x_col <- .agent_template_column(
+    x, "x (fold change)", feature_data, sample_data, space = "feature")
+  y_col <- .agent_template_column(
+    y, "y (log-scale significance)", feature_data, sample_data, space = "feature")
+  if (!is.numeric(feature_data[[x_col$column]]))
+    stop("Volcano x column must be numeric (fold change): ", x_col$column, ".")
+  if (!is.numeric(feature_data[[y_col$column]]))
+    stop("Volcano y column must be numeric (log-scale significance): ", y_col$column, ".")
+  point <- list(geom = "point", x = x_col$column, y = y_col$column)
+  color_col <- .agent_template_column(
+    color, "color", feature_data, sample_data, space = "feature", required = FALSE)
+  if (!is.null(color_col)) point$color <- color_col$column
+  spec <- list(
+    data_source = "feature_annotation",
+    layers = list(point, list(geom = "vline", params = list(xintercept = 0))),
+    labels = list(
+      title = title %||% paste("Volcano:", x_col$column, "vs", y_col$column),
+      x = x_col$column,
+      y = y_col$column
+    )
+  )
+  if (label_top_n > 0L) {
+    # reorder the plotted rows so the capped label layer marks exactly the
+    # most significant features: higher y = more significant (the app's
+    # log.pvalue/log.fdr convention; see module_meta_scatter volcano detection)
+    significance <- feature_data[[y_col$column]]
+    ids <- rownames(feature_data)
+    spec$features <- ids[order(significance, decreasing = TRUE, na.last = TRUE)]
+    spec$layers <- c(spec$layers, list(list(
+      geom = "label",
+      x = x_col$column,
+      y = y_col$column,
+      label = "__feature_id__",
+      params = list(max_labels = label_top_n, size = 3)
+    )))
+  }
+  spec
+}
+
+.agent_template_scatter <- function(x, y, color, label_top_n, title,
+                                    feature_data, sample_data, space) {
+  x_col <- .agent_template_column(x, "x", feature_data, sample_data, space)
+  y_col <- .agent_template_column(y, "y", feature_data, sample_data, space)
+  if (!identical(x_col$space, y_col$space))
+    stop("Scatter x and y columns must come from the same annotation space: x is ",
+         x_col$space, "-space, y is ", y_col$space, "-space.")
+  color_col <- .agent_template_column(
+    color, "color", feature_data, sample_data, x_col$space, required = FALSE)
+  id_column <- if (identical(x_col$space, "feature")) "__feature_id__" else "__sample_id__"
+  point <- list(geom = "point", x = x_col$column, y = y_col$column)
+  if (!is.null(color_col)) point$color <- color_col$column
+  spec <- list(
+    data_source = paste0(x_col$space, "_annotation"),
+    layers = list(point),
+    labels = list(
+      title = title %||% paste(x_col$column, "vs", y_col$column),
+      x = x_col$column,
+      y = y_col$column
+    )
+  )
+  if (label_top_n > 0L) {
+    spec$layers <- c(spec$layers, list(list(
+      geom = "label",
+      x = x_col$column,
+      y = y_col$column,
+      label = id_column,
+      params = list(max_labels = label_top_n, size = 3)
+    )))
+  }
+  spec
+}
+
+.agent_template_boxplot <- function(x, y, color, title,
+                                    feature_data, sample_data, space,
+                                    selected_features) {
+  x_col <- .agent_template_column(x, "x (grouping)", feature_data, sample_data, space)
+  y_value <- .agent_figure_scalar(y, max_chars = 500L)
+  if (is.null(y_value)) {
+    # expression mode: distribution of the selected features' expression
+    # grouped by a sample annotation column
+    if (!identical(x_col$space, "sample"))
+      stop("Boxplot without a y column plots the expression of selected features grouped by a sample annotation; x column '",
+           x_col$column, "' is feature-space. Pass a numeric y column for a feature-space boxplot.")
+    if (!length(selected_features))
+      stop("Boxplot expression mode requires selected features; select features in the app first or use the full spec with explicit feature IDs.")
+    color_col <- .agent_template_column(
+      color, "color", feature_data, sample_data, "sample", required = FALSE)
+    grouped <- paste0("sample__", x_col$column)
+    fill <- if (!is.null(color_col)) paste0("sample__", color_col$column) else grouped
+    return(list(
+      data_source = "expression",
+      layers = list(list(
+        geom = "boxplot", x = grouped, y = "__expression__", fill = fill,
+        params = list(alpha = 0.65)
+      )),
+      labels = list(
+        title = title %||% paste("Expression by", x_col$column),
+        x = x_col$column,
+        y = "Expression"
+      )
+    ))
+  }
+  y_col <- .agent_template_column(y, "y", feature_data, sample_data, space)
+  if (!identical(x_col$space, y_col$space))
+    stop("Boxplot x and y columns must come from the same annotation space: x is ",
+         x_col$space, "-space, y is ", y_col$space, "-space.")
+  frame <- if (identical(x_col$space, "feature")) feature_data else sample_data
+  if (!is.numeric(frame[[y_col$column]]))
+    stop("Boxplot y column must be numeric: ", y_col$column, ".")
+  color_col <- .agent_template_column(
+    color, "color", feature_data, sample_data, x_col$space, required = FALSE)
+  list(
+    data_source = paste0(x_col$space, "_annotation"),
+    layers = list(list(
+      geom = "boxplot",
+      x = x_col$column,
+      y = y_col$column,
+      fill = if (!is.null(color_col)) color_col$column else x_col$column,
+      params = list(alpha = 0.65)
+    )),
+    labels = list(
+      title = title %||% paste(y_col$column, "by", x_col$column),
+      x = x_col$column,
+      y = y_col$column
+    )
+  )
+}
+
+.agent_template_histogram <- function(x, color, title,
+                                      feature_data, sample_data, space) {
+  x_col <- .agent_template_column(x, "x", feature_data, sample_data, space)
+  frame <- if (identical(x_col$space, "feature")) feature_data else sample_data
+  if (!is.numeric(frame[[x_col$column]]))
+    stop("Histogram column must be numeric: ", x_col$column, ".")
+  color_col <- .agent_template_column(
+    color, "color", feature_data, sample_data, x_col$space, required = FALSE)
+  layer <- list(geom = "histogram", x = x_col$column)
+  if (!is.null(color_col)) layer$fill <- color_col$column
+  list(
+    data_source = paste0(x_col$space, "_annotation"),
+    layers = list(layer),
+    labels = list(
+      title = title %||% paste("Distribution of", x_col$column),
+      x = x_col$column
+    )
+  )
+}
+
+#' Expand a figure template into a full validated specification
+#'
+#' WP6: templates are the concise \code{create_figure} path. A few well-named
+#' columns (\code{x}, \code{y}, \code{color}, \code{label_top_n}, \code{title},
+#' \code{space}) expand server-side into a complete specification that is
+#' normalized and validated by \code{\link{agent_normalize_figure_spec}}, so
+#' template figures carry the full WP3 round-trip spec and remain revisable
+#' through \code{update_figure}. The generic grammar stays the advanced path.
+#'
+#' @param template Template name: one of volcano, scatter, boxplot, histogram.
+#' @param x Required x column (grouping column for boxplot).
+#' @param y Optional y column (fold-change significance for volcano; omitted y
+#'   selects expression mode for boxplot).
+#' @param color Optional column mapped to point color or fill.
+#' @param label_top_n Optional integer 0-50: label top features (volcano,
+#'   ranked by y) or the first rows (scatter); unsupported elsewhere.
+#' @param title Optional plot title.
+#' @param space Optional "feature" or "sample" disambiguation when a column
+#'   name exists in both annotation spaces.
+#' @param feature_data Feature metadata.
+#' @param sample_data Sample metadata.
+#' @param expression Expression matrix (passed through to normalization).
+#' @param selected_features Current semantic feature selection (expression-mode
+#'   boxplot source).
+#' @param selected_samples Current semantic sample selection.
+#'
+#' @return A list with \code{template} (the validated template name) and
+#'   \code{spec} (the normalized specification).
+#' @keywords internal
+#' @rdname agentFigureHelpers
+agent_figure_template_spec <- function(template = NULL, x = NULL, y = NULL,
+                                       color = NULL, label_top_n = NULL,
+                                       title = NULL, space = NULL,
+                                       feature_data, sample_data,
+                                       expression = NULL,
+                                       selected_features = character(),
+                                       selected_samples = character()) {
+  template_value <- .agent_figure_scalar(template, max_chars = 100L)
+  if (is.null(template_value))
+    stop("Figure template is required. Available templates: ",
+         paste(.agent_figure_templates, collapse = ", "), ".")
+  if (!template_value %in% .agent_figure_templates)
+    stop("Unsupported figure template: ", template_value,
+         ". Available templates: ", paste(.agent_figure_templates, collapse = ", "), ".",
+         .agent_suggest_text(template_value, .agent_figure_templates))
+  label_top_n <- .agent_figure_integer_param(label_top_n, "label_top_n", 0L, 50L, 0L)
+  if (label_top_n > 0L && template_value %in% c("boxplot", "histogram"))
+    stop("label_top_n is supported by the volcano and scatter templates only.")
+  title_value <- .agent_figure_scalar(title)
+
+  spec <- switch(
+    template_value,
+    volcano = .agent_template_volcano(
+      x, y, color, label_top_n, title_value, feature_data, sample_data),
+    scatter = .agent_template_scatter(
+      x, y, color, label_top_n, title_value, feature_data, sample_data,
+      .agent_template_space(space)),
+    boxplot = .agent_template_boxplot(
+      x, y, color, title_value, feature_data, sample_data,
+      .agent_template_space(space), selected_features),
+    histogram = .agent_template_histogram(
+      x, color, title_value, feature_data, sample_data,
+      .agent_template_space(space))
+  )
+
+  list(
+    template = template_value,
+    spec = agent_normalize_figure_spec(
+      spec,
+      feature_data = feature_data,
+      sample_data = sample_data,
+      expression = expression,
+      selected_features = selected_features,
+      selected_samples = selected_samples
+    )
   )
 }
 

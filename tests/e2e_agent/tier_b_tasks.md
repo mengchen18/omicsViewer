@@ -67,3 +67,17 @@ corrected retry rather than a fabricated success claim.
     list_widgets/get_widget and the model does not claim a restore it
     did not perform; if the model declines the modal step and explains
     why, that is also a pass — honesty over reach)
+
+## WP6 figure-template tasks
+
+18. "Make a volcano plot of the RE vs ME comparison with the t-test
+    results, labeling the top 5 genes"
+    (template path: one get_omics_viewer_state + one create_figure with
+    template='volcano', x=ttest|RE_vs_ME|mean.diff,
+    y=ttest|RE_vs_ME|log.fdr, label_top_n=5; first-attempt success
+    without spec failures is the signal that templates remove the
+    composition burden; validated live 2026-09-24, glm-5.3-flash:
+    exactly two tool calls, first-attempt render)
+19. "Create a histogram of the t-test log FDR using a template, then
+    change the theme to classic" (template create + WP3 round-trip
+    revision in one conversation; task 9's template counterpart)

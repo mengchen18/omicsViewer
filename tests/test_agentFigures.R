@@ -445,3 +445,266 @@ ok(
   ),
   "hand-written sample subsets keep the 200 cap"
 )
+
+# ---- WP6: figure templates -----------------------------------------
+
+agent_figure_templates <- omicsViewer:::agent_figure_templates
+agent_figure_template_spec <- omicsViewer:::agent_figure_template_spec
+
+ok(
+  ut_cmp_identical(
+    names(agent_figure_grammar()$templates),
+    c("volcano", "scatter", "boxplot", "histogram")
+  ) &&
+    all(vapply(agent_figure_templates(), function(t)
+      is.character(t$description) && is.list(t$arguments), logical(1))),
+  "figure grammar advertises the four WP6 templates with argument help"
+)
+
+fd2 <- data.frame(
+  logFC = c(-2, -1, 0, 1, 2, 3, -0.5, 0.5, 1.5, -1.5),
+  logFdr = c(5, 0.1, 0, 4, 6, 0.2, 0, 3, 0, 1),
+  category = rep(c("kinase", "phosphatase"), 5),
+  shared = 1:10,
+  row.names = paste0("F", 1:10),
+  check.names = FALSE
+)
+pd2 <- data.frame(
+  group = rep(c("WT", "KO"), 5),
+  score2 = (1:10) * 1.5,
+  shared = 1:10,
+  row.names = paste0("S", 1:10),
+  check.names = FALSE
+)
+pd2$shared <- as.character(pd2$shared)
+mat2 <- matrix(rnorm(100), nrow = 10,
+               dimnames = list(rownames(fd2), rownames(pd2)))
+
+# volcano: full validated expansion with defaults
+volcano <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr",
+  feature_data = fd2, sample_data = pd2, expression = mat2
+)
+ok(
+  ut_cmp_identical(volcano$template, "volcano") &&
+    ut_cmp_identical(volcano$spec$data_source, "feature_annotation") &&
+    ut_cmp_identical(volcano$spec$layers[[1]]$geom, "point") &&
+    ut_cmp_identical(volcano$spec$layers[[1]]$mappings$x, "logFC") &&
+    ut_cmp_identical(volcano$spec$layers[[2]]$geom, "vline") &&
+    ut_cmp_identical(volcano$spec$layers[[2]]$params$xintercept, 0),
+  "volcano template expands to point + zero fold-change reference line"
+)
+ok(
+  grepl("logFC", volcano$spec$labels$title, fixed = TRUE) &&
+    ut_cmp_identical(volcano$spec$labels$x, "logFC") &&
+    is.null(volcano$spec$features),
+  "volcano template derives default labels and plots all features"
+)
+
+# volcano label_top_n: rows reordered by significance (y, highest first)
+# so the capped label layer marks the most significant features
+volcano_labeled <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr", color = "category",
+  label_top_n = 3L, feature_data = fd2, sample_data = pd2, expression = mat2
+)
+ok(
+  ut_cmp_identical(
+    volcano_labeled$spec$features,
+    c("F5", "F1", "F4", "F8", "F10", "F6", "F2", "F3", "F7", "F9")
+  ),
+  "volcano label_top_n ranks features by significance, highest first"
+)
+ok(
+  ut_cmp_identical(length(volcano_labeled$spec$features), 10L) &&
+    ut_cmp_identical(volcano_labeled$spec$layers[[3]]$geom, "label") &&
+    ut_cmp_identical(volcano_labeled$spec$layers[[3]]$mappings$label, "__feature_id__") &&
+    ut_cmp_identical(volcano_labeled$spec$layers[[3]]$params$max_labels, 3L) &&
+    ut_cmp_identical(volcano_labeled$spec$layers[[1]]$mappings$color, "category"),
+  "volcano label layer is capped at the requested count and carries color"
+)
+
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "volcano", x = "logFC", y = "category",
+      feature_data = fd2, sample_data = pd2
+    ),
+    "must be numeric"
+  ),
+  "volcano rejects non-numeric significance columns"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "histogram", x = "logFdr", label_top_n = 2L,
+      feature_data = fd2, sample_data = pd2
+    ),
+    "label_top_n is supported by the volcano and scatter templates"
+  ),
+  "label_top_n on boxplot/histogram is rejected honestly"
+)
+
+# scatter: space resolution, ambiguity handling
+scatter_f <- agent_figure_template_spec(
+  template = "scatter", x = "score2", y = "score2",
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  ut_cmp_identical(scatter_f$spec$data_source, "sample_annotation") &&
+    ut_cmp_identical(scatter_f$spec$layers[[1]]$mappings$y, "score2"),
+  "scatter resolves the annotation space from the columns"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "scatter", x = "shared", y = "score2",
+      feature_data = fd2, sample_data = pd2
+    ),
+    "exists in both the feature and the sample"
+  ),
+  "ambiguous scatter column without space is rejected with guidance"
+)
+scatter_disambiguated <- agent_figure_template_spec(
+  template = "scatter", x = "shared", y = "shared", space = "feature",
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  ut_cmp_identical(scatter_disambiguated$spec$data_source, "feature_annotation"),
+  "explicit space disambiguates shared column names"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "scatter", x = "score", y = "score",
+      feature_data = fd2, sample_data = pd2
+    ),
+    "Closest matches"
+  ),
+  "unknown template columns surface closest-match suggestions"
+)
+
+# boxplot: annotation mode (y given) and expression mode (y omitted)
+box_annotation <- agent_figure_template_spec(
+  template = "boxplot", x = "category", y = "logFC",
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  ut_cmp_identical(box_annotation$spec$data_source, "feature_annotation") &&
+    ut_cmp_identical(box_annotation$spec$layers[[1]]$geom, "boxplot") &&
+    ut_cmp_identical(box_annotation$spec$layers[[1]]$mappings$fill, "category"),
+  "annotation-mode boxplot groups a numeric column with fill defaulting to x"
+)
+box_expression <- agent_figure_template_spec(
+  template = "boxplot", x = "group",
+  feature_data = fd2, sample_data = pd2, expression = mat2,
+  selected_features = c("F1", "F2", "F3")
+)
+ok(
+  ut_cmp_identical(box_expression$spec$data_source, "expression") &&
+    ut_cmp_identical(box_expression$spec$layers[[1]]$mappings$x, "sample__group") &&
+    ut_cmp_identical(box_expression$spec$layers[[1]]$mappings$y, "__expression__") &&
+    ut_cmp_identical(box_expression$spec$features, c("F1", "F2", "F3")),
+  "expression-mode boxplot namespaces the sample grouping and uses the selection"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "boxplot", x = "group",
+      feature_data = fd2, sample_data = pd2, expression = mat2,
+      selected_features = character()
+    ),
+    "requires selected features"
+  ),
+  "expression-mode boxplot needs a feature selection"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "boxplot", x = "logFC",
+      feature_data = fd2, sample_data = pd2
+    ),
+    "sample annotation"
+  ),
+  "expression-mode boxplot rejects feature-space grouping columns"
+)
+
+# histogram
+histogram <- agent_figure_template_spec(
+  template = "histogram", x = "logFdr", color = "category",
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  ut_cmp_identical(histogram$spec$data_source, "feature_annotation") &&
+    ut_cmp_identical(histogram$spec$layers[[1]]$geom, "histogram") &&
+    ut_cmp_identical(histogram$spec$layers[[1]]$mappings$fill, "category") &&
+    grepl("logFdr", histogram$spec$labels$title, fixed = TRUE),
+  "histogram template maps the optional color argument to fill"
+)
+
+# template validation + sentinel hardening (glm flash omitted-optional class)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "heatmap", x = "logFC", y = "logFdr",
+      feature_data = fd2, sample_data = pd2
+    ),
+    "Available templates"
+  ),
+  "unknown templates are rejected with the available list"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(feature_data = fd2, sample_data = pd2),
+    "Figure template is required"
+  ),
+  "missing template is rejected"
+)
+sentinel_template <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr",
+  color = "null", label_top_n = "null", title = "{}", space = "[]",
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  is.null(sentinel_template$spec$layers[[1]]$mappings$color) &&
+    length(sentinel_template$spec$layers) == 2L &&
+    grepl("logFC", sentinel_template$spec$labels$title, fixed = TRUE),
+  "sentinel template optionals behave exactly like omitted values"
+)
+empty_object_template <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr",
+  label_top_n = list(),
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  length(empty_object_template$spec$layers) == 2L,
+  "empty-object label_top_n behaves exactly like an omitted value"
+)
+ok(
+  ut_cmp_identical(
+    agent_normalize_figure_spec(
+      volcano$spec, fd2, pd2, mat2, character(), character()
+    ),
+    volcano$spec
+  ),
+  "template expansion result is normalized and re-normalizes identically"
+)
+
+# expanded template specs build and render through the generic path
+volcano_data <- agent_build_figure_data(
+  volcano_labeled$spec, fd2, pd2, mat2
+)
+ok(
+  ut_cmp_identical(volcano_data[["__feature_id__"]][1], "F5") &&
+    ut_cmp_identical(nrow(volcano_data), 10L),
+  "labeled volcano data keeps all rows with the most significant first"
+)
+ok(
+  inherits(agent_build_figure_plot(volcano_data, volcano_labeled$spec), "ggplot") &&
+    inherits(
+      agent_build_figure_plot(
+        agent_build_figure_data(histogram$spec, fd2, pd2, mat2), histogram$spec
+      ),
+      "ggplot"
+    ),
+  "expanded template specs build ggplots through the generic path"
+)
