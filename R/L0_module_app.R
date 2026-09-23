@@ -733,11 +733,25 @@ app_module <- function(
       full_state$app$analysis_active_tab <- validated$analysis_space_tab
       full_state$panels$result_space$analyst_active_tab <- validated$analysis_space_tab
     }
-    if (!is.null(validated$features))
+    if (!is.null(validated$features)) {
       full_state$selection$features <- validated$features
-    if (!is.null(validated$samples))
+      # Patch EVERY mirror of the selection: the data-space module's
+      # restore observer reads panels$data_space$eset_selected_features,
+      # and the feature/expression tables re-assert their stale DT row
+      # selections through the same status object. Without these, the
+      # module restore pushes the OLD selection back and overwrites the
+      # app-level ri/rh within one flush (observed live: agent selects 5,
+      # app reverts to the initial 107 deterministically; benchmark tasks
+      # 6/8 could never pass).
+      full_state$panels$data_space$eset_selected_features <- validated$features
+      full_state$panels$data_space$eset_fdata_tab$rows_selected <- NULL
+      full_state$panels$data_space$eset_exprs_tab$rows_selected <- NULL
+    }
+    if (!is.null(validated$samples)) {
       full_state$selection$samples <- validated$samples
-
+      full_state$panels$data_space$eset_selected_samples <- validated$samples
+      full_state$panels$data_space$eset_pdata_tab$rows_selected <- NULL
+    }
     # Use the same transactional boundary as snapshot restoration. Child
     # modules distinguish NULL from a state object and safely fill gaps.
     esv_status(NULL)

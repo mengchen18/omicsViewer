@@ -454,9 +454,9 @@ agent_figure_template_spec <- omicsViewer:::agent_figure_template_spec
 ok(
   ut_cmp_identical(
     names(agent_figure_grammar()$templates),
-    c("volcano", "scatter", "boxplot", "histogram")
+    c("volcano", "scatter", "boxplot", "histogram", "shared_arguments")
   ) &&
-    all(vapply(agent_figure_templates(), function(t)
+    all(vapply(agent_figure_templates()[c("volcano", "scatter", "boxplot", "histogram")], function(t)
       is.character(t$description) && is.list(t$arguments), logical(1))),
   "figure grammar advertises the four WP6 templates with argument help"
 )
@@ -613,7 +613,7 @@ ok(
       feature_data = fd2, sample_data = pd2, expression = mat2,
       selected_features = character()
     ),
-    "requires selected features"
+    "requires plotted features"
   ),
   "expression-mode boxplot needs a feature selection"
 )
@@ -707,4 +707,97 @@ ok(
       "ggplot"
     ),
   "expanded template specs build ggplots through the generic path"
+)
+
+# ---- WP6b: template features/samples subsets + id-param normalization ----
+
+# explicit features subset on a feature-space template
+volcano_subset <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr", features = c("F3", "F1", "F7"),
+  feature_data = fd2, sample_data = pd2, expression = mat2
+)
+ok(
+  ut_cmp_identical(sort(volcano_subset$spec$features), c("F1", "F3", "F7")) &&
+    ut_cmp_identical(volcano_subset$spec$data_source, "feature_annotation"),
+  "WP6b: volcano accepts an explicit features subset"
+)
+
+# features subset is ranked within itself when label_top_n is requested
+volcano_subset_labeled <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr", features = c("F3", "F1", "F7"),
+  label_top_n = 2L, feature_data = fd2, sample_data = pd2, expression = mat2
+)
+ok(
+  ut_cmp_identical(
+    volcano_subset_labeled$spec$features,
+    c("F1", "F3", "F7")  # y: F1=5 leads; F3/F7 tie at 0, stable input order
+  ) && ut_cmp_identical(
+    volcano_subset_labeled$spec$layers[[3]]$params$max_labels, 2L
+  ),
+  "WP6b: label_top_n ranks the explicit subset by significance"
+)
+
+# unknown IDs are rejected (validated downstream by the normalizer)
+ok(
+  ut_cmp_error(
+    agent_figure_template_spec(
+      template = "volcano", x = "logFC", y = "logFdr", features = c("F1", "nope"),
+      feature_data = fd2, sample_data = pd2
+    ),
+    "Unknown figure feature"
+  ),
+  "WP6b: template features are validated against the dataset rownames"
+)
+
+# boxplot expression mode works from an explicit subset with NO selection
+boxplot_subset <- agent_figure_template_spec(
+  template = "boxplot", x = "group", features = c("F2", "F3"),
+  feature_data = fd2, sample_data = pd2, expression = mat2,
+  selected_features = character()
+)
+ok(
+  ut_cmp_identical(boxplot_subset$spec$data_source, "expression") &&
+    ut_cmp_identical(sort(boxplot_subset$spec$features), c("F2", "F3")) &&
+    ut_cmp_identical(sort(boxplot_subset$spec$samples), sort(rownames(pd2))),
+  "WP6b: expression boxplot from explicit features without a selection"
+)
+
+# explicit samples subset rides along on expression figures
+boxplot_samples <- agent_figure_template_spec(
+  template = "boxplot", x = "group", features = c("F2", "F3"),
+  samples = c("S1", "S3", "S5", "S7", "S9"),
+  feature_data = fd2, sample_data = pd2, expression = mat2
+)
+ok(
+  ut_cmp_identical(sort(boxplot_samples$spec$samples),
+                   c("S1", "S3", "S5", "S7", "S9")),
+  "WP6b: expression boxplot honors an explicit samples subset"
+)
+
+# sentinel shapes are treated as omitted across array providers
+agent_figure_ids_param <- omicsViewer:::.agent_figure_ids_param
+ok(
+  is.null(agent_figure_ids_param(NULL, "features")) &&
+    is.null(agent_figure_ids_param(character(), "features")) &&
+    is.null(agent_figure_ids_param(NA_character_, "features")) &&
+    is.null(agent_figure_ids_param(c("null", "[]"), "features")) &&
+    is.null(agent_figure_ids_param(list(), "features")) &&
+    ut_cmp_identical(
+      agent_figure_ids_param(list("F1", "F2"), "features"), c("F1", "F2")
+    ) &&
+    ut_cmp_identical(
+      agent_figure_ids_param(c(" F1 ", "", "F2"), "features"), c("F1", "F2")
+    ),
+  "WP6b: id-array param normalizes provider sentinel shapes"
+)
+
+# subsets only attach to data sources that actually plot them
+scatter_sample_space <- agent_figure_template_spec(
+  template = "scatter", x = "score2", y = "group", features = c("F1"),
+  feature_data = fd2, sample_data = pd2
+)
+ok(
+  ut_cmp_identical(scatter_sample_space$spec$data_source, "sample_annotation") &&
+    is.null(scatter_sample_space$spec$features),
+  "WP6b: feature ids do not attach to sample-space figures"
 )

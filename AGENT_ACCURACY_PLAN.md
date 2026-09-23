@@ -434,7 +434,7 @@ expression grouped by a sample column. Templates are advertised through the
 (glm-5.3-flash): "make a volcano plot, label top 5" → ONE state call + ONE
 template create_figure, first-attempt success.
 
-### WP7: patch-mode `update_figure`
+### WP7: patch-mode `update_figure` — **GATED NO (2026-09-24, full ×3 Tier B run)**
 
 **Confirmed core surface (user, 2026-09-23):** `update_figure` is
 needed — the early Tier B logs' zero update calls reflect testing that
@@ -443,12 +443,55 @@ never got past basic functions, not disinterest. Consequence: **WP3
 it the model must reconstruct its previous spec from memory for every
 revision.
 
+**Gate result (decision 5):** full ×3 run of the 12-task core benchmark
+(glm-5.3-flash, fresh app + fresh chat per task, log-scored by
+`tests/e2e_agent/{tier_b_full.mjs,score_tier_b_gate.R}`, artifacts under
+`tests/e2e_agent/artifacts/gate/`): tasks 10+11 combined first-attempt
+success **5/6 = 83% ≥ 2/3** — every completed revision used the full-spec
+`update_figure` path with zero spec failures; the single miss (task 11,
+run 1) was a mid-turn provider stream hang (infra), not a composition
+error. **Patch mode is NOT built; WP8 proceeds.** Full-spec resend stays
+the revision contract (the merge base — the WP3 registry spec — remains
+available if a future gate reopens this).
+
+Benchmark findings assigned elsewhere (from the same run):
+
+- **template+spec collision (27 rejected create_figure calls):** the model
+  echoes the WP3 round-trip `spec` AND fills template shorthand args in
+  one call; current hard error ("Provide either template arguments or a
+  full spec, not both") is not recovered from — up to 16 identical retries
+  in one task. Fix (WP6b, same session): spec-present ⇒ spec is
+  authoritative (template args ignored, warning recorded), plus
+  `features`/`samples` subset args on the template path (the task-8 need:
+  107 selected > 50-feature cap, previously inexpressible via template).
+- **agent selection writes reverted (tasks 6/8 could never pass):**
+  apply_agent_state patched `selection$features` but not the panel-status
+  mirror `panels$data_space$eset_selected_features`; the data-space
+  module's restore observer then pushed the OLD selection back through
+  v1() and overwrote ri/rh within one flush (deterministic live repro:
+  apply reports 5, overview reverts to the initial 107 in <2 s; same on
+  every tab). Fixed in L0: the apply now patches every mirror
+  (eset_selected_features/samples + nulling stale table rows_selected)
+  before the esv_status transaction; verified sticking on all three tab
+  states; this also resolves the S4 "transient feature patches" note.
+- **"kinase" task wording:** demo.RDS ids/annotations contain no "kinase"
+  substring, so search legitimately returns 0 hits and the honest model
+  asks for clarification (0/3). Dataset-faithful "MAPK" variants (106/108)
+  measure the actual find+select skill.
+- Tasks 4/5 are near-no-ops on demo.RDS (the default feature scatter IS
+  the RE vs ME volcano); kept for plan comparability.
+- Harness rules absorbed: request cap (`OMICSVIEWER_LLM_MAX_REQUESTS=8`)
+  stops runaway retry loops; the diagnostic log's
+  `assistant_response`+`stream_status idle` pair is the authoritative
+  turn-completion signal (settle ≈ 6 s instead of fixed 18–24 s quiet).
+
 `update_figure(figure_id, changes = list(labels = ..., theme = ...))` where
 `changes` has the same shape as a spec but all fields optional. Server
 merges onto the stored normalized spec (WP3 registry), validates the merged
 result, renders. Full-resend remains supported (spec present ⇒ patch
-ignored). Patch-mode itself keeps the benchmark gate (decision 5): build it
-if tasks 10–11 show revision failures persisting after WP1–WP3.
+ignored). Patch-mode itself keeps the benchmark gate (decision 5): **gate
+run 2026-09-24 returned 5/6 ≥ 2/3 — patch mode shelved; reopen only if a
+future full ×3 run shows revision failures persisting.**
 
 ### WP8: first new capability tools (enrichment / table view)
 
@@ -744,7 +787,7 @@ render after selection — the exact missed regression) |
 | 5 | WP5b prompt workflows | S | **DONE** — module_aiAssistant.R (+ task 17, tier_b settle hardening, live smoke) |
 | 6 | re-run benchmark (Tier B), compare | S | **smoke done** (glm-5.3-flash; overview + round-trip validated, sentinel fix verified before/after); full ×3 at phase gate |
 | 7 | WP6 figure templates | M | **DONE** (2026-09-24) — auxi_agentFigures.R (`agent_figure_template_spec`/`agent_figure_templates`, sentinel-hardened param helpers) + module_aiAssistant.R (template args on create_figure, template-aware prompt workflows); unit 60+33 green, Tier A 93/93 ×2, live Tier B volcano smoke first-attempt success |
-| 7b | WP7 patch-mode update_figure | M | **GATED** (decision 5): build only if tasks 10–11 first-attempt success < 2/3 at the full ×3 phase-gate run |
+| 7b | WP7 patch-mode update_figure | M | **GATED NO (2026-09-24)** — full ×3 Tier B run: tasks 10+11 first-attempt 5/6 = 83% ≥ 2/3, all revisions via full-spec update_figure; single miss was a provider stream hang. Patch mode shelved (runner: tests/e2e_agent/tier_b_full.mjs + score_tier_b_gate.R; artifacts: artifacts/gate). Follow-ups from the same run: WP6b template+spec collision fix + features/samples template args; MAPK wording variants for tasks 6/8 |
 | 8 | WP8 enrichment/table tools | M | after WP7 gate |
 | last | WP9–WP12 (Phase 3) | M/L | new file(s) |
 

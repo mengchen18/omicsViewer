@@ -907,7 +907,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # same render/round-trip path as hand-written specs, so template
       # figures stay revisable through update_figure.
       expand_figure_template <- function(template, x, y, color, label_top_n,
-                                        title, space) {
+                                        title, space, features, samples) {
         agent_figure_template_spec(
           template = template,
           x = x,
@@ -916,6 +916,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           label_top_n = label_top_n,
           title = title,
           space = space,
+          features = features,
+          samples = samples,
           feature_data = isolate(feature_data()),
           sample_data = isolate(sample_data()),
           expression = isolate(expression_data()),
@@ -926,29 +928,45 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
 
       create_figure_tool <- ellmer::tool(
         function(spec = NULL, template = NULL, x = NULL, y = NULL, color = NULL,
-                 label_top_n = NULL, title = NULL, space = NULL, `_intent`) {
+                 label_top_n = NULL, title = NULL, space = NULL, features = NULL,
+                 samples = NULL, `_intent`) {
           if (length(isolate(figures())) >= 20L)
             stop("This session already has the maximum of 20 AI figures.")
           template_name <- NULL
           spec_absent <- is.null(spec) || length(spec) == 0L ||
             agent_sentinel_string(spec)
           template_present <- !.agent_param_absent(template)
+          template_ignored <- FALSE
           if (template_present) {
-            if (!spec_absent)
-              stop("Provide either template arguments or a full spec, not both.")
-            expanded <- shiny::withReactiveDomain(
-              session_domain,
-              expand_figure_template(template, x, y, color, label_top_n, title, space)
-            )
-            spec <- expanded$spec
-            template_name <- expanded$template
+            if (!spec_absent) {
+              # WP6b (2026-09-24 benchmark evidence): models echo the WP3
+              # round-trip spec AND fill template shorthand in one call.
+              # A hard "not both" error was never recovered from (16
+              # identical retries in one task). The spec is authoritative —
+              # it is the full previous figure — so honor it and surface a
+              # warning instead of rejecting the call.
+              template_ignored <- TRUE
+            } else {
+              expanded <- shiny::withReactiveDomain(
+                session_domain,
+                expand_figure_template(template, x, y, color, label_top_n,
+                                      title, space, features, samples)
+              )
+              spec <- expanded$spec
+              template_name <- expanded$template
+            }
           } else if (spec_absent) {
-            stop("create_figure requires either a template (with x and optional y, color, label_top_n, title, space) or a full spec.")
+            stop("create_figure requires either a template (with x and optional y, color, label_top_n, features, samples, title, space) or a full spec.")
           }
           result <- shiny::withReactiveDomain(
             session_domain,
             render_assistant_figure(spec, template = template_name)
           )
+          if (template_ignored)
+            result$metadata$warnings <- c(
+              result$metadata$warnings,
+              "Template arguments ignored: a full spec was also provided and takes precedence. To use template shorthand, resend WITHOUT the spec."
+            )
           ellmer::ContentToolResult(
             value = result$metadata,
             extra = list(display = result$display)
@@ -957,8 +975,9 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         name = "create_figure",
         description = paste(
           "Create a static ggplot2 figure.",
-          "Preferred for common plots: pass template ('volcano', 'scatter', 'boxplot', 'histogram') with a few exact column names (x; y; color; label_top_n; title; space) and the server expands it to a validated figure.",
-          "Templates: volcano = fold change vs log-scale significance (x, y required; label_top_n labels the most significant features); boxplot = numeric column by group, or without y the expression of the selected features by a sample column; scatter and histogram = two or one annotation columns.",
+          "Preferred for common plots: pass template ('volcano', 'scatter', 'boxplot', 'histogram') with a few exact column names (x; y; color; label_top_n; features; samples; title; space) and the server expands it to a validated figure.",
+          "Templates: volcano = fold change vs log-scale significance (x, y required; label_top_n labels the most significant features); boxplot = numeric column by group, or without y the expression of the selected features (or an explicit features subset) by a sample column; scatter and histogram = two or one annotation columns.",
+          "Never send a template AND a spec together: when both are present the spec is used and the template arguments are ignored.",
           "The chat displays a small preview and a high-resolution PNG download.",
           "The result includes the full normalized spec under 'spec'; reuse it verbatim when revising this figure with update_figure.",
           "For advanced multi-layer figures pass the full declarative spec instead; for expression data use feature__ and sample__ prefixed metadata columns described by the figure grammar.",
@@ -989,6 +1008,17 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           title = ellmer::type_string("Figure title (at most 200 characters).", required = FALSE),
           space = ellmer::type_string(
             "'feature' or 'sample'; disambiguates column names present in both spaces.",
+            required = FALSE
+          ),
+          features = ellmer::type_array(
+            ellmer::type_string("Exact feature ID."),
+            paste("Optional: restrict the plotted features (e.g. the first N selected genes);",
+                  "defaults to the current selection for expression figures and all features otherwise."),
+            required = FALSE
+          ),
+          samples = ellmer::type_array(
+            ellmer::type_string("Exact sample ID."),
+            "Optional: restrict the plotted samples of expression figures.",
             required = FALSE
           ),
           spec = .ai_figure_spec_type(required = FALSE),

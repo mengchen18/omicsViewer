@@ -16,6 +16,24 @@ harness bugs, varying failures are model nondeterminism.
 
 ## Core tasks (WP5)
 
+Wording notes (settled at the 2026-09-24 WP7 gate run):
+
+- Tasks 4/5 are near-no-ops on demo.RDS — the default feature scatter IS
+  the RE vs ME volcano; kept verbatim for plan comparability.
+- "kinase" (tasks 6/8) matches NOTHING in demo.RDS ids/annotations, so
+  search legitimately returns 0 hits and an honest model asks for
+  clarification instead of selecting. The dataset-faithful "MAPK" variants
+  (ids 106/108 in `tier_b_full.mjs`, `--tasks 106,108`) measure the actual
+  find+select skill and are the ones scored going forward.
+- Task 11's "category" does not exist in demo.RDS feature annotations (the
+  only discrete columns are gene IDs); the probe colors by a real column
+  (`Intensity`) — the same revision skill (aesthetic remap via the echoed
+  spec + update_figure).
+
+Runner: `node tier_b_full.mjs --run K [--tasks ids] [--label gate]` (fresh
+app + fresh chat per task, multi-prompt tasks, request cap 8, log-aware
+settle); scoring: `Rscript score_tier_b_gate.R <label>`.
+
 1. "What dataset is loaded?" (state orientation)
 2. "How many genes are selected?"
 3. "Switch to the Sample tab"

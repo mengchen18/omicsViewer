@@ -107,6 +107,26 @@ agent_figure_grammar <- function() {
     (is.character(value) && agent_sentinel_string(value[1]))
 }
 
+.agent_figure_ids_param <- function(value, name) {
+  # WP6b: optional ID-array template argument (features/samples). Normalizes
+  # the provider-artifact shapes seen in tool traffic — ellmer tibbles,
+  # record lists, NA entries, literal sentinel strings ("null", "[]") — to
+  # a trimmed character vector, or NULL when effectively omitted.
+  if (.agent_param_absent(value)) return(NULL)
+  if (inherits(value, "data.frame"))
+    value <- unlist(lapply(as.list(value), as.character), use.names = FALSE)
+  else if (is.list(value))
+    value <- unlist(lapply(value, function(v) as.character(v)[1]), use.names = FALSE)
+  else
+    value <- as.character(value)
+  value <- trimws(value[!is.na(value)])
+  value <- value[nzchar(value) & !(value %in% AGENT_SENTINEL_STRINGS)]
+  if (!length(value)) return(NULL)
+  if (anyDuplicated(value))
+    stop("Figure ", name, " must be unique IDs; duplicate entries found.")
+  value
+}
+
 .agent_figure_choice <- function(value, choices, name, fallback = NULL) {
   if (is.null(value) || length(value) == 0 || is.na(value) ||
       agent_sentinel_string(value))
@@ -429,12 +449,16 @@ agent_figure_templates <- function() {
       description = paste(
         "Boxplot of a numeric column grouped by a categorical column.",
         "Without y it plots the expression distribution of the currently",
-        "selected features grouped by a sample annotation column."
+        "selected features grouped by a sample annotation column; pass an",
+        "explicit features array to plot a subset (e.g. the first N",
+        "selected genes)."
       ),
       arguments = list(
         x = "Required grouping column: a categorical annotation column, or (when y is omitted) a sample annotation column.",
         y = "Optional numeric column; omit it to plot the expression of the selected features (__expression__) by a sample grouping.",
         color = "Optional column mapped to fill (defaults to the grouping column x).",
+        features = "Optional array of exact feature IDs; restricts expression mode to these features (at most 50; the current selection is the default).",
+        samples = "Optional array of exact sample IDs; restricts expression mode to these samples (at most 200).",
         title = "Optional title; defaults to '<y> by <x>' (or 'Expression by <x>')."
       )
     ),
@@ -445,6 +469,10 @@ agent_figure_templates <- function() {
         color = "Optional column mapped to fill for grouped histograms.",
         title = "Optional title; defaults to 'Distribution of <x>'."
       )
+    ),
+    shared_arguments = list(
+      features = "Accepted by every template: optional array of exact feature IDs restricting the plotted rows (validated against the dataset; expression figures allow at most 50).",
+      samples = "Accepted by every template: optional array of exact sample IDs restricting expression figures (at most 200)."
     )
   )
 }
@@ -492,7 +520,8 @@ agent_figure_templates <- function() {
 }
 
 .agent_template_volcano <- function(x, y, color, label_top_n, title,
-                                    feature_data, sample_data) {
+                                    feature_data, sample_data,
+                                    features = NULL) {
   x_col <- .agent_template_column(
     x, "x (fold change)", feature_data, sample_data, space = "feature")
   y_col <- .agent_template_column(
@@ -517,10 +546,14 @@ agent_figure_templates <- function() {
   if (label_top_n > 0L) {
     # reorder the plotted rows so the capped label layer marks exactly the
     # most significant features: higher y = more significant (the app's
-    # log.pvalue/log.fdr convention; see module_meta_scatter volcano detection)
+    # log.pvalue/log.fdr convention; see module_meta_scatter volcano detection).
+    # An explicit features subset is ranked within itself.
     significance <- feature_data[[y_col$column]]
-    ids <- rownames(feature_data)
-    spec$features <- ids[order(significance, decreasing = TRUE, na.last = TRUE)]
+    ids <- if (!is.null(features)) features else rownames(feature_data)
+    spec$features <- ids[order(
+      significance[match(ids, rownames(feature_data))],
+      decreasing = TRUE, na.last = TRUE
+    )]
     spec$layers <- c(spec$layers, list(list(
       geom = "label",
       x = x_col$column,
@@ -567,7 +600,7 @@ agent_figure_templates <- function() {
 
 .agent_template_boxplot <- function(x, y, color, title,
                                     feature_data, sample_data, space,
-                                    selected_features) {
+                                    selected_features, features = NULL) {
   x_col <- .agent_template_column(x, "x (grouping)", feature_data, sample_data, space)
   y_value <- .agent_figure_scalar(y, max_chars = 500L)
   if (is.null(y_value)) {
@@ -576,8 +609,8 @@ agent_figure_templates <- function() {
     if (!identical(x_col$space, "sample"))
       stop("Boxplot without a y column plots the expression of selected features grouped by a sample annotation; x column '",
            x_col$column, "' is feature-space. Pass a numeric y column for a feature-space boxplot.")
-    if (!length(selected_features))
-      stop("Boxplot expression mode requires selected features; select features in the app first or use the full spec with explicit feature IDs.")
+    if (!length(selected_features) && is.null(features))
+      stop("Boxplot expression mode requires plotted features; select features in the app first, or pass explicit feature IDs through the features argument.")
     color_col <- .agent_template_column(
       color, "color", feature_data, sample_data, "sample", required = FALSE)
     grouped <- paste0("sample__", x_col$column)
@@ -660,6 +693,11 @@ agent_figure_templates <- function() {
 #' @param title Optional plot title.
 #' @param space Optional "feature" or "sample" disambiguation when a column
 #'   name exists in both annotation spaces.
+#' @param features Optional character vector of exact feature IDs restricting
+#'   the plotted rows (e.g. a subset of the current selection); the current
+#'   selection remains the default.
+#' @param samples Optional character vector of exact sample IDs restricting
+#'   the plotted rows of expression figures.
 #' @param feature_data Feature metadata.
 #' @param sample_data Sample metadata.
 #' @param expression Expression matrix (passed through to normalization).
@@ -674,6 +712,7 @@ agent_figure_templates <- function() {
 agent_figure_template_spec <- function(template = NULL, x = NULL, y = NULL,
                                        color = NULL, label_top_n = NULL,
                                        title = NULL, space = NULL,
+                                       features = NULL, samples = NULL,
                                        feature_data, sample_data,
                                        expression = NULL,
                                        selected_features = character(),
@@ -690,21 +729,40 @@ agent_figure_template_spec <- function(template = NULL, x = NULL, y = NULL,
   if (label_top_n > 0L && template_value %in% c("boxplot", "histogram"))
     stop("label_top_n is supported by the volcano and scatter templates only.")
   title_value <- .agent_figure_scalar(title)
+  # WP6b: normalize the optional ID subsets up front so the volcano
+  # template can rank within the subset.
+  features_value <- .agent_figure_ids_param(features, "features")
+  samples_value <- .agent_figure_ids_param(samples, "samples")
 
   spec <- switch(
     template_value,
     volcano = .agent_template_volcano(
-      x, y, color, label_top_n, title_value, feature_data, sample_data),
+      x, y, color, label_top_n, title_value, feature_data, sample_data,
+      features_value),
     scatter = .agent_template_scatter(
       x, y, color, label_top_n, title_value, feature_data, sample_data,
       .agent_template_space(space)),
     boxplot = .agent_template_boxplot(
       x, y, color, title_value, feature_data, sample_data,
-      .agent_template_space(space), selected_features),
+      .agent_template_space(space), selected_features, features_value),
     histogram = .agent_template_histogram(
       x, color, title_value, feature_data, sample_data,
       .agent_template_space(space))
   )
+
+  # WP6b: attach the optional explicit ID subsets (e.g. "the first 20
+  # selected genes" — previously inexpressible on the template path, which
+  # forced models into the template+spec collision). The volcano template
+  # already set spec$features when ranking for label_top_n; IDs are
+  # validated downstream by agent_normalize_figure_spec against the live
+  # rownames, and each subset only lands on data sources that plot it.
+  if (!is.null(features_value) &&
+      spec$data_source %in% c("feature_annotation", "expression") &&
+      is.null(spec$features))
+    spec$features <- features_value
+  if (!is.null(samples_value) &&
+      spec$data_source %in% c("sample_annotation", "expression"))
+    spec$samples <- samples_value
 
   list(
     template = template_value,

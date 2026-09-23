@@ -353,17 +353,18 @@ shiny::testServer(
       grepl("must be numeric", template_error),
       "template path validates through the server-side expansion"
     )
-    conflict_error <- tryCatch(
-      tools$create_figure(
-        template = "volcano", x = "score", y = "score",
-        spec = list(layers = list(list(geom = "point", x = "score", y = "score"))),
-        `_intent` = "unit test"
-      ),
-      error = function(e) conditionMessage(e)
+    conflict_result <- tools$create_figure(
+      template = "volcano", x = "score", y = "score",
+      spec = list(layers = list(list(geom = "point", x = "score", y = "score"))),
+      `_intent` = "unit test"
     )
     ok(
-      grepl("not both", conflict_error),
-      "template and full spec are mutually exclusive"
+      grepl(
+        "Template arguments ignored",
+        paste(conflict_result@value$warnings, collapse = " ")
+      ) &&
+        ut_cmp_identical(conflict_result@value$spec$layers[[1]]$x, "score"),
+      "WP6b: spec takes precedence over template shorthand, with a warning"
     )
     missing_error <- tryCatch(
       tools$create_figure(`_intent` = "unit test"),
