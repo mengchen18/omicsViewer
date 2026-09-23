@@ -32,8 +32,10 @@
 #'   \code{get_ui_capability}) generated from the same registry
 #'   (plan section 6.3, S3/WP8/WP9).
 #'
-#' @return The UI returns Shiny tags. The server module is invoked for its side
-#'   effects and returns NULL invisibly.
+#' @return The UI returns Shiny tags. The server module returns (invisibly)
+#'   the WP11 assistant API: \code{snapshot_payload()} for the opt-in .ESS
+#'   conversation snapshot, \code{restore_history(payload)} for restore,
+#'   and \code{has_conversation()}.
 #'
 #' @keywords internal
 #' @name aiAssistantModule
@@ -1557,6 +1559,107 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       )
     })
 
-    invisible(NULL)
+    # ------------------------------------------------------------------
+    # WP11: conversation-in-snapshot API. The .ESS snapshot is the single,
+    # opt-in persistence path (shinychat's own history stores are not
+    # enabled - file-based persistence would violate the opt-in
+    # guardrail). snapshot_payload() is called by the app-level save
+    # observer when the user opts in; restore_history() by the restore
+    # observer. Restored turns are inert context: no tool call executes on
+    # restore, and figure specs re-validate against the CURRENT dataset
+    # the next time update_figure uses them.
+    # ------------------------------------------------------------------
+    assistant_api <- list(
+      snapshot_payload = function() {
+        if (is.null(chat_object))
+          return(NULL)
+        turns <- tryCatch(chat_object$client$get_turns(), error = function(e) NULL)
+        if (is.null(turns) || !length(turns))
+          return(NULL)
+        tryCatch(
+          agent_history_payload(turns, isolate(figures())),
+          error = function(e) {
+            agent_logger_event(
+              logger, "history_snapshot_failed",
+              list(error = .agent_log_condition(e))
+            )
+            NULL
+          }
+        )
+      },
+      restore_history = function(payload) {
+        validated <- tryCatch(
+          agent_history_restore_payload(payload),
+          error = function(e) {
+            agent_logger_event(
+              logger, "history_restore_rejected",
+              list(error = .agent_log_condition(e))
+            )
+            showNotification(
+              paste("AI conversation in this snapshot could not be restored:",
+                    conditionMessage(e)),
+              type = "warning", duration = 8
+            )
+            NULL
+          }
+        )
+        if (is.null(validated))
+          return(invisible(FALSE))
+
+        # figure registry: inert metadata + specs; update_figure re-validates
+        figs <- validated$figures
+        if (length(figs)) {
+          registry <- isolate(figures())
+          for (f in figs)
+            if (!is.null(f$id))
+              registry[[f$id]] <- f
+          figures(registry)
+          mx <- suppressWarnings(
+            max(as.integer(sub("fig_", "", names(registry), fixed = TRUE)),
+                na.rm = TRUE))
+          if (is.finite(mx))
+            figure_counter(mx)
+        }
+
+        chat_restored <- FALSE
+        if (!is.null(chat_object) &&
+            !identical(chat_object$status(), "streaming")) {
+          chat_restored <- tryCatch({
+            # text transcript into the UI (clear also resets client turns),
+            # then install the full-fidelity turns as model context
+            chat_object$clear(
+              messages = lapply(validated$transcript, function(r)
+                list(role = r$role, content = r$text)),
+              greeting = FALSE,
+              client_history = "set"
+            )
+            chat_object$client$set_turns(validated$turns)
+            TRUE
+          }, error = function(e) {
+            agent_logger_event(
+              logger, "history_restore_chat_failed",
+              list(error = .agent_log_condition(e))
+            )
+            FALSE
+          })
+        }
+        agent_logger_event(
+          logger, "history_restored",
+          list(
+            turn_count = length(validated$turns),
+            figure_count = length(validated$figures),
+            chat_ui = chat_restored,
+            truncated = isTRUE(validated$truncated)
+          )
+        )
+        invisible(TRUE)
+      },
+      has_conversation = function() {
+        !is.null(chat_object) &&
+          length(tryCatch(chat_object$client$get_turns(), error = function(e) NULL)) > 0
+      }
+    )
+
+    invisible(assistant_api)
   })
 }

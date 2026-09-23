@@ -815,3 +815,175 @@ agent_normalize_scatter_view <- function(space, quick_view_id = NULL,
   list(space = space, mode = "custom", quick_view_id = NULL,
        x_axis = x_axis, y_axis = y_axis)
 }
+
+############################################################################
+### WP11: conversation-in-snapshot helpers
+###
+### The .ESS snapshot is the single, opt-in persistence path for the
+### conversation (shinychat's own history stores are deliberately NOT
+### enabled: file-based storage would persist transcripts outside the
+### opt-in guardrail). Turns serialize with display-only payloads (base64
+### figure previews) stripped and credential-like strings redacted; the
+### figure registry rides along so update_figure revision keeps working
+### after restore (specs re-validate against the CURRENT dataset at use -
+### restored tool evidence never restores execution authority).
+############################################################################
+
+.agent_history_key_pattern <- paste(
+  "sk-[A-Za-z0-9_-]{16,}",
+  "sk-ant-[A-Za-z0-9_-]{16,}",
+  "gsk_[A-Za-z0-9]{16,}",
+  "xai-[A-Za-z0-9_-]{16,}",
+  "Bearer[[:space:]]+[A-Za-z0-9._-]{16,}",
+  sep = "|"
+)
+
+#' Redact credential-like strings from history text
+#'
+#' Belt-and-braces guardrail: API keys never legitimately enter chat turns
+#' (configuration happens in a modal), but anything key-shaped is replaced
+#' before transcript text is persisted or displayed.
+#'
+#' @param text Character vector.
+#' @return Character vector with key-shaped substrings replaced by
+#'   \code{"[redacted]"}.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_history_redact <- function(text) {
+  gsub(.agent_history_key_pattern, "[redacted]", text)
+}
+
+#' Slim one turn for snapshot persistence
+#'
+#' Drops display-only payloads (embedded base64 figure previews inflate
+#' every tool result by 100+ KB) from tool results; keeps values and errors
+#' as inert context. Returns a NEW turn (the live session object is never
+#' mutated).
+#'
+#' @param turn An ellmer Turn object.
+#' @return A new Turn of the same class with slimmed contents.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+.agent_slim_turn <- function(turn) {
+  contents <- lapply(turn@contents, function(x) {
+    if (inherits(x, "ellmer::ContentToolResult"))
+      return(ellmer::ContentToolResult(value = x@value, error = x@error))
+    x
+  })
+  if (inherits(turn, "ellmer::AssistantTurn")) {
+    ellmer::AssistantTurn(
+      contents = contents,
+      tokens = turn@tokens, cost = turn@cost,
+      duration = turn@duration, finish_reason = turn@finish_reason
+    )
+  } else if (inherits(turn, "ellmer::UserTurn")) {
+    ellmer::UserTurn(contents = contents)
+  } else {
+    turn
+  }
+}
+
+#' Turn list to bounded display records
+#'
+#' @param turns List of ellmer Turn objects.
+#' @return List of \code{list(role, text)} records (text-only transcript;
+#' assistant tool calls summarized by name in brackets).
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_transcript_records <- function(turns) {
+  lapply(turns, function(t) {
+    texts <- vapply(t@contents, function(x)
+      tryCatch(ellmer::contents_text(x) %||% "", error = function(e) ""),
+      character(1))
+    text <- paste(texts[nzchar(texts)], collapse = "\n")
+    calls <- vapply(
+      Filter(function(x) inherits(x, "ellmer::ContentToolRequest"), t@contents),
+      function(x) x@name, character(1))
+    if (length(calls))
+      text <- paste(c(text, paste0("[called ", paste(calls, collapse = ", "), "]")),
+                    collapse = "\n")
+    list(role = if (identical(t@role, "user")) "user" else "assistant",
+         text = agent_history_redact(text))
+  })
+}
+
+#' Build the assistant snapshot payload
+#'
+#' Byte-capped (default 256 KB, measured by actual serialization size):
+#' oldest turns drop first, at least the last two turns always survive.
+#' Returns NULL when there is nothing to save.
+#'
+#' @param turns Client turns (\code{client$get_turns()}).
+#' @param figures Figure registry (\code{figures()}); at most 20 entries.
+#' @param max_bytes Serialized-size budget in bytes.
+#' @return A versioned payload list, or NULL.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_history_payload <- function(turns, figures = list(),
+                                  max_bytes = 256L * 1024L) {
+  turns <- Filter(function(t) inherits(t, "ellmer::Turn"), turns)
+  if (!length(turns))
+    return(NULL)
+  slim <- lapply(turns, .agent_slim_turn)
+  records <- agent_transcript_records(slim)
+  # object.size over-counts S7 objects (class metadata is charged to every
+  # instance), so measure the real serialization footprint instead
+  text_bytes <- c(0L, cumsum(nchar(vapply(records, function(r) r$text,
+                                          character(1)), type = "bytes")))
+  turn_bytes <- vapply(slim, function(t)
+    length(serialize(t, connection = NULL)), numeric(1))
+  cum_bytes <- text_bytes[-1] + cumsum(turn_bytes)
+  keep <- length(slim)
+  while (keep > 2L && cum_bytes[[keep]] > max_bytes)
+    keep <- keep - 1L
+  list(
+    version = 1L,
+    saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    turns = if (keep == length(slim)) slim else slim[seq_len(keep)],
+    transcript = if (keep == length(slim)) records else records[seq_len(keep)],
+    figures = if (length(figures)) figures[seq_len(min(length(figures), 20L))] else list(),
+    truncated = keep < length(slim),
+    bytes = round(cum_bytes[[keep]])
+  )
+}
+
+#' Validate a restored assistant payload
+#'
+#' Structure, size, and class checks at the restore boundary - snapshots
+#' are untrusted files. Rebuilding is never attempted for malformed data.
+#'
+#' @param payload Candidate payload from a .ESS snapshot.
+#' @param max_bytes Read-side budget (default 512 KB).
+#' @return The validated payload (invisibly normalized), or an error.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_history_restore_payload <- function(payload, max_bytes = 512L * 1024L) {
+  if (is.null(payload) || !is.list(payload) || is.null(payload$version))
+    stop("Assistant payload is missing or malformed.")
+  if (!identical(as.integer(payload$version), 1L))
+    stop("Unsupported assistant payload version: ", payload$version, ".")
+  turns <- payload$turns
+  if (is.null(turns) || !is.list(turns) || !length(turns) ||
+      !all(vapply(turns, function(t) inherits(t, "ellmer::Turn"), logical(1))))
+    stop("Assistant payload turns are malformed.")
+  transcript <- payload$transcript
+  if (is.null(transcript) || !is.list(transcript) ||
+      !all(vapply(transcript, function(r)
+        is.list(r) && nzchar(r$role %||% "") && is.character(r$text),
+        logical(1))))
+    stop("Assistant payload transcript is malformed.")
+  if (length(transcript) != length(turns))
+    stop("Assistant payload transcript does not match its turns.")
+  figures <- payload$figures %||% list()
+  if (!is.list(figures) ||
+      !all(vapply(figures, function(f) is.list(f) && nzchar(f$id %||% ""),
+                  logical(1))))
+    stop("Assistant payload figure registry is malformed.")
+  size <- length(serialize(turns, connection = NULL)) +
+    sum(nchar(vapply(transcript, function(r) r$text, character(1)),
+                   type = "bytes"))
+  if (size > max_bytes)
+    stop(sprintf("Assistant payload is too large to restore (%.0f KB).", size / 1024))
+  payload$figures <- figures[seq_len(min(length(figures), 20L))]
+  payload
+}

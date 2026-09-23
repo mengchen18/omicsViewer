@@ -65,8 +65,10 @@ and the WP9 discovery tools (\code{search_ui_capabilities},
 (plan section 6.3, S3/WP8/WP9).}
 }
 \value{
-The UI returns Shiny tags. The server module is invoked for its side
-  effects and returns NULL invisibly.
+The UI returns Shiny tags. The server module returns (invisibly)
+  the WP11 assistant API: \code{snapshot_payload()} for the opt-in .ESS
+  conversation snapshot, \code{restore_history(payload)} for restore,
+  and \code{has_conversation()}.
 }
 \description{
 The assistant is a session-local, floating chat drawer with constrained declarative figure rendering. It communicates with

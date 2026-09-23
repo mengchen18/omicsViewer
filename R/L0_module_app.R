@@ -860,7 +860,7 @@ app_module <- function(
     )
   }
 
-  ai_assistant_module(
+  assistant_api <- ai_assistant_module(
     "assistant",
     state = agent_state,
     state_available = agent_state_available,
@@ -885,7 +885,8 @@ app_module <- function(
       apply_enrichment = apply_agent_enrichment,
       apply_table_view = apply_agent_table_view,
       state = agent_state,
-      store = app_store
+      store = app_store,
+      assistant = assistant_api
     )
 
   savedSS <- reactiveVal(
@@ -1022,6 +1023,16 @@ app_module <- function(
           column(9, textInput(ns("snapshot_name"), label = "Save new snapshot", placeholder = "snapshot name", width = "100%")),
           column(3, style = "padding-top:25px", actionButton(ns("snapshot_save"), label = "Save"))
         ),
+        # WP11: conversation persistence is opt-in per snapshot - transcripts
+        # may contain sensitive dataset content, so nothing is saved silently.
+        checkboxInput(
+          ns("snapshot_include_chat"),
+          "Include the AI assistant conversation (and its figure registry)",
+          value = FALSE
+        ) %>%
+          tagAppendAttributes(
+            title = "The chat transcript, tool results, and figure specifications are stored inside this snapshot. Credentials are never included."
+          ),
         hr(),
         strong("Load saved snapshots:"),
         DTOutput(ns("tab_saveSS")),
@@ -1074,6 +1085,16 @@ app_module <- function(
     # Canonical widget-store state rides along (S4 start): keeps every
     # registered widget's desired value in one authoritative snapshot.
     obj$widget_store <- store_snapshot(app_store)
+    # WP11: the conversation rides along only when the user opted in and
+    # there is a conversation to save (assistant unconfigured -> NULL).
+    if (isTRUE(input$snapshot_include_chat)) {
+      chat_payload <- tryCatch(
+        assistant_api$snapshot_payload(),
+        error = function(e) NULL
+      )
+      if (!is.null(chat_payload))
+        obj$assistant <- chat_payload
+    }
     write_app_state(obj, flink)
     snapshot_refresh(snapshot_refresh() + 1L)
     removeModal()
@@ -1125,6 +1146,17 @@ app_module <- function(
         store_restore(app_store, ss$widget_store),
         error = function(e)
           warning("Widget-store snapshot restore failed: ", conditionMessage(e))
+      )
+    }
+
+    # WP11: revive the conversation + figure registry when the snapshot
+    # carries one (opt-in at save time). Restored turns are inert context;
+    # figure specs re-validate against the current dataset when reused.
+    if (!is.null(ss$assistant)) {
+      tryCatch(
+        assistant_api$restore_history(ss$assistant),
+        error = function(e)
+          warning("Assistant snapshot restore failed: ", conditionMessage(e))
       )
     }
   })

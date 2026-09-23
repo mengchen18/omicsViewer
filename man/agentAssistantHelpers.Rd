@@ -15,6 +15,11 @@
 \alias{agent_summarize_annotation}
 \alias{agent_normalize_state_update}
 \alias{.agent_nullable_scalar}
+\alias{agent_history_redact}
+\alias{.agent_slim_turn}
+\alias{agent_transcript_records}
+\alias{agent_history_payload}
+\alias{agent_history_restore_payload}
 \title{Internal AI-assistant state and validation helpers}
 \usage{
 .agent_suggest(value, candidates, max = 3L)
@@ -75,6 +80,16 @@ agent_normalize_state_update(
 )
 
 .agent_nullable_scalar(x)
+
+agent_history_redact(text)
+
+.agent_slim_turn(turn)
+
+agent_transcript_records(turns)
+
+agent_history_payload(turns, figures = list(), max_bytes = 256L * 1024L)
+
+agent_history_restore_payload(payload, max_bytes = 512L * 1024L)
 }
 \arguments{
 \item{value}{Rejected value (single string).}
@@ -145,6 +160,18 @@ contents).}
 
 \item{max_samples}{Maximum number of selected samples.}
 
+\item{text}{Character vector.}
+
+\item{turn}{An ellmer Turn object.}
+
+\item{turns}{Client turns (\code{client$get_turns()}).}
+
+\item{figures}{Figure registry (\code{figures()}); at most 20 entries.}
+
+\item{max_bytes}{Read-side budget (default 512 KB).}
+
+\item{payload}{Candidate payload from a .ESS snapshot.}
+
 \item{quick_view_id}{Optional quick-view ID.}
 
 \item{x_axis}{Optional exact annotation column for the X axis.}
@@ -197,6 +224,18 @@ A list containing only explicitly requested, validated changes. An
   empty character vector explicitly clears a selection.
 
 A validated scatter-space and axis update.
+
+Character vector with key-shaped substrings replaced by
+  \code{"[redacted]"}.
+
+A new Turn of the same class with slimmed contents.
+
+List of \code{list(role, text)} records (text-only transcript;
+assistant tool calls summarized by name in brackets).
+
+A versioned payload list, or NULL.
+
+The validated payload (invisibly normalized), or an error.
 }
 \description{
 These helpers provide the compact, JSON-like state bridge between the Shiny
@@ -234,5 +273,21 @@ widget-store scatter view, the \code{available_sections} menu, and the
 state policy. Full-detail sections (annotation catalog, complete
 quick-view records, bounded panel state, figure grammar) are returned by
 the same call only when requested through \code{sections}.
+
+Belt-and-braces guardrail: API keys never legitimately enter chat turns
+(configuration happens in a modal), but anything key-shaped is replaced
+before transcript text is persisted or displayed.
+
+Drops display-only payloads (embedded base64 figure previews inflate
+every tool result by 100+ KB) from tool results; keeps values and errors
+as inert context. Returns a NEW turn (the live session object is never
+mutated).
+
+Byte-capped (default 256 KB, measured by actual serialization size):
+oldest turns drop first, at least the last two turns always survive.
+Returns NULL when there is nothing to save.
+
+Structure, size, and class checks at the restore boundary - snapshots
+are untrusted files. Rebuilding is never attempted for malformed data.
 }
 \keyword{internal}

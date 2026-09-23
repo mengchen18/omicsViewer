@@ -45,7 +45,9 @@ agent_test_hooks_ui <- function(id) {
         "store" = "store",
         "enrichment" = "enrichment",
         "tableview" = "tableview",
-        "capabilities" = "capabilities"
+        "capabilities" = "capabilities",
+        "history_save" = "history_save",
+        "history_restore" = "history_restore"
       ),
       selected = "state"
     ),
@@ -73,12 +75,16 @@ agent_test_hooks_ui <- function(id) {
 #'   sections; mirrors the \code{get_omics_viewer_state} tool surface).
 #' @param store Canonical widget store driving the S3 generic widget tier
 #'   (the exact store the \code{set_widgets} tool writes to).
+#' @param assistant Optional WP11 assistant API (from
+#'   \code{\link{ai_assistant_module}}) exposing the conversation
+#'   snapshot/restore path used by the .ESS machinery.
 #' @rdname agentTestHooksModule
 #' @keywords internal
 agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
                                     state, store = NULL,
                                     apply_enrichment = NULL,
-                                    apply_table_view = NULL) {
+                                    apply_table_view = NULL,
+                                    assistant = NULL) {
   moduleServer(id, function(input, output, session) {
     last_result <- reactiveVal(NULL)
 
@@ -118,6 +124,14 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
                              "column_filters", "page", "clear_filters")]
           update <- update[!vapply(update, is.null, logical(1))]
           apply_table_view(update)
+        } else if (identical(op, "history_save")) {
+          if (is.null(assistant))
+            stop("Assistant API unavailable in this session.")
+          assistant$snapshot_payload()
+        } else if (identical(op, "history_restore")) {
+          if (is.null(assistant))
+            stop("Assistant API unavailable in this session.")
+          shiny::isolate(assistant$restore_history(parsed$payload))
         } else if (identical(op, "capabilities")) {
           if (is.null(store))
             stop("Widget store unavailable in this session.")

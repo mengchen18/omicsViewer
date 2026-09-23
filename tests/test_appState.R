@@ -334,6 +334,20 @@ shiny::testServer(app_rt, {
                                       paste(head(diffs, 5), collapse = ", "),
                                       ")") else "")
   )
+  # WP11 wiring: opting in without a conversation saves no assistant field;
+  # the history hooks expose the exact save/restore path headlessly.
+  session$setInputs(`app-snapshot_include_chat` = TRUE)
+  session$setInputs(`app-snapshot_name` = "rt-chat")
+  session$setInputs(`app-snapshot_save` = 2L)
+  session$flushReact()
+  ess2 <- list.files(.rt_dir, pattern = "rt-chat\\.ESS$", ignore.case = TRUE)
+  ok(length(ess2) == 1L, "opt-in snapshot save writes a second .ESS file")
+  saved2 <- if (length(ess2)) readRDS(file.path(.rt_dir, ess2))
+  ok(is.null(saved2$assistant),
+     "opt-in save without a conversation stores no assistant payload")
+  hs <- .rt_hook(session, output, "history_save", list())
+  ok(is.null(hs) || identical(hs$hook_run > 0L, TRUE),
+     "history save hook runs and reports no conversation without a provider")
 })
 Sys.unsetenv("OMICSVIEWER_TEST_HOOKS")
 unlink(.rt_dir, recursive = TRUE)

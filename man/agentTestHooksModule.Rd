@@ -18,7 +18,8 @@ agent_test_hooks_module(
   state,
   store = NULL,
   apply_enrichment = NULL,
-  apply_table_view = NULL
+  apply_table_view = NULL,
+  assistant = NULL
 )
 }
 \arguments{
@@ -42,6 +43,10 @@ update (as used by \code{set_enrichment_parameters}).}
 
 \item{apply_table_view}{Optional callback applying a validated table-view
 update (as used by \code{set_table_view}).}
+
+\item{assistant}{Optional WP11 assistant API (from
+\code{\link{ai_assistant_module}}) exposing the conversation
+snapshot/restore path used by the .ESS machinery.}
 }
 \value{
 UI tags and a module server, plus the hook-enabled predicate.
