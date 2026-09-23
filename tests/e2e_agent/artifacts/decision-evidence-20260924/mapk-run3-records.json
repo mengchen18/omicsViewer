@@ -1,0 +1,81 @@
+[
+  {
+    "task_id": 106,
+    "prompts": [
+      "Find genes matching 'MAPK' and select the first five"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 5,
+        "sample_selected": 0,
+        "prompt": "Find genes matching 'MAPK' and select the first five",
+        "chat_tail": "Find genes matching 'MAPK' and select the first five\n\nSearched annotations\n: feature : MAPK\n10 matching IDs\n\nFound 10 features matching 'MAPK'. Let me check the current viewer state so I can select the first five without changing anything else.\n\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\n\nNow selecting the first five MAPK matches (this will replace the current 107-feature selection):\n\nUpdated analysis controls\n: data_space_tab, analysis_space_tab, feature_count, sample_count, example_features, example_samples\n0 features; 0 samples\n\nDone! I found 10 features matching 'MAPK' (matched via the General|All|Gene.name annotation) and selected the first five:\n\nX578.MAPK13 (MAPK13)\nX2443.MAPK3 (MAPK3 / ERK1)\nX2484.MAPK1 (MAPK1 / ERK2)\nX2926.MAPK8 (MAPK8 / JNK1)\nX2927.MAPK9 (MAPK9 / JNK2)\n\nNote: this replaced the previous 107-feature selection. If you'd like, I can also select the remaining matches (MAPKAPK2, MAPK7, MAPK14, MAPKAPK3, MAPKAP1), or plot expression profiles for the five selected genes.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 108,
+    "prompts": [
+      "Find genes matching 'MAPK' and select the first five",
+      "Make a boxplot of the expression of the selected genes grouped by sample group"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 5,
+        "sample_selected": 0,
+        "prompt": "Find genes matching 'MAPK' and select the first five",
+        "chat_tail": "Find genes matching 'MAPK' and select the first five\n\nSearched annotations\n: feature : MAPK\n10 matching IDs\n\nFound 10 features matching 'MAPK'. Selecting the first five:\n\nUpdated analysis controls\n: data_space_tab, analysis_space_tab, feature_count, sample_count, example_features, example_samples\n0 features; 0 samples\n\nDone. The search found 10 features matching 'MAPK' (all matched via the General|All|Gene.name annotation column), and I've selected the first five:\n\nX578.MAPK13\nX2443.MAPK3\nX2484.MAPK1\nX2926.MAPK8\nX2927.MAPK9\n\nOther matches not selected include MAPK7, MAPK14, MAPKAPK2, MAPKAPK3, and MAPKAP1 — let me know if you'd like any of those added, or if you'd like to plot the expression of the selected MAPK genes.\n\n\n",
+        "figure_ready": false
+      },
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 5,
+        "sample_selected": 0,
+        "prompt": "Make a boxplot of the expression of the selected genes grouped by sample group",
+        "chat_tail": "Find genes matching 'MAPK' and select the first five\n\nSearched annotations\n: feature : MAPK\n10 matching IDs\n\nFound 10 features matching 'MAPK'. Selecting the first five:\n\nUpdated analysis controls\n: data_space_tab, analysis_space_tab, feature_count, sample_count, example_features, example_samples\n0 features; 0 samples\n\nDone. The search found 10 features matching 'MAPK' (all matched via the General|All|Gene.name annotation column), and I've selected the first five:\n\nX578.MAPK13\nX2443.MAPK3\nX2484.MAPK1\nX2926.MAPK8\nX2927.MAPK9\n\nOther matches not selected include MAPK7, MAPK14, MAPKAPK2, MAPKAPK3, and MAPKAP1 — let me know if you'd like any of those added, or if you'd like to plot the expression of the selected MAPK genes.\n\nMake a boxplot of the expression of the selected genes grouped by sample group\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nThe boxplot needs a grouping column, and this dataset doesn't have a column literally named \"group\". The sample annotations offer these plausible grouping columns:\n\nGeneral|All|Origin — tissue/cell-line origin (9 groups, e.g. likely the NCI-60 panel categories)\nGeneral|All|TP53.Status — TP53 mutation status (MT vs WT)\nGeneral|All|Cell.line — individual cell line (60 groups)\nGeneral|All|Gender — gender (2 groups)\n\nWhich one should I group by? If you'd like, I can default to General|All|Origin, which is the most common \"sample group\" style annotation in this dataset.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  }
+]

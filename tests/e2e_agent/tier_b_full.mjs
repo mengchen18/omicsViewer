@@ -102,44 +102,45 @@ const newestLog = (dir) => {
   } catch { return null; }
 };
 
-const logRequestInFlight = (dir) => {
+const logScan = (dir) => {
+  // One forward pass; returns { lastUser, lastResponse, lastStatusEvent,
+  // lastStatusIdx } so both predicates below avoid the backward-scan
+  // ordering bug (the normal turn ending [request_start, response, idle]
+  // previously never counted as complete because provider_request_start
+  // was seen before assistant_response could set the flag).
   const f = newestLog(dir);
-  if (!f) return false;
+  if (!f) return null;
   try {
     const lines = readFileSync(f, 'utf8').split('\n').filter(l => l.trim());
-    if (!lines.length) return false;
-    // request still active: the newest event is a request start with no
-    // assistant_response yet, OR the stream is still marked streaming
-    const last = JSON.parse(lines[lines.length - 1]);
-    if (last.event === 'provider_request_start') return true;
-    for (let i = lines.length - 1; i >= 0; i--) {
+    let lastUser = -1, lastResponse = -1, lastStatus = null, lastStatusIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
       const ev = JSON.parse(lines[i]);
-      if (ev.event === 'stream_status') return ev.details && ev.details.status === 'streaming';
-      if (ev.event === 'assistant_response') return false;
-      if (ev.event === 'user_message') return false;
+      if (ev.event === 'user_message') lastUser = i;
+      else if (ev.event === 'assistant_response') lastResponse = i;
+      else if (ev.event === 'stream_status') {
+        lastStatus = ev.details && ev.details.status;
+        lastStatusIdx = i;
+      }
     }
-    return false;
-  } catch { return false; }
+    return { n: lines.length, lastUser, lastResponse, lastStatus, lastStatusIdx, last: JSON.parse(lines[lines.length - 1]) };
+  } catch { return null; }
+};
+
+const logRequestInFlight = (dir) => {
+  const s = logScan(dir);
+  if (!s) return false;
+  if (s.last.event === 'provider_request_start') return true;
+  return s.lastStatus === 'streaming' && s.lastStatusIdx === s.n - 1;
 };
 
 // A turn is COMPLETE when the newest request has an assistant_response and
-// the stream went idle — the log is the authoritative completion signal, so
-// the fixed quiet window shrinks to a short double-check (2 rounds / 6 s).
+// the stream then went idle — the log is the authoritative completion signal,
+// so the fixed quiet window shrinks to a short double-check (2 rounds / 6 s).
 const logTurnComplete = (dir) => {
-  const f = newestLog(dir);
-  if (!f) return false;
-  try {
-    const lines = readFileSync(f, 'utf8').split('\n').filter(l => l.trim());
-    let sawResponse = false;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const ev = JSON.parse(lines[i]);
-      if (ev.event === 'user_message') return sawResponse;
-      if (ev.event === 'assistant_response') sawResponse = true;
-      if (ev.event === 'provider_request_start') return false;
-      if (ev.event === 'stream_status' && sawResponse && ev.details && ev.details.status === 'idle') return true;
-    }
-    return false;
-  } catch { return false; }
+  const s = logScan(dir);
+  if (!s) return false;
+  return s.lastUser >= 0 && s.lastResponse > s.lastUser &&
+    s.lastStatusIdx > s.lastResponse && s.lastStatus === 'idle';
 };
 
 // ---- one task = one fresh app + fresh chat ----------------------------------

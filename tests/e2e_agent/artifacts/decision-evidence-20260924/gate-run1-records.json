@@ -1,0 +1,431 @@
+[
+  {
+    "task_id": 1,
+    "prompts": [
+      "What dataset is loaded?"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "What dataset is loaded?",
+        "chat_tail": "What dataset is loaded?\n\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\n\nThe currently loaded dataset is:\n\nID: ESVObj.RDS\nClass: ExpressionSet\nDimensions: 2,702 features (e.g., genes/proteins) × 60 samples\n\nYou're currently on the Feature tab in both the data space and analysis space, with 107 features selected (e.g., X274.MYO1C, X341.AGRN, X361.PES1...). The feature scatter view is showing a volcano-style plot for the RE vs ME comparison (mean difference vs. log-scale significance).\n\nAvailable quick views include PCA plots, correlation with MDR and Doubling Time, and volcano plots for the RE vs ME, RE vs LE, and MT vs WT comparisons. Let me know if you'd like to explore any of these!\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 2,
+    "prompts": [
+      "How many genes are currently selected?"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "How many genes are currently selected?",
+        "chat_tail": "How many genes are currently selected?\n\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\n\nCurrently, 107 genes (features) are selected. Examples of the selected genes include MYO1C, AGRN, PES1, GAPDHS, CHD1, PHYH, OPLAH, CASK, SYNJ1, and ZC3H11A (the list is truncated to the first 20). No samples are selected.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 3,
+    "prompts": [
+      "Switch to the Sample tab"
+    ],
+    "observations": [
+      {
+        "tab": "Sample",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "",
+          "Abundance of selected features"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Switch to the Sample tab",
+        "chat_tail": "Switch to the Sample tab\n\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\nUpdated analysis controls\n: data_space_tab, analysis_space_tab, feature_count, sample_count, example_features, example_samples\n0 features; 0 samples\n\nDone — the data space now shows the Sample tab (previously on \"Feature\"). Everything else is unchanged: the analysis space is still on \"Feature,\" and your current selection of 107 features remains active with no samples selected.\n\nLet me know if you'd like to explore sample annotations, switch to another tab (e.g., \"Sample table\" or \"Heatmap\"), or select samples.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 4,
+    "prompts": [
+      "Make a volcano plot of the current results"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Make a volcano plot of the current results",
+        "chat_tail": "nd the exact fold-change and significance columns available.\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nThe current view is already showing the RE vs ME t-test comparison (mean.diff vs log.fdr), so I'll create a static volcano plot for that comparison and label the most significant proteins.\n\nCreated AI figure fig_1\n: feature_annotation | 2702 rows\nStatic volcano plot of the currently displayed RE vs ME t-test results, labeling the top 10 most significant proteins.\n3 layer(s); 403738 byte full PNG\n572 x 429 preview | 0.4 MB full PNG\n⇩ High-res PNG\n\nDone! I created a static volcano plot (fig_1) for the comparison currently shown in your feature scatter view:\n\nX-axis: ttest|RE_vs_ME|mean.diff (mean difference, RE vs ME)\nY-axis: ttest|RE_vs_ME|log.fdr (log-scaled FDR significance)\nContent: all 2,702 proteins, with a reference line at zero fold change\nLabels: the top 10 most significant proteins are labeled, including UCHL1, CSK, GPC1, DLG1, PTPN6, PSMB10, STXBP1, ATM, SSH3, and TRMT6\nA small preview is shown in the chat, and a high-resolution PNG (2400×1800) is available for download.\n\nNote: 2 proteins were dropped for missing values, which matches the missing entries in the RE_vs_ME columns.\n\nThe dataset also has two other precomputed comparisons — RE vs LE and MT vs WT (TP53 status). Want me to make volcano plots for either of those, or revise this one (e.g., more labels, different colors, or faceting)?\n\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 5,
+    "prompts": [
+      "Plot log FDR versus mean difference for the RE vs ME comparison with custom axes"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Plot log FDR versus mean difference for the RE vs ME comparison with custom axes",
+        "chat_tail": "sis tab: Feature\n\nThe dataset has the exact columns for that comparison: ttest|RE_vs_ME|mean.diff (x) and ttest|RE_vs_ME|log.fdr (y). I'll build the volcano-style figure with those custom axes.\n\nCreated AI figure fig_1\n: feature_annotation | 2702 rows\nVolcano plot of log FDR vs mean difference for the RE vs ME t-test comparison with custom axis labels\n3 layer(s); 405141 byte full PNG\n572 x 429 preview | 0.4 MB full PNG\n⇩ High-res PNG\n\nDone — the figure is created (figure fig_1). Here's what it shows:\n\nRE vs ME volcano-style plot (2,702 proteins)\n\nX axis (custom): ttest|RE_vs_ME|mean.diff — mean difference RE vs ME, with a vertical reference line at 0\nY axis (custom): ttest|RE_vs_ME|log.fdr — log FDR for the same comparison\nLabels: the 10 most significant features are annotated with their IDs\nNote: 2 features had missing values in this comparison and were dropped from the points layer\n\nA couple of clarifications, since \"custom axes\" can mean a few things:\n\nAxis labels — the axes currently use the raw column names. I can relabel them (e.g., \"Mean difference (RE − ME)\" / \"log FDR\") if you'd like presentation-ready labels.\nAxis transforms — the axes are currently untransformed (identity). If by \"custom\" you meant a log scale on either axis, or the opposite orientation (log FDR on x), tell me which.\nColoring — points are currently uncolored; I can map color to, e.g., General|All|Intensity or a significance threshold if you want.\n\nWhich of these (if any) would you like adjusted?\n\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 6,
+    "prompts": [
+      "Find genes matching 'kinase' and select the first five"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Find genes matching 'kinase' and select the first five",
+        "chat_tail": "Find genes matching 'kinase' and select the first five\n\nI'll look up the current state and search the feature annotations for 'kinase' in parallel.\n\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\nSearched annotations\n: feature : kinase\n0 matching IDs\n\nThe initial search came back empty, so before concluding, let me verify with a few alternative queries (a partial match and common kinase gene-symbol families).\n\nSearched annotations\n×4\n\nHere's what I found:\n\nNo genes literally match 'kinase'. The dataset's gene annotations (e.g., General|All|Gene.name) use gene symbols only, so the word \"kinase\" never appears. However, kinase genes definitely exist in this dataset — matched by their symbols:\n\nQuery\tMatching features (examples)\tTotal matched\nMAPK\tX578.MAPK13, X2443.MAPK3, X2484.MAPK1, X2926.MAPK8, X2927.MAPK9...\t10\nCDK\tX1634.CDK1, X1918.CDK4, X2388.CDK2, X3145.CDK7, X3150.CDK9...\t15\nCAMK\tX4323.CAMK2G, X4324.CAMK2D, X4407.CAMK1, X4855.CAMK4, X6203.CAMK1D\t5\n\nSince \"select the first five\" depends on which set you mean, could you clarify? For example:\n\nFirst five MAPK-family kinases (MAPK13, MAPK3, MAPK1, MAPK8, MAPK9), or\nFirst five CDK-family kinases, or\nAnother specific kinase family/gene you have in mind (e.g., SRC, JAK, ALK).\n\nLet me know and I'll select them right away.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 7,
+    "prompts": [
+      "Summarize the sample group annotation"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Summarize the sample group annotation",
+        "chat_tail": "Summarize the sample group annotation\n\nI'll first check the current dataset and annotation catalog to find the exact sample group column name.\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nThe dataset (NCI-60 proteomics, 2702 proteins × 60 samples) has no column literally named \"group\" — the de facto grouping annotation is General|All|Origin (9 levels; it also drives the RE vs LE and RE vs ME comparisons). Let me summarize it.\n\nSummarized annotation\n: sample : General|All|Origin\ncategorical | 60 observed\n\nHere's the summary of the sample group annotation General|All|Origin (the grouping variable for the 60 NCI-60 cell-line samples):\n\nGroup\tSamples\tInterpretation\nLC\t9\tLung\nME\t9\tMelanoma\nRE\t8\tRenal\nCO\t7\tColon\nOV\t7\tOvarian\nBR\t6\tBreast\nCN\t6\tCNS\nLE\t6\tLeukemia\nPR\t2\tProstate\n\nKey points:\n\n60 samples total, no missing values, spanning 9 tumor-origin groups.\nGroups are reasonably balanced (6–9 samples each), except PR (prostate) with only 2 samples — a caveat for any group-level comparison involving it.\nThis Origin grouping matches the built-in comparisons in the analysis (e.g., t-tests for RE vs LE and RE vs ME, and per-group mean/quantile summaries for LE, ME, RE).\n\nNote: the viewer also has other categorical sample annotations — TP53.Status (MT/WT, 8 missing) and Gender (2 levels, 8 missing). If you'd like, I can summarize those too, or produce a bar chart of group sizes.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 8,
+    "prompts": [
+      "Find genes matching 'kinase' and select the first five",
+      "Make a boxplot of the expression of the selected genes grouped by sample group"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Find genes matching 'kinase' and select the first five",
+        "chat_tail": "Find genes matching 'kinase' and select the first five\n\nSearched annotations\n: feature : kinase\n0 matching IDs\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\n\nI searched the feature annotations for kinase, and no genes matched — the query returned 0 matching feature IDs and 0 annotation columns in this dataset (2702 features × 60 samples, feature IDs like X487.CASK).\n\nSo there's nothing to select yet. A couple of options:\n\nSearch a specific gene symbol instead — the IDs use symbols (e.g., CASK, which is already in your current 107-feature selection). I can search for a kinase you care about, e.g. SRC, ALK, MAPK, EGFR.\nTry a broader or related term — e.g. kine (would also catch kinesins) or another keyword.\n\nWhich term or gene symbol would you like me to search for? Once we get matches, I'll select the first five exactly as returned.\n\n\n",
+        "figure_ready": false
+      },
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Make a boxplot of the expression of the selected genes grouped by sample group",
+        "chat_tail": " at 50 features, and your selection contains 107 — more than the viewer state exposes (only the first 20 IDs are visible). I'll plot those 20 selected genes first and you can tell me if you'd like a different subset.\n\nCreating analysis figure\nfailed\nRead current analysis state\n: 2702 features / 60 samples + figure_grammar\ndata tab: Feature | analysis tab: Feature\n\nThe grammar confirms expression plots use reserved column __expression__ and sample__-prefixed metadata. Retrying with the full spec:\n\nCreated AI figure fig_1\n: expression | 1200 rows\nBoxplot of expression of the first 20 selected genes grouped by sample group (Origin)\n1 layer(s); 138458 byte full PNG\n572 x 429 preview | 0.1 MB full PNG\n⇩ High-res PNG\n\nDone — the boxplot is rendered (figure fig_1):\n\nWhat it shows: Expression values for the first 20 selected genes (MYO1C, AGRN, PES1, GAPDHS, CHD1, … ANXA2/ANXA2P2) across all 60 samples, grouped on the x-axis by General|All|Origin (the 9-level sample group with no missing values).\nWhy 20, not 107: the figure engine caps expression plots at 50 features, and the viewer only exposes the first 20 IDs of your selection to me.\nMinor note: ~99 of the 1,200 points had non-finite (NA) expression values and were dropped from the box statistics.\n\nWant me to adjust it? I can:\n\nChange the grouping to General|All|TP53.Status (MT vs WT) instead of Origin,\nFacet by gene so each gene gets its own panel, or\nPlot a different subset — name up to 50 specific genes and I'll swap them in.\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 9,
+    "prompts": [
+      "Create a histogram of the t-test log FDR"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Create a histogram of the t-test log FDR",
+        "chat_tail": "Create a histogram of the t-test log FDR\n\nI'll first check the current dataset state and find the exact column name for the t-test log FDR.\n\nRead current analysis state\n: 2702 features / 60 samples (overview)\ndata tab: Feature | analysis tab: Feature\nSearched annotations\n: feature : FDR\n0 matching IDs\n\nThe dataset has three t-test log FDR columns (one per comparison). Since your current scatter view is on the RE vs ME comparison, I'll plot that one: ttest|RE_vs_ME|log.fdr.\n\nCreated AI figure fig_1\n: feature_annotation | 2702 rows\nHistogram of t-test log FDR for the RE vs ME comparison\n1 layer(s); 59231 byte full PNG\n572 x 429 preview | 0.1 MB full PNG\n⇩ High-res PNG\n\nHere's the histogram of the t-test log FDR for the RE vs ME comparison (matching your current scatter view):\n\nData: all 2,702 features (2 rows with missing values excluded)\nBins: 30, default palette, minimal theme\nX-axis: ttest|RE_vs_ME|log.fdr — more negative values correspond to smaller (more significant) FDR\n\nThe distribution should help you see how many features pass significance thresholds (e.g., the mass near a log FDR threshold).\n\nThe dataset also has log FDR columns for two other comparisons if you'd like those instead or additionally:\n\nttest|RE_vs_LE|log.fdr\nttest|MT_vs_WT|log.fdr\n\nJust say the word and I'll plot one of those (or facet all three together).\n\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 10,
+    "prompts": [
+      "Create a histogram of the t-test log FDR",
+      "Change the last figure's title to 'Expression-wide t-test significance'"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Create a histogram of the t-test log FDR",
+        "chat_tail": "Create a histogram of the t-test log FDR\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nThe dataset has three t-test comparisons (MT_vs_WT, RE_vs_LE, RE_vs_ME). Since the active scatter view is currently the RE_vs_ME volcano, I'll use ttest|RE_vs_ME|log.fdr — let me know if you'd like a different comparison.\n\nCreating analysis figure\n×2\n1 failed\ncreate_figure\nfailed\nfeature_annotation | 2702 rows\nHistogram of t-test log FDR for the RE_vs_ME comparison (matching the currently active volcano view)\n1 layer(s); 59231 byte full PNG\n572 x 429 preview | 0.1 MB full PNG\n⇩ High-res PNG\n\nHere's the histogram of the t-test log FDR:\n\nDistribution of t-test log FDR (RE vs ME) — ttest|RE_vs_ME|log.fdr across all 2,702 proteins, shown in 30 bins. Two proteins with missing values were excluded (noted in the figure warnings).\n\nThe figure is displayed with a small preview, and a high-resolution PNG (2400×1800) is available for download.\n\nIf you meant one of the other comparisons, just say the word and I'll redo it with:\n\nttest|MT_vs_WT|log.fdr (TP53 mutant vs wild-type)\nttest|RE_vs_LE|log.fdr (right vs left origin; 23 missing values)\n\n",
+        "figure_ready": true
+      },
+      {
+        "tab": "Feature",
+        "figures": 2,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Change the last figure's title to 'Expression-wide t-test significance'",
+        "chat_tail": " let me know if you'd like a different comparison.\n\nCreating analysis figure\n×2\n1 failed\ncreate_figure\nfailed\nfeature_annotation | 2702 rows\nHistogram of t-test log FDR for the RE_vs_ME comparison (matching the currently active volcano view)\n1 layer(s); 59231 byte full PNG\n572 x 429 preview | 0.1 MB full PNG\n⇩ High-res PNG\n\nHere's the histogram of the t-test log FDR:\n\nDistribution of t-test log FDR (RE vs ME) — ttest|RE_vs_ME|log.fdr across all 2,702 proteins, shown in 30 bins. Two proteins with missing values were excluded (noted in the figure warnings).\n\nThe figure is displayed with a small preview, and a high-resolution PNG (2400×1800) is available for download.\n\nIf you meant one of the other comparisons, just say the word and I'll redo it with:\n\nttest|MT_vs_WT|log.fdr (TP53 mutant vs wild-type)\nttest|RE_vs_LE|log.fdr (right vs left origin; 23 missing values)\n\nChange the last figure's title to 'Expression-wide t-test significance'\n\nCreated AI figure fig_2\n: feature_annotation | 2702 rows\nChange the histogram title to 'Expression-wide t-test significance' while keeping everything else unchanged\n1 layer(s); 58104 byte full PNG\n572 x 429 preview | 0.1 MB full PNG\n⇩ High-res PNG\n\nDone — the figure title is now \"Expression-wide t-test significance\". Everything else is unchanged: the same histogram of ttest|RE_vs_ME|log.fdr (2,700 proteins in 30 bins; the 2 proteins with missing values are still excluded). The updated high-resolution PNG (2400×1800) is available for download.\n\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 11,
+    "prompts": [
+      "Create a volcano plot of the t-test RE vs ME results",
+      "Color the volcano points by intensity"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Create a volcano plot of the t-test RE vs ME results",
+        "chat_tail": "Create a volcano plot of the t-test RE vs ME results\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nI found the exact t-test RE vs ME columns (ttest|RE_vs_ME|mean.diff for fold change and ttest|RE_vs_ME|log.fdr for significance). Creating the volcano plot now:\n\nCreated AI figure fig_1\n: feature_annotation | 2702 rows\nCreate a volcano plot of the t-test RE vs ME results (mean difference vs -log10 FDR)\n3 layer(s); 401968 byte full PNG\n572 x 429 preview | 0.4 MB full PNG\n⇩ High-res PNG\n\nDone! I created a volcano plot (figure fig_1) of the t-test RE vs ME results:\n\nX-axis: ttest|RE_vs_ME|mean.diff (mean difference, RE − ME)\nY-axis: ttest|RE_vs_ME|log.fdr (−log10 FDR)\nData: all 2,702 features (2 with missing t-test values were dropped)\nLabels: the 10 most significant proteins are annotated\nA vertical reference line at zero fold change is included\n\nA small preview is shown in the chat, and a high-resolution PNG (2400×1800) is available for download.\n\nA couple of optional tweaks I can make if you'd like:\n\nLabel points by gene name (General|All|Gene.name) instead of feature ID\nSwitch to the interactive scatter view via the existing \"Volcano RE vs ME\" quick view\nCompare with the RE vs LE or MT vs WT t-test results in the same style\n\n",
+        "figure_ready": true
+      },
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "Color the volcano points by intensity",
+        "chat_tail": "Create a volcano plot of the t-test RE vs ME results\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nI found the exact t-test RE vs ME columns (ttest|RE_vs_ME|mean.diff for fold change and ttest|RE_vs_ME|log.fdr for significance). Creating the volcano plot now:\n\nCreated AI figure fig_1\n: feature_annotation | 2702 rows\nCreate a volcano plot of the t-test RE vs ME results (mean difference vs -log10 FDR)\n3 layer(s); 401968 byte full PNG\n572 x 429 preview | 0.4 MB full PNG\n⇩ High-res PNG\n\nDone! I created a volcano plot (figure fig_1) of the t-test RE vs ME results:\n\nX-axis: ttest|RE_vs_ME|mean.diff (mean difference, RE − ME)\nY-axis: ttest|RE_vs_ME|log.fdr (−log10 FDR)\nData: all 2,702 features (2 with missing t-test values were dropped)\nLabels: the 10 most significant proteins are annotated\nA vertical reference line at zero fold change is included\n\nA small preview is shown in the chat, and a high-resolution PNG (2400×1800) is available for download.\n\nA couple of optional tweaks I can make if you'd like:\n\nLabel points by gene name (General|All|Gene.name) instead of feature ID\nSwitch to the interactive scatter view via the existing \"Volcano RE vs ME\" quick view\nCompare with the RE vs LE or MT vs WT t-test results in the same style\n\nColor the volcano points by intensity\n\nI'll revise the volcano plot by adding General|All|Intensity as the point color mapping:\n\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 12,
+    "prompts": [
+      "What can you change in this app?"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 107,
+        "sample_selected": 0,
+        "prompt": "What can you change in this app?",
+        "chat_tail": "ample table, Cor, Heatmap, Dynamic heatmap, Expression, GSList\nSwitch analysis-space tabs: Feature, ORA, fGSEA, StringDB, Geneshot, Sample\n\nSelections\n\nSelect/clear feature IDs and sample IDs (you currently have 107 features selected, no samples)\n\nScatter plots\n\nChange X/Y axes via quick views (e.g. PCA, Volcano RE vs ME, Cor: MDR) or custom axis pickers in both feature and sample space\nMap color, shape, size, and tooltip annotations in either space; set cutoffs (xcut/ycut) and area-selection mode (corner or volcano)\n\nHeatmaps (Cor, Dynamic, and Expression heatmaps)\n\nColor palette (BrBG, RdBu, RdYlBu, …), scaling (row/none/column), clustering distance & linkage, row/column sorting, row/column annotation color bars, tooltip columns, and plot margins\n\nTables (Feature / Sample / Expression)\n\nChoose which annotation columns are shown, and toggle multi-row selection\n\nAnalysis panels\n\nFeature tab: plot type (beeswarm vs ROC/PR curves), regression line, and the \"link variable\" features are tested against\nORA / fGSEA: collapse or ranking variable, and which pathway row is highlighted\nStringDB: taxonomy ID, network labels; Geneshot: literature search terms and ID-mapper column\n\nFigures\n\nGenerate static, downloadable ggplot2 figures (volcano, scatter, boxplot, histogram templates, or richer multi-layer specs) and revise them\n\nFor context, the app currently shows the Feature data tab with a volcano-style scatter (t-test RE vs ME: mean.diff vs −log FDR). What would you like to change?\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  }
+]

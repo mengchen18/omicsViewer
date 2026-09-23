@@ -1,0 +1,81 @@
+[
+  {
+    "task_id": 106,
+    "prompts": [
+      "Find genes matching 'MAPK' and select the first five"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 5,
+        "sample_selected": 0,
+        "prompt": "Find genes matching 'MAPK' and select the first five",
+        "chat_tail": "Find genes matching 'MAPK' and select the first five\n\nI'll search for features matching 'MAPK' first.\n\nSearched annotations\n: feature : MAPK\n10 matching IDs\n\nI found 10 features matching 'MAPK'. Now selecting the first five.\n\nUpdated analysis controls\n: data_space_tab, analysis_space_tab, feature_count, sample_count, example_features, example_samples\n0 features; 0 samples\n\nDone. I searched for 'MAPK' and found 10 matching genes, then selected the first five:\n\nX578.MAPK13\nX2443.MAPK3\nX2484.MAPK1\nX2926.MAPK8\nX2927.MAPK9\n\nThese 5 features are now selected in the viewer. The remaining matches (MAPK9 is included; also X3034.MAPKAPK2, X4208.MAPK7, X4847.MAPK14, X4871.MAPKAPK3, X8053.MAPKAP1) were not selected. Let me know if you'd like to plot their expression, adjust the selection, or anything else.\n\n\n",
+        "figure_ready": false
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  },
+  {
+    "task_id": 108,
+    "prompts": [
+      "Find genes matching 'MAPK' and select the first five",
+      "Make a boxplot of the expression of the selected genes grouped by sample group"
+    ],
+    "observations": [
+      {
+        "tab": "Feature",
+        "figures": 0,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 5,
+        "sample_selected": 0,
+        "prompt": "Find genes matching 'MAPK' and select the first five",
+        "chat_tail": "Find genes matching 'MAPK' and select the first five\n\nSearched annotations\n: feature : MAPK\n10 matching IDs\n\nI found 10 genes matching 'MAPK'. Now selecting the first five:\n\nUpdated analysis controls\n: data_space_tab, analysis_space_tab, feature_count, sample_count, example_features, example_samples\n0 features; 0 samples\n\nDone! I found 10 genes matching 'MAPK' and selected the first five:\n\n#\tFeature ID\tGene Name\n1\tX578.MAPK13\tMAPK13\n2\tX2443.MAPK3\tMAPK3\n3\tX2484.MAPK1\tMAPK1\n4\tX2926.MAPK8\tMAPK8\n5\tX2927.MAPK9\tMAPK9\n\nThese are all members of the mitogen-activated protein kinase family. The remaining matches (not selected) were MAPK7, MAPK14, MAPKAP1, MAPKAPK2, and MAPKAPK3 — just let me know if you'd like to include any of those as well or do something with the current selection, such as plotting their expression.\n\n\n",
+        "figure_ready": false
+      },
+      {
+        "tab": "Feature",
+        "figures": 1,
+        "figures_loaded": true,
+        "axis_titles": [
+          "ttest|RE_vs_ME|mean.diff",
+          "ttest|RE_vs_ME|log.fdr"
+        ],
+        "feature_selected": 5,
+        "sample_selected": 0,
+        "prompt": "Make a boxplot of the expression of the selected genes grouped by sample group",
+        "chat_tail": "ind an exact column. Let me check the full sample annotation catalog to find the right grouping column:\n\nRead current analysis state\n: 2702 features / 60 samples + annotations\ndata tab: Feature | analysis tab: Feature\n\nThere's no column literally named \"group\" among the 60 NCI-60 sample annotations, but the natural sample grouping variable is General|All|Origin (tissue of origin, 9 categories, no missing values). I'll plot the expression of your 5 selected MAPK genes grouped by Origin:\n\nCreated AI figure fig_1\n: expression | 300 rows\nBoxplot of expression of the 5 selected MAPK genes grouped by sample Origin\n1 layer(s); 111916 byte full PNG\n572 x 429 preview | 0.1 MB full PNG\n⇩ High-res PNG\n\nHere's the boxplot of expression for your 5 selected MAPK genes (MAPK13, MAPK3, MAPK1, MAPK8, MAPK9) across all 60 NCI-60 samples, grouped by Origin (tissue of origin):\n\nEach box shows the distribution of expression within an Origin group (pooled across the 5 genes), with groups colored by Origin\n9 rows with non-finite values were dropped (the LE/Origin group has some missing expression values)\n\nA preview is displayed in the chat, and a high-resolution PNG (2400×1800) is available for download.\n\nA couple of easy refinements if you'd like:\n\nFacet by gene — one panel per MAPK gene so you can compare Origin distributions gene-by-gene\nDifferent grouping — e.g., TP53.Status (MT vs WT, matching the MT_vs_WT comparison in your analysis) or Gender\n\nJust say the word and I'll update the figure.\n\n\n",
+        "figure_ready": true
+      }
+    ],
+    "status": "ok",
+    "error": null,
+    "baseline": {
+      "tab": "Feature",
+      "figures": 0,
+      "figures_loaded": true,
+      "axis_titles": null,
+      "feature_selected": 107,
+      "sample_selected": 0
+    }
+  }
+]
