@@ -452,6 +452,13 @@ store_read <- function(store, ids = NULL) {
 #'   \code{receipt$rejected}) and the valid remainder still applies - used
 #'   by restores, where one module's transient junk (e.g. an unset
 #'   \code{--select--} placeholder) must not veto unrelated keys.
+#' @param mark_pending TRUE (default): applied keys are marked in-flight so
+#'   the bounded re-assert loop pushes them to the widgets until
+#'   acknowledged. FALSE: the values are known to already be reflected in
+#'   the widgets (seeding store keys FROM live inputs), so no push or ack
+#'   is expected - arming pending there can never be acknowledged (an
+#'   input whose value does not change fires no event) and a stale
+#'   re-assert later clobbers unrelated direct updates on the same widget.
 #' @return Invisible receipt: \code{applied} (ordered ids), \code{diff},
 #'   \code{epochs}, \code{skipped} (no-op keys), \code{global_epoch},
 #'   and (when not strict) \code{rejected}.
@@ -459,7 +466,8 @@ store_read <- function(store, ids = NULL) {
 #' @rdname widgetStoreHelpers
 store_apply <- function(store, patch,
                         origin = c("agent", "restore", "system"),
-                        strict = TRUE) {
+                        strict = TRUE,
+                        mark_pending = TRUE) {
   origin <- match.arg(origin)
   if (is.null(store$parent)) {
     ids <- names(patch)
@@ -523,8 +531,17 @@ store_apply <- function(store, patch,
     store$values[[id]]$rv(entries[[id]])
     store$epochs[[id]] <- (store$epochs[[id]] %||% 0L) + 1L
     store$origins[[id]] <- origin
-    store$pending[[id]] <- list(value = entries[[id]],
-                                epoch = store$epochs[[id]])
+    # mark_pending = FALSE writes values that are KNOWN to already be
+    # reflected in the widgets (e.g. seeding store keys from live input
+    # defaults). Pending entries would arm the bounded re-assert loop for
+    # a push that can never be acknowledged - an input whose value does
+    # not actually change never fires the input event the ack needs, and
+    # a later in-flight re-assert then clobbers unrelated direct updates
+    # on the same widget (observed live: the volcano corner auto-selection
+    # was overwritten by a stale seed re-assert ~0.5 s later).
+    if (mark_pending)
+      store$pending[[id]] <- list(value = entries[[id]],
+                                  epoch = store$epochs[[id]])
   }
   if (length(plan)) {
     store$global_epoch <- store$global_epoch + 1L

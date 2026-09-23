@@ -36,6 +36,8 @@ agent_figure_template_spec(
   label_top_n = NULL,
   title = NULL,
   space = NULL,
+  features = NULL,
+  samples = NULL,
   feature_data,
   sample_data,
   expression = NULL,
@@ -81,6 +83,13 @@ ranked by y) or the first rows (scatter); unsupported elsewhere.}
 
 \item{space}{Optional "feature" or "sample" disambiguation when a column
 name exists in both annotation spaces.}
+
+\item{features}{Optional character vector of exact feature IDs restricting
+the plotted rows (e.g. a subset of the current selection); the current
+selection remains the default.}
+
+\item{samples}{Optional character vector of exact sample IDs restricting
+the plotted rows of expression figures.}
 
 \item{data}{Plotting data from \code{\link{agent_build_figure_data}}.}
 

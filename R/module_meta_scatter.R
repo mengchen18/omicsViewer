@@ -193,6 +193,18 @@ meta_scatter_module <- function(
         values = c("quick", "custom"))
     )
 
+    # Reactive axis watchers: the canonical, atomic view of the current
+    # axes (used by the volcano detection below). Created once; each call
+    # inside a reactive registers the per-key dependency.
+    store_watchers <- list(
+      x_analysis = store_watch(store, "x_analysis"),
+      x_subset = store_watch(store, "x_subset"),
+      x_variable = store_watch(store, "x_variable"),
+      y_analysis = store_watch(store, "y_analysis"),
+      y_subset = store_watch(store, "y_subset"),
+      y_variable = store_watch(store, "y_variable")
+    )
+
     # Seed the store with the dataset's default axes whenever the defaults
     # change (initial load, dataset reload). A snapshot/agent restore that
     # lands first wins: seeding skips keys the store already holds.
@@ -266,15 +278,32 @@ meta_scatter_module <- function(
         nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
         nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
     }
+    .scatter_triple_coherent <- function(sel) {
+      # A coherent triple names a real column in the current triset. While a
+      # cascaded select catches up with a store push, the triselector briefly
+      # reports MIXED components (new analysis + old subset/variable); those
+      # are cascade echoes, not user choices, and must NOT be mirrored into
+      # the store - the eager user-override there cleared the pending entries
+      # of an in-flight quick-view apply and made the canonical axes (and the
+      # volcano corner driven from them) oscillate after every switch.
+      if (!.scatter_component_set(sel))
+        return(FALSE)
+      triple <- paste(sel$analysis, sel$subset, sel$variable, sep = "|")
+      ts <- tryCatch(triset(), shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(ts) || !nrow(ts))
+        return(FALSE)
+      triple %in% paste(ts[, 1], ts[, 2], ts[, 3], sep = "|")
+    }
     .scatter_keep(observe({
       xv <- .scatter_read_tris(v1)
       yv <- .scatter_read_tris(v2)
-      if (.scatter_component_set(xv)) {
+      if (.scatter_triple_coherent(xv)) {
         store_sync_from_ui(store, "x_analysis", xv$analysis)
         store_sync_from_ui(store, "x_subset", xv$subset)
         store_sync_from_ui(store, "x_variable", xv$variable)
       }
-      if (.scatter_component_set(yv)) {
+      if (.scatter_triple_coherent(yv)) {
         store_sync_from_ui(store, "y_analysis", yv$analysis)
         store_sync_from_ui(store, "y_subset", yv$subset)
         store_sync_from_ui(store, "y_variable", yv$variable)
@@ -349,24 +378,35 @@ meta_scatter_module <- function(
       updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
     }, ignoreInit = TRUE)
 
-    # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from ttest)
+    # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from
+    # ttest). Two invariants keep the corner auto-selection from flashing:
+    # (1) the axes are read from the CANONICAL store watchers - the store
+    # transaction lands atomically while the v1()/v2() triselector reports
+    # lag and transiently revert during the cascade, so a v1/v2-based
+    # detection oscillated FALSE->TRUE->FALSE->TRUE and re-fired the corner
+    # chain on every oscillation; (2) the detection only turns TRUE once the
+    # DISPLAYED axes have converged to the canonical axes - otherwise the
+    # volcano corner (and its rectangles) was applied to the outgoing
+    # figure before the axis switch landed (a visible pre-flash on the old
+    # plot, e.g. volcano rectangles drawn over a correlation plot).
     pre_vol <- reactive({
-      # Check if selections are valid
-      if (is.null(v1()) || is.null(v2())) {
+      vals <- lapply(store_watchers, function(w) w())
+      if (any(vapply(vals, is.null, logical(1))))
         return(FALSE)
-      }
-      if (is.null(v1()$analysis) || is.null(v2()$analysis)) {
+      if (!identical(vals$x_analysis, "ttest") ||
+          !identical(vals$y_analysis, "ttest") ||
+          !identical(vals$x_variable, "mean.diff") ||
+          !vals$y_variable %in% c("log.fdr", "log.pvalue"))
         return(FALSE)
-      }
-      if (is.null(v1()$variable) || is.null(v2()$variable)) {
-        return(FALSE)
-      }
-
-      # Check for volcano plot pattern
-      v1()$analysis == "ttest" &&
-        v2()$analysis == "ttest" &&
-        v1()$variable == "mean.diff" &&
-        v2()$variable %in% c("log.fdr", "log.pvalue")
+      xv <- .scatter_read_tris(v1)
+      yv <- .scatter_read_tris(v2)
+      .scatter_component_set(xv) && .scatter_component_set(yv) &&
+        identical(xv$analysis, vals$x_analysis) &&
+        identical(xv$subset, vals$x_subset) &&
+        identical(xv$variable, vals$x_variable) &&
+        identical(yv$analysis, vals$y_analysis) &&
+        identical(yv$subset, vals$y_subset) &&
+        identical(yv$variable, vals$y_variable)
     })
 
     attr4select_status <- reactiveVal()

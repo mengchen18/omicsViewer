@@ -50,7 +50,8 @@ store_apply(
   store,
   patch,
   origin = c("agent", "restore", "system"),
-  strict = TRUE
+  strict = TRUE,
+  mark_pending = TRUE
 )
 
 store_ack(store, id, widget_value)
@@ -133,6 +134,14 @@ transaction. FALSE: invalid values are rejected per key (recorded in
 \code{receipt$rejected}) and the valid remainder still applies - used
 by restores, where one module's transient junk (e.g. an unset
 \code{--select--} placeholder) must not veto unrelated keys.}
+
+\item{mark_pending}{TRUE (default): applied keys are marked in-flight so
+the bounded re-assert loop pushes them to the widgets until
+acknowledged. FALSE: the values are known to already be reflected in
+the widgets (seeding store keys FROM live inputs), so no push or ack
+is expected - arming pending there can never be acknowledged (an
+input whose value does not change fires no event) and a stale
+re-assert later clobbers unrelated direct updates on the same widget.}
 
 \item{widget_value}{The value the widget actually reports.}
 

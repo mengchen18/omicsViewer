@@ -173,6 +173,81 @@ try {
   record('feature scatter renders a visible plotly container', true);
   record('test hooks are rendered', await p1.locator(HOOK.box).count() === 1);
 
+  // ---- 0. volcano corner regression (load state) --------------------
+  // demo.RDS defaults to the RE_vs_ME volcano: the volcano quick view must
+  // be the active badge AND the corner auto-selection must have applied -
+  // scorner=volcano with both top-corner rectangles drawn and the features
+  // inside them selected. Shipped broken: the seed's unacknowledgeable
+  // pending entry re-asserted scorner=None over the volcano auto-selection.
+  {
+    const t0 = Date.now();
+    let st = null;
+    while (Date.now() - t0 < 30000) {
+      st = await p1.evaluate(() => {
+        const p = Array.from(document.querySelectorAll('.js-plotly-plot'))
+          .filter(e => e.offsetParent !== null && e._fullLayout)[0];
+        const scorner = document.querySelector('select[id$="feature_space-a4selector-scorner"]');
+        const badge = document.querySelector('[data-quick-view-id="volcano_RE_vs_ME"]');
+        return {
+          shapes: p && p._fullLayout ? (p._fullLayout.shapes || []).length : -1,
+          scorner: scorner ? scorner.value : null,
+          badgeActive: badge ? badge.classList.contains('btn-primary') : false,
+          y: p && p._fullLayout ? (p._fullLayout.yaxis.title.text || '') : ''
+        };
+      });
+      if (st.shapes === 2 && st.scorner === 'volcano') break;
+      await new Promise(s => setTimeout(s, 1000));
+    }
+    record('load: volcano quick view active with both top-corner rects selected',
+      st && st.shapes === 2 && st.scorner === 'volcano' && st.badgeActive &&
+        /log\.fdr|log\.pvalue/.test(st.y || ''),
+      st ? JSON.stringify(st) : 'no state');
+  }
+
+  // ---- 0b. quick-view switch renders (no multi-flash) ----------------
+  // cor -> volcano must be a single render (axes + rects together);
+  // volcano -> cor may clear the outgoing corner first, so at most two
+  // coherent renders. The pre-fix behavior flickered the volcano rects
+  // 2 -> 0 -> 2 and drew them over the outgoing correlation plot.
+  const startPlotWatch = (page) => page.evaluate(() => {
+    window.__plotStates = [];
+    window.__lastPlot = null;
+    window.__plotTimer = setInterval(() => {
+      const p = Array.from(document.querySelectorAll('.js-plotly-plot'))
+        .filter(e => e.offsetParent !== null && e._fullLayout)[0];
+      if (!p || !p._fullLayout) return;
+      const s = (p._fullLayout.xaxis.title.text || '') + '|' +
+        (p._fullLayout.yaxis.title.text || '') + '|' +
+        (p._fullLayout.shapes || []).length;
+      if (s !== window.__lastPlot) { window.__lastPlot = s; window.__plotStates.push(s); }
+    }, 40);
+  });
+  const readPlotStates = (page) => page.evaluate(() => {
+    clearInterval(window.__plotTimer);
+    return window.__plotStates;
+  });
+  {
+    await startPlotWatch(p1);
+    await p1.click('[data-quick-view-id="cor_MDR"]');
+    await new Promise(s => setTimeout(s, 4500));
+    const states = await readPlotStates(p1);
+    const changes = states.slice(1);
+    const final = states[states.length - 1] || '';
+    record('volcano -> cor quick view: at most two coherent renders, no leftover rects',
+      changes.length <= 2 && /Cor\|MDR/.test(final) && /\|0$/.test(final),
+      states.join(' ; '));
+
+    await startPlotWatch(p1);
+    await p1.click('[data-quick-view-id="volcano_RE_vs_ME"]');
+    await new Promise(s => setTimeout(s, 4500));
+    const states2 = await readPlotStates(p1);
+    const changes2 = states2.slice(1);
+    const final2 = states2[states2.length - 1] || '';
+    record('cor -> volcano quick view: exactly one render with both corner rects',
+      changes2.length === 1 && /log\.(fdr|pvalue)/.test(final2) && /\|2$/.test(final2),
+      states2.join(' ; '));
+  }
+
   // ---- 1. state: tab + selection ------------------------------------
   const res1 = await runHook(p1, 'state', {
     data_space_tab: 'Sample',

@@ -274,7 +274,11 @@ attr4selector_module <- function(
     }, ignoreInit = TRUE))
 
     # Seed unset cutoff keys with the widget defaults once inputs exist
-    # (restore-first-wins; the cascades are genuinely unset by default)
+    # (restore-first-wins; the cascades are genuinely unset by default).
+    # mark_pending = FALSE: these values are copied FROM the live inputs,
+    # so the widgets already display them - arming pending/re-assert here
+    # can never be acknowledged and would later clobber unrelated direct
+    # widget updates (the load-time volcano corner bug).
     .a4_seeded <- FALSE
     .a4_keep(observe({
       if (.a4_seeded) return(NULL)
@@ -286,7 +290,8 @@ attr4selector_module <- function(
       patch <- vals[vapply(names(vals), function(k)
         is.null(held[[paste0(store4$prefix, ".", k)]]), logical(1))]
       if (length(patch))
-        tryCatch(store_apply(store4, patch, origin = "system", strict = FALSE),
+        tryCatch(store_apply(store4, patch, origin = "system", strict = FALSE,
+                             mark_pending = FALSE),
                  error = function(e) NULL)
     }))
 
@@ -336,16 +341,30 @@ attr4selector_module <- function(
     updateSelectInput(session, inputId = "scorner", choices = ac, selected = ps)
   })  
 
-  observeEvent(pre_volcano(), {    
-    if (pre_volcano()) {      
+  # Volcano corner auto-selection. When the owning scatter detects volcano
+  # axes, the "volcano" area (both top corners) is selected automatically.
+  # Store-backed panels route the scorner change through the canonical store
+  # so it becomes the single source of truth: a raw updateSelectInput here
+  # used to be clobbered by an unrelated in-flight store re-assert on the
+  # same widget (load-time bug: corner ended at "None" despite this branch
+  # running). The direct updateSelectInput is kept as an immediate visual
+  # sync - it carries the same value, and the input ack closes the loop.
+  observeEvent(pre_volcano(), {
+    corner <- if (isTRUE(pre_volcano())) "volcano" else "None"
+    if (!is.null(store4))
+      tryCatch(
+        store_apply(store4, list(scorner = corner), origin = "system",
+                    strict = FALSE, mark_pending = FALSE),
+        error = function(e) NULL
+      )
+    if (isTRUE(pre_volcano())) {
       l <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
       attr(l, "seed") <- Sys.time()
       params$cutoff <- l
-      updateSelectInput(session, inputId = "scorner", selected = "volcano")
-    } else {      
+    } else {
       params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "None")
-      updateSelectInput(session, inputId = "scorner", selected = "None")
     }
+    updateSelectInput(session, inputId = "scorner", selected = corner)
   })
     
   searchValue <- reactiveVal()
