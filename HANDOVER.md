@@ -58,6 +58,23 @@ a tool failure.
   `rows_selected`. Any external write must patch ALL of them before the
   `esv_status(NULL); esv_status(full_state)` transaction or the module
   restore reverts the patch. Keep this in mind for future apply paths.
+- **Scatter volcano corner + switch-flash fixes (2026-09-24, user-reported)**:
+  (1) `store_read` is a PLAIN SNAPSHOT (never invalidates) — reactive
+  consumers must read through `store_watch` (the per-key reactiveVal
+  wrappers); a `pre_volcano` built on store_read looked fixed at load and
+  then never fired again. (2) Seeding store keys FROM live inputs must use
+  `store_apply(..., mark_pending = FALSE)`: an input whose value does not
+  change never fires the ack event, so pending entries from such seeds arm
+  a re-assert loop that later clobbers unrelated direct widget updates
+  (the load-time volcano corner bug). (3) UI→store sync must mirror only
+  COHERENT triples (a real column in the triset) — mixed cascade echoes
+  count as user overrides, clear an in-flight apply's pending entries, and
+  re-oscillate the canonical state after landing (the switch multi-flash).
+  (4) `plotly::layout(shapes = NULL/empty)` drops the key — irrelevant here
+  (Plotly.react clears absent shapes) but explains why "no rects" can only
+  come from rectval itself, never from an explicit empty-shape send.
+  Regression guards live in tier_a (load corner state + per-switch
+  distinct-render counts).
 - Empty-object + literal-string sentinels on optional tool args: every
   optional reader treats length-0, NA, and AGENT_SENTINEL_STRINGS like
   omitted; the new id-array param (`.agent_figure_ids_param`) follows the
