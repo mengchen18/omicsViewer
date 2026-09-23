@@ -379,24 +379,28 @@ meta_scatter_module <- function(
     }, ignoreInit = TRUE)
 
     # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from
-    # ttest). Two invariants keep the corner auto-selection from flashing:
-    # (1) the axes are read from the CANONICAL store watchers - the store
-    # transaction lands atomically while the v1()/v2() triselector reports
-    # lag and transiently revert during the cascade, so a v1/v2-based
-    # detection oscillated FALSE->TRUE->FALSE->TRUE and re-fired the corner
-    # chain on every oscillation; (2) the detection only turns TRUE once the
-    # DISPLAYED axes have converged to the canonical axes - otherwise the
-    # volcano corner (and its rectangles) was applied to the outgoing
-    # figure before the axis switch landed (a visible pre-flash on the old
-    # plot, e.g. volcano rectangles drawn over a correlation plot).
+    # ttest), read from the CANONICAL store watchers. The store transaction
+    # is atomic, so this transitions exactly once per view change and NEVER
+    # dips between two volcano views (a displayed-axes gate here made
+    # volcano -> volcano switches flash: TRUE -> FALSE mid-switch -> TRUE
+    # re-fired the whole corner chain). Timing of the corner APPLICATION is
+    # handled separately, by the convergence gate passed to attr4selector.
     pre_vol <- reactive({
       vals <- lapply(store_watchers, function(w) w())
       if (any(vapply(vals, is.null, logical(1))))
         return(FALSE)
-      if (!identical(vals$x_analysis, "ttest") ||
-          !identical(vals$y_analysis, "ttest") ||
-          !identical(vals$x_variable, "mean.diff") ||
-          !vals$y_variable %in% c("log.fdr", "log.pvalue"))
+      identical(vals$x_analysis, "ttest") &&
+        identical(vals$y_analysis, "ttest") &&
+        identical(vals$x_variable, "mean.diff") &&
+        vals$y_variable %in% c("log.fdr", "log.pvalue")
+    })
+
+    # The displayed axes have caught up with the canonical store axes. The
+    # corner auto-selection waits for this so the volcano rectangles are
+    # never applied to the outgoing figure mid-switch.
+    .scatter_axes_converged <- reactive({
+      vals <- lapply(store_watchers, function(w) w())
+      if (any(vapply(vals, is.null, logical(1))))
         return(FALSE)
       xv <- .scatter_read_tris(v1)
       yv <- .scatter_read_tris(v2)
@@ -414,7 +418,8 @@ meta_scatter_module <- function(
       "a4selector",
       reactive_meta = reactive_meta, reactive_expr = reactive_expr,
       reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status,
-      store = store
+      store = store,
+      corner_apply_gate = .scatter_axes_converged
     )
 
     xycoord <- reactive({
@@ -443,7 +448,9 @@ meta_scatter_module <- function(
       clear_counter()
 
       # Return NULL if no cutoff selected or "None" corner
-      if (is.null(attr4select$cutoff) || attr4select$cutoff$corner == "None") {
+      cutoff <- attr4select$cutoff_reactive
+      l <- if (is.function(cutoff)) cutoff() else attr4select$cutoff
+      if (is.null(l) || l$corner == "None") {
         return(NULL)
       }
 
@@ -459,7 +466,7 @@ meta_scatter_module <- function(
         return(NULL)
       }
 
-      line_rect(l = attr4select$cutoff, coords)$rect
+      line_rect(l = l, coords)$rect
     })
 
     scatter_vars <- reactive({

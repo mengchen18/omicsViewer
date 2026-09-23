@@ -205,9 +205,13 @@ try {
   }
 
   // ---- 0b. quick-view switch renders (no multi-flash) ----------------
-  // cor -> volcano must be a single render (axes + rects together);
-  // volcano -> cor may clear the outgoing corner first, so at most two
-  // coherent renders. The pre-fix behavior flickered the volcano rects
+  // Every quick-view switch must be a single coherent render. The corner
+  // auto-selection resolves inside the same reactive recompute as the new
+  // axes (attr4 cutoff_effective + the axes-convergence gate), so cor ->
+  // volcano paints axes and rects together, volcano -> cor paints the
+  // correlation plot with the corner already cleared, and volcano ->
+  // volcano (no volcano-ness transition at all) keeps the corner and its
+  // rects untouched. The pre-fix behavior flickered the volcano rects
   // 2 -> 0 -> 2 and drew them over the outgoing correlation plot.
   const startPlotWatch = (page) => page.evaluate(() => {
     window.__plotStates = [];
@@ -233,8 +237,8 @@ try {
     const states = await readPlotStates(p1);
     const changes = states.slice(1);
     const final = states[states.length - 1] || '';
-    record('volcano -> cor quick view: at most two coherent renders, no leftover rects',
-      changes.length <= 2 && /Cor\|MDR/.test(final) && /\|0$/.test(final),
+    record('volcano -> cor quick view: exactly one render, corner already cleared',
+      changes.length === 1 && /Cor\|MDR/.test(final) && /\|0$/.test(final),
       states.join(' ; '));
 
     await startPlotWatch(p1);
@@ -246,6 +250,27 @@ try {
     record('cor -> volcano quick view: exactly one render with both corner rects',
       changes2.length === 1 && /log\.(fdr|pvalue)/.test(final2) && /\|2$/.test(final2),
       states2.join(' ; '));
+
+    // volcano -> volcano: two different volcano contrasts. No volcano-ness
+    // transition fires, so the auto-selected corner must carry over
+    // untouched - exactly one render, rects stay at 2, no corner churn.
+    // Shipped broken: a convergence gate inside the volcano detection made
+    // pre_volcano dip TRUE -> FALSE -> TRUE and re-fired the whole corner
+    // chain on every switch (user-reported multi-flash).
+    await startPlotWatch(p1);
+    await p1.click('[data-quick-view-id="volcano_RE_vs_LE"]');
+    await new Promise(s => setTimeout(s, 4500));
+    const states3 = await readPlotStates(p1);
+    const changes3 = states3.slice(1);
+    const final3 = states3[states3.length - 1] || '';
+    const scornerAfter = await p1.evaluate(() => {
+      const s = document.querySelector('select[id$="feature_space-a4selector-scorner"]');
+      return s ? s.value : null;
+    });
+    record('volcano -> volcano quick view: exactly one render, corner carried over',
+      changes3.length === 1 && /log\.(fdr|pvalue)/.test(final3) && /\|2$/.test(final3) &&
+        scornerAfter === 'volcano',
+      states3.join(' ; ') + ' scorner=' + scornerAfter);
   }
 
   // ---- 1. state: tab + selection ------------------------------------

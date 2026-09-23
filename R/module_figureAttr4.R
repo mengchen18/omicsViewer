@@ -56,6 +56,11 @@ attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
 #'   x/y cutoffs and the selected area) is registered under a nested
 #'   \code{<prefix>.attr4.*} namespace and driven through the store
 #'   protocol; when NULL the legacy status-restore path is kept.
+#' @param corner_apply_gate Reactive logical, default \code{reactive(TRUE)}.
+#'   The volcano corner auto-selection resolves only while the gate is TRUE;
+#'   the owning scatter passes its "displayed axes have converged to the
+#'   canonical store axes" reactive so the corner rectangles are never
+#'   applied to an outgoing figure mid-switch.
 #' @examples
 #' #' # library(shiny)
 #' # library(shinyjs)
@@ -82,7 +87,8 @@ attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
 attr4selector_module <- function(
   id, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL),
   reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE),
-  reactive_status = reactive(NULL), store = NULL
+  reactive_status = reactive(NULL), store = NULL,
+  corner_apply_gate = reactive(TRUE)
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -338,34 +344,98 @@ attr4selector_module <- function(
     ps <- ac[1]
     if (!is.null(input$scorner) && input$scorner %in% ac) 
       ps <- input$scorner
+    # never clobber a corner we just pushed and the browser has not
+    # acknowledged yet (input$scorner still reports the pre-push value)
+    pushed <- .a4_scorner_pushed()
+    if (!is.null(pushed) && pushed %in% ac)
+      ps <- pushed
     updateSelectInput(session, inputId = "scorner", choices = ac, selected = ps)
   })  
 
-  # Volcano corner auto-selection. When the owning scatter detects volcano
-  # axes, the "volcano" area (both top corners) is selected automatically.
-  # Store-backed panels route the scorner change through the canonical store
-  # so it becomes the single source of truth: a raw updateSelectInput here
-  # used to be clobbered by an unrelated in-flight store re-assert on the
-  # same widget (load-time bug: corner ended at "None" despite this branch
-  # running). The direct updateSelectInput is kept as an immediate visual
-  # sync - it carries the same value, and the input ack closes the loop.
-  observeEvent(pre_volcano(), {
-    corner <- if (isTRUE(pre_volcano())) "volcano" else "None"
+  # Volcano corner auto-selection, structured as INTENT + reactively
+  # resolved corner:
+  #
+  # - pre_volcano() (the canonical, atomic volcano detection owned by the
+  #   scatter module) only fires on genuine volcano-ness TRANSITIONS, so
+  #   switching between two volcano views never touches the corner at all.
+  # - The intended corner resolves through corner_effective() ONLY when
+  #   corner_apply_gate() is TRUE - the scatter passes its "displayed axes
+  #   have converged to the canonical axes" reactive, so the volcano
+  #   rectangles are never applied to the outgoing figure mid-switch.
+  # - The RENDER path (rectval in the owning module) consumes
+  #   params$cutoff_reactive, so the resolved corner lands in the SAME
+  #   reactive recompute as the new axes - one paint, rects included. An
+  #   observer-based apply landed one flush later and painted the new axes
+  #   with the stale corner first (a visible extra flash).
+  # - Side effects (scorner widget, store, params$cutoff status mirror) ride
+  #   a content-deduped observer: the historical per-input seed timestamp
+  #   forced an invalidation on every event even when nothing changed, each
+  #   one a redundant full plot redraw. That observer is the ONLY writer of
+  #   params$cutoff: corner_effective deliberately does not read params (a
+  #   reactiveValues write always re-invalidates its readers), and the
+  #   generic input observer no longer mirrors input$scorner into it - two
+  #   disagreeing writers plus the corner -> params feedback edge
+  #   ping-ponged forever, and while the loop spun shiny never drained the
+  #   outgoing message queue, so the browser could never ack the scorner
+  #   update and the two writers never agreed (the load-time infinite loop).
+  pendingCorner <- reactiveVal(NULL)
+  # the corner value last pushed to the scorner widget and not yet
+  # acknowledged by the browser; while it is set, a widget report that
+  # still shows the pre-push value is stale, not a user choice (same
+  # pattern as pendingAnalysis in the triselector module)
+  .a4_scorner_pushed <- reactiveVal(NULL)
+  widget_corner <- reactive({
+    sc <- input$scorner
+    pushed <- .a4_scorner_pushed()
+    if (!is.null(pushed) && !identical(sc, pushed))
+      return(pushed)
+    sc %||% "None"
+  })
+  corner_effective <- reactive({
+    intent <- pendingCorner()
+    if (!is.null(intent) &&
+        isTRUE(tryCatch(corner_apply_gate(), error = function(e) FALSE)))
+      return(intent)
+    widget_corner()
+  })
+  cutoff_effective <- reactive(
+    list(x = val_xcut(), y = val_ycut(), corner = corner_effective())
+  )
+  .a4_cutoff_key <- reactiveVal(NULL)
+  observe({
+    l <- cutoff_effective()
+    key <- paste(l$corner %||% "", l$x %||% "", l$y %||% "", sep = "\r")
+    if (identical(key, .a4_cutoff_key()))
+      return(NULL)
+    .a4_cutoff_key(key)
+    params$cutoff <- l
     if (!is.null(store4))
       tryCatch(
-        store_apply(store4, list(scorner = corner), origin = "system",
+        store_apply(store4, list(scorner = l$corner), origin = "system",
                     strict = FALSE, mark_pending = FALSE),
         error = function(e) NULL
       )
-    if (isTRUE(pre_volcano())) {
-      l <- list(x = val_xcut(), y = val_ycut(), corner = "volcano")
-      attr(l, "seed") <- Sys.time()
-      params$cutoff <- l
-    } else {
-      params$cutoff <- list(x = val_xcut(), y = val_ycut(), corner = "None")
+    if (!identical(l$corner, isolate(input$scorner))) {
+      .a4_scorner_pushed(l$corner)
+      # choices ride along so the selected value always exists in the
+      # selectize options even if this lands before the debounced choices
+      # rebuild below (a bare setValue for a value not yet among the options
+      # is silently dropped by selectize)
+      updateSelectInput(session, inputId = "scorner",
+        choices = .a4_corner_choices(l$x, l$y), selected = l$corner)
     }
-    updateSelectInput(session, inputId = "scorner", selected = corner)
   })
+  observeEvent(pre_volcano(), {
+    pendingCorner(if (isTRUE(pre_volcano())) "volcano" else "None")
+  })
+  # Any scorner widget report retires the auto-selection intent: either it
+  # acknowledges our own push (the value then survives via widget_corner)
+  # or it is a genuine user/restore choice, which always wins over the
+  # automatic volcano corner.
+  observeEvent(input$scorner, {
+    .a4_scorner_pushed(NULL)
+    pendingCorner(NULL)
+  }, ignoreInit = TRUE)
     
   searchValue <- reactiveVal()
   observe({
@@ -404,17 +474,16 @@ attr4selector_module <- function(
   acorner <- reactiveVal()    
   i_xcut <- reactiveVal()    
   i_ycut <- reactiveVal()    
-  # observeEvent(input$actSelect, {
-  # observeEvent(input$scorner, {    
+  # Widget state mirror for the status snapshot ONLY (reactiveVal writes
+  # are deduped). The cutoff/corner truth flows through cutoff_effective /
+  # the side-effect observer above; writing params here as well raced that
+  # observer with stale widget reports.
   observe({
     req( !is.null(input$scorner) && nchar(input$scorner) != 0 )
 
     acorner( input$scorner )
     i_xcut( input$xcut )
     i_ycut( input$ycut )
-    l <- list(x = val_xcut(), y = val_ycut(), corner =  input$scorner)
-    attr(l, "seed") <- Sys.time()
-    params$cutoff <- l
   })
 
   observe({
@@ -520,6 +589,11 @@ attr4selector_module <- function(
       return(NULL)
     pre_search(s$searchValue)
   })
+
+  # Reactive cutoff for the owning module's render path: consuming this
+  # (instead of the params$cutoff mirror written by observers) makes the
+  # resolved corner land in the same reactive recompute as new axes.
+  params$cutoff_reactive <- cutoff_effective
 
   params
 

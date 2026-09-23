@@ -1,180 +1,92 @@
-# HANDOVER — scatter quick-view switch multi-flash fix (IN PROGRESS, BROKEN TREE)
+# HANDOVER — scatter quick-view switch multi-flash fix (DONE, 2026-09-24)
 
-**Bug 1 (volcano corner not selected on load) is FIXED and confirmed by
-the user — do not touch it.** The only remaining problem is the
-multiple-render/flash on quick-view switches, and the current working
-tree (an attempt at that fix) hangs in an infinite reactive loop.
+**Status: complete and verified.** Bug 1 (volcano corner on load) stayed
+fixed; the quick-view switch multi-render (volcano<->cor AND
+volcano->volcano) is fixed; the infinite reactive loop that the previous
+attempt left in the working tree is gone. Everything below is for the
+record — read `AGENT_ACCURACY_PLAN.md` §6 for the control-plane
+architecture and `HANDOVER.md` §"Scatter volcano corner" for the earlier
+history.
 
-Written 2026-09-24 mid-fix. **The working tree is intentionally left in a
-BROKEN state (infinite reactive loop) for the next session to debug or
-bisect.** Read this first; then `HANDOVER.md` §"Scatter volcano corner"
-for the already-committed background; `AGENT_ACCURACY_PLAN.md` for the
-control-plane architecture. Nothing in this file is committed except
-this document itself.
+## Root cause of the previous attempt's infinite loop (diagnosed live)
 
-## Reproducing the hang (current tree)
+Reproduced with printf tracing (message() counters) + websocket tracing
+(`options(shiny.trace = TRUE)`, see the Shiny "Debugging applications"
+article). Two observers disagreed forever about the corner:
 
-```bash
-Rscript -e '
-  options(shiny.port = 7770, shiny.host = "127.0.0.1")
-  eset <- readRDS("inst/extdata/demo.RDS")
-  omicsViewer::omicsViewer(dir = "inst/extdata/", ESVObj = eset)
-' > /tmp/hang.log 2>&1 &
-# open http://127.0.0.1:7770 in a browser (or Playwright with
-# --disable-webgl --disable-webgl2)
-```
+- the side-effect observer computed the corner from the pending intent
+  (`"volcano"`), while the generic input observer mirrored the raw widget
+  report (`input$scorner` = `"None"`) — both wrote the shared
+  `.a4_cutoff_key` + `params$cutoff`, each write re-invalidating the other
+  (~250 iterations/s);
+- `corner_effective` READ `params$cutoff` while the side-effect observer
+  WROTE it — a reactiveValues write always re-invalidates readers (no
+  diffing), so the graph contained a permanent read/write feedback edge;
+- the intended convergence (browser acks the `updateSelectInput` push,
+  both observers agree) could never happen: while the flush loop spins,
+  Shiny never drains the outgoing message queue (12 s of spinning, 47
+  SEND messages, zero scorner updates), so the ack starved — a
+  self-sustaining loop.
 
-Signature (measured 2026-09-24, port 7770):
-- the UI shell loads (tabs, dataset-loaded banner render);
-- `Shiny.shinyapp.$inputValues['app-dataspace-eset']` DOES appear ("Feature");
-- the shiny busy indicator stays up forever; **no plotly container ever
-  renders**;
-- the R process pins one core (~95 % CPU) — an infinite reactive loop;
-- `/tmp/hang.log` shows NO error, just "Listening on…" + "Using model…".
+## The fix (constraints 1–3 of the previous handover, all satisfied)
 
-## Git state
+In `R/module_figureAttr4.R` (attr4selector_module):
 
-- Last good commit: `aef2796` (fix part 1) + `b6b9250` (docs). That state:
-  load corner FIXED (verified), cor→volcano exactly 1 render, volcano→cor
-  ≤2 renders, **but volcano→volcano (e.g. RE_vs_ME → RE_vs_LE) flashed
-  multiple times** — user-reported regression of the convergence gate
-  (pre_volcano dipped TRUE→FALSE→TRUE on every switch; see below).
-- Dirty files (the broken second iteration): `R/module_figureAttr4.R`,
-  `R/module_meta_scatter.R` (89 insertions / 40 deletions total).
-- To get back to the last-good state: `git stash` (keep the stash! it is
-  the material to re-apply incrementally).
+- `corner_effective` resolves as: gated intent (`pendingCorner` +
+  `corner_apply_gate`) %||% `widget_corner()` — it no longer reads
+  `params$cutoff`, so the feedback edge is gone.
+- `widget_corner()` is the ack-filtered widget state: while a pushed
+  corner value awaits the browser ack, a differing widget report is stale
+  and the pushed value wins (same pattern as `pendingAnalysis` in
+  module_triselector.R). The choices-rebuild observer respects the pushed
+  value too, and the push sends `choices` together with `selected`
+  (selectize silently drops a setValue for a value not among the options).
+- The side-effect observer is the ONLY writer of `params$cutoff`, the
+  store and the scorner widget, content-deduped via `.a4_cutoff_key`
+  (the historical `attr(l, "seed") <- Sys.time()` full-redraw seed is
+  gone). The generic input observer now only mirrors widget state into
+  the status snapshot reactiveVals.
+- Any scorner widget report retires the auto-intent (`observeEvent(
+  input$scorner)`) — an ack keeps the value via `widget_corner`, a
+  user/restore choice always wins over the automatic volcano corner.
 
-## Design intent of the broken iteration (all three points are REQUIRED)
+In `R/module_meta_scatter.R`:
 
-1. **Corner state changes ONLY on volcano-ness transitions of the ATOMIC
-   store axes.** `pre_vol` must be the pure store-watcher predicate (no
-   convergence gate inside it) — otherwise volcano→volcano dips
-   FALSE→TRUE and re-fires the corner chain (the user-visible regression
-   of commit aef2796).
-2. **The corner applies at display convergence, INSIDE the same reactive
-   recompute as the axes render** (one paint, rects included). An
-   observer-based apply lands one flush LATER (verified empirically:
-   volcano→cor painted `Cor|r2` then `Cor|r0`; cor→volcano painted
-   `volcano|r0` then `volcano|r2` — 2 renders each, no oscillation but
-   the corner was late). Hence the reactive-consumption design:
-   attr4 exposes `params$cutoff_reactive` (a pure reactive resolving
-   intent+gate+applied corner), and meta_scatter's `rectval` consumes it
-   instead of the `params$cutoff` mirror.
-3. **Content-deduped side effects** (scorner widget updateSelectInput,
-   store_apply scorner, params$cutoff mirror): the historical
-   `attr(l,"seed") <- Sys.time()` forced a full plot redraw on every
-   input event even when the corner/cutoffs were identical.
+- `pre_vol` is the pure store-watcher predicate (transitions exactly once
+  per view change; never dips between two volcano views — constraint 1).
+- `.scatter_axes_converged` (store watchers == displayed v1/v2 triples)
+  is passed as `corner_apply_gate`, so the corner applies at display
+  convergence (constraint 2).
+- `rectval` consumes `params$cutoff_reactive` (`cutoff_effective`), so
+  the resolved corner lands in the SAME reactive recompute as the new
+  axes — one paint, rects included (constraint 2).
+- Side effects are content-deduped (constraint 3).
 
-## What the broken tree contains (git diff summary)
+## Verification (all green)
 
-`R/module_meta_scatter.R`:
-- `pre_vol`: pure store-watcher predicate (GOOD — keep this).
-- `.scatter_axes_converged`: new reactive (v1/v2 triples == store
-  watchers) passed as `corner_apply_gate` to attr4 (GOOD concept).
-- `rectval` reads `attr4select$cutoff_reactive` (function) if present,
-  else falls back to `attr4select$cutoff` (SUSPECT — see loop analysis).
+- Tier A (tests/e2e_agent/tier_a.mjs) x2 full runs: 97/97 each, including
+  the tightened/added assertions:
+  - load: volcano badge active, scorner=volcano, 2 rects;
+  - volcano -> cor: exactly ONE render, corner already cleared (`|0`);
+  - cor -> volcano: exactly ONE render with both corner rects (`|2`);
+  - NEW volcano -> volcano (RE_vs_ME -> RE_vs_LE): exactly ONE render,
+    rects stay 2, scorner carries over.
+- 10 ms-resolution frame sampling in a live browser (stricter than the
+  40 ms Tier A poller): all four switch directions (volcano->cor,
+  cor->volcano, volcano->volcano both ways) = exactly one distinct frame
+  transition, no intermediate garbage frames.
+- Load no longer hangs: plotly container renders, R process 0.2 %
+  instantaneous CPU after idle (the loop pinned ~95 %).
+- Unit board green: widgetStore 52, triselectorCascade 6,
+  scatterSelection 6, quickViews 17, appState 37, agentAssistant 64,
+  agentFigures 67, agentLogging 21, agentWidgets 105, aiAssistantTools
+  33, agentLogSummary 32, shinyAuxi 10, tableWidgetState 5.
 
-`R/module_figureAttr4.R`:
-- new param `corner_apply_gate = reactive(TRUE)` (roxygen updated).
-- `pendingCorner` reactiveVal, set ONLY by `observeEvent(pre_volcano())`
-  transitions ("volcano"/"None" intent).
-- `corner_effective` reactive: `intent + gate` → intent, else
-  `params$cutoff$corner %||% "None"` (**reads params$cutoff**).
-- `cutoff_effective` reactive: `list(x=val_xcut(), y=val_ycut(),
-  corner=corner_effective())`.
-- side-effect `observe`: reads `cutoff_effective()`, computes a content
-  key, and on change writes `.a4_cutoff_key`, **`params$cutoff <- l`**,
-  `store_apply(scorner, mark_pending=FALSE)`,
-  `updateSelectInput("scorner", selected=corner)` (**SUSPECT**).
-- the generic user-input observer also writes `params$cutoff` under the
-  same content key.
-- `params$cutoff_reactive <- cutoff_effective` exported before return.
-
-## Loop analysis (where to look first)
-
-The graph contains a read/write cycle: `corner_effective` READS
-`params$cutoff`; the side-effect observe WRITES `params$cutoff`. A
-reactiveValues write always invalidates readers (no diffing), so each
-apply re-triggers `corner_effective → cutoff_effective → observe`; the
-content key is supposed to stop it after one extra pass. It doesn't —
-suspects, in order:
-
-1. **The key never stabilizes**: `l$x`/`l$y` come from the DEBOUNCED
-   `val_xcut()`/`val_ycut()`. While inputs are initializing these emit
-   NULL→value transitions; but more importantly `paste()` of a numeric
-   should be stable… verify by logging the key inside the observe.
-2. **`updateSelectInput` ping-pong**: every apply sends a scorner update;
-   if the browser (selectize) fires an input event even for an unchanged
-   value, the generic observer re-runs; it reads `val_xcut()` etc. —
-   cheap — but if anything in that chain rewrites `params$cutoff` with a
-   fresh list under a key that differs by representation (e.g.
-   "0.301029995663981" vs "0.30102999566398120"), the cycle never ends.
-   float→paste formatting is a classic source.
-3. **`store_apply` → epoch bump → .a4_epoch push observer → scorner
-   push**: the attr4 push observer runs on ANY epoch bump and pushes
-   scorner when `pending[[scorner]]` is set. `mark_pending=FALSE` means
-   no pending — but CHECK the `.a4_epoch` observer's condition actually
-   respects that for xcut/ycut too (it pushes those when pending; the
-   SEED no longer sets pending, but the RESTORE path does — during init
-   no restore runs, so probably fine).
-4. **rectval reading a function out of reactiveValues**:
-   `attr4select$cutoff_reactive` — reading the member registers a
-   dependency on that member; nothing writes it, so it should be inert —
-   but confirm Shiny doesn't choke on function-valued reactiveValues
-   members during serialization of `params` (the status observer
-   snapshots `params` fields — check nothing iterates ALL params members
-   into a snapshot; `params$status` is built explicitly, so probably
-   fine).
-
-**Fastest debug**: add `message()` counters (with `format(Sys.time(),
-"%OS3")` and the computed key) at the top of (a) the side-effect observe,
-(b) the generic input observer, (c) the choices-rebuild observer, then
-load the page and read the R log — the repeating message names the loop.
-Alternatively `profvis::profvis` a few seconds of the spinning process.
-Alternatively bisect: comment out (1) the `updateSelectInput` in the
-side-effect observe, then (2) the `store_apply`, then (3) the
-`params$cutoff <- l` write, reload after each — the loop's driver will
-reveal itself.
-
-## Verified-correct facts (do not re-derive)
-
-- `store_read` is a PLAIN snapshot (never invalidates) — reactive
-  consumers MUST use `store_watch` (per-key reactives) or `store_epoch`.
-- Plotly.react in the app's bundled plotly version DOES clear layout
-  shapes when the new layout omits the key (tested in-page). "No rects"
-  figures are fine; the visible rects always come from rectval itself.
-- `plotly::layout(shapes=NULL/empty)` drops the key entirely (both
-  cases) — irrelevant but explains rect serialization.
-- The attr4 SEED must keep `mark_pending = FALSE` (a value copied FROM a
-  live input can never be acked — its re-assert clobbered the corner at
-  load; that fix is committed and verified).
-- The triselector UI→store sync must mirror only COHERENT triples
-  (`.scatter_triple_coherent`, committed) — mixed cascade echoes were
-  treated as user overrides, cleared pending, and oscillated the store
-  after every switch (the ROOT of the original user-reported flash).
-- Commit aef2796's Tier A additions assert: load corner state
-  (scorner=volcano, 2 shapes, badge active), volcano→cor ≤2 renders
-  ending `|0`, cor→volcano "exactly 1 render" — NOTE: under the
-  intended final design cross-paradigm switches are also 1 render
-  (corner resolves in-reactive), so keep/adjust the expectation to
-  `exactly 1` for both, and ADD the volcano→volcano case (exactly 1
-  render, rects stay 2 — the user's regression report).
-
-## Acceptance for the finished fix (verify in a live browser, then Tier A)
-
-- load: volcano badge active, scorner=volcano, 2 rects, corner features
-  selected;
-- every quick-view switch (volcano↔cor, volcano↔volcano): exactly ONE
-  distinct plot render, no intermediate garbage frames (no rects on a
-  cor plot, no rects-flicker), corner state unchanged between two
-  volcano views;
-- unit board + Tier A ×2 green.
-
-## Environment reminders
+## Environment reminders (unchanged)
 
 - ports 7775–7799: kill orphans before/after browser runs
   (`ss -tlnp | grep -E ':77[0-9][0-9]'`); an orphan serving an OLD build
-  poisons verification runs (bit us twice today).
+  poisons verification runs.
 - Chrome headless flags: `--disable-webgl --disable-webgl2` (mandatory).
 - Reinstall after every source change:
-  `Rscript -e 'install.packages("<repo>", repos = NULL, type = "source")'`.
+  `Rscript -e "install.packages("<repo>", repos = NULL, type = "source")"`.
