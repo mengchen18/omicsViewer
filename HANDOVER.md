@@ -1,202 +1,88 @@
 # HANDOVER — agent accuracy & widget control plane
 
-Written 2026-09-23 at the end of the S4-completion session + decision
-review (snapshot save/restore re-routed through the store; round-trip
-equality verified; the WP1/WP7 open decisions settled with evidence).
-**S4 is COMPLETE — the whole §6 control plane (S1–S4) is done and the
-Phase-1 design decisions are settled.** Read this first in a fresh
-context, then `AGENT_ACCURACY_PLAN.md` (status table rows through `2½`;
-WP1 decision + disclosure ladder in §3-WP1; WP7/WP10 updated) and
-`AGENTS.md` (environment + commands). Delete or trim this file once
-absorbed.
+Written 2026-09-24 at the close of the WP1–WP5 session (Phase 1 + WP5
+complete; five commits, 9a452a9..c5cdbfc). Read this first in a fresh
+context, then `AGENT_ACCURACY_PLAN.md` (§3 statuses are the source of
+truth; §6 control plane background) and `AGENTS.md` (environment,
+commands, quirks). Delete or trim this file once absorbed.
 
-**Update 2026-09-24: WP1 is COMPLETE** (see plan §3-WP1 STATUS) —
-overview/sections ladder landed, overview 1,185 B vs 18,693 B full on
-demo.RDS (15.8×), unit board green (agentAssistant 64, aiAssistantTools
-22), Tier A 93/93 ×2. `agent_state` is now an on-demand builder function
-(`state(sections)`), not a reactive — keep that contract when touching
-L0_module_app.R / ai_assistant_module / agent_test_hooks_module.
+## Where we are
 
-**Update 2026-09-24 (later): WP3 is COMPLETE** (see plan §3-WP3 STATUS).
-Key carry-forward: the figure spec in tool RESULTS is the **echo shape**
-(flat layer aesthetics — `agent_figure_spec_echo()`), because ellmer's
-`convert_from_type` drops schema-foreign keys (`mappings`) from echoed
-arguments; the REGISTRY keeps the normalized shape (WP7 merge base); the
-normalizer accepts both shapes (idempotent) and exempts a verbatim full
-sample set from the 200-sample cap.
+Branch `agent-driven-exploration`, working tree clean, DESCRIPTION 2.1.1.
+**Done and validated:** S1–S4 control plane (previous sessions), and now
 
-**Update 2026-09-24 (latest): WP5 + WP5b COMPLETE; live Tier B smoke
-validated; Phase 1 + WP5 done.** Task 17 added; system prompt carries
-the 4 workflows + exact-ID contract; tier_b.mjs settle loop is now
-log-aware (provider_request_start in flight) and waits for
-quiet-after-figure so revisions aren't cut off. Live smoke on
-glm-5.3-flash confirmed WP1 (orientation = one 1.6 KB overview call incl.
-scatter_view), WP3 (create→update round-trip, spec echo reuse), and
-surfaced + fixed a NEW sentinel class: glm flash echoes omitted optionals
-as EMPTY OBJECTS (`facet_ncol = {}`) —
-`.agent_figure_{numeric,integer}_param` + `params$se` now treat length-0
-values as omitted (regression-tested; live before/after: 3 spec failures
-→ 0, only the legitimate literal-color guard remains, which correctly
-steers to `palette`). Earlier 2026-09-24: WP1, WP3, WP4 complete (see
-plan §3 statuses). **Remaining: WP6 (figure templates), WP7 (patch-mode,
-gated on tasks 10–11 at the full ×3 phase-gate run), WP8+.**
+| WP | What landed | Commit |
+|---|---|---|
+| WP1 | `sections` + compact overview on `get_omics_viewer_state`; overview 1,185 B vs 18,693 B full on demo.RDS (15.8×); `agent_state` in L0 is an on-demand builder `state(sections)` — NOT a reactive (keep that contract for `ai_assistant_module` / `agent_test_hooks_module`) | 9a452a9 |
+| WP3 | Figure spec round-trip: tool results carry the spec in the **echo shape** (`agent_figure_spec_echo()`, flat layer aesthetics — ellmer's `convert_from_type` drops schema-foreign keys like `mappings` from echoed args); `figures()` registry stores the **normalized** spec (WP7 merge base); normalizer is idempotent (accepts both shapes) and exempts a verbatim full sample set from the 200-sample cap | 3b0963f |
+| WP4 | `agent_summarize_log(path)` / `agent_summarize_logs(dir)` + registered `print.omicsViewerAgentLogSummary`; 8-class error taxonomy over failed tool results + stream_failures; first-attempt success, retry recovery, most-rejected args; `tests/test_agentLogSummary.R` (32, incl. real archived-fixture parse) | acf5a6e |
+| WP5/5b | Task 17 (snapshot round-trip) in tier_b_tasks.md; system prompt workflows + exact-ID contract; tier_b.mjs settle loop log-aware + quiet-after-figure; live glm-5.3-flash smoke validated WP1 overview + WP3 round-trip | c5cdbfc |
 
-## Where we are / how to resume
+Live-smoke evidence (glm-5.3-flash, archived under
+`tests/e2e_agent/artifacts/tier_b_*.png` + logs): orientation task = ONE
+`get_omics_viewer_state` call returning the 1.6 KB overview incl.
+`scatter_view`; create→update revision round-trip reuses the echoed spec
+and self-corrects through validation errors.
 
-Branch `agent-driven-exploration`, working tree clean through this
-session's commits. DESCRIPTION 2.1.1.
+## New rule discovered this session (do not re-learn)
 
-| Change | What |
-|---|---|
-| last session | S4 completion: store re-routes, `dataspace.active_tab`, round-trip tests (unit appState + tier_a 4g) |
-| decision review | WP1 overview settled (scatter_view on the ground floor, read from the store); WP7 settled (update_figure confirmed core surface → WP3 hard prerequisite); WP10 closed by construction |
+- **Empty-object sentinels on the round-trip path**: glm flash echoes
+  omitted optionals as `{}` (empty JSON object), not just the literal
+  `"null"`/`"{}"` strings already in `AGENT_SENTINEL_STRINGS`. Observed
+  live as `facet_ncol = {}` failing twice with "must be an integer
+  between 1 and 6". Fix pattern: every param/optional reader must treat
+  length-0 values (empty list, `integer(0)`) exactly like omitted —
+  `.agent_figure_{numeric,integer}_param` and `params$se` now do; check
+  this class first when adding any new optional tool argument. Live
+  before/after: 3 spec failures → 0.
+- **Tier B settle heuristics**: the shinychat cancel-control probe misses
+  silent glm-flash streams; activity must ALSO be read from the
+  diagnostic log (newest file ends with `provider_request_start` ⇒ still
+  working), and after a figure renders, wait for 18 s of quiet so a
+  pending revision (second figure) is captured. Both are in tier_b.mjs
+  now.
+- (Still true from before: MockShinySession output poisoning, mock input
+  maps not following update messages, observer GC — see AGENTS.md
+  "Environment quirks" and the S4 notes below.)
 
-**Next session goes straight to implementation** (all groundwork +
-decisions done):
+## Validation snapshot (all green at c5cdbfc)
 
-1. **WP1 — `sections` parameter on `get_omics_viewer_state`** — **DONE
-   2026-09-24** (decision was settled; implemented as designed):
-   overview = dataset, active tabs, available tabs, selection counts +
-   ≤20 example IDs, quick-view id+label lists, **`scatter_view`** (x/y
-   axis triples + axis_mode of BOTH data-space scatters via
-   `store_read`, keys
-   `dataspace.{feature,sample}_space.{x,y}_{analysis,subset,variable}` +
-   `.axis_mode`), `available_sections`, `state_policy`. Requested
-   sections return today's full payloads. Touch points landed:
-   `auxi_agentAssistant.R` (`agent_compact_state` +
-   `agent_scatter_view_from_store` + `.agent_normalize_state_sections`),
-   `module_aiAssistant.R` (tool schema + description), `L0_module_app.R`
-   (`agent_state` is now an on-demand isolated builder),
-   `module_agentTestHooks.R` (`overview` op forwards `payload.sections`),
-   `constants.R` (`AGENT_STATE_SECTIONS`). Tests: test_agentAssistant.R
-   (+26), test_aiAssistantTools.R (+3), tier_a.mjs (+4).
-2. **WP3 — figure spec round-trip** — **DONE 2026-09-24** (hard
-   prerequisite for WP7 patch-mode per settled decision 4):
-   `render_assistant_figure()` includes the spec in the tool result AND
-   stores the normalized spec in the session `figures()` registry.
-   Live-path discovery: result spec is the ECHO shape (flat layer
-   aesthetics) since ellmer's `convert_from_type` drops schema-foreign
-   keys like `mappings`; normalizer accepts both shapes idempotently;
-   full-sample-set echo exempt from the 200 cap. Tests:
-   test_aiAssistantTools.R (+4), test_agentFigures.R (+10).
-3. **WP4 — log summarizer** `agent_summarize_log(path)` in
-   `auxi_agentLogging.R`: event counts, per-tool call counts, error
-   taxonomy (regex classes: unknown_id/column/tab, invalid_figure_spec,
-   invalid_argument, no_dataset, request_limit, provider_failure),
-   first-attempt success rate, retry outcomes, most-rejected arguments.
-   New `tests/test_agentLogSummary.R` with a synthetic JSONL fixture
-   (REAL fixtures now archived at
-   `tests/e2e_agent/artifacts/decision-evidence-20260923/` — 9 JSONL
-   logs; 3 of 5 real get_state calls wanted the current view).
-4. Then WP5 (benchmark tasks — `tests/e2e_agent/tier_b_tasks.md`, tasks
-   15–16 cover the S4 surface; optionally add a task 17 for the snapshot
-   round-trip), WP6 figure templates, and WP7 patch-mode `update_figure`
-   (gated on tasks 10–11 revision failures after WP1–WP3).
+- Unit board: widgetStore 52, agentWidgets 105, agentAssistant 64,
+  agentFigures 37, aiAssistantTools 25, agentLogSummary 32,
+  agentLogging 21, appState 37, quickViews 17, scatterSelection 6,
+  triselectorCascade 6, tableWidgetState 5, shinyAuxi 10
+- Tier A browser: 93/93 (×2 of the last 3 runs; one single-assertion
+  timing flake in between — the known sporadic class)
+- Live Tier B: smoke subset only (orientation + create/revise); full ×3
+  benchmark re-run is a phase-gate activity (before WP7's gate decision)
 
-Also open (task, not decision): live Tier B baseline — the app prints
-`Using model = "gpt-5.6-terra"` (env-configured), but Tier B needs
-`tests/e2e_agent/provider.env` (gitignored) + `npm install` there once.
-Check that first for before/after numbers around WP1.
+## Next session: WP6 (figure templates)
 
-## What landed this session (architecture notes)
+Plan §4-WP6: `create_figure(template = "...", ...)` with template enum
+(`volcano`, `scatter`, `boxplot`, `barplot`, `histogram`, `density`,
+`line`) + a few well-named args (`x`, `y`, `color`, `label_top_n`);
+server-side `agent_figure_template_spec()` in `auxi_agentFigures.R`
+expands to a full validated spec **and returns it via the WP3 round-trip**
+so follow-up customization flows through `update_figure`. Generic grammar
+stays the advanced path. `pca` template optional (needs server-side
+projection — decide later). Tests: unit expansion cases + tool-level in
+`test_aiAssistantTools.R`; one Tier B smoke ("make a volcano plot" via
+template).
 
-- **Re-routes** (all conditional on a store being present; legacy paths
-  kept for store-less callers — the standalone heatmap app and old
-  snapshots):
-  - `R/heatmapshinyApp.R`: the 13-param status observer now first applies
-    a translated patch via `store_apply(origin="restore", strict=FALSE)`
-    (`.heatmap_status_patch` via the `.heatmap_store_keys` map; multi_
-    select keys may be empty), then the direct `update*Input` calls run
-    as before (idempotent; also covers values the store rejects).
-  - `R/module_dataTable.R`: `showColumns`/`multiSelection` status →
-    `columns`/`multi_selection` store patch (the multi_select validator
-    intersects with live colnames — safer than the old raw `scn(i)`).
-  - `R/module_feature_general.R`: `plotType`/`showRegLine` status →
-    store patches.
-  - `R/L1_module_result_space.R`: `analyst_active_tab` status →
-    `store_apply` on `store_rs`.
-  - `R/L1_module_data_space.R`: NEW binding `dataspace.active_tab`
-    (kind navbar, static 9-tab values: Feature, Feature table, Sample,
-    Sample table, Cor, Heatmap, Dynamic heatmap, Expression, GSList) +
-    standard sync/seed/push glue + status re-route. This was the last
-    user-editable widget not on the store; the semantic
-    `data_space_tab` path in `set_omics_viewer_state` remains the
-    Tier-1 interface.
-- `R/L0_module_app.R`: `app_module(store = NULL)` — callers may inject a
-  store (embedding contexts, tests read it directly); default unchanged.
-- `R/module_agentTestHooks.R`: new `store` op returning
-  `isolate(store_snapshot(store))` (JSON via the existing renderPrint).
-- **Round-trip tests**:
-  - `tests/test_appState.R`: full `app_module` under testServer —
-    agent-path widget writes, real snapshot save (.ESS to disk with
-    embedded `widget_store`), drift, restore via the savedSS cell
-    selection, `store_snapshot` before/after IDENTICAL across all keys.
-  - `tests/e2e_agent/tier_a.mjs` section 4g: same through the real
-    snapshot modal in the browser; drifted heatmap palette visibly
-    reverts; deep-equality of all store values (canon-normalized for
-    auto_unbox'd single-element arrays); cleans its .ESS out of
-    inst/extdata.
-
-## Rules discovered this session (do not re-learn)
-
-1. **MockShinySession output poisoning**: any observer whose event
-   expression ERRORS during a flush makes every subsequent
-   `output[[...]]` read fail with "unexpected error resolving its
-   promise". The app's `v1()` chain errors while `input$eset` is unset
-   under mock (NULL → `if (sta$eset_active_tab != ...)` length-zero).
-   App-level testServers must `setInputs("app-dataspace-eset", ...)`
-   BEFORE the first flush. (Output reads then work fine.)
-2. **Mock input maps don't follow update messages**: `updateNavbarPage`
-   relays but the mock `$inputValues`-equivalent stays stale, so a saved
-   panel-status payload can disagree with the widget_store in testServer
-   (in real browsers they always agree — both derive from live bindings).
-   When a round-trip test needs them consistent, drive the widget through
-   its INPUT like a browser would.
-3. **Status-path-after-store_restore ordering**: on .ESS restore,
-   `store_restore` runs synchronously and the module status observers
-   apply at the next flush — the status path can overwrite widget_store
-   values when the two disagree (they normally don't; see rule 2). If a
-   future cross-session restore mismatch appears, check this ordering.
-4. **Content-dependent keys** (dataTableDownload `selected_row`, table
-   rows in tab_status) restore exactly in-session (same-session save →
-   restore revalidates against the unchanged live table); cross-session
-   reloads re-validate against live choices and drop invalid keys
-   per-key-resilient (documented, accepted).
-5. `names(output)` on a mock session lists `impl|ns`, NOT registered
-   outputs — probe output existence by reading, and expect rule 1 to
-   mask the real cause.
-6. Tier A JS: top-level `const s1` is already taken (session 1); name
-   round-trip variables distinctly (`rtSaved`/`rtAfter`...).
-
-## Validation status (all green — as of this session's commit)
-
-- Unit board: widgetStore 52, agentWidgets 105, aiAssistantTools 19,
-  appState **37** (7 new round-trip assertions), tableWidgetState 5,
-  agentAssistant 38, agentFigures 26, agentLogging 21,
-  triselectorCascade 6, quickViews 17, scatterSelection 6, shinyAuxi 10,
-  ora 23, motif 6, dose_response 60, stats 7
-- Tier A browser: **89/89 ×2 consecutive runs** (new section 4g:
-  browser-level snapshot round-trip through the real modal + full store
-  deep-equality). Note: `inst/extdata/ESVSnapshot_*_test{0,6}.ESS` are
-  pre-existing gitignored leftovers from older runs — harmless.
-- NOT run: live Tier B (needs provider.env).
-
-## The store surface at a glance (for WP1 context)
-
-~200 keys across `dataspace.*` (active_tab, feature/sample_space axes +
-mode + attr4 panels, three heatmaps × 13 keys, three tables × 2 keys),
-`resultspace.*` (analyst_tab, feature/sample_general + attr4 + survival
-censor + 4 batch keys, ora/fgsea/ptm/geneshot/stringdb cascades and
-selected rows). Every user-editable widget in the app is registered;
-gsList row clicks, no-effect table selections, and action buttons are
-deliberately OUT (plan §6.2 decision). The snapshot modal save/restore is
-the canonical persistence path (widget_store embedded in .ESS).
+After WP6: WP7 patch-mode `update_figure` — **GATED** (decision 5): build
+only if tasks 10–11 first-attempt success < 2/3 at the full ×3 phase-gate
+run; the WP3 registry (`figures()[[id]]$spec`) is the merge base. Then
+WP8 (enrichment/table-view tools with shared help metadata).
 
 ## Session workflow reminders
 
 - Reinstall after every source change
   (`Rscript -e "install.packages('<repo>', repos=NULL, type='source')"`)
-  — testServer/browser harnesses run the INSTALLED package.
+  — testServer/browser harnesses run the INSTALLED package; roxygen
+  (`roxygen2::roxygenise('.')`) after touching roxygen blocks.
 - Kill orphaned R processes on ports 7775–7795 before browser runs.
-- Tier A convention is ×2 consecutive runs; provider.env is gitignored.
+- Tier A convention ×2 consecutive runs; Tier B needs
+  `tests/e2e_agent/provider.env` (present; glm-5.3-flash via
+  open.bigmodel.cn) and consumes provider quota — smoke subsets only per
+  change, full ×3 at gates.
 - Log timestamps are UTC (user is UTC+2).
