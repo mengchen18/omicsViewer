@@ -16,7 +16,9 @@ agent_test_hooks_module(
   apply_state,
   apply_scatter_view,
   state,
-  store = NULL
+  store = NULL,
+  apply_enrichment = NULL,
+  apply_table_view = NULL
 )
 }
 \arguments{
@@ -34,6 +36,12 @@ sections; mirrors the \code{get_omics_viewer_state} tool surface).}
 
 \item{store}{Canonical widget store driving the S3 generic widget tier
 (the exact store the \code{set_widgets} tool writes to).}
+
+\item{apply_enrichment}{Optional callback applying a validated ORA/fGSEA
+update (as used by \code{set_enrichment_parameters}).}
+
+\item{apply_table_view}{Optional callback applying a validated table-view
+update (as used by \code{set_table_view}).}
 }
 \value{
 UI tags and a module server, plus the hook-enabled predicate.

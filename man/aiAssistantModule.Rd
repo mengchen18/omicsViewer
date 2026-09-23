@@ -19,6 +19,8 @@ ai_assistant_module(
   selected_samples,
   apply_state,
   apply_scatter_view,
+  apply_enrichment = NULL,
+  apply_table_view = NULL,
   store = NULL
 )
 }
@@ -48,10 +50,19 @@ application-state update.}
 \item{apply_scatter_view}{Callback that validates and applies a proposed
 feature/sample scatter-axis update.}
 
+\item{apply_enrichment}{Callback that validates and applies a proposed
+ORA/fGSEA parameter update (WP8 \code{set_enrichment_parameters}).}
+
+\item{apply_table_view}{Callback that validates and applies a proposed
+table-view update (WP8 \code{set_table_view}).}
+
 \item{store}{Canonical widget store (\code{\link{widget_store_new}})
 shared with the app modules. When given, the generic widget tier
 (\code{list_widgets}, \code{get_widget}, \code{set_widgets}) is
-registered alongside the curated tools (plan section 6.3, S3).}
+registered alongside the curated tools, plus the WP8 semantic tools
+and the WP9 discovery tools (\code{search_ui_capabilities},
+\code{get_ui_capability}) generated from the same registry
+(plan section 6.3, S3/WP8/WP9).}
 }
 \value{
 The UI returns Shiny tags. The server module is invoked for its side

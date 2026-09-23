@@ -815,6 +815,51 @@ app_module <- function(
     view
   }
 
+  # WP8: semantic tier-1 tools as thin validate + store_apply wrappers over
+  # the canonical widget store (plan section 6.3). The normalizers in
+  # auxi_agentCapabilities.R build full canonical-id patches; per-key
+  # resilience keeps one invalid value (e.g. a pathway row that only exists
+  # after the ranking recomputes) from vetoing the rest, with the
+  # suggestion-bearing rejection returned to the model for self-correction.
+  apply_agent_enrichment <- function(update) {
+    validated <- agent_normalize_enrichment_update(update, isolate(fdata()))
+    receipt <- shiny::isolate(
+      store_apply(app_store, validated$patch, origin = "agent", strict = FALSE)
+    )
+    list(
+      method = validated$method,
+      panel_tab = validated$tab,
+      applied = receipt$applied,
+      applied_values = receipt$diff,
+      unchanged = receipt$skipped,
+      rejected = receipt$rejected %||% list(),
+      note = paste(
+        "The panel opens and the enrichment recomputes from the currently",
+        "selected features (ORA) or the full ranking (fGSEA); re-check the",
+        "results through the app tables or get_omics_viewer_state."
+      )
+    )
+  }
+
+  apply_agent_table_view <- function(update) {
+    validated <- agent_normalize_table_view_update(update)
+    receipt <- shiny::isolate(
+      store_apply(app_store, validated$patch, origin = "agent", strict = FALSE)
+    )
+    list(
+      table = validated$table,
+      panel_tab = validated$tab,
+      applied = receipt$applied,
+      applied_values = receipt$diff,
+      unchanged = receipt$skipped,
+      rejected = receipt$rejected %||% list(),
+      note = paste(
+        "The table's tab opens with the requested view; filters match",
+        "substring (case-insensitive) per column and paging starts at 1."
+      )
+    )
+  }
+
   ai_assistant_module(
     "assistant",
     state = agent_state,
@@ -826,6 +871,8 @@ app_module <- function(
     selected_samples = rh,
     apply_state = apply_agent_state,
     apply_scatter_view = apply_agent_scatter_view,
+    apply_enrichment = apply_agent_enrichment,
+    apply_table_view = apply_agent_table_view,
     store = app_store
   )
 
@@ -835,6 +882,8 @@ app_module <- function(
       "agentTestHooks",
       apply_state = apply_agent_state,
       apply_scatter_view = apply_agent_scatter_view,
+      apply_enrichment = apply_agent_enrichment,
+      apply_table_view = apply_agent_table_view,
       state = agent_state,
       store = app_store
     )

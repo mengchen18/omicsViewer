@@ -105,13 +105,14 @@ NULL
   if (remaining > 0L && !any(is_exact) && length(candidates) <= 5000L) {
     # Compare edit distance against the candidate as a whole and against
     # each of its pipe-separated segments: annotation columns follow
-    # Category|Subcategory|Variable, and typos almost always land in the
-    # variable segment ("logg.fdrr" vs "ttest|A_vs_B|log.fdr").
+    # Category|Subcategory|Variable, and typos land either in the variable
+    # segment alone ("logg.fdrr" vs segment "log.fdr") or across the full
+    # column name ("ttest|A_vs_B|logg.fdrr" vs "ttest|A_vs_B|log.fdr").
     segment_distance <- function(candidate) {
       segs <- strsplit(candidate, "|", fixed = TRUE)[[1]]
       if (length(segs) <= 1L)
         return(utils::adist(value_lower, tolower(candidate))[1, 1])
-      min(utils::adist(value_lower, tolower(segs))[1, ])
+      min(utils::adist(value_lower, tolower(c(candidate, segs)))[1, ])
     }
     dist <- vapply(cand_lower, segment_distance, numeric(1))
     names(dist) <- NULL
@@ -383,7 +384,9 @@ agent_scatter_view_from_store <- function(store) {
 #'   \code{panels}, \code{figure_grammar}.
 #' @param store Canonical widget store; when given, the overview gains a
 #'   \code{scatter_view} block with the current x/y axis triples and
-#'   axis mode of both data-space scatters.
+#'   axis mode of both data-space scatters, plus \code{capabilities}
+#'   counts (WP9: the overview lists capability counts only, never record
+#'   contents).
 #'
 #' @return A JSON-like list containing the overview (identifiers, active
 #'   tabs, semantic selections, quick-view id/label lists, scatter view,
@@ -447,6 +450,12 @@ agent_compact_state <- function(state, annotations = NULL, quick_views = NULL,
   scatter_view <- agent_scatter_view_from_store(store)
   if (!is.null(scatter_view))
     out$scatter_view <- scatter_view
+
+  # WP9: capability COUNTS only in the overview - record contents are
+  # discovered through search_ui_capabilities (context hygiene).
+  capabilities <- agent_capability_summary(store)
+  if (!is.null(capabilities))
+    out$capabilities <- capabilities
 
   if (want("annotations"))
     out$annotations <- annotations

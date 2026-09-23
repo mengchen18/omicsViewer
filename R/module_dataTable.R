@@ -34,10 +34,11 @@ dataTable_ui <- function(id) {
 #' @param tab_rows rows to be shown
 #' @param store Optional child view of the canonical widget store
 #'   (\code{\link{widget_store_child}}) for this table instance. When given,
-#'   the multi-row-selection switch and the set of shown columns are
-#'   registered as agent-controllable bindings (control plane, plan
-#'   section 6, S4). DataTable-internal browser state (search, ordering,
-#'   pagination) stays on the \code{tab_status} snapshot path.
+#'   the multi-row-selection switch, the set of shown columns, the visible
+#'   page, and the per-column filter patterns are registered as
+#'   agent-controllable bindings (control plane, plan section 6, S4 + WP8;
+#'   pushed through the DT proxy). Column ORDERING stays on the
+#'   \code{tab_status} snapshot path (DT exposes no proxy API for it).
 #' @importFrom stringr str_split_fixed
 #' @examples
 #' # library(shiny)
@@ -150,13 +151,16 @@ dataTable_module <- function(
   })
 
   # ------------------------------------------------------------------
-  # Canonical widget-store bindings (control plane, plan section 6, S4).
-  # The table's user-editable surface: the multi-row-selection switch and
-  # the set of shown columns (built through the Add-column selector;
-  # snapshots restore it wholesale, so the store models it as a
-  # multi_select). DataTable-internal browser state (search, ordering,
-  # pagination) stays on the tab_status path.
+  # Canonical widget-store bindings (control plane, plan section 6, S4 +
+  # WP8). The table's user-editable surface: the multi-row-selection
+  # switch, the set of shown columns (built through the Add-column
+  # selector; snapshots restore it wholesale, so the store models it as a
+  # multi_select), the visible page, and the per-column filter patterns
+  # (WP8 set_table_view; pushed through the DT proxy, acknowledged when
+  # DataTable reports its state). Column ORDERING stays on the tab_status
+  # snapshot path: DT exposes no proxy API for it (documented exception).
   # ------------------------------------------------------------------
+  tabproxy <- NULL
   if (!is.null(store)) {
     # Defensive choices source (NO req(): a shiny.validation condition
     # inside a choices_provider would abort the whole store_apply
@@ -175,10 +179,66 @@ dataTable_module <- function(
                      "selector appends entries; at least one column must",
                      "remain selected"),
         min = 1L,
+        choices_provider = function(v) .dt_col_choices()),
+      widget_binding("page", "integer", label = "Table page",
+        help = paste("1-based page of the table currently visible;",
+                     "navigation applies through the table's paging",
+                     "controls"),
+        min = 1L),
+      widget_binding("column_filters", "mapping", label = "Column filters",
+        help = paste("Per-column search patterns of the top filter boxes,",
+                     "as an object of exact column name to pattern; an",
+                     "empty object clears every filter"),
         choices_provider = function(v) .dt_col_choices())
     )
+    # DT proxy operations defer until flush end (after output re-renders),
+    # so a columns push followed by a filters push lands on the new table.
+    # NOTE: dataTableProxy() applies session$ns() itself, so the id is the
+    # UN-prefixed module-local "table" (ns("table") would double-prefix
+    # and the proxy messages would target a nonexistent table).
+    tabproxy <- dataTableProxy("table")
     .dt_store_root <- if (is.null(store$parent)) store else store$parent
-    .dt_keys <- c(multi_selection = "multisel", columns = "scn")
+    # column_filters deliberately precede page in the push order: when one
+    # transaction sets both, the page navigation then targets the FILTERED
+    # row set (the model's usual intent), and DT clamps pages that no
+    # longer exist after filtering.
+    .dt_keys <- c(multi_selection = "multisel", columns = "scn",
+                  column_filters = "filters", page = "page")
+    # DT state helpers: the browser-reported input$table_state maps to the
+    # page number and the named column-filter patterns (positional over
+    # the displayed columns, which are scn() in render order).
+    .dt_state_page <- function(st) {
+      len <- suppressWarnings(as.integer(st$length %||% NA)[1])
+      start <- suppressWarnings(as.integer(st$start %||% NA)[1])
+      if (is.na(len) || len < 1L || is.na(start) || start < 0L)
+        return(NULL)
+      floor(start / len) + 1L
+    }
+    .dt_state_filters <- function(st, shown) {
+      cols <- st$columns
+      if (!is.list(cols) || !length(cols) || is.null(shown) || !length(shown))
+        return(setNames(character(0), character(0)))
+      n <- min(length(shown), length(cols))
+      pat <- vapply(seq_len(n), function(i) {
+        p <- tryCatch(
+          as.character(cols[[i]]$search$search)[1],
+          error = function(e) ""
+        )
+        if (is.null(p) || is.na(p)) "" else p
+      }, character(1))
+      keep <- nzchar(pat)
+      if (!any(keep))
+        return(setNames(character(0), character(0)))
+      setNames(pat[keep], shown[seq_len(n)][keep])
+    }
+    # updateSearch wants one entry per displayed column (empty = no filter)
+    .dt_filters_for_proxy <- function(value, shown) {
+      p <- rep("", length(shown))
+      hit <- intersect(names(value), shown)
+      if (length(hit))
+        p[match(hit, shown)] <- unname(value[hit])
+      p
+    }
     # Create the epoch reactive ONCE and keep strong references to every
     # store-glue observer (observer-GC rule, see heatmap/meta_scatter).
     .dt_epoch <- store_epoch(store)
@@ -191,7 +251,8 @@ dataTable_module <- function(
     # UI -> store: switch edits and column-set changes (triselector adds,
     # status restores, store pushes) all mirror through the same sync;
     # it is acknowledgement-aware, so pushed values ack their pending
-    # entries instead of counting as user overrides.
+    # entries instead of counting as user overrides. The same applies to
+    # DataTable-reported browser state (page, column filters).
     .dt_keep(observeEvent(input$multisel, {
       store_sync_from_ui(store, "multi_selection", input$multisel)
     }, ignoreInit = TRUE))
@@ -199,11 +260,22 @@ dataTable_module <- function(
       if (is.null(scn())) return(NULL)
       store_sync_from_ui(store, "columns", scn())
     }))
+    .dt_keep(observe({
+      st <- input$table_state
+      if (is.null(st) || !is.list(st)) return(NULL)
+      pg <- .dt_state_page(st)
+      if (!is.null(pg))
+        store_sync_from_ui(store, "page", pg)
+      store_sync_from_ui(store, "column_filters", .dt_state_filters(st, scn()))
+    }))
 
     # Seed unset keys with the widget defaults once the inputs exist, so
     # discovery tools report real current values from the start; restores
     # and agent applies that land first win (seeding skips held keys).
+    # Seeding writes values KNOWN to already sit in the widgets, so no
+    # push/ack is armed (mark_pending = FALSE - the S2 load-time lesson).
     .dt_seeded <- FALSE
+    .dt_seeded_state <- FALSE
     .dt_keep(observe({
       if (.dt_seeded) return(NULL)
       if (is.null(input$multisel) || is.null(scn())) return(NULL)
@@ -215,14 +287,36 @@ dataTable_module <- function(
       if (is.null(held[[paste0(store$prefix, ".columns")]]))
         patch$columns <- scn()
       if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
+        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE,
+                             mark_pending = FALSE),
+                 error = function(e) NULL)
+    }))
+    .dt_keep(observe({
+      if (.dt_seeded_state) return(NULL)
+      st <- input$table_state
+      if (is.null(st) || !is.list(st)) return(NULL)
+      .dt_seeded_state <<- TRUE
+      held <- store_read(store, names(.dt_keys))
+      patch <- list()
+      pg <- .dt_state_page(st)
+      if (!is.null(pg) && is.null(held[[paste0(store$prefix, ".page")]]))
+        patch$page <- pg
+      if (is.null(held[[paste0(store$prefix, ".column_filters")]]))
+        patch$column_filters <- .dt_state_filters(st, scn())
+      if (length(patch))
+        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE,
+                             mark_pending = FALSE),
                  error = function(e) NULL)
     }))
 
     # Store -> UI push for external writes only (pending entries mark
     # them). Columns push defensively: values that no longer exist in the
     # data are dropped, and an empty intersection is skipped rather than
-    # blanking the table.
+    # blanking the table. Page/filters push through the DT proxy, which
+    # defers until flush end (after any re-render triggered by a columns
+    # push in the same transaction); DataTable's state report then
+    # acknowledges the push through the sync observer above.
+    .dt_epoch <- store_epoch(store)
     .dt_keep(observe({
       .dt_epoch()
       vals <- store_read(store, names(.dt_keys))
@@ -234,10 +328,23 @@ dataTable_module <- function(
           return(NULL)
         if (identical(key, "multi_selection")) {
           updateSwitchInput(session, "multisel", value = value)
-        } else {
+        } else if (identical(key, "columns")) {
           okcols <- intersect(value, .dt_col_choices())
           if (length(okcols))
             scn(okcols)
+        } else if (!is.null(input$table_state)) {
+          # table has rendered at least once; proxy messages are safe
+          tryCatch({
+            if (identical(key, "page")) {
+              DT::selectPage(tabproxy, as.integer(value))
+            } else if (identical(key, "column_filters")) {
+              shown <- scn()
+              if (!is.null(shown) && length(shown))
+                DT::updateSearch(tabproxy, list(
+                  columns = .dt_filters_for_proxy(value, shown)
+                ))
+            }
+          }, error = function(e) NULL)
         }
       }))
     }))
@@ -335,7 +442,8 @@ dataTable_module <- function(
   })
 
   # outputOptions(output, "table", suspendWhenHidden = FALSE)
-  tabproxy <- dataTableProxy(ns("table"))
+  if (is.null(tabproxy))
+    tabproxy <- dataTableProxy("table")
   
   eventReactive( list(input$table_rows_selected, input$table_state), {
     r <- character(0)

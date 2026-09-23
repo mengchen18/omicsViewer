@@ -922,6 +922,92 @@ try {
       if (/rt1\.ESS$/i.test(f)) unlinkSync(path.join(EXTDATA, f));
   } catch {}
 
+  // ---- 4h. WP8/WP9 acceptance: semantic tools + discovery -------------
+  // set_enrichment_parameters / set_table_view drive the same store the
+  // generic tier writes, plus the WP9 capability registry generated from
+  // the bindings (search_ui_capabilities / get_ui_capability).
+  const caps = await runHook(p1, 'capabilities', { query: 'filter' });
+  record('capability search matches filter capabilities',
+    !caps.hook_error && caps.match_count >= 2 &&
+      (caps.capabilities || []).some(c =>
+        c.id === 'dataspace.tab_pheno.column_filters'),
+    caps.hook_error || JSON.stringify((caps.capabilities || []).map(c => c.id).slice(0, 6)));
+  const capGet = await runHook(p1, 'capabilities', { id: 'set_enrichment_parameters' });
+  record('capability get returns the semantic tool record',
+    !capGet.hook_error && capGet.operation === 'set_enrichment_parameters' &&
+      capGet.writable === true,
+    capGet.hook_error || capGet.id);
+
+  const asArr = (x) => x == null ? [] : (Array.isArray(x) ? x : [x]);
+  const enr1 = await runHook(p1, 'enrichment', {
+    method: 'fgsea', collapse: 'ttest|RE_vs_ME|log.pvalue'
+  });
+  record('enrichment tool applies the ranking and opens the panel',
+    !enr1.hook_error &&
+      asArr(enr1.applied).includes('resultspace.fgsea.xax_variable') &&
+      [...asArr(enr1.applied), ...asArr(enr1.unchanged)]
+        .includes('resultspace.analyst_tab'),
+    enr1.hook_error || JSON.stringify(enr1.applied || []));
+  await waitRsInput('analyst', 'fGSEA');
+  record('analysis tab switched to fGSEA by the semantic tool',
+    (await rsInput('analyst')) === 'fGSEA');
+  await waitRsInput('fgsea-tris_fgsea-variable', 'log.pvalue');
+  record('fGSEA ranking selector reflects the semantic apply',
+    (await rsInput('fgsea-tris_fgsea-variable')) === 'log.pvalue');
+  const enrErr = await runHook(p1, 'enrichment', {
+    method: 'ora', collapse: 'ttest|RE_vs_ME|logg.pvalue'
+  });
+  record('enrichment tool suggests closest columns on typos',
+    !!enrErr.hook_error && /log\.pvalue/.test(enrErr.hook_error),
+    enrErr.hook_error || '');
+
+  // table view: columns first (tab opens), then filters + page - the same
+  // chaining a model would use
+  const tv1 = await runHook(p1, 'tableview', {
+    table: 'sample_table',
+    columns: ['General|All|Cell.line', 'General|All|Gender']
+  });
+  record('table-view tool applies columns and opens the table tab',
+    !tv1.hook_error && asArr(tv1.applied).includes('dataspace.tab_pheno.columns') &&
+      asArr(tv1.applied).includes('dataspace.active_tab'),
+    tv1.hook_error || JSON.stringify(tv1.applied || []));
+  await waitTab(p1, 'Sample table');
+  await p1.waitForFunction(() => {
+    const hs = Array.from(document.querySelectorAll('#app-dataspace-tab_pheno-table thead th'))
+      .filter(el => !el.querySelector('input')).map(el => el.innerText.trim());
+    return hs.includes('General|All|Gender') && !hs.includes('General|All|Origin');
+  }, null, { timeout: 45000 });
+  record('sample table headers reflect the semantic columns apply', true);
+  const tv2 = await runHook(p1, 'tableview', {
+    table: 'sample_table',
+    column_filters: { 'General|All|Gender': 'm' },
+    page: 2
+  });
+  record('table-view tool applies filters and page',
+    !tv2.hook_error &&
+      asArr(tv2.applied).includes('dataspace.tab_pheno.column_filters') &&
+      asArr(tv2.applied).includes('dataspace.tab_pheno.page'),
+    tv2.hook_error || JSON.stringify(tv2.applied || []));
+  await p1.waitForFunction(() => {
+    const st = Shiny.shinyapp.$inputValues['app-dataspace-tab_pheno-table_state'];
+    if (!st) return false;
+    const cols = st.columns || [];
+    return cols.length >= 2 && (cols[1].search.search || '') === 'm';
+  }, null, { timeout: 45000 });
+  record('DataTable reports the agent-set column filter', true);
+  await p1.waitForFunction(() => {
+    const st = Shiny.shinyapp.$inputValues['app-dataspace-tab_pheno-table_state'];
+    return !!st && st.start === 25;
+  }, null, { timeout: 45000 });
+  record('DataTable reports the agent-set page (start 25)', true);
+  const tvErr = await runHook(p1, 'tableview', { table: 'gene_table' });
+  record('table-view tool rejects unknown tables',
+    !!tvErr.hook_error && /Unknown table/.test(tvErr.hook_error),
+    tvErr.hook_error || '');
+  // return to the Feature tab for the later isolation assertions
+  await runHook(p1, 'state', { data_space_tab: 'Feature' });
+  await waitTab(p1, 'Feature');
+
   // ---- 5. cross-session isolation -------------------------------------
   const s2 = await openSession(browser);
   const p2 = s2.page;

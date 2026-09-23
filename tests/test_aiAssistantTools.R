@@ -64,10 +64,12 @@ apply_scatter_view <- function(space, quick_view_id = NULL,
        x_axis = x_axis, y_axis = y_axis)
 }
 
-# canonical widget store for the S3 generic tier
+# canonical widget store for the S3 generic tier + the WP8 semantic tools
 widget_store_new <- omicsViewer:::widget_store_new
 widget_binding <- omicsViewer:::widget_binding
 store_register <- omicsViewer:::store_register
+store_read <- omicsViewer:::store_read
+store_apply <- omicsViewer:::store_apply
 test_store <- widget_store_new()
 store_register(test_store,
   widget_binding("dataspace.expr_heatmap.heatmap_colors", "select",
@@ -76,7 +78,65 @@ store_register(test_store,
     values = c("BrBG", "PiYG", "RdBu", "RdGy", "RdYlBu")),
   widget_binding("dataspace.expr_heatmap.margin_bottom", "integer",
     label = "Bottom margin", help = "Bottom plot margin in lines",
-    min = 1L, max = 20L))
+    min = 1L, max = 20L),
+  widget_binding("dataspace.active_tab", "navbar", label = "Data-space tab",
+    help = "Active tab of the data-space navbar",
+    values = c("Feature", "Feature table", "Sample", "Sample table", "Expression")),
+  widget_binding("resultspace.analyst_tab", "navbar", label = "Analysis tab",
+    help = "Active tab of the analysis navbar",
+    values = c("Feature", "ORA", "fGSEA")),
+  widget_binding("dataspace.tab_pheno.columns", "multi_select",
+    label = "Shown columns", help = "Columns displayed in the sample table",
+    min = 1L,
+    choices_provider = function(v) c("group", "batch")),
+  widget_binding("dataspace.tab_pheno.multi_selection", "boolean",
+    label = "Multiple selection", help = "Allow multi-row selection"),
+  widget_binding("dataspace.tab_pheno.page", "integer", label = "Table page",
+    help = "Visible page", min = 1L),
+  widget_binding("dataspace.tab_pheno.column_filters", "mapping",
+    label = "Column filters", help = "Per-column search patterns",
+    choices_provider = function(v) c("group", "batch")),
+  widget_binding("resultspace.ora.xax_analysis", "select",
+    label = "Collapse category", help = "Collapse analysis",
+    choices_provider = function(v) c("ttest")),
+  widget_binding("resultspace.ora.xax_subset", "select",
+    label = "Collapse subcategory", help = "Collapse subset",
+    depends_on = "resultspace.ora.xax_analysis",
+    choices_provider = function(v) c("A_vs_B")),
+  widget_binding("resultspace.ora.xax_variable", "select_cascaded",
+    label = "Collapse variable", help = "Collapse variable",
+    depends_on = c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset"),
+    choices_provider = function(v) c("log.fdr", "md")),
+  widget_binding("resultspace.ora.selected_row", "select",
+    label = "Selected pathway", help = "Gene set selected in the results table",
+    choices_provider = function(v) c("gs1", "gs2")))
+
+# WP8 apply callbacks mirroring the L0 wiring (validate + store_apply)
+fd_gs <- fd
+attr(fd_gs, "GS") <- data.frame(
+  featureId = c("Gene1", "Gene2", "Gene3"),
+  gsId = c("gs1", "gs1", "gs2")
+)
+fd_gs$`ttest|A_vs_B|log.fdr` <- c(1, 2, 3)
+fd_gs$`ttest|A_vs_B|md` <- c(-1, 0, 1)
+apply_enrichment <- function(update) {
+  validated <- omicsViewer:::agent_normalize_enrichment_update(update, fd_gs)
+  receipt <- store_apply(test_store, validated$patch, origin = "agent",
+                         strict = FALSE)
+  list(method = validated$method, panel_tab = validated$tab,
+       applied = receipt$applied, applied_values = receipt$diff,
+       unchanged = receipt$skipped, rejected = receipt$rejected %||% list(),
+       note = "test")
+}
+apply_table_view <- function(update) {
+  validated <- omicsViewer:::agent_normalize_table_view_update(update)
+  receipt <- store_apply(test_store, validated$patch, origin = "agent",
+                         strict = FALSE)
+  list(table = validated$table, panel_tab = validated$tab,
+       applied = receipt$applied, applied_values = receipt$diff,
+       unchanged = receipt$skipped, rejected = receipt$rejected %||% list(),
+       note = "test")
+}
 
 # WP1: the state bridge is a builder function called as state(sections);
 # mirror the real app wiring by building through agent_compact_state so the
@@ -113,6 +173,8 @@ shiny::testServer(
     selected_samples = shiny::reactive(character()),
     apply_state = apply_state,
     apply_scatter_view = apply_scatter_view,
+    apply_enrichment = apply_enrichment,
+    apply_table_view = apply_table_view,
     store = test_store
   ),
   expr = {
@@ -120,7 +182,9 @@ shiny::testServer(
     expected_tools <- c(
       "get_omics_viewer_state", "search_annotations", "summarize_annotation",
       "set_omics_viewer_state", "set_scatter_view", "create_figure", "update_figure",
-      "list_widgets", "get_widget", "set_widgets"
+      "list_widgets", "get_widget", "set_widgets",
+      "set_enrichment_parameters", "set_table_view",
+      "search_ui_capabilities", "get_ui_capability"
     )
     ok(
       ut_cmp_identical(sort(names(tools)), sort(expected_tools)),
@@ -186,6 +250,111 @@ shiny::testServer(
     ok(
       ut_cmp_identical(scatter_result@value$x_axis, "score"),
       "scatter tool returns the validated axis update"
+    )
+
+    # ---- WP8 semantic tools (enrichment + table view) -----------------
+    enrichment_result <- tools$set_enrichment_parameters(
+      method = "ora",
+      collapse = "ttest|A_vs_B|log.fdr",
+      selected_pathway = "gs1",
+      `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(enrichment_result@value$panel_tab, "ORA") &&
+        "resultspace.ora.xax_variable" %in% enrichment_result@value$applied &&
+        "resultspace.analyst_tab" %in% enrichment_result@value$applied,
+      "enrichment tool applies the ranking cascade and opens the panel"
+    )
+    ok(
+      ut_cmp_identical(
+        omicsViewer:::store_read(test_store)$resultspace.ora.xax_variable,
+        "log.fdr"),
+      "enrichment tool lands in the widget store"
+    )
+    enr_reject <- tools$set_enrichment_parameters(
+      method = "ora", selected_pathway = "gs9", `_intent` = "unit test"
+    )
+    ok(
+      "resultspace.ora.selected_row" %in%
+        vapply(enr_reject@value$rejected, function(r) r$id, character(1)) &&
+        grepl("gs1|gs2", enr_reject@value$rejected[[1]]$reason),
+      "unknown pathway rows are rejected per key with suggestions"
+    )
+    enr_error <- tryCatch(
+      tools$set_enrichment_parameters(
+        method = "ora", collapse = "ttest|A_vs_B|logg.fdrr",
+        `_intent` = "unit test"
+      ),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("Unknown feature annotation", enr_error) &&
+        grepl("log.fdr", enr_error),
+      "enrichment tool suggests closest columns on typos"
+    )
+
+    table_result <- tools$set_table_view(
+      table = "sample_table",
+      columns = c("group", "batch"),
+      column_filters = '{"group": "KO"}',
+      page = 2L,
+      `_intent` = "unit test"
+    )
+    stored_after_table <- omicsViewer:::store_read(test_store)
+    ok(
+      ut_cmp_identical(table_result@value$panel_tab, "Sample table") &&
+        ut_cmp_identical(stored_after_table$dataspace.tab_pheno.column_filters,
+                         c(group = "KO")) &&
+        ut_cmp_identical(stored_after_table$dataspace.tab_pheno.page, 2L) &&
+        ut_cmp_identical(stored_after_table$dataspace.active_tab, "Sample table"),
+      "table-view tool lands columns, filters, page, and the tab switch"
+    )
+    table_reject <- tools$set_table_view(
+      table = "sample_table", columns = c("group", "nope"),
+      `_intent` = "unit test"
+    )
+    ok(
+      "dataspace.tab_pheno.columns" %in%
+        vapply(table_reject@value$rejected, function(r) r$id, character(1)) &&
+        "dataspace.active_tab" %in%
+          c(table_reject@value$applied, table_reject@value$unchanged),
+      "invalid table columns are rejected per key while the tab still opens"
+    )
+    table_error <- tryCatch(
+      tools$set_table_view(table = "gene_table", `_intent` = "unit test"),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("Unknown table", table_error),
+      "unknown tables are rejected with suggestions"
+    )
+
+    # ---- WP9 discovery tools ------------------------------------------
+    cap_search <- tools$search_ui_capabilities(
+      query = "filter", `_intent` = "unit test"
+    )
+    ok(
+      cap_search@value$match_count >= 2L &&
+        any(vapply(cap_search@value$capabilities,
+                   function(r) identical(r$id, "dataspace.tab_pheno.column_filters"),
+                   logical(1))),
+      "capability search matches widget capabilities by meaning"
+    )
+    cap_get <- tools$get_ui_capability(
+      id = "set_table_view", `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(cap_get@value$id, "tool:set_table_view") &&
+        ut_cmp_identical(cap_get@value$writable, TRUE),
+      "capability get returns semantic tool records"
+    )
+    cap_error <- tryCatch(
+      tools$get_ui_capability(id = "set_table_vie", `_intent` = "unit test"),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("Closest matches", cap_error),
+      "capability get suggests closest ids on typos"
     )
 
     figure_spec <- list(
@@ -267,7 +436,7 @@ shiny::testServer(
     # ---- S3 generic widget tier ---------------------------------------
     widgets_result <- tools$list_widgets(section = "dataspace", `_intent` = "unit test")
     ok(
-      ut_cmp_identical(widgets_result@value$widget_count, 2L) &&
+      ut_cmp_identical(widgets_result@value$widget_count, 7L) &&
         ut_cmp_identical(widgets_result@value$widgets$dataspace.expr_heatmap.heatmap_colors$kind,
                          "select"),
       "list_widgets returns section-filtered registry records"
@@ -310,7 +479,7 @@ shiny::testServer(
     swept_listing <- tools$list_widgets(
       section = "null", `_intent` = "sentinel sweep")
     ok(
-      ut_cmp_identical(swept_listing@value$widget_count, 2L) &&
+      ut_cmp_identical(swept_listing@value$widget_count, 12L) &&
         is.null(swept_listing@value$section),
       "list_widgets treats a sentinel section as omitted"
     )

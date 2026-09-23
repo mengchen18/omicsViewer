@@ -99,7 +99,9 @@ sections beyond the overview: \code{annotations}, \code{quick_views},
 
 \item{store}{Canonical widget store; when given, the overview gains a
 \code{scatter_view} block with the current x/y axis triples and
-axis mode of both data-space scatters.}
+axis mode of both data-space scatters, plus \code{capabilities}
+counts (WP9: the overview lists capability counts only, never record
+contents).}
 
 \item{state}{Versioned application state from \code{\link{build_app_state}}.}
 

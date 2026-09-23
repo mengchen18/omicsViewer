@@ -35,8 +35,8 @@ NULL
 
 .widget_store_kinds <- c(
   "string", "numeric", "integer", "boolean", "enum",
-  "select", "select_cascaded", "multi_select", "tabset", "navbar",
-  "checkbox", "slider"
+  "select", "select_cascaded", "multi_select", "mapping", "tabset",
+  "navbar", "checkbox", "slider"
 )
 
 #' Create a canonical widget store
@@ -92,6 +92,10 @@ widget_store_child <- function(store, prefix) {
 #'   \code{multi_select} is the multi-selection counterpart of
 #'   \code{select}: the value is a character vector (possibly empty;
 #'   empty clears the selection) whose entries must all be allowed.
+#'   \code{mapping} is a named character vector (JSON object) mapping
+#'   keys to short string patterns (e.g. DataTable column filters); an
+#'   empty mapping clears all entries and keys validate against the
+#'   choices provider.
 #' @param label Short human/model-facing label.
 #' @param help One-sentence help text shared by tooltips and the registry.
 #' @param depends_on Canonical ids this widget's choices depend on (for
@@ -121,8 +125,8 @@ widget_store_child <- function(store, prefix) {
 widget_binding <- function(id,
                            kind = c("string", "numeric", "integer", "boolean",
                                     "enum", "select", "select_cascaded",
-                                    "multi_select", "tabset", "navbar",
-                                    "checkbox", "slider"),
+                                    "multi_select", "mapping", "tabset",
+                                    "navbar", "checkbox", "slider"),
                            label = "",
                            help = "",
                            depends_on = character(),
@@ -340,6 +344,59 @@ store_register <- function(store, ...) {
     if (!is.null(binding$max) && length(value) > binding$max)
       return(list(error = paste0(
         binding$id, " allows at most ", binding$max, " selected entries.")))
+    return(list(value = value))
+  }
+
+  if (kind == "mapping") {
+    # Named character vector (a JSON object on the wire). An empty
+    # mapping (empty named list / length-0 character) clears every
+    # entry; keys validate against the choices provider (e.g. column
+    # names), values are short non-empty search patterns.
+    if (is.list(value)) {
+      if (!length(value))
+        return(list(value = setNames(character(0), character(0))))
+      nms <- names(value)
+      value <- vapply(value, function(v) {
+        v <- suppressWarnings(as.character(v)[1])
+        if (is.na(v)) "" else v
+      }, character(1), USE.NAMES = FALSE)
+      if (is.null(nms) || any(is.na(nms)) || any(!nzchar(nms)))
+        return(list(error = paste(
+          binding$id, "requires a named key-to-value mapping.")))
+      names(value) <- nms
+    }
+    if (is.factor(value))
+      value <- as.character(value)
+    if (!is.character(value))
+      return(list(error = paste(
+        binding$id, "requires a named character mapping.")))
+    if (!length(value))
+      return(list(value = setNames(character(0), character(0))))
+    nms <- names(value)
+    if (is.null(nms) || any(is.na(nms)) || any(!nzchar(nms)))
+      return(list(error = paste(
+        binding$id, "requires non-empty mapping keys.")))
+    if (any(duplicated(nms)))
+      return(list(error = paste(
+        binding$id, "contains duplicate keys.")))
+    value <- trimws(value)
+    names(value) <- nms
+    if (any(is.na(value)) || any(!nzchar(value)) ||
+        any(nchar(value) > 200L))
+      return(list(error = paste(
+        binding$id,
+        "requires mapping values of 1-200 non-whitespace characters.")))
+    allowed <- .widget_store_allowed_values(binding, effective)
+    if (!is.null(allowed)) {
+      bad <- setdiff(nms, allowed)
+      if (length(bad)) {
+        return(list(error = paste0(
+          "Unknown key(s) for ", binding$id, ": ",
+          paste(head(bad, 5), collapse = ", "), ".",
+          .agent_suggest_text(bad[[1]], allowed),
+          " Allowed: ", paste(head(allowed, 10), collapse = ", "))))
+      }
+    }
     return(list(value = value))
   }
 

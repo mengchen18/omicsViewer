@@ -26,7 +26,8 @@ widget_store_child(store, prefix)
 widget_binding(
   id,
   kind = c("string", "numeric", "integer", "boolean", "enum", "select",
-    "select_cascaded", "multi_select", "tabset", "navbar", "checkbox", "slider"),
+    "select_cascaded", "multi_select", "mapping", "tabset", "navbar", "checkbox",
+    "slider"),
   label = "",
   help = "",
   depends_on = character(),
@@ -83,7 +84,11 @@ when it equals \code{prefix} or starts with \code{"prefix."}, so a
 \item{kind}{Widget kind; selects the value validator.
 \code{multi_select} is the multi-selection counterpart of
 \code{select}: the value is a character vector (possibly empty;
-empty clears the selection) whose entries must all be allowed.}
+empty clears the selection) whose entries must all be allowed.
+\code{mapping} is a named character vector (JSON object) mapping
+keys to short string patterns (e.g. DataTable column filters); an
+empty mapping clears all entries and keys validate against the
+choices provider.}
 
 \item{label}{Short human/model-facing label.}
 

@@ -42,7 +42,10 @@ agent_test_hooks_ui <- function(id) {
         "scatter" = "scatter",
         "overview" = "overview",
         "widgets" = "widgets",
-        "store" = "store"
+        "store" = "store",
+        "enrichment" = "enrichment",
+        "tableview" = "tableview",
+        "capabilities" = "capabilities"
       ),
       selected = "state"
     ),
@@ -61,6 +64,10 @@ agent_test_hooks_ui <- function(id) {
 #'   (as used by the \code{set_omics_viewer_state} tool).
 #' @param apply_scatter_view Callback applying a validated scatter view
 #'   (as used by the \code{set_scatter_view} tool).
+#' @param apply_enrichment Optional callback applying a validated ORA/fGSEA
+#'   update (as used by \code{set_enrichment_parameters}).
+#' @param apply_table_view Optional callback applying a validated table-view
+#'   update (as used by \code{set_table_view}).
 #' @param state Builder function called as \code{state(sections)} returning
 #'   the compact assistant state (overview plus any requested full-detail
 #'   sections; mirrors the \code{get_omics_viewer_state} tool surface).
@@ -69,7 +76,9 @@ agent_test_hooks_ui <- function(id) {
 #' @rdname agentTestHooksModule
 #' @keywords internal
 agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
-                                    state, store = NULL) {
+                                    state, store = NULL,
+                                    apply_enrichment = NULL,
+                                    apply_table_view = NULL) {
   moduleServer(id, function(input, output, session) {
     last_result <- reactiveVal(NULL)
 
@@ -96,6 +105,33 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
           # isolate: the hook observer must not take reactive dependencies
           # through choices providers read during validation.
           shiny::isolate(agent_widget_apply(store, parsed$patch))
+        } else if (identical(op, "enrichment")) {
+          if (is.null(apply_enrichment))
+            stop("Enrichment apply callback unavailable in this session.")
+          update <- parsed[c("method", "collapse", "selected_pathway")]
+          update <- update[!vapply(update, is.null, logical(1))]
+          apply_enrichment(update)
+        } else if (identical(op, "tableview")) {
+          if (is.null(apply_table_view))
+            stop("Table-view apply callback unavailable in this session.")
+          update <- parsed[c("table", "columns", "multi_selection",
+                             "column_filters", "page", "clear_filters")]
+          update <- update[!vapply(update, is.null, logical(1))]
+          apply_table_view(update)
+        } else if (identical(op, "capabilities")) {
+          if (is.null(store))
+            stop("Widget store unavailable in this session.")
+          shiny::isolate(
+            if (!is.null(parsed$id)) {
+              agent_capability_get(store, parsed$id)
+            } else {
+              agent_capability_search(
+                store,
+                parsed$query %||% "",
+                max_results = parsed$max_results %||% 20L
+              )
+            }
+          )
         } else if (identical(op, "store")) {
           if (is.null(store))
             stop("Widget store unavailable in this session.")
