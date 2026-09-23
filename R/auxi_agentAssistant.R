@@ -153,6 +153,76 @@ agent_request_limit <- function() {
   max(1L, min(200L, value))
 }
 
+#' Read the optional session cost/token budgets
+#'
+#' WP12 governance: administrators may cap the cumulative session spend in
+#' USD and/or the cumulative token usage. Default unlimited-but-logged
+#' (settled decision 11). Mirrors deputy's UsageLimits semantics without
+#' adopting the package.
+#'
+#' @return List with optional \code{cost_usd} and \code{tokens} entries
+#'   (NULL when unset or invalid).
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_cost_limits <- function() {
+  cost <- suppressWarnings(as.numeric(Sys.getenv("OMICSVIEWER_LLM_MAX_COST_USD")[1]))
+  tokens <- suppressWarnings(as.numeric(Sys.getenv("OMICSVIEWER_LLM_MAX_TOKENS")[1]))
+  list(
+    cost_usd = if (length(cost) == 1L && !is.na(cost) && cost > 0) cost else NULL,
+    tokens = if (length(tokens) == 1L && !is.na(tokens) && tokens > 0)
+      as.integer(tokens) else NULL
+  )
+}
+
+#' Extract one request's usage from a completed assistant turn
+#'
+#' @param turn An ellmer AssistantTurn (tokens = input/output/... counts;
+#'   cost in USD when the provider reports it).
+#' @return \code{list(tokens =, cost_usd =)} with zeros for unavailable
+#'   fields.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_turn_usage <- function(turn) {
+  tokens <- 0
+  cost <- 0
+  if (inherits(turn, "ellmer::AssistantTurn")) {
+    toks <- suppressWarnings(as.numeric(turn@tokens))
+    tokens <- sum(toks[!is.na(toks)])
+    cst <- suppressWarnings(as.numeric(turn@cost)[1])
+    cost <- if (!is.na(cst) && cst > 0) cst else 0
+  }
+  list(tokens = tokens, cost_usd = cost)
+}
+
+#' Check cumulative usage against the session budgets
+#'
+#' Pure helper evaluated before every provider request: the check must not
+#' depend on reactive state.
+#'
+#' @param used_tokens Cumulative session tokens.
+#' @param used_cost_usd Cumulative session cost in USD.
+#' @param limits From \code{\link{agent_cost_limits}}.
+#' @return An error message string when a budget is exhausted, else NULL.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_budget_violation <- function(used_tokens, used_cost_usd, limits) {
+  if (!is.null(limits$tokens) && used_tokens > limits$tokens) {
+    return(sprintf(
+      paste("Assistant token budget reached for this session (%s of %s tokens).",
+            "Start a new browser session or ask an administrator to adjust OMICSVIEWER_LLM_MAX_TOKENS."),
+      format(used_tokens, big.mark = ","), format(limits$tokens, big.mark = ",")
+    ))
+  }
+  if (!is.null(limits$cost_usd) && used_cost_usd > limits$cost_usd) {
+    return(sprintf(
+      paste("Assistant cost budget reached for this session ($%.4f of $%.2f).",
+            "Start a new browser session or ask an administrator to adjust OMICSVIEWER_LLM_MAX_COST_USD."),
+      used_cost_usd, limits$cost_usd
+    ))
+  }
+  NULL
+}
+
 #' Read server-side assistant provider configuration
 #'
 #' Environment variables are intentionally limited to provider selection, model

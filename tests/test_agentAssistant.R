@@ -61,6 +61,74 @@ Sys.setenv(
   OMICSVIEWER_LLM_MAX_REQUESTS = if (identical(old_request_limit, "")) "" else old_request_limit
 )
 
+## ------------------------------------------- WP12 budget ceilings ----
+ok(
+  is.null(omicsViewer:::agent_cost_limits()$cost_usd) &&
+    is.null(omicsViewer:::agent_cost_limits()$tokens),
+  "budgets default to unlimited-but-logged"
+)
+old_cost <- Sys.getenv("OMICSVIEWER_LLM_MAX_COST_USD")
+old_tokens <- Sys.getenv("OMICSVIEWER_LLM_MAX_TOKENS")
+Sys.setenv(OMICSVIEWER_LLM_MAX_COST_USD = "2.5", OMICSVIEWER_LLM_MAX_TOKENS = "1000")
+on.exit(Sys.setenv(
+  OMICSVIEWER_LLM_MAX_COST_USD = if (identical(old_cost, "")) "" else old_cost,
+  OMICSVIEWER_LLM_MAX_TOKENS = if (identical(old_tokens, "")) "" else old_tokens
+), add = TRUE)
+ok(
+  identical(omicsViewer:::agent_cost_limits()$cost_usd, 2.5) &&
+    identical(omicsViewer:::agent_cost_limits()$tokens, 1000L),
+  "valid budget settings are parsed"
+)
+Sys.setenv(OMICSVIEWER_LLM_MAX_COST_USD = "-1", OMICSVIEWER_LLM_MAX_TOKENS = "abc")
+ok(
+  is.null(omicsViewer:::agent_cost_limits()$cost_usd) &&
+    is.null(omicsViewer:::agent_cost_limits()$tokens),
+  "invalid budgets fall back to unlimited"
+)
+Sys.setenv(
+  OMICSVIEWER_LLM_MAX_COST_USD = if (identical(old_cost, "")) "" else old_cost,
+  OMICSVIEWER_LLM_MAX_TOKENS = if (identical(old_tokens, "")) "" else old_tokens
+)
+
+ok(
+  is.null(omicsViewer:::agent_budget_violation(1e9, 1e9, list())),
+  "no limits means no violation"
+)
+ok(
+  grepl("token budget reached",
+        omicsViewer:::agent_budget_violation(
+          2000, 0, list(tokens = 1000L)) %||% ""),
+  "token ceiling trips with an actionable message"
+)
+ok(
+  grepl("cost budget reached",
+        omicsViewer:::agent_budget_violation(
+          0, 3, list(cost_usd = 2.5)) %||% ""),
+  "cost ceiling trips with an actionable message"
+)
+ok(
+  is.null(omicsViewer:::agent_budget_violation(
+    1000, 2.5, list(tokens = 1000L, cost_usd = 2.5))),
+  "budgets at exactly the limit still allow the next request"
+)
+if (requireNamespace("ellmer", quietly = TRUE)) {
+  turn <- ellmer::AssistantTurn(
+    contents = list(ellmer::ContentText("hi")),
+    tokens = c(100, 50, 0), cost = 0.0123
+  )
+  usage <- omicsViewer:::agent_turn_usage(turn)
+  ok(
+    identical(usage$tokens, 150) && identical(usage$cost_usd, 0.0123),
+    "per-request usage accumulates tokens and provider cost"
+  )
+  bare <- omicsViewer:::agent_turn_usage(
+    ellmer::AssistantTurn(contents = list(ellmer::ContentText("x"))))
+  ok(
+    identical(bare$tokens, 0) && identical(bare$cost_usd, 0),
+    "unreported usage counts as zero"
+  )
+}
+
 catalog <- agent_annotation_catalog(fd, pd)
 ok(ut_cmp_identical(catalog$feature$rows, 3L), "feature catalog row count")
 ok(

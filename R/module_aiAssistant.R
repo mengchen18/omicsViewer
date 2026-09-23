@@ -265,6 +265,10 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
     initial_config <- agent_environment_config()
     request_limit <- agent_request_limit()
     request_count <- 0L
+    # WP12 governance: optional cumulative spend/token budgets (default
+    # unlimited-but-logged). Accumulated from completed provider requests.
+    cost_limits <- agent_cost_limits()
+    session_usage <- list(tokens = 0, cost_usd = 0)
     logging_config <- agent_logging_config()
     logger <- agent_logger_new(session, logging_config)
     if (logging_config$enabled)
@@ -275,7 +279,9 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       list(
         dependencies_available = dependencies_available,
         provider = agent_log_provider_config(initial_config),
-        request_limit = request_limit
+        request_limit = request_limit,
+        cost_limit_usd = cost_limits$cost_usd,
+        token_limit = cost_limits$tokens
       )
     )
 
@@ -1339,14 +1345,36 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               "). Start a new browser session or ask an administrator to adjust OMICSVIEWER_LLM_MAX_REQUESTS."
             )
           }
+          # WP12: budget ceilings are checked before the request is spent
+          violation <- agent_budget_violation(
+            session_usage$tokens, session_usage$cost_usd, cost_limits
+          )
+          if (!is.null(violation)) {
+            agent_logger_event(
+              logger,
+              "budget_limit_reached",
+              list(
+                used_tokens = session_usage$tokens,
+                used_cost_usd = session_usage$cost_usd,
+                token_limit = cost_limits$tokens,
+                cost_limit_usd = cost_limits$cost_usd
+              )
+            )
+            stop(violation)
+          }
         })
         client$on_request_end(function(turn) {
+          usage <- agent_turn_usage(turn)
+          session_usage$tokens <<- session_usage$tokens + usage$tokens
+          session_usage$cost_usd <<- session_usage$cost_usd + usage$cost_usd
           agent_logger_event(
             logger,
             "assistant_response",
             list(
               request_index = if (!is.null(logger$current_request_index)) logger$current_request_index else NA_integer_,
-              turn = agent_log_turn(turn)
+              turn = agent_log_turn(turn),
+              session_tokens = session_usage$tokens,
+              session_cost_usd = round(session_usage$cost_usd, 6)
             )
           )
         })

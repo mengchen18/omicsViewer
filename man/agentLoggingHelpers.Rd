@@ -119,8 +119,9 @@ Ordered regex rules (first match wins) over the lower-cased message.
 The classes mirror the validation surface of the agent tools
 (plan section 3, WP4): unknown identifiers, unknown annotation
 columns, unknown tabs, invalid figure specs, other invalid arguments,
-missing datasets, the session request limit, and provider-side
-failures (observed on \code{stream_failure} events).
+missing datasets, the session request limit, the WP12 session
+budget ceilings (token/cost), and provider-side failures (observed
+on \code{stream_failure} events).
 
 Developer tool (plan section 3, WP4): parses one session log and
 returns event counts, session duration, per-tool call counts, the

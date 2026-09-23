@@ -4,6 +4,9 @@
 \alias{agentAssistantHelpers}
 \alias{.agent_suggest}
 \alias{agent_request_limit}
+\alias{agent_cost_limits}
+\alias{agent_turn_usage}
+\alias{agent_budget_violation}
 \alias{agent_environment_config}
 \alias{agent_validate_provider_config}
 \alias{agent_quick_view_records}
@@ -25,6 +28,12 @@
 .agent_suggest(value, candidates, max = 3L)
 
 agent_request_limit()
+
+agent_cost_limits()
+
+agent_turn_usage(turn)
+
+agent_budget_violation(used_tokens, used_cost_usd, limits)
 
 agent_environment_config()
 
@@ -98,6 +107,14 @@ agent_history_restore_payload(payload, max_bytes = 512L * 1024L)
 
 \item{max}{Maximum number of suggestions to return.}
 
+\item{turn}{An ellmer Turn object.}
+
+\item{used_tokens}{Cumulative session tokens.}
+
+\item{used_cost_usd}{Cumulative session cost in USD.}
+
+\item{limits}{From \code{\link{agent_cost_limits}}.}
+
 \item{provider}{Single provider name: openai or anthropic.}
 
 \item{model}{Optional model name. An empty value uses the provider default.}
@@ -162,8 +179,6 @@ contents).}
 
 \item{text}{Character vector.}
 
-\item{turn}{An ellmer Turn object.}
-
 \item{turns}{Client turns (\code{client$get_turns()}).}
 
 \item{figures}{Figure registry (\code{figures()}); at most 20 entries.}
@@ -189,6 +204,14 @@ Provider configuration, compact state, annotation summaries, or a
 A character vector of up to \code{max} suggestions (possibly empty).
 
 Integer request limit from 1 through 200. Default: 40.
+
+List with optional \code{cost_usd} and \code{tokens} entries
+  (NULL when unset or invalid).
+
+\code{list(tokens =, cost_usd =)} with zeros for unavailable
+  fields.
+
+An error message string when a budget is exhausted, else NULL.
 
 A list with provider, model, base URL, API key, configuration
   status, and credential source. An empty API key means that the user must
@@ -253,6 +276,14 @@ dominate validation time.
 
 The limit applies to all provider requests in one Shiny session, including
 intermediate requests generated while a model resolves tool calls.
+
+WP12 governance: administrators may cap the cumulative session spend in
+USD and/or the cumulative token usage. Default unlimited-but-logged
+(settled decision 11). Mirrors deputy's UsageLimits semantics without
+adopting the package.
+
+Pure helper evaluated before every provider request: the check must not
+depend on reactive state.
 
 Environment variables are intentionally limited to provider selection, model
 selection, an optional OpenAI-compatible base URL, and credentials. The API

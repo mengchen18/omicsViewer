@@ -1,103 +1,84 @@
 # HANDOVER — agent accuracy & widget control plane
 
-Written 2026-09-24 at the close of the WP7-gate session. Read this first
-in a fresh context, then `AGENT_ACCURACY_PLAN.md` (§4 WP7 gate evidence +
-benchmark findings are the source of truth) and `AGENTS.md` (environment,
-commands, quirks). Delete or trim this file once absorbed.
+Written 2026-09-25 at the close of the WP8–WP12 session. Read this first
+in a fresh context, then `AGENT_ACCURACY_PLAN.md` (per-WP status rows are
+the source of truth) and `AGENTS.md` (environment, commands, quirks).
+Delete or trim this file once absorbed.
 
 ## Where we are
 
-Branch `agent-driven-exploration`, DESCRIPTION 2.1.1. Everything through
-S1–S4 + WP1–WP6 is done (see git history). This session:
+Branch `agent-driven-exploration`, DESCRIPTION 2.2.0. **The whole
+AGENT_ACCURACY_PLAN is complete**: WP0–WP9, WP11, and WP12 landed;
+WP7 patch-mode gated NO (2026-09-24); WP10 resolved by construction
+(store epoch). This session:
 
 | What landed | Evidence |
 |---|---|
-| **WP7 gate run: patch-mode update_figure SHELVED (decision 5)** | full ×3 Tier B benchmark (12 core tasks, glm-5.3-flash): tasks 10+11 combined first-attempt **5/6 = 83% ≥ 2/3**; every completed revision used full-spec `update_figure` (the WP3 round-trip), zero spec failures; the single miss was a mid-turn provider stream hang (infra), not composition error |
-| **WP6b: create_figure surface fixes** | (a) spec-present ⇒ spec authoritative, template args ignored + warning in result — the old "not both" hard error was never recovered from (27 rejected calls, up to 16 identical retries in one benchmark task); (b) templates accept `features`/`samples` ID subsets — the task-8 need (107 selected > 50-feature cap) was previously inexpressible on the template path and pushed models into the collision; volcano `label_top_n` ranks within an explicit subset; expression boxplot works with NO selection (features list supplied) |
-| **Agent selection revert FIXED** | `apply_agent_state` patched `selection$features` but not the panel-status mirror; the data-space restore observer pushed the OLD selection back through `v1()` and overwrote `ri`/`rh` within one flush (deterministic: apply reports 5, overview reverts to the initial 107 in <2 s, on every tab). The apply now patches every mirror (`eset_selected_features/samples` + nulls stale table `rows_selected`). Verified live: selection sticks on Feature / Feature table / Sample tabs; MAPK task-106 first-attempt **3/3** (was impossible). This resolves the S4 "transient feature patches" note |
-| **Benchmark infrastructure** | `tests/e2e_agent/tier_b_full.mjs` (multi-prompt tasks, fresh app+chat per task, request cap 8, log-aware settle ≈ 6 s) + `score_tier_b_gate.R`; scoring = log ground truth (tool errors per prompt span) + DOM observations |
-
-MAPK wording variants (tasks 106/108) exist because "kinase" matches
-nothing in demo.RDS (search returns 0 hits; honest models ask for
-clarification — 0/3 on the canonical wording is a dataset artifact).
-Task 108 is 2/3 outcome — the single miss was a clarification question
-("sample group" is ambiguous: Cell.line/Gender/Origin all qualify), not
-a tool failure.
+| **WP8 semantic tools** | `set_enrichment_parameters` (ORA/fGSEA ranking/collapse + optional pathway row; opens the panel) and `set_table_view` (feature/sample/expression tables: columns, multi-selection, per-column filters, page; opens the tab). Thin validate + `store_apply` wrappers; per-key resilience with suggestions; L0 applies `apply_agent_enrichment` / `apply_agent_table_view`; test-hook ops `enrichment` / `tableview` |
+| **Data-table DT state on the store** | `dataspace.tab_*.{page,column_filters}` — new `mapping` widget kind (named character vector; empty clears; keys validated against colnames), pushed via the DT proxy (`selectPage`/`updateSearch`, filters BEFORE page so paging targets the filtered set), acknowledged by the DT state report. Column ORDERING stays on tab_status (no DT proxy API). **En route fix: the module's dormant `tabproxy` used `ns("table")` — DT double-prefixes, every proxy message targeted a nonexistent table** (dead code until WP8; `dataTableProxy("table")` is correct) |
+| **WP9 capability registry** | `R/auxi_agentCapabilities.R` — records GENERATED from store bindings + curated tool metadata (the shared help-text structure); `search_ui_capabilities` / `get_ui_capability` tools; overview carries capability COUNTS only. Widget ids map to covering semantic tools. En route: `.agent_suggest` now also scores whole-string edit distance (full-column typos got no suggestions before) |
+| **WP11 conversation-in-snapshot** | Opt-in checkbox in the snapshot modal; assistant module returns an API (`snapshot_payload`/`restore_history`/`has_conversation`); payload = slim turns (base64 previews stripped, credential-like strings redacted, tool VALUES kept as inert context) + text transcript + figure registry (≤20; update_figure re-validates specs at use). Byte budget by real serialization (`object.size` over-counts S7 objects ~170 KB per EMPTY turn — use `serialize()` length). **Deliberate deviation: shinychat `history=TRUE` stores NOT enabled** (file-based production storage would violate the opt-in guardrail); .ESS is the single persistence path |
+| **WP12 budgets** | `OMICSVIEWER_LLM_MAX_COST_USD` / `OMICSVIEWER_LLM_MAX_TOKENS` cumulative ceilings checked in `on_request_start`; usage accumulated in `on_request_end` (turn tokens = c(input, output, …), sum all non-NA); `budget_limit` joined the log taxonomy (9 classes). Deputy evaluation stays log-gated |
 
 ## Validation snapshot (all green at HEAD)
 
-- Unit: agentFigures **67** (7 new WP6b), aiAssistantTools 33 (precedence
-  test re-pointed), agentAssistant 64, agentWidgets 105, agentLogSummary 32,
-  agentLogging 21, appState 37, quickViews 17, scatterSelection 6,
-  triselectorCascade 6, tableWidgetState 5, widgetStore 52, shinyAuxi 10,
-  stats 7, ora 23
-- Tier A browser: 93/93 ×2 (one intermediate 92/93 = the documented
-  sporadic stress flake, clean twice after)
-- Live Tier B: gate ×3 (artifacts/gate: logs + records + scores committed;
-  bulk PNGs kept local only), MAPK ×3 (artifacts/mapk)
+- Unit: agentCapabilities **45** (new), agentHistory **26** (new),
+  aiAssistantTools **43**, agentAssistant **73**, agentWidgets 105,
+  agentFigures 67, agentLogSummary 33, agentLogging 21, appState 40,
+  widgetStore 52, quickViews 17, scatterSelection 6, triselectorCascade 6,
+  tableWidgetState 10, shinyAuxi 10, stats 7, ora 23
+- Tier A browser: **109/109 ×2** (new 4h: capability search/get, the
+  enrichment tool + typo suggestions, table columns/filters/page through
+  the real DT UI); agentUiEffects 110/110
+- Live Tier B: none this session (tool surface is unit+Tier-A covered; the
+  next full ×3 gate run should fold a set_enrichment_parameters /
+  set_table_view task into tier_b_tasks.md)
 
 ## Flakes / rules discovered (cumulative; do not re-learn)
 
-- **Settle on LOG truth, not UI probes**: shinychat's cancel-control probe
-  both misses silent streams AND lingers after idle; the diagnostic log's
-  `assistant_response` followed by `stream_status: idle` (after the last
-  user_message) is the authoritative turn-complete signal. A backward scan
-  for this is subtly wrong (request_start precedes response in the normal
-  ending — forward-scan the last indexes instead); the fixed predicate is
-  in tier_b_full.mjs `logScan`/`logTurnComplete`, unit-checked against
-  real logs (stream-hang log correctly stays in-flight).
-- **Request cap is load-bearing**: `OMICSVIEWER_LLM_MAX_REQUESTS=8` in the
-  spawned app stops runaway retry loops (16 identical create_figure
-  rejections in one task otherwise burn 5 minutes and tokens).
-- Provider stream hangs happen (task 11 run 1: preamble text, then silence
-  for 5+ min; log ends at `provider_request_start`). The benchmark scores
-  them as misses but the taxonomy should distinguish them (infra vs model)
-  — noted for WP4 follow-up if it recurs.
-- **Selection state has (had) multiple mirrors**: app `selection$features`,
-  `panels$data_space$eset_selected_features`, and per-table
-  `rows_selected`. Any external write must patch ALL of them before the
-  `esv_status(NULL); esv_status(full_state)` transaction or the module
-  restore reverts the patch. Keep this in mind for future apply paths.
-- **Scatter volcano corner + switch-flash fixes (2026-09-24, user-reported)**:
-  (1) `store_read` is a PLAIN SNAPSHOT (never invalidates) — reactive
-  consumers must read through `store_watch` (the per-key reactiveVal
-  wrappers); a `pre_volcano` built on store_read looked fixed at load and
-  then never fired again. (2) Seeding store keys FROM live inputs must use
-  `store_apply(..., mark_pending = FALSE)`: an input whose value does not
-  change never fires the ack event, so pending entries from such seeds arm
-  a re-assert loop that later clobbers unrelated direct widget updates
-  (the load-time volcano corner bug). (3) UI→store sync must mirror only
-  COHERENT triples (a real column in the triset) — mixed cascade echoes
-  count as user overrides, clear an in-flight apply's pending entries, and
-  re-oscillate the canonical state after landing (the switch multi-flash).
-  (4) `plotly::layout(shapes = NULL/empty)` drops the key — irrelevant here
-  (Plotly.react clears absent shapes) but explains why "no rects" can only
-  come from rectval itself, never from an explicit empty-shape send.
-  Regression guards live in tier_a (load corner state + per-switch
-  distinct-render counts).
-- Empty-object + literal-string sentinels on optional tool args: every
-  optional reader treats length-0, NA, and AGENT_SENTINEL_STRINGS like
-  omitted; the new id-array param (`.agent_figure_ids_param`) follows the
-  same rule and also normalizes tibbles/record lists.
-- Tier A stress flake, MockShinySession quirks, observer GC, WebGL:
-  AGENTS.md (unchanged).
+- **DT proxies**: `dataTableProxy(session$ns(...))` double-prefixes inside
+  modules — pass the module-local id. Proxy messages defer until flush end
+  (after output re-renders), so columns+filters pushes in one transaction
+  land on the NEW table; `selectPage` beyond the filtered page count logs a
+  client-side "Selected page is out of range" (harmless; the sync observer
+  mirrors the clamped reality back into the store — override contract).
+- **Mapping-kind sentinel semantics**: empty JSON `{}` / `"null"` are
+  treated as OMITTED (AGENT_SENTINEL_STRINGS convention); an explicit
+  empty map (length-0 named character) clears all filters — the tool
+  exposes `clear_filters=true` for the model.
+- **jsonlite auto_unbox** serializes length-1 vectors (receipt
+  `applied`/`unchanged`) as SCALARS — JS test assertions must wrap with an
+  `asArr()` normalizer before `.includes()`.
+- **object.size on S7 objects** counts class metadata per instance
+  (~170 KB for an empty UserTurn) — byte budgets must measure
+  `serialize(x, NULL)` length instead.
+- **ellmer 0.5.0**: `AssistantTurn(contents=, tokens=c(in,out,…), cost=,
+  duration=, finish_reason=)`; `ContentToolResult(value=, error=)` drops
+  `extra` (display payloads) — that is the WP11 slimming. Turns are
+  saveRDS-safe.
+- Settle on LOG truth for Tier B turns; request cap is load-bearing;
+  provider stream hangs happen (infra, not model); selection state has
+  multiple mirrors — patch them all; `store_read` is a plain snapshot
+  (reactive consumers must read through `store_watch`); seeding from live
+  inputs needs `mark_pending = FALSE`; UI→store sync mirrors only
+  coherent triples; Tier A stress flake / MockShinySession quirks /
+  observer GC / WebGL: AGENTS.md (unchanged).
 
-## Next session: WP8
+## Session workflow reminders (unchanged)
 
-WP7 is closed (gate NO). Proceed to **WP8 — first new capability tools**
-(`set_enrichment_parameters` for the ORA/fGSEA panel, `set_table_view`
-for feature/sample table page+filter), each shipping help text in the
-shared metadata structure from day one (WP9's one-source-of-truth
-principle). The widget store already registers most of these widgets
-(S4: resultspace.ora.*, resultspace.fgsea.*, dataspace.tab_*.*); the WP8
-work is the thin semantic tier on top plus discovery help.
+Reinstall after every source change; roxygen after touching roxygen blocks
+(regenerated man/ for capabilities/assistant/aiAssistant/testHooks/
+widgetStore this session); kill orphaned R processes on 7775–7795 before
+browser runs; Tier A ×2 convention; Tier B smoke subsets per change, full
+×3 at gates; log timestamps are UTC (user is UTC+2).
 
-Housekeeping before starting: the stateful UI gap docs
-(STATEFUL_UI_GAPS.md) and any stale plan sections (§7 table) were
-updated this session — keep them that way per change.
+## Next session candidates
 
-Session workflow reminders (unchanged): reinstall after every source
-change; roxygen after touching roxygen blocks (none touched this session
-beyond params — check man/ diff); kill orphaned R processes on 7775–7795
-before browser runs; Tier A ×2 convention; Tier B smoke subsets per
-change, full ×3 at gates; log timestamps are UTC (user is UTC+2).
+The plan is complete; remaining ideas are log-gated or new work:
+- Fold WP8 tool tasks into the Tier B benchmark (enrichment + table-view
+  prompts) and re-run the full ×3 gate.
+- WP7 patch-mode: reopen ONLY if a future full ×3 run shows revision
+  failures persisting (merge base = WP3 registry spec).
+- deputy::Agent migration evaluation when it stabilizes (WP12 step 2).
+- STATEFUL_UI_GAPS.md still tracks the URL-restore links (not started) and
+  SQLite metadata parity (intentionally deferred).

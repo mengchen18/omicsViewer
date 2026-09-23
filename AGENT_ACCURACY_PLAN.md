@@ -5,7 +5,11 @@ Scope: the optional ellmer-backed assistant (`R/module_aiAssistant.R`,
 `R/auxi_agentAssistant.R`, `R/auxi_agentFigures.R`, `R/auxi_agentLogging.R`,
 wiring in `R/L0_module_app.R`).
 
-Status: DRAFT — for review. No code has been changed.
+Status: COMPLETE (2026-09-25). WP0–WP12 are all landed or resolved by
+construction (WP10 by the store epoch); per-WP status rows carry the
+evidence pointers. Remaining follow-ups are log-gated: deputy migration
+evaluation (WP12 step 2) and any future reopening of the WP7 patch-mode
+gate.
 
 ---
 
@@ -493,26 +497,45 @@ ignored). Patch-mode itself keeps the benchmark gate (decision 5): **gate
 run 2026-09-24 returned 5/6 ≥ 2/3 — patch mode shelved; reopen only if a
 future full ×3 run shows revision failures persisting.**
 
-### WP8: first new capability tools (enrichment / table view)
+### WP8: first new capability tools (enrichment / table view) — **DONE (2026-09-25)**
 
-`set_enrichment_parameters` (ORA/fGSEA panel), `set_table_view`
-(feature/sample table page + filter). Each ships with its help text stored
-in a **shared metadata structure** (see WP9) from day one, not retrofitted.
-This is the point where the capability registry starts earning its keep.
+`set_enrichment_parameters` (ORA/fGSEA panel) and `set_table_view`
+(feature/sample/expression tables) shipped as thin validate + store_apply
+wrappers over the control plane (plan section 6.3, tier 1). En route, the
+data tables gained the remaining user-editable DT surface as store
+bindings: `page` (integer) and `column_filters` (new `mapping` kind — a
+named character vector; empty clears; keys validated against choices),
+pushed through the DT proxy and acknowledged by the DT state report;
+column ORDERING stays on the tab_status path (no DT proxy API —
+documented exception). En route product fix: the dataTable module's
+long-dormant `tabproxy` used `ns("table")` and DT double-prefixed it, so
+every proxy message would have targeted a nonexistent table. Both tools
+open their panel's tab in the same transaction (scatter-tool precedent)
+and are per-key resilient (an unknown pathway row or column name is
+rejected with suggestions while the ranking/columns still apply). Unit:
+agentCapabilities 45, aiAssistantTools 43, tableWidgetState 10; Tier A
+browser 109/109 x2 (new 4h section drives both tools + typo suggestions
+through the real UI).
 
 ---
 
 ## 5. Phase 3 — architecture for scale (log-gated)
 
-### WP9: UI capability registry + discovery tools
+### WP9: UI capability registry + discovery tools — **DONE (2026-09-25)**
 
-Only when the writable surface grows past ~4 capability tools / the tab
-count grows. A server-side list of capability records
-(`id`, `panel`, `label`, `description`, `writable`, `allowed_values`,
-`operation`, `help_text`) generated from the same metadata used for UI
-tooltips (one source of truth). Tools: `search_ui_capabilities(query)`,
-`get_ui_capability(id)`. `get_omics_viewer_state` overview then lists only
-capability counts, not contents.
+Re-scoped per section 6.6: records are GENERATED, not hand-maintained —
+widget records come from the store registry, tool records from the shared
+metadata structure (`R/auxi_agentCapabilities.R`, the one-source-of-truth
+help text the WP8 tools ship in from day one). Tools
+`search_ui_capabilities` (query by meaning; bounded records + counts) and
+`get_ui_capability` (exact id; suggestions on typos). The
+`get_omics_viewer_state` overview carries capability COUNTS only
+(`capabilities`: count, panels, semantic tool ids). Widget ids map to
+their covering semantic tool (ora/fgsea -> enrichment, tab_* -> table
+view, feature/sample_space -> scatter, navbars -> state, everything else
+-> set_widgets). En route: `.agent_suggest` now also scores whole-string
+edit distance for multi-segment candidates (full-column typos previously
+fell under the suggestion threshold).
 
 ### WP10: state token — RESOLVED BY CONSTRUCTION (control plane)
 
@@ -524,32 +547,44 @@ remains; reopen only if WP4 logs show stale-state failures (model
 overwrites a user's mid-conversation manual selection) that per-key
 re-validation doesn't already catch.
 
-### WP11: conversation-in-snapshot (history persistence)
+### WP11: conversation-in-snapshot (history persistence) — **DONE (2026-09-25)**
 
-Enable `chat_server(history = TRUE)` with the shinychat `on_save()` /
-`on_restore()` auxiliary-state pattern (usage-guide §8): persist the chat
-transcript **together with** the figure registry and current selections
-inside the existing `.ESS` snapshot machinery (pillar 1 ↔ pillar 3 bridge).
-Restoring a snapshot then revives both the widgets and the conversation
-context. Guardrails: no credentials or API keys ever in history values;
-restored tool evidence must not restore any execution authority (re-validate
-on restore); opt-in per snapshot since transcripts may contain sensitive
-dataset content.
+The .ESS snapshot modal gained an opt-in "Include the AI assistant
+conversation" checkbox (default off; transcripts may contain sensitive
+dataset content). The assistant module exposes a WP11 API
+(`snapshot_payload` / `restore_history` / `has_conversation`); the payload
+carries slim turns (display-only base64 figure previews stripped,
+credential-like strings redacted — tool result VALUES survive as inert
+context), a text transcript for the UI, and the figure registry (capped at
+20; update_figure re-validates specs against the CURRENT dataset at use,
+so restored evidence never restores execution authority). The byte budget
+is measured by actual serialization (`object.size` over-counts S7 objects
+~170 KB per empty turn); oldest turns drop first, the last two survive.
+Restore validates structure/version/size at the boundary, re-renders the
+transcript into the chat UI, and installs full-fidelity turns as model
+context. **Deliberate deviation from the plan wording**: shinychat's own
+`chat_server(history = TRUE)` stores are NOT enabled — file-based
+production storage would persist transcripts outside the opt-in
+guardrail; the .ESS snapshot is the single, opt-in persistence path.
+Test hooks gained history_save/history_restore ops. Unit: agentHistory 26
+(redaction, transcript records, slim turns, cap, restore validation,
+saveRDS round-trip, real chat_server restore, unconfigured degradation),
+appState 40 (opt-in wiring).
 
-### WP12: governance upgrade (cost ceiling / deputy evaluation)
+### WP12: governance upgrade (cost ceiling / deputy evaluation) — **step 1 DONE (2026-09-25); step 2 log-gated**
 
-Two cheap-to-expensive steps, log-gated:
-
-1. **Session cost ceiling now**: we already log per-turn `tokens`/`cost`
-   (`agent_log_turn`); extend the existing `on_request_start` request-limit
-   hook with an optional cumulative cost/token budget
-   (`OMICSVIEWER_LLM_MAX_COST_USD`), mirroring deputy's `UsageLimits`
-   semantics without adopting the package.
-2. **deputy migration evaluation later**: when `deputy::Agent` stabilizes,
-   evaluate wrapping our ellmer client in it to gain permissions,
-   allowlists, approvals, and budget enforcement out of the box
-   (skill: raw ellmer is acceptable for benign custom tools — which we have —
-   but deputy is the intended end-state for governed agents).
+1. **Session cost/token ceilings shipped**: `OMICSVIEWER_LLM_MAX_COST_USD`
+   and `OMICSVIEWER_LLM_MAX_TOKENS` cap cumulative session spend/usage
+   (checked in `on_request_start` before the request is spent, mirroring
+   the request-limit hook; usage accumulated from completed turns).
+   Default unlimited-but-logged (settled decision 11);
+   `assistant_session_start` logs the configured limits,
+   `assistant_response` logs cumulative usage, `budget_limit_reached`
+   joins the log events, and `budget_limit` joined the log-summarizer
+   error taxonomy (now 9 classes).
+2. **deputy migration evaluation** stays deferred until `deputy::Agent`
+   stabilizes (log-gated as planned; raw ellmer remains acceptable for
+   benign custom tools).
 
 ---
 
@@ -788,8 +823,10 @@ render after selection — the exact missed regression) |
 | 6 | re-run benchmark (Tier B), compare | S | **smoke done** (glm-5.3-flash; overview + round-trip validated, sentinel fix verified before/after); full ×3 at phase gate |
 | 7 | WP6 figure templates | M | **DONE** (2026-09-24) — auxi_agentFigures.R (`agent_figure_template_spec`/`agent_figure_templates`, sentinel-hardened param helpers) + module_aiAssistant.R (template args on create_figure, template-aware prompt workflows); unit 60+33 green, Tier A 93/93 ×2, live Tier B volcano smoke first-attempt success |
 | 7b | WP7 patch-mode update_figure | M | **GATED NO (2026-09-24)** — full ×3 Tier B run: tasks 10+11 first-attempt 5/6 = 83% ≥ 2/3, all revisions via full-spec update_figure; single miss was a provider stream hang. Patch mode shelved (runner: tests/e2e_agent/tier_b_full.mjs + score_tier_b_gate.R; artifacts: artifacts/gate). Follow-ups from the same run: WP6b template+spec collision fix + features/samples template args; MAPK wording variants for tasks 6/8 |
-| 8 | WP8 enrichment/table tools | M | after WP7 gate |
-| last | WP9–WP12 (Phase 3) | M/L | new file(s) |
+| 8 | WP8 enrichment/table tools | M | **DONE (2026-09-25)** — auxi_agentCapabilities.R, module_aiAssistant.R, module_dataTable.R (page/column_filters bindings + DT-proxy push + tabproxy double-ns fix), L0 applies, test hooks, tests |
+| last | WP9 discovery tools | M | **DONE (2026-09-25)** — auxi_agentCapabilities.R (registry generated from bindings + tool metadata), module_aiAssistant.R tools, overview counts |
+| last | WP11 conversation-in-snapshot | M | **DONE (2026-09-25)** — opt-in .ESS persistence; shinychat history stores deliberately NOT enabled (opt-in guardrail) |
+| last | WP12 budget ceilings | S | **DONE (2026-09-25)** — OMICSVIEWER_LLM_MAX_COST_USD / _MAX_TOKENS; deputy evaluation stays log-gated |
 
 WP2 before WP1 deliberately: suggestions are self-contained and safe;
 `sections` changes the tool contract the model sees and benefits from being

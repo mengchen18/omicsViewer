@@ -400,8 +400,9 @@ agent_log_provider_config <- function(config) {
 #' The classes mirror the validation surface of the agent tools
 #' (plan section 3, WP4): unknown identifiers, unknown annotation
 #' columns, unknown tabs, invalid figure specs, other invalid arguments,
-#' missing datasets, the session request limit, and provider-side
-#' failures (observed on \code{stream_failure} events).
+#' missing datasets, the session request limit, the WP12 session
+#' budget ceilings (token/cost), and provider-side failures (observed
+#' on \code{stream_failure} events).
 #'
 #' @param message Error message (character, possibly length > 1).
 #' @return Single class label.
@@ -413,6 +414,8 @@ agent_log_error_class <- function(message) {
     return("unknown")
   if (grepl("request limit", msg, fixed = TRUE))
     return("request_limit")
+  if (grepl("token budget|cost budget", msg))
+    return("budget_limit")
   if (grepl("no dataset|metadata are loaded|currently available", msg))
     return("no_dataset")
   if (grepl("provider|http 4|http 5|429|401|403|timeout|timed out|connection|api key|rate limit", msg))

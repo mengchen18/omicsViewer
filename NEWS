@@ -1,3 +1,20 @@
+Changes in version 2.2.0
+agent accuracy & control plane follow-ups (optional AI assistant):
+ - WP8 semantic tools: set_enrichment_parameters (ORA/fGSEA panel) and
+   set_table_view (feature/sample/expression tables: columns,
+   multi-selection, per-column filters, page)
+ - WP9 capability registry generated from the widget store + tool
+   metadata; search_ui_capabilities / get_ui_capability discovery tools;
+   state overview carries capability counts only
+ - data tables register page + column filters on the widget store
+   (DT proxy push; new "mapping" widget kind)
+ - WP11 conversation-in-snapshot: opt-in .ESS persistence of the chat
+   transcript, tool context, and figure registry with credential
+   redaction and byte caps
+ - WP12 session governance: optional OMICSVIEWER_LLM_MAX_COST_USD and
+   OMICSVIEWER_LLM_MAX_TOKENS cumulative budgets (unlimited-but-logged
+   by default); budget_limit joins the log-summarizer error taxonomy
+
 Changes in version 1.17.2
  - improved status save and reload, still in beta, not all status could be restored. 
  

@@ -46,6 +46,13 @@ ok(
   "classifier: request limit (checked before provider failure)"
 )
 ok(
+  ut_cmp_identical(
+    agent_log_error_class("Assistant token budget reached for this session (1,000 of 1,000 tokens)."),
+    "budget_limit"
+  ),
+  "classifier: WP12 session budget ceilings"
+)
+ok(
   ut_cmp_identical(agent_log_error_class("HTTP 429 Too Many Requests"), "provider_failure"),
   "classifier: provider failure"
 )
@@ -147,6 +154,13 @@ writeLines(c(
   .event(22, 22, "tool_result", list(
     request_index = 42, tool_call_id = "call_missing", tool_name = "get_widget")),
   .event(23, 24, "assistant_session_end"),
+  # taxonomy: budget_limit (WP12)
+  .event(24, 26, "tool_request", list(
+    request_index = 43, tool_call_id = "call_10", tool_name = "create_figure",
+    arguments = list(`_intent` = "another figure"))),
+  .event(25, 26, "tool_result", list(
+    request_index = 43, tool_call_id = "call_10", tool_name = "create_figure",
+    error = .err("Assistant cost budget reached for this session ($2.5000 of $2.50)."))),
   # one malformed trailing line
   "{not valid json"
 ), log_path)
@@ -154,7 +168,7 @@ writeLines(c(
 summary <- agent_summarize_log(log_path)
 
 ok(
-  ut_cmp_identical(summary$events_total, 24L),
+  ut_cmp_identical(summary$events_total, 26L),
   "summary counts all lines including malformed"
 )
 ok(
@@ -163,41 +177,42 @@ ok(
 )
 ok(
   ut_cmp_identical(summary$event_counts$user_message, 1L) &&
-    ut_cmp_identical(summary$event_counts$tool_request, 9L) &&
-    ut_cmp_identical(summary$event_counts$tool_result, 9L),
+    ut_cmp_identical(summary$event_counts$tool_request, 10L) &&
+    ut_cmp_identical(summary$event_counts$tool_result, 10L),
   "summary counts events by type"
 )
 ok(
-  ut_cmp_identical(summary$duration_seconds, 24),
+  ut_cmp_identical(summary$duration_seconds, 26),
   "summary derives the session duration from timestamps"
 )
 ok(
-  ut_cmp_identical(summary$tool_calls_total, 8L) &&
+  ut_cmp_identical(summary$tool_calls_total, 9L) &&
     ut_cmp_identical(summary$tool_calls_per_tool$set_omics_viewer_state, 3L),
   "summary counts tool calls per tool"
 )
 ok(
-  ut_cmp_identical(summary$tool_failures, 7L),
+  ut_cmp_identical(summary$tool_failures, 8L),
   "summary counts failed tool results"
 )
 ok(
-  ut_cmp_identical(summary$first_attempt_success_rate, 0.125),
+  ut_cmp_identical(summary$first_attempt_success_rate, 0.1111),
   "summary computes the first-attempt success rate"
 )
 ok(
   ut_cmp_identical(
     summary$error_taxonomy,
     list(
+      budget_limit = 1L,
       invalid_argument = 1L, invalid_figure_spec = 1L, no_dataset = 1L,
       provider_failure = 1L, request_limit = 1L, unknown_column = 1L,
       unknown_id = 1L, unknown_tab = 1L
     )
   ),
-  "summary classifies every taxonomy class exactly once"
+  "summary classifies every taxonomy class exactly once (incl. WP12 budget)"
 )
 ok(
   ut_cmp_identical(summary$recovered_retries, 1L) &&
-    ut_cmp_identical(summary$retry_recovery_rate, 0.1429),
+    ut_cmp_identical(summary$retry_recovery_rate, 0.125),
   "summary detects the successful same-tool retry"
 )
 ok(
