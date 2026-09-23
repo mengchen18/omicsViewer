@@ -1,10 +1,16 @@
-# HANDOVER — scatter volcano-corner / switch-flash fix (IN PROGRESS, BROKEN TREE)
+# HANDOVER — scatter quick-view switch multi-flash fix (IN PROGRESS, BROKEN TREE)
+
+**Bug 1 (volcano corner not selected on load) is FIXED and confirmed by
+the user — do not touch it.** The only remaining problem is the
+multiple-render/flash on quick-view switches, and the current working
+tree (an attempt at that fix) hangs in an infinite reactive loop.
 
 Written 2026-09-24 mid-fix. **The working tree is intentionally left in a
 BROKEN state (infinite reactive loop) for the next session to debug or
 bisect.** Read this first; then `HANDOVER.md` §"Scatter volcano corner"
 for the already-committed background; `AGENT_ACCURACY_PLAN.md` for the
-control-plane architecture. Nothing in this file is committed.
+control-plane architecture. Nothing in this file is committed except
+this document itself.
 
 ## Reproducing the hang (current tree)
 
