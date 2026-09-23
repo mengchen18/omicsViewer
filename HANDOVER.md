@@ -30,9 +30,17 @@ WP7 patch-mode gated NO (2026-09-24); WP10 resolved by construction
 - Tier A browser: **109/109 ×2** (new 4h: capability search/get, the
   enrichment tool + typo suggestions, table columns/filters/page through
   the real DT UI); agentUiEffects 110/110
-- Live Tier B: none this session (tool surface is unit+Tier-A covered; the
-  next full ×3 gate run should fold a set_enrichment_parameters /
-  set_table_view task into tier_b_tasks.md)
+- Live Tier B smoke (glm-5.3-flash, one prompt each): **both WP8 tools
+  first-attempt successes** — "configure the fGSEA panel to rank by the
+  t-test RE_vs_ME log p-value" → search + annotations section + ONE
+  `set_enrichment_parameters(method=fgsea, collapse=ttest|RE_vs_ME|log.pvalue)`
+  (even the `selected_pathway: "null"` sentinel was handled as omitted);
+  "sample table: two columns, filter Gender to males, page 2" → self-corrected
+  a short column name via a WP2 suggestion, then ONE `set_table_view` with
+  columns + JSON column_filters + page; 30 matching samples on page 2,
+  multi-selection untouched. Logs: artifacts/tier_b_last_log.jsonl
+  (gitignored; overwritten per run). The next full ×3 gate should fold
+  set_enrichment_parameters / set_table_view tasks into tier_b_tasks.md
 
 ## Flakes / rules discovered (cumulative; do not re-learn)
 
