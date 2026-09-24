@@ -15,7 +15,8 @@ omicsViewer(
   fDataGetter = getFData,
   defaultAxisGetter = getAx,
   appName = "omicsViewer",
-  appVersion = packageVersion("omicsViewer")
+  appVersion = packageVersion("omicsViewer"),
+  log_file = NULL
 )
 }
 \arguments{
@@ -53,6 +54,13 @@ sample/feature space x/y axes). Should return column name from metadata.}
 
 \item{appVersion}{Character or package_version. Version number displayed in UI.
 Default: current package version.}
+
+\item{log_file}{Character, FALSE or NULL. Where to write the app console
+log (see Details). Default NULL: a per-run file named
+\code{app-<timestamp>-<pid>.log} inside \code{tempdir()/omicsviewer-logs}.
+Pass an explicit file path to change it, or \code{FALSE} to disable console
+logging. By default logging is always on; it can also be disabled through
+the environment (see Details).}
 }
 \value{
 NULL (invisibly). Launches the Shiny application. The app runs until stopped by the user.
@@ -99,6 +107,21 @@ requests/results, provider request boundaries, configuration changes, and
 failures to a local JSONL file. Logs may contain dataset-derived summaries;
 they never contain API keys. Logging can also be toggled in the assistant
 drawer for the current session.
+
+In addition, the app console is logged by default for debugging: everything
+the R process prints (\code{print}/\code{cat} output) plus all
+\code{message}/\code{warning}/\code{error} conditions raised during the
+session are teed to a local file, while the interactive console display is
+unchanged. The default location is one file per run,
+\code{tempdir()/omicsviewer-logs/app-<timestamp>-<pid>.log}, following the
+same session-scoped convention as the assistant diagnostics; supply
+\code{log_file} to choose another destination. Two environment variables
+adjust the default behaviour:
+\itemize{
+  \item \code{OMICSVIEWER_LOG_DIR}: writable directory for console logs
+  \item \code{OMICSVIEWER_LOG}: \code{off}/\code{false}/\code{0} opts out
+    of console logging entirely
+}
 }
 \examples{
 if (interactive()) {

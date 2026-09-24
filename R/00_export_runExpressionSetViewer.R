@@ -31,6 +31,12 @@
 #' @param appName Character. Application title displayed in the UI. Default: "omicsViewer".
 #' @param appVersion Character or package_version. Version number displayed in UI.
 #'   Default: current package version.
+#' @param log_file Character, FALSE or NULL. Where to write the app console
+#'   log (see Details). Default NULL: a per-run file named
+#'   \code{app-<timestamp>-<pid>.log} inside \code{tempdir()/omicsviewer-logs}.
+#'   Pass an explicit file path to change it, or \code{FALSE} to disable console
+#'   logging. By default logging is always on; it can also be disabled through
+#'   the environment (see Details).
 #'
 #' @export
 #' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
@@ -87,6 +93,21 @@
 #' they never contain API keys. Logging can also be toggled in the assistant
 #' drawer for the current session.
 #'
+#' In addition, the app console is logged by default for debugging: everything
+#' the R process prints (\code{print}/\code{cat} output) plus all
+#' \code{message}/\code{warning}/\code{error} conditions raised during the
+#' session are teed to a local file, while the interactive console display is
+#' unchanged. The default location is one file per run,
+#' \code{tempdir()/omicsviewer-logs/app-<timestamp>-<pid>.log}, following the
+#' same session-scoped convention as the assistant diagnostics; supply
+#' \code{log_file} to choose another destination. Two environment variables
+#' adjust the default behaviour:
+#' \itemize{
+#'   \item \code{OMICSVIEWER_LOG_DIR}: writable directory for console logs
+#'   \item \code{OMICSVIEWER_LOG}: \code{off}/\code{false}/\code{0} opts out
+#'     of console logging entirely
+#' }
+#'
 #' @seealso
 #' \code{\link{prepOmicsViewer}} for preparing data objects for visualization.
 #' \code{\link{app_module}} for the main application module (developers only).
@@ -96,7 +117,8 @@ omicsViewer <- function(
   esetLoader = readESVObj, 
   exprsGetter = getExprs, pDataGetter = getPData, fDataGetter = getFData, 
   defaultAxisGetter = getAx,
-  appName = "omicsViewer", appVersion = packageVersion("omicsViewer")
+  appName = "omicsViewer", appVersion = packageVersion("omicsViewer"),
+  log_file = NULL
   ) {
   
   app <- list(
@@ -113,7 +135,18 @@ omicsViewer <- function(
         )
     }
   )
-  runApp(app)
+  # console log (default on; see ?omicsViewer) ------------------------
+  applog <- applog_begin(log_file)
+  on.exit(applog_end(applog), add = TRUE)
+  if (!is.null(applog))
+    message("omicsViewer console log: ", applog$path)
+
+  withCallingHandlers(
+    runApp(app),
+    message = function(c) applog_write(applog, "MESSAGE", c),
+    warning = function(c) applog_write(applog, "WARNING", c),
+    error   = function(c) applog_write(applog, "ERROR",   c)
+  )
 }
 
 

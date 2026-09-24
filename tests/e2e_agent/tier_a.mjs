@@ -768,8 +768,11 @@ try {
     JSON.stringify(w16.rejected || []));
   record('rejected plot type leaves the radio unchanged',
     (await rsInput('feature_general-internal_radio')) === 'Curve');
+  // 'Survival' is not an analysis tab of this app at all, so it stays a
+  // dataset-absent rejection case (the demo used to exercise this with
+  // 'Response', but demo.RDS now carries mock ResponseCurve data).
   const w17 = await runHook(p1, 'widgets', {
-    patch: { 'resultspace.analyst_tab': 'Response' }
+    patch: { 'resultspace.analyst_tab': 'Survival' }
   });
   record('dataset-absent analysis tab rejected with allowed tabs',
     !w17.hook_error && (w17.rejected || []).length === 1 &&
