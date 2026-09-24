@@ -50,6 +50,8 @@ maintenance.md
 AGENTS.md
 CLAUDE.md
 STATEFUL_UI*
+AGENT_ACCURACY_PLAN.md
+HANDOVER.md
 *.ESS
 
 # local LLM credentials for agent e2e tests

@@ -1,0 +1,15 @@
+# local data-generation scripts (usethis::use_data_raw convention); not part of the installed package
+^data-raw$
+
+# local planning / handover notes
+^AGENT_ACCURACY_PLAN\.md$
+^HANDOVER\.md$
+^STATEFUL_UI.*\.md$
+^AGENTS\.md$
+^CLAUDE\.md$
+
+# agent e2e harness: credentials and local artifacts must never ship
+^tests/e2e_agent/provider\.env$
+^tests/e2e_agent/node_modules/
+^tests/e2e_agent/artifacts/
+^tests/e2e_agent/tier_a_results\.json$
