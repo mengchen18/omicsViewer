@@ -1,6 +1,3 @@
-# local data-generation scripts (usethis::use_data_raw convention); not part of the installed package
-^data-raw$
-
 # local planning / handover notes
 ^AGENT_ACCURACY_PLAN\.md$
 ^HANDOVER\.md$
