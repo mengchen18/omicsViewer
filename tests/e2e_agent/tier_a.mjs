@@ -150,15 +150,19 @@ const waitAxisContains = (page, needle, timeout = 45000) =>
 let exitCode = 0;
 try {
   await waitPort(PORT);
+  // TIER_A_WEBGL=1 runs without --disable-webgl: real browsers take the
+  // toWebGL path, where a redundant repaint is more visible (HANDOVER 9).
+  // The default keeps the documented no-GPU desktop configuration (SVG
+  // scatter path).
+  const webglMode = process.env.TIER_A_WEBGL === '1';
+  const launchArgs = ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'];
+  if (!webglMode) launchArgs.push('--disable-webgl', '--disable-webgl2');
   const browser = await chromium.launch({
     executablePath: '/usr/bin/google-chrome',
     headless: true,
-    // --disable-webgl mirrors the documented no-GPU desktop environment: the
-    // app's WebGL detection then picks the SVG scatter path, which is the
-    // configuration users of this machine actually experience.
-    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
-           '--disable-webgl', '--disable-webgl2']
+    args: launchArgs
   });
+  record(`browser launched (${webglMode ? 'WebGL' : 'SVG'} scatter path)`, true);
 
   // ---- session 1: load & baseline -----------------------------------
   const s1 = await openSession(browser);
@@ -213,43 +217,74 @@ try {
   // volcano (no volcano-ness transition at all) keeps the corner and its
   // rects untouched. The pre-fix behavior flickered the volcano rects
   // 2 -> 0 -> 2 and drew them over the outgoing correlation plot.
+  //
+  // Repaints are detected by watching the visible plotly container's DOM
+  // with a MutationObserver and coalescing each mutation batch with
+  // requestAnimationFrame (HANDOVER 9): unlike the old 40 ms signature
+  // sampler, no short frame can be missed between samples, and
+  // 'renders' counts EVERY settled redraw pass - an identical-content
+  // repaint (the regression this guards against) leaves the signature list
+  // unchanged but still bumps the counter. 'states' keeps the old contract:
+  // element 0 is the baseline, states.slice(1) the signature changes.
   const startPlotWatch = (page) => page.evaluate(() => {
-    window.__plotStates = [];
-    window.__lastPlot = null;
-    window.__plotTimer = setInterval(() => {
-      const p = Array.from(document.querySelectorAll('.js-plotly-plot'))
-        .filter(e => e.offsetParent !== null && e._fullLayout)[0];
-      if (!p || !p._fullLayout) return;
-      const s = (p._fullLayout.xaxis.title.text || '') + '|' +
-        (p._fullLayout.yaxis.title.text || '') + '|' +
-        (p._fullLayout.shapes || []).length;
-      if (s !== window.__lastPlot) { window.__lastPlot = s; window.__plotStates.push(s); }
-    }, 40);
+    const visiblePlot = () => Array.from(document.querySelectorAll('.js-plotly-plot'))
+      .filter(e => e.offsetParent !== null && e._fullLayout)[0];
+    const sig = (p) => (p._fullLayout.xaxis.title.text || '') + '|' +
+      (p._fullLayout.yaxis.title.text || '') + '|' +
+      (p._fullLayout.shapes || []).length;
+    const el0 = visiblePlot();
+    window.__plotStates = [el0 ? sig(el0) : ''];
+    window.__plotRenders = 0;
+    window.__plotWatchStopped = false;
+    let pending = false;
+    const settle = () => {
+      pending = false;
+      if (window.__plotWatchStopped) return;
+      const p = visiblePlot();
+      if (!p) return;
+      window.__plotRenders++;
+      const s = sig(p);
+      if (s !== window.__plotStates[window.__plotStates.length - 1])
+        window.__plotStates.push(s);
+    };
+    const mo = new MutationObserver(() => {
+      if (window.__plotWatchStopped || pending) return;
+      pending = true;
+      requestAnimationFrame(settle);
+    });
+    if (el0) mo.observe(el0, { childList: true, subtree: true, attributes: true });
+    window.__plotDisconnect = () => {
+      window.__plotWatchStopped = true;
+      mo.disconnect();
+    };
   });
   const readPlotStates = (page) => page.evaluate(() => {
-    clearInterval(window.__plotTimer);
-    return window.__plotStates;
+    if (window.__plotDisconnect) window.__plotDisconnect();
+    return { states: window.__plotStates, renders: window.__plotRenders };
   });
   {
     await startPlotWatch(p1);
     await p1.click('[data-quick-view-id="cor_MDR"]');
     await new Promise(s => setTimeout(s, 4500));
-    const states = await readPlotStates(p1);
+    const { states, renders } = await readPlotStates(p1);
     const changes = states.slice(1);
     const final = states[states.length - 1] || '';
     record('volcano -> cor quick view: exactly one render, corner already cleared',
-      changes.length === 1 && /Cor\|MDR/.test(final) && /\|0$/.test(final),
-      states.join(' ; '));
+      changes.length === 1 &&
+        /Cor\|MDR/.test(final) && /\|0$/.test(final),
+      `renders=${renders} ; ` + states.join(' ; '));
 
     await startPlotWatch(p1);
     await p1.click('[data-quick-view-id="volcano_RE_vs_ME"]');
     await new Promise(s => setTimeout(s, 4500));
-    const states2 = await readPlotStates(p1);
+    const r2 = await readPlotStates(p1);
+    const states2 = r2.states;
     const changes2 = states2.slice(1);
     const final2 = states2[states2.length - 1] || '';
     record('cor -> volcano quick view: exactly one render with both corner rects',
-      changes2.length === 1 && /log\.(fdr|pvalue)/.test(final2) && /\|2$/.test(final2),
-      states2.join(' ; '));
+      changes2.length === 1 &&
+        /log\.(fdr|pvalue)/.test(final2) && /\|2$/.test(final2),
+      `renders=${r2.renders} ; ` + states2.join(' ; '));
 
     // volcano -> volcano: two different volcano contrasts. No volcano-ness
     // transition fires, so the auto-selected corner must carry over
@@ -260,7 +295,8 @@ try {
     await startPlotWatch(p1);
     await p1.click('[data-quick-view-id="volcano_RE_vs_LE"]');
     await new Promise(s => setTimeout(s, 4500));
-    const states3 = await readPlotStates(p1);
+    const r3 = await readPlotStates(p1);
+    const states3 = r3.states;
     const changes3 = states3.slice(1);
     const final3 = states3[states3.length - 1] || '';
     const scornerAfter = await p1.evaluate(() => {
@@ -268,9 +304,10 @@ try {
       return s ? s.value : null;
     });
     record('volcano -> volcano quick view: exactly one render, corner carried over',
-      changes3.length === 1 && /log\.(fdr|pvalue)/.test(final3) && /\|2$/.test(final3) &&
+      changes3.length === 1 &&
+        /log\.(fdr|pvalue)/.test(final3) && /\|2$/.test(final3) &&
         scornerAfter === 'volcano',
-      states3.join(' ; ') + ' scorner=' + scornerAfter);
+      `renders=${r3.renders} ; ` + states3.join(' ; ') + ' scorner=' + scornerAfter);
   }
 
   // ---- 1. state: tab + selection ------------------------------------

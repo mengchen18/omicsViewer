@@ -10,7 +10,8 @@ plotly_scatter_module(
   reactive_regLine = reactive(FALSE),
   reactive_checkpoint = reactive(TRUE),
   htest_var1 = reactive(NULL),
-  htest_var2 = reactive(NULL)
+  htest_var2 = reactive(NULL),
+  reactive_ready = reactive(TRUE)
 )
 }
 \arguments{
@@ -26,6 +27,12 @@ plotly_scatter_module(
 argument gives the default value. Mainly used for restoring the saved session.}
 
 \item{htest_var2}{see above}
+
+\item{reactive_ready}{reactive logical (default \code{reactive(TRUE)}); the
+render barrier commits new params only while this is TRUE. The owning
+scatter module passes its "displayed axes have converged with the
+canonical store axes" reactive so mid-switch (stale or mixed-axis)
+params never reach the plot.}
 }
 \value{
 a list containing the information about the selected data points

@@ -384,6 +384,11 @@ plotly_scatter_ui <- function(id, height = "400px") {
 #' @param htest_var1 when the plot is a beeswarmplot, two groups could be selected for two group comparison, this
 #'   argument gives the default value. Mainly used for restoring the saved session.
 #' @param htest_var2 see above
+#' @param reactive_ready reactive logical (default \code{reactive(TRUE)}); the
+#'   render barrier commits new params only while this is TRUE. The owning
+#'   scatter module passes its "displayed axes have converged with the
+#'   canonical store axes" reactive so mid-switch (stale or mixed-axis)
+#'   params never reach the plot.
 #' @importFrom fastmatch '%fin%'
 #' @return a list containing the information about the selected data points
 #' @export
@@ -450,16 +455,48 @@ plotly_scatter_ui <- function(id, height = "400px") {
 
 plotly_scatter_module <- function(
   id, reactive_param_plotly_scatter, reactive_regLine = reactive(FALSE),
-  reactive_checkpoint = reactive(TRUE), htest_var1 = reactive(NULL), htest_var2 = reactive(NULL)
+  reactive_checkpoint = reactive(TRUE), htest_var1 = reactive(NULL), htest_var2 = reactive(NULL),
+  reactive_ready = reactive(TRUE)
   ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
 
+  # ------------------------------------------------------------------
+  # Render barrier: the params reactive is committed into a reactiveVal
+  # (which dedupes on identical()) and everything downstream renders from
+  # the committed value only. A plain reactive() re-invalidates its
+  # dependents on every upstream recompute even when the value is
+  # unchanged, so transient recomputes of the params chain (mid-cascade
+  # corner re-arms, selection-display triggers on unchanged axes) each
+  # caused a full, visibly identical replot. The commit observer applies
+  # the same gates a visible renderPlotly effectively applies:
+  #   - skip while the output is hidden (keeps suspendWhenHidden behaviour
+  #     for hidden tabs; otherwise hidden tabs would start computing),
+  #   - skip while reactive_checkpoint() is FALSE (the owning module's
+  #     view-type gate) or reactive_ready() is FALSE (the owning scatter's
+  #     "displayed axes have converged" gate - blocks the stale first
+  #     paint and mixed-axis frames mid-switch),
+  #   - a failing params read (req() aborts) is skipped, not propagated.
+  # The observer is kept referenced (observer-GC rule).
+  committed_params <- reactiveVal(NULL)
+  .scatter_render_keep <- list()
+  .scatter_render_keep[[length(.scatter_render_keep) + 1L]] <- observe({
+    hidden <- session$clientData[[paste0("output_", ns("plotly.scatter.output"), "_hidden")]]
+    if (isTRUE(hidden)) return(NULL)
+    if (!isTRUE(tryCatch(reactive_checkpoint(), error = function(e) FALSE))) return(NULL)
+    if (!isTRUE(tryCatch(reactive_ready(), error = function(e) FALSE))) return(NULL)
+    p <- tryCatch(reactive_param_plotly_scatter(),
+                  shiny.silent.error = function(e) NULL,
+                  error = function(e) NULL)
+    if (is.null(p)) return(NULL)
+    committed_params(p)
+  })
+
   hm <- reactive({
-    x <- reactive_param_plotly_scatter()$x
-    y <- reactive_param_plotly_scatter()$y
+    x <- committed_params()$x
+    y <- committed_params()$y
     i1 <- (is.factor(x) || is.character(x)) && is.numeric(y) # beeswarm vertical
     i2 <- (is.factor(y) || is.character(y)) && is.numeric(x) # beeswarm horizontal
     i3 <- is.numeric(y) && is.numeric(x) # scatter
@@ -470,8 +507,8 @@ plotly_scatter_module <- function(
   choices <- reactive({
     req(reactive_checkpoint())
     req(hm()$beeswarm)
-    x <- reactive_param_plotly_scatter()$x
-    y <- reactive_param_plotly_scatter()$y
+    x <- committed_params()$x
+    y <- committed_params()$y
     if (hm()$beeswarm.vertical) {
       v <- x 
       num <- y
@@ -538,7 +575,8 @@ plotly_scatter_module <- function(
   })
 
   reactive_param_plotly_scatter_src <- reactive({
-    x <- reactive_param_plotly_scatter()
+    x <- committed_params()
+    req(x)
     src <- ifelse ( !is.null(x$source), x$source, 'scatterplotly')
     x$source <- src
     x

@@ -970,6 +970,11 @@ shiny::testServer(app_fgs, {
                                                     "P","Q","R","S","T","V",
                                                     "W","Y"), 15, TRUE),
                                            collapse = "")),
+  `SeqLogo|All|win20` = replicate(8, paste(sample(c("A","C","D","E","F","G",
+                                                    "H","I","K","L","M","N",
+                                                    "P","Q","R","S","T","V",
+                                                    "W","Y"), 20, TRUE),
+                                           collapse = "")),
   row.names = paste0("P", 1:8), check.names = FALSE)
 .ptm_root <- widget_store_new()
 .ptm_store <- widget_store_child(.ptm_root, "resultspace.ptm")
@@ -995,13 +1000,14 @@ shiny::testServer(app_ptm, {
       identical(v$resultspace.ptm.xax_variable, "win15"),
     "sequence cascade auto-seeds to the first SeqLogo column (system origin)"
   )
-  # a user pick sticks (seeding never overwrites set keys)
-  session$setInputs(`ptm-tris_seqlogo-analysis` = "General")
+  # a user pick sticks (seeding never overwrites set keys); the sequence
+  # dropdown only offers SeqLogo columns, so the pick is another window
+  session$setInputs(`ptm-tris_seqlogo-analysis` = "SeqLogo")
   session$setInputs(`ptm-tris_seqlogo-subset` = "All")
-  session$setInputs(`ptm-tris_seqlogo-variable` = "Gene.name")
+  session$setInputs(`ptm-tris_seqlogo-variable` = "win20")
   session$flushReact()
   ok(
-    identical(store_read(.ptm_store)$resultspace.ptm.xax_variable, "Gene.name"),
+    identical(store_read(.ptm_store)$resultspace.ptm.xax_variable, "win20"),
     "user sequence pick syncs and sticks over the auto-seed"
   )
 })

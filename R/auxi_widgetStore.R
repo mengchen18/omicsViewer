@@ -700,6 +700,50 @@ store_sync_from_ui <- function(store, id, value) {
   invisible(overridden)
 }
 
+#' Sync a committed triselector triple into the store
+#'
+#' UI-to-store binding for one triselector cascade (WP2): mirrors the
+#' module's committed - i.e. settled and coherent - triple into three store
+#' keys through \code{\link{store_sync_from_ui}}. Because a triselector
+#' holds its last committed triple while a cascade is in flight, the binding
+#' fires exactly once per settled selection: mid-cascade echoes never enter
+#' the store (no false user overrides of in-flight restores), while an
+#' acknowledgement of a store push arrives here as the matching value and
+#' clears the pending entry through the ack branch. This replaces the nine
+#' hand-written per-module sync observers (\code{_component_set} /
+#' \code{_triple_coherent} copies) that re-ran on every raw module flip.
+#'
+#' @param store Store (or child view).
+#' @param keys Named character of length 3 with names \code{analysis},
+#'   \code{subset}, \code{variable} giving the module-local store ids of
+#'   the cascade components.
+#' @param sel The triselector module's returned reactive (settled triples,
+#'   or NULL while the first selection has not settled).
+#' @param keep Function that keeps the created observer referenced
+#'   (observer-GC rule); defaults to a no-op for module setups that already
+#'   hold their observers elsewhere.
+#' @return Invisible NULL.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_bind_triselector <- function(store, keys, sel,
+                                   keep = function(o) invisible(o)) {
+  stopifnot(
+    is.list(keys) || is.character(keys),
+    setequal(names(keys), c("analysis", "subset", "variable")),
+    is.function(sel), is.function(keep)
+  )
+  keep(observe({
+    tv <- tryCatch(sel(), shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    if (is.null(tv))
+      return(NULL)
+    store_sync_from_ui(store, keys[["analysis"]], tv$analysis)
+    store_sync_from_ui(store, keys[["subset"]], tv$subset)
+    store_sync_from_ui(store, keys[["variable"]], tv$variable)
+  }))
+  invisible(NULL)
+}
+
 #' React to one widget's store value
 #'
 #' S2 session glue: returns a reactive expression reading the key's

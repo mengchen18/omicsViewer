@@ -147,3 +147,67 @@ testServer(app2, {
     "store-driven: variable update carries the requested selection"
   )
 })
+
+## ------------------------------------------------- store-driven manual pick ----
+# The RC6 regression: with a live store value held by reactive_selector1,
+# the cascade derived subset/variable choices from the STORE analysis
+# (`reactive_selector1() %||% input$analysis` never registered the input
+# dependency), so picking a new analysis in custom mode left the subset
+# dropdown offering the previous analysis's options - the triple could
+# never complete and the store never followed the edit. The cascade must
+# follow the USER'S pick, repair the downstream components itself, and
+# report the settled triple.
+ts_matrix2 <- matrix(c(
+  "ttest", "RE_vs_ME", "mean.diff",
+  "ttest", "MT_vs_WT", "mean.diff",
+  "Cor",   "MDR",      "R",
+  "Cor",   "DT",       "R"
+), ncol = 3, byrow = TRUE)
+
+sent3 <- new.env(); sent3$msgs <- list()
+app3 <- function(input, output, session) {
+  sel1 <- reactiveVal("ttest"); sel2 <- reactiveVal("RE_vs_ME"); sel3 <- reactiveVal("mean.diff")
+  ver <- reactiveVal(0L)
+  res <- omicsViewer:::triselector_module(
+    "t",
+    reactive_x = reactive(ts_matrix2),
+    reactive_selector1 = reactive(sel1()),
+    reactive_selector2 = reactive(sel2()),
+    reactive_selector3 = reactive(sel3()),
+    reactive_axis_request = reactive(ver())
+  )
+  exported <<- list(result = res)
+}
+
+testServer(app3, {
+  .spy_input_messages(session, sent3)
+  session$setInputs(`t-analysis` = "ttest", `t-subset` = "RE_vs_ME", `t-variable` = "mean.diff")
+  session$flushReact()
+  sent3$msgs <- list()  # drop the init pushes; watch the manual edit only
+  # the user picks a different analysis while the store still holds ttest
+  session$setInputs(`t-analysis` = "Cor")
+  session$flushReact()
+  ok(
+    ut_cmp_identical(.sent_choices(sent3, "subset"), c("MDR", "DT")),
+    "store-driven manual pick: subset choices follow the user's analysis"
+  )
+  ok(
+    ut_cmp_identical(.sent_value(sent3, "subset"), "MDR"),
+    "store-driven manual pick: subset is repaired to the first valid choice"
+  )
+  # acknowledge the repair as the browser would
+  session$setInputs(`t-subset` = "MDR")
+  session$flushReact()
+  ok(
+    ut_cmp_identical(.sent_value(sent3, "variable"), "R"),
+    "store-driven manual pick: variable is repaired after the subset settles"
+  )
+  session$setInputs(`t-variable` = "R")
+  session$flushReact()
+  ok(
+    ut_cmp_identical(
+      unlist(exported$result()[c("analysis", "subset", "variable")]),
+      c(analysis = "Cor", subset = "MDR", variable = "R")),
+    "store-driven manual pick: the settled triple is reported once complete"
+  )
+})

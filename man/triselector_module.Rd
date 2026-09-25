@@ -25,6 +25,9 @@ triselector_module(
 
 \item{reactive_selector3}{default value for selector 3}
 
+\item{reactive_axis_request}{version bump that forces re-derivation of the
+cascade (e.g. a widget-store epoch); unchanged values are never re-sent}
+
 \item{label}{of the triselector}
 }
 \value{
@@ -32,6 +35,13 @@ an reactive object containing the selected values
 }
 \description{
 The selector is used to select columns of phenotype and feature data.
+The cascade is self-repairing: when an upstream component changes (by the
+user or by a store write) and the downstream values are no longer valid,
+the first valid ones are pushed automatically. The module reports only
+settled, coherent triples (all components acknowledged, naming a real
+column); while a server push is in flight or the triple is incomplete,
+the last committed triple is held, so consumers never observe mid-cascade
+echoes.
 Function should only be used for the developers.
 }
 \examples{

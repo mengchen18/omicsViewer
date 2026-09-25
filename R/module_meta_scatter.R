@@ -262,53 +262,21 @@ meta_scatter_module <- function(
       reactive_axis_request = store_epoch(store)
     )
 
-    # UI -> store synchronisation: user edits and widget acknowledgements.
-    # store_sync_from_ui is acknowledgement-aware: confirming an in-flight
-    # external write clears its pending entry; a diverging value is a user
-    # override (user always wins). Reads are req-guarded, hence tryCatch.
+    # UI -> store synchronisation: the binding mirrors the SETTLED triples
+    # (the triselector holds its last committed triple while a cascade is
+    # in flight), so mid-cascade echoes never revert an in-flight store
+    # write, and acknowledgements of store pushes clear their pending
+    # entries through the ack branch of store_sync_from_ui.
     .scatter_read_tris <- function(sel) {
       tryCatch(sel(), shiny.silent.error = function(e) NULL,
                error = function(e) NULL)
     }
-    .scatter_component_set <- function(sel) {
-      # triselectors report the "--select--" placeholder while unset; that is
-      # "no value", not a user choice, and must not enter the store
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-    }
-    .scatter_triple_coherent <- function(sel) {
-      # A coherent triple names a real column in the current triset. While a
-      # cascaded select catches up with a store push, the triselector briefly
-      # reports MIXED components (new analysis + old subset/variable); those
-      # are cascade echoes, not user choices, and must NOT be mirrored into
-      # the store - the eager user-override there cleared the pending entries
-      # of an in-flight quick-view apply and made the canonical axes (and the
-      # volcano corner driven from them) oscillate after every switch.
-      if (!.scatter_component_set(sel))
-        return(FALSE)
-      triple <- paste(sel$analysis, sel$subset, sel$variable, sep = "|")
-      ts <- tryCatch(triset(), shiny.silent.error = function(e) NULL,
-                     error = function(e) NULL)
-      if (is.null(ts) || !nrow(ts))
-        return(FALSE)
-      triple %in% paste(ts[, 1], ts[, 2], ts[, 3], sep = "|")
-    }
-    .scatter_keep(observe({
-      xv <- .scatter_read_tris(v1)
-      yv <- .scatter_read_tris(v2)
-      if (.scatter_triple_coherent(xv)) {
-        store_sync_from_ui(store, "x_analysis", xv$analysis)
-        store_sync_from_ui(store, "x_subset", xv$subset)
-        store_sync_from_ui(store, "x_variable", xv$variable)
-      }
-      if (.scatter_triple_coherent(yv)) {
-        store_sync_from_ui(store, "y_analysis", yv$analysis)
-        store_sync_from_ui(store, "y_subset", yv$subset)
-        store_sync_from_ui(store, "y_variable", yv$variable)
-      }
-    }))
+    store_bind_triselector(store,
+      keys = c(analysis = "x_analysis", subset = "x_subset", variable = "x_variable"),
+      sel = v1, keep = .scatter_keep)
+    store_bind_triselector(store,
+      keys = c(analysis = "y_analysis", subset = "y_subset", variable = "y_variable"),
+      sel = v2, keep = .scatter_keep)
     .scatter_keep(observeEvent(input$axisMode, {
       updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
       if (input$axisMode %in% c("quick", "custom"))
@@ -343,7 +311,7 @@ meta_scatter_module <- function(
     selectionDisplayAxes <- reactiveVal(NULL)
     pendingSelectionDisplayAxes <- reactiveVal(NULL)
     selectionDisplayTrigger <- reactiveVal(0L)
-    observe({
+    .scatter_keep(observe({
       current_axes <- .scatter_axis_signature(v1(), v2())
       pending_axes <- pendingSelectionDisplayAxes()
       if (!is.null(pending_axes)) {
@@ -357,7 +325,7 @@ meta_scatter_module <- function(
       displayed_axes <- isolate(selectionDisplayAxes())
       if (!is.null(displayed_axes) && !identical(current_axes, displayed_axes))
         selectionDisplayAxes(NULL)
-    })
+    }))
 
     .scatter_keep(observeEvent(quickBadge()$trigger, {
       qv <- quickBadge()$view
@@ -374,37 +342,45 @@ meta_scatter_module <- function(
 
     # Keep the compact mode switch and the header-less tab panel in sync. The
     # tab panel switches content immediately without adding another tab bar.
-    observeEvent(input$axisMode, {
+    .scatter_keep(observeEvent(input$axisMode, {
       updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
-    }, ignoreInit = TRUE)
+    }, ignoreInit = TRUE))
 
     # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from
-    # ttest), read from the CANONICAL store watchers. The store transaction
-    # is atomic, so this transitions exactly once per view change and NEVER
-    # dips between two volcano views (a displayed-axes gate here made
-    # volcano -> volcano switches flash: TRUE -> FALSE mid-switch -> TRUE
-    # re-fired the whole corner chain). Timing of the corner APPLICATION is
-    # handled separately, by the convergence gate passed to attr4selector.
-    pre_vol <- reactive({
-      vals <- lapply(store_watchers, function(w) w())
-      if (any(vapply(vals, is.null, logical(1))))
+    # ttest), read from the DISPLAYED (settled) triselector triples. The
+    # store watchers lag one observer hop behind a user edit (the store
+    # sync runs after the committed flip), which armed the volcano-exit
+    # intent after the render had already painted the new axes with the
+    # outgoing corner (two paints on every volcano exit edit). The
+    # committed triples flip ATOMICALLY (the triselector holds its last
+    # settled triple mid-cascade), so this predicate still transitions
+    # exactly once per view change and never dips between two volcano
+    # views - the property the historical store-watcher version was
+    # written to guarantee. Timing of the corner APPLICATION is handled
+    # separately, by the convergence gate passed to attr4selector.
+    displayed_volcano <- reactive({
+      xv <- .scatter_read_tris(v1)
+      yv <- .scatter_read_tris(v2)
+      if (is.null(xv) || is.null(yv))
         return(FALSE)
-      identical(vals$x_analysis, "ttest") &&
-        identical(vals$y_analysis, "ttest") &&
-        identical(vals$x_variable, "mean.diff") &&
-        vals$y_variable %in% c("log.fdr", "log.pvalue")
+      identical(xv$analysis, "ttest") &&
+        identical(yv$analysis, "ttest") &&
+        identical(xv$variable, "mean.diff") &&
+        yv$variable %in% c("log.fdr", "log.pvalue")
     })
 
     # The displayed axes have caught up with the canonical store axes. The
     # corner auto-selection waits for this so the volcano rectangles are
-    # never applied to the outgoing figure mid-switch.
+    # never applied to the outgoing figure mid-switch. A settled triselector
+    # triple is complete by construction (never a placeholder / partial
+    # cascade), so a non-NULL value is a component-complete triple.
     .scatter_axes_converged <- reactive({
       vals <- lapply(store_watchers, function(w) w())
       if (any(vapply(vals, is.null, logical(1))))
         return(FALSE)
       xv <- .scatter_read_tris(v1)
       yv <- .scatter_read_tris(v2)
-      .scatter_component_set(xv) && .scatter_component_set(yv) &&
+      !is.null(xv) && !is.null(yv) &&
         identical(xv$analysis, vals$x_analysis) &&
         identical(xv$subset, vals$x_subset) &&
         identical(xv$variable, vals$x_variable) &&
@@ -417,9 +393,10 @@ meta_scatter_module <- function(
     attr4select <- attr4selector_module(
       "a4selector",
       reactive_meta = reactive_meta, reactive_expr = reactive_expr,
-      reactive_triset = triset, pre_volcano = pre_vol, reactive_status = attr4select_status,
+      reactive_triset = triset, pre_volcano = displayed_volcano, reactive_status = attr4select_status,
       store = store,
-      corner_apply_gate = .scatter_axes_converged
+      corner_apply_gate = .scatter_axes_converged,
+      corner_valid_on_axes = displayed_volcano
     )
 
     xycoord <- reactive({
@@ -481,11 +458,16 @@ meta_scatter_module <- function(
       l$highlight <- attr4select$highlight
       l$highlightName <- attr4select$highlightName
       l$rect <- rectval()
-      # A restoration on unchanged axes needs one deliberate redraw. Ordinary
-      # selection emphasis is deliberately isolated so a lasso/box event does
-      # not immediately erase Plotly's browser-owned selection shape. When the
-      # axes change, the triselector outputs already invalidate this reactive.
-      selectionDisplayTrigger()
+      # A restoration on unchanged axes needs one deliberate redraw. The
+      # seed rides as an attribute: the render barrier's identical()
+      # compares attributes (so a seed bump forces exactly one commit and
+      # repaint), while c() in plotly_scatter's do.call drops attributes,
+      # so it never reaches the plotly call itself. Ordinary selection
+      # emphasis is deliberately isolated above so a lasso/box event does
+      # not immediately erase Plotly's browser-owned selection shape. When
+      # the axes change, the triselector outputs already invalidate this
+      # reactive.
+      attr(l, "redrawSeed") <- selectionDisplayTrigger()
 
       # Do not carry an opacity vector from one figure into another. Emphasize
       # semantic IDs only when the current axes match either a restored axis
@@ -517,11 +499,16 @@ meta_scatter_module <- function(
     v_scatter <- plotly_scatter_module(
       "main_scatterOutput",
       reactive_param_plotly_scatter = scatter_vars,
-      reactive_regLine = showRegLine, htest_var1 = htestV1, htest_var2 = htestV2
+      reactive_regLine = showRegLine, htest_var1 = htestV1, htest_var2 = htestV2,
+      # render barrier gate: commits only when BOTH displayed axes have
+      # caught up with the canonical store axes - blocks the stale first
+      # paint of the outgoing figure and the mixed-axis frames the serial
+      # acknowledgement model produces mid-cascade (RC1)
+      reactive_ready = .scatter_axes_converged
     )
-    observe({
+    .scatter_keep(observe({
       showRegLine(v_scatter()$regline)
-    })
+    }))
 
     selVal <- reactiveVal(
       list(
@@ -531,7 +518,7 @@ meta_scatter_module <- function(
     )
     sbc <- reactiveVal(FALSE)
 
-    observeEvent(list(input$clear, reactive_expr()), {
+    .scatter_keep(observeEvent(list(input$clear, reactive_expr()), {
       selVal(list(
         clicked = character(0),
         selected = character(0)
@@ -539,21 +526,20 @@ meta_scatter_module <- function(
       selectionDisplayAxes(NULL)
       pendingSelectionDisplayAxes(NULL)
       sbc(FALSE)
-    })
+    }))
 
     # Workaround: Track previous selection to prevent redundant updates
     # Plotly events can fire even when selection hasn't actually changed,
     # causing unnecessary reactive chain invalidations. We store the previous
     # selection and only update selVal when it truly changes.
     clientSideSelection <- reactiveVal(character(0))
-    observeEvent(v_scatter(), {
+    .scatter_keep(observeEvent(v_scatter(), {
       l <- get_names()
       u_c <- l[v_scatter()$clicked]
       u_s <- l[v_scatter()$selected]
 
       # Only update if selection actually changed
       req(!identical(tmp <- c(u_c, u_s), clientSideSelection()))
-
       clientSideSelection(tmp)
       selVal(list(
         clicked = u_c,
@@ -566,11 +552,26 @@ meta_scatter_module <- function(
           NULL
       )
       sbc(FALSE)
-    })
+    }))
 
     returnCornerSelection <- reactiveVal(TRUE)
-    observeEvent(rectval(), {
+    # The corner selection consumes only SETTLED state, and the observer
+    # is kept referenced (observer-GC rule). Mid-cascade evaluations of
+    # rectval carry stale components - the triselector outputs hold the
+    # outgoing triple while the store already holds the incoming one, and
+    # the scorner widget lags the corner resolution by a round trip - so
+    # an ungated fire re-selected the OUTGOING view's corner regions (or
+    # a mixed axes/corner combination) nondeterministically, depending on
+    # intra-flush ordering; and an unreferenced observer is garbage
+    # collected between flushes, silently swallowing the clearing fire
+    # and leaving the stale selection alive (both observed live: quick
+    # view switches resurrected the previous volcano's corner genes).
+    .scatter_keep(observeEvent(rectval(), {
       if (!returnCornerSelection()) {
+        return(NULL)
+      }
+      if (!isTRUE(tryCatch(.scatter_axes_converged(),
+                           error = function(e) FALSE))) {
         return(NULL)
       }
 
@@ -596,7 +597,7 @@ meta_scatter_module <- function(
       ))
       selectionDisplayAxes(.scatter_axis_signature(v1(), v2()))
       sbc(TRUE)
-    })
+    }, ignoreNULL = FALSE))
 
     ############## status save ###############
     # Derive snapshot state when it is read. Besides avoiding the historical

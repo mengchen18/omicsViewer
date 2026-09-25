@@ -327,27 +327,17 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     }
   })
 
-  # Store glue: UI -> store sync for the cascade (acknowledgement-aware:
-  # store pushes ack through the same observer once the triselector
-  # confirms). The cascade has no meaningful default, so unlike the
-  # scalar widgets it is not seeded and fills on the first pick.
+  # Store glue: UI -> store sync for the cascade. The binding fires on
+  # settled triples only (WP2 store_bind_triselector): mid-cascade echoes
+  # never enter the store, and store pushes are acknowledged through the
+  # same path once the triselector confirms. The cascade has no meaningful
+  # default, so unlike the scalar widgets it is not seeded and fills on the
+  # first pick.
   if (!is.null(store)) {
-    .sg_read_tris <- function(sel)
-      tryCatch(sel(), shiny.silent.error = function(e) NULL,
-               error = function(e) NULL)
-    .sg_component_set <- function(sel)
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-    .sg_keep(observe({
-      xv <- .sg_read_tris(v1)
-      if (.sg_component_set(xv)) {
-        store_sync_from_ui(store, "xax_analysis", xv$analysis)
-        store_sync_from_ui(store, "xax_subset", xv$subset)
-        store_sync_from_ui(store, "xax_variable", xv$variable)
-      }
-    }))
+    store_bind_triselector(store,
+      keys = c(analysis = "xax_analysis", subset = "xax_subset",
+               variable = "xax_variable"),
+      sel = v1, keep = .sg_keep)
   }
 
   ## save and restore status

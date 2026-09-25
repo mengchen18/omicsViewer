@@ -97,22 +97,11 @@ ptmotif_module <- function(
       reactive_selector2 = store_watch(store, "xax_subset"),
       reactive_selector3 = store_watch(store, "xax_variable"),
       reactive_axis_request = store_epoch(store))
-    .ptm_read_tris <- function(sel)
-      tryCatch(sel(), shiny.silent.error = function(e) NULL,
-               error = function(e) NULL)
-    .ptm_component_set <- function(sel)
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-    .ptm_keep(observe({
-      xv <- .ptm_read_tris(v1)
-      if (.ptm_component_set(xv)) {
-        store_sync_from_ui(store, "xax_analysis", xv$analysis)
-        store_sync_from_ui(store, "xax_subset", xv$subset)
-        store_sync_from_ui(store, "xax_variable", xv$variable)
-      }
-    }))
+    # UI -> store: settled triples only (WP2 store_bind_triselector)
+    store_bind_triselector(store,
+      keys = c(analysis = "xax_analysis", subset = "xax_subset",
+               variable = "xax_variable"),
+      sel = v1, keep = .ptm_keep)
     # auto-default to the first available sequence column, but only while
     # the keys are unset (a restore or user pick wins and sticks)
     .ptm_keep(observe({

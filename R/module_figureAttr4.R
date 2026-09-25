@@ -61,6 +61,14 @@ attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
 #'   the owning scatter passes its "displayed axes have converged to the
 #'   canonical store axes" reactive so the corner rectangles are never
 #'   applied to an outgoing figure mid-switch.
+#' @param corner_valid_on_axes Reactive logical, default \code{reactive(TRUE)}.
+#'   Whether the currently DISPLAYED axes admit a "volcano" corner at all.
+#'   The scorner widget lags axis switches by a browser round trip; without
+#'   this guard a stale "volcano" widget value resolved against the already
+#'   switched axes selected the incoming figure's corner regions with the
+#'   outgoing view's cutoffs (observed live: switching volcano -> cor left a
+#'   67-gene corner selection on the correlation plot). Axis-neutral corners
+#'   (left/right/top/bottom ...) stay valid on any numeric axes.
 #' @examples
 #' #' # library(shiny)
 #' # library(shinyjs)
@@ -88,7 +96,8 @@ attr4selector_module <- function(
   id, reactive_meta=reactive(NULL), reactive_expr=reactive(NULL),
   reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE),
   reactive_status = reactive(NULL), store = NULL,
-  corner_apply_gate = reactive(TRUE)
+  corner_apply_gate = reactive(TRUE),
+  corner_valid_on_axes = reactive(TRUE)
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -244,25 +253,15 @@ attr4selector_module <- function(
       .a4_store_observers[[length(.a4_store_observers) + 1L]] <<- obs
       invisible(obs)
     }
-    .a4_read_tris <- function(sel)
-      tryCatch(sel(), shiny.silent.error = function(e) NULL,
-               error = function(e) NULL)
-    .a4_component_set <- function(sel)
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-
-    # UI -> store: user edits and widget acknowledgements
+    # UI -> store: settled triples only (WP2 store_bind_triselector); the
+    # triselector holds its last committed triple while a cascade is in
+    # flight, so mid-cascade echoes never enter the store
     .a4_sync_group <- function(sel, key) {
-      .a4_keep(observe({
-        cv <- .a4_read_tris(sel)
-        if (.a4_component_set(cv)) {
-          store_sync_from_ui(store4, paste0(key, "_analysis"), cv$analysis)
-          store_sync_from_ui(store4, paste0(key, "_subset"), cv$subset)
-          store_sync_from_ui(store4, paste0(key, "_variable"), cv$variable)
-        }
-      }))
+      store_bind_triselector(store4,
+        keys = c(analysis = paste0(key, "_analysis"),
+                 subset = paste0(key, "_subset"),
+                 variable = paste0(key, "_variable")),
+        sel = sel, keep = .a4_keep)
     }
     .a4_sync_group(selectColor, "color")
     .a4_sync_group(selectShape, "shape")
@@ -355,30 +354,38 @@ attr4selector_module <- function(
   # Volcano corner auto-selection, structured as INTENT + reactively
   # resolved corner:
   #
-  # - pre_volcano() (the canonical, atomic volcano detection owned by the
-  #   scatter module) only fires on genuine volcano-ness TRANSITIONS, so
-  #   switching between two volcano views never touches the corner at all.
+  # - pre_volcano() is a reactive(): observeEvent does NOT dedupe, and the
+  #   event expression re-runs on every invalidation of the store watchers
+  #   it reads (every axis write), even when the volcano-ness VALUE is
+  #   unchanged. Without the .pre_vol_state guard below, volcano ->
+  #   volcano switches re-armed the intent over the NULL left by the
+  #   previous acknowledgement, re-running the corner chain and repainting
+  #   the identical figure (RC2).
   # - The intended corner resolves through corner_effective() ONLY when
   #   corner_apply_gate() is TRUE - the scatter passes its "displayed axes
   #   have converged to the canonical axes" reactive, so the volcano
   #   rectangles are never applied to the outgoing figure mid-switch.
   # - The RENDER path (rectval in the owning module) consumes
-  #   params$cutoff_reactive, so the resolved corner lands in the SAME
-  #   reactive recompute as the new axes - one paint, rects included. An
-  #   observer-based apply landed one flush later and painted the new axes
-  #   with the stale corner first (a visible extra flash).
+  #   cutoff_effective directly: it resolves LAZILY, so the corner always
+  #   lands in the same recompute as the new axes (one paint, rects
+  #   included). Redundant recomputes whose resolved value is unchanged
+  #   (intent arm/retire cycles with no corner transition - RC3) are
+  #   absorbed by the render barrier's identical() dedupe instead of a
+  #   carrier value: a carrier written from an observer lands one queue
+  #   position after the render consumers and splits the settle paint.
   # - Side effects (scorner widget, store, params$cutoff status mirror) ride
-  #   a content-deduped observer: the historical per-input seed timestamp
-  #   forced an invalidation on every event even when nothing changed, each
-  #   one a redundant full plot redraw. That observer is the ONLY writer of
+  #   this same content-deduped observer. It is the ONLY writer of
   #   params$cutoff: corner_effective deliberately does not read params (a
-  #   reactiveValues write always re-invalidates its readers), and the
-  #   generic input observer no longer mirrors input$scorner into it - two
-  #   disagreeing writers plus the corner -> params feedback edge
-  #   ping-ponged forever, and while the loop spun shiny never drained the
-  #   outgoing message queue, so the browser could never ack the scorner
-  #   update and the two writers never agreed (the load-time infinite loop).
+  #   reactiveValues write dedupes by value, but two DISAGREEING writers
+  #   plus the corner -> params feedback edge ping-ponged forever, and
+  #   while the loop spun shiny never drained the outgoing message queue,
+  #   so the browser could never ack the scorner update and the two
+  #   writers never agreed - the load-time infinite loop). The generic
+  #   input observer no longer mirrors input$scorner into params either.
   pendingCorner <- reactiveVal(NULL)
+  # the last pre_volcano() VALUE seen; observeEvent does not dedupe, so the
+  # transition detection is done explicitly (RC2)
+  .pre_vol_state <- reactiveVal(NULL)
   # the corner value last pushed to the scorner widget and not yet
   # acknowledged by the browser; while it is set, a widget report that
   # still shows the pre-push value is stale, not a user choice (same
@@ -396,7 +403,15 @@ attr4selector_module <- function(
     if (!is.null(intent) &&
         isTRUE(tryCatch(corner_apply_gate(), error = function(e) FALSE)))
       return(intent)
-    widget_corner()
+    w <- widget_corner()
+    # The widget value lags axis switches by a round trip; a "volcano"
+    # corner resolved against non-volcano axes selects the incoming
+    # figure's regions with the outgoing view's cutoffs. Resolve the
+    # corner ATOMICALLY with the axes instead (see corner_valid_on_axes).
+    if (identical(w, "volcano") &&
+        !isTRUE(tryCatch(corner_valid_on_axes(), error = function(e) TRUE)))
+      return("None")
+    w
   })
   cutoff_effective <- reactive(
     list(x = val_xcut(), y = val_ycut(), corner = corner_effective())
@@ -426,7 +441,14 @@ attr4selector_module <- function(
     }
   })
   observeEvent(pre_volcano(), {
-    pendingCorner(if (isTRUE(pre_volcano())) "volcano" else "None")
+    pv <- isTRUE(pre_volcano())
+    # observeEvent does not dedupe: pre_volcano() is invalidated by every
+    # store axis write even when the volcano-ness is unchanged. Only a
+    # genuine TRANSITION re-arms the intent (RC2).
+    if (identical(pv, .pre_vol_state()))
+      return(NULL)
+    .pre_vol_state(pv)
+    pendingCorner(if (pv) "volcano" else "None")
   })
   # Any scorner widget report retires the auto-selection intent: either it
   # acknowledges our own push (the value then survives via widget_corner)
@@ -590,9 +612,8 @@ attr4selector_module <- function(
     pre_search(s$searchValue)
   })
 
-  # Reactive cutoff for the owning module's render path: consuming this
-  # (instead of the params$cutoff mirror written by observers) makes the
-  # resolved corner land in the same reactive recompute as new axes.
+  # Reactive cutoff for the owning module's render path: consumed directly
+  # (lazy resolution - see the corner chain notes above).
   params$cutoff_reactive <- cutoff_effective
 
   params

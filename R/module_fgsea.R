@@ -139,22 +139,11 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
       reactive_selector2 = store_watch(store, "xax_subset"),
       reactive_selector3 = store_watch(store, "xax_variable"),
       reactive_axis_request = store_epoch(store))
-    .fgs_read_tris <- function(sel)
-      tryCatch(sel(), shiny.silent.error = function(e) NULL,
-               error = function(e) NULL)
-    .fgs_component_set <- function(sel)
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-    .fgs_keep(observe({
-      xv <- .fgs_read_tris(v1)
-      if (.fgs_component_set(xv)) {
-        store_sync_from_ui(store, "xax_analysis", xv$analysis)
-        store_sync_from_ui(store, "xax_subset", xv$subset)
-        store_sync_from_ui(store, "xax_variable", xv$variable)
-      }
-    }))
+    # UI -> store: settled triples only (WP2 store_bind_triselector)
+    store_bind_triselector(store,
+      keys = c(analysis = "xax_analysis", subset = "xax_subset",
+               variable = "xax_variable"),
+      sel = v1, keep = .fgs_keep)
   } else {
     v1 <- triselector_module(
       "tris_fgsea", reactive_x = triset, label = "Input variable",

@@ -11,6 +11,7 @@
 \alias{store_apply}
 \alias{store_ack}
 \alias{store_sync_from_ui}
+\alias{store_bind_triselector}
 \alias{store_watch}
 \alias{store_epoch}
 \alias{store_snapshot}
@@ -58,6 +59,8 @@ store_apply(
 store_ack(store, id, widget_value)
 
 store_sync_from_ui(store, id, value)
+
+store_bind_triselector(store, keys, sel, keep = function(o) invisible(o))
 
 store_watch(store, id)
 
@@ -152,6 +155,17 @@ re-assert later clobbers unrelated direct updates on the same widget.}
 
 \item{value}{The value the user chose.}
 
+\item{keys}{Named character of length 3 with names \code{analysis},
+\code{subset}, \code{variable} giving the module-local store ids of
+the cascade components.}
+
+\item{sel}{The triselector module's returned reactive (settled triples,
+or NULL while the first selection has not settled).}
+
+\item{keep}{Function that keeps the created observer referenced
+(observer-GC rule); defaults to a no-op for module setups that already
+hold their observers elsewhere.}
+
 \item{snapshot}{List from \code{\link{store_snapshot}}.}
 }
 \value{
@@ -178,6 +192,8 @@ Invisible receipt: \code{applied} (ordered ids), \code{diff},
 TRUE when a re-assert (re-send) is needed, otherwise FALSE.
 
 Invisible TRUE when an agent write was overridden.
+
+Invisible NULL.
 
 A reactive expression yielding the current stored value.
 
@@ -222,6 +238,17 @@ UI-to-store sync: updates the stored value with origin \code{"user"},
 without bumping epochs or marking anything pending. The user always
 wins: an in-flight (unacknowledged) agent write for the same key is
 cleared and recorded in the override log.
+
+UI-to-store binding for one triselector cascade (WP2): mirrors the
+module's committed - i.e. settled and coherent - triple into three store
+keys through \code{\link{store_sync_from_ui}}. Because a triselector
+holds its last committed triple while a cascade is in flight, the binding
+fires exactly once per settled selection: mid-cascade echoes never enter
+the store (no false user overrides of in-flight restores), while an
+acknowledgement of a store push arrives here as the matching value and
+clears the pending entry through the ack branch. This replaces the nine
+hand-written per-module sync observers (\code{_component_set} /
+\code{_triple_coherent} copies) that re-ran on every raw module flip.
 
 S2 session glue: returns a reactive expression reading the key's
 reactiveVal, so effects can depend on store writes directly.

@@ -210,22 +210,11 @@ geneshot_module <- function(
       reactive_selector2 = store_watch(store, "xax_subset"),
       reactive_selector3 = store_watch(store, "xax_variable"),
       reactive_axis_request = store_epoch(store))
-    .gs_read_tris <- function(sel)
-      tryCatch(sel(), shiny.silent.error = function(e) NULL,
-               error = function(e) NULL)
-    .gs_component_set <- function(sel)
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-    .gs_keep(observe({
-      xv <- .gs_read_tris(v1)
-      if (.gs_component_set(xv)) {
-        store_sync_from_ui(store, "xax_analysis", xv$analysis)
-        store_sync_from_ui(store, "xax_subset", xv$subset)
-        store_sync_from_ui(store, "xax_variable", xv$variable)
-      }
-    }))
+    # UI -> store: settled triples only (WP2 store_bind_triselector)
+    store_bind_triselector(store,
+      keys = c(analysis = "xax_analysis", subset = "xax_subset",
+               variable = "xax_variable"),
+      sel = v1, keep = .gs_keep)
     .gs_keep(observeEvent(input$term, {
       if (!is.null(input$term) && nzchar(input$term))
         store_sync_from_ui(store, "term", input$term)
