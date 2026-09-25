@@ -699,17 +699,28 @@ meta_scatter_module <- function(
     # value is deduped explicitly - a same-value re-fire must not claim
     # the selection again (that is what resurrected the corner genes
     # right after a clear).
+    #
+    # The observer triggers on BOTH the rects and the AXES-CONVERGED
+    # reactive: in a real browser the committed triselector triple
+    # settles one flush BEFORE the canonical store write lands (the
+    # UI->store sync runs behind the client acknowledgement round
+    # trips), so a rectval-only event fired exactly once mid-cascade,
+    # bailed on the convergence gate, and never re-ran after the store
+    # caught up - an axis switch (y log.fdr -> log.pvalue) re-derived the
+    # corner rects in-render but never re-REPORTED the selection, and the
+    # result space kept the stale ids. The convergence reactive provides
+    # the second trigger; the value dedupe below absorbs the extra runs.
     .rectval_last <- reactiveVal(NULL)
-    .scatter_keep(observeEvent(rectval(), {
+    .scatter_keep(observe({
+      conv <- tryCatch(.scatter_axes_converged(), error = function(e) FALSE)
+      rec <- rectval()
       if (!isTRUE(cornerEngaged())) {
         return(NULL)
       }
-      if (!isTRUE(tryCatch(.scatter_axes_converged(),
-                           error = function(e) FALSE))) {
+      if (!isTRUE(conv)) {
         return(NULL)
       }
 
-      rec <- rectval()
       if (identical(rec, .rectval_last())) {
         return(NULL)
       }
@@ -749,7 +760,7 @@ meta_scatter_module <- function(
         report = list(rects = rec),
         ids = l[i], anchor = axes,
         mirror = if (notNullAndPositiveLength(l[i])) l[i] else TRUE)
-    }, ignoreNULL = FALSE))
+    }))
 
     ############## status save ###############
     # Derive snapshot state when it is read. Besides avoiding the historical

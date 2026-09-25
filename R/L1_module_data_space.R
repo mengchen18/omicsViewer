@@ -409,8 +409,15 @@ L1_data_space_module <- function(
       } else {
         character(0)
       }
-      sel_sample$report(origin = "cor_heatmap", report = .rpt,
-                        ids = ids, mirror = ids_or_true(ids))
+      # The module return re-fires whenever its status-attribute inputs
+      # (row_sort_by etc.) initialize or change, with EMPTY interaction
+      # payloads; such an echo at load time must not clear a selection
+      # another source just made (it wiped the load-time volcano corner
+      # selection seconds after it landed). Same rule as the dynamic
+      # heatmap: only genuine non-empty reports land.
+      if (notNullAndPosLength(ids))
+        sel_sample$report(origin = "cor_heatmap", report = .rpt,
+                          ids = ids, mirror = ids_or_true(ids))
     })
 
     ## ============== selection from heatmap - samples and feature ========
@@ -432,10 +439,15 @@ L1_data_space_module <- function(
       } else {
         character(0)
       }
-      sel_feature$report(origin = "heatmap", report = .rpt,
-                         ids = ids_f, mirror = ids_or_true(ids_f))
-      sel_sample$report(origin = "heatmap", report = .rpt,
-                        ids = ids_s, mirror = ids_or_true(ids_s))
+      # Echo guard as above: the static heatmap's return recomputes when
+      # its widget defaults seed, reporting empty clicked/brushed; an
+      # empty payload must not clear the bus record.
+      if (notNullAndPosLength(ids_f))
+        sel_feature$report(origin = "heatmap", report = .rpt,
+                           ids = ids_f, mirror = ids_or_true(ids_f))
+      if (notNullAndPosLength(ids_s))
+        sel_sample$report(origin = "heatmap", report = .rpt,
+                          ids = ids_s, mirror = ids_or_true(ids_s))
     })
 
     ## The scatter modules (feature and sample space) report their own

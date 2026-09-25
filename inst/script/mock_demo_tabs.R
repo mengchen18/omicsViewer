@@ -3,7 +3,7 @@
 # exercised and debugged without a dedicated PTM / dose-response dataset.
 #
 # Run from the package root:
-#   Rscript inst/scripts/mock_demo_tabs.R
+#   Rscript inst/script/mock_demo_tabs.R
 #
 # Requirements implemented here (see R/module_PTMotif.R, R/module_doseResponse.R,
 # R/proc_doseCurve.R):

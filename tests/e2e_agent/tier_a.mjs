@@ -208,6 +208,27 @@ try {
       st ? JSON.stringify(st) : 'no state');
   }
 
+  // ---- 0a. load-time corner SELECTION reaches the app state ----------
+  // The corner must not only paint rects + emphasis: it must survive in
+  // the selection bus. The static/cor heatmaps' returns recompute when
+  // their widget defaults seed (row_sort_by etc.) with EMPTY payloads;
+  // those echoes once reported ids=character(0) and wiped the load-time
+  // corner selection seconds after it landed (origin=heatmap, count 0
+  // in the overview while the figure still emphasized 107 points).
+  {
+    let sel = null;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 30000) {
+      const ov = await runHook(p1, 'overview', {});
+      sel = ov && ov.selection ? ov.selection.features : null;
+      if (sel && typeof sel.count === 'number' && sel.count > 0) break;
+      await new Promise(s => setTimeout(s, 1000));
+    }
+    record('load: volcano corner selection is live in the app state',
+      !!(sel && sel.count > 0),
+      sel ? 'feature_count=' + sel.count : 'no selection record');
+  }
+
   // ---- 0b. quick-view switch renders (no multi-flash) ----------------
   // Every quick-view switch must be a single coherent render. The corner
   // auto-selection resolves inside the same reactive recompute as the new
@@ -426,6 +447,10 @@ try {
     const el = document.querySelector('#app-dataspace-feature_space-tris_main_scatter2-variable');
     return el && el.selectize && Object.keys(el.selectize.options).length > 0;
   }, null, { timeout: 30000 });
+  // baseline: the log.fdr corner selection count, read through the app
+  // state (the same view the right panel consumes)
+  const ovBefore = await runHook(p1, 'overview', {});
+  const cornerBefore = ovBefore.selection ? ovBefore.selection.features.count : 0;
   await p1.evaluate(() => {
     const el = document.querySelector('#app-dataspace-feature_space-tris_main_scatter2-variable');
     if (el && el.selectize) el.selectize.setValue('log.pvalue');
@@ -435,6 +460,27 @@ try {
     null, { timeout: 15000 });
   record('manual variable edit sticks in the widget', (await yVar()) === 'log.pvalue');
   await p1.waitForTimeout(1500);
+
+  // the axis switch must re-derive the corner SELECTION, not just the
+  // figure emphasis: log.fdr -> log.pvalue with the same cutoff selects
+  // a superset of features. In a real browser the committed triselector
+  // triple settles one flush before the canonical store write, so the
+  // corner observer used to fire once mid-cascade, bail on the
+  // axes-convergence gate, and never re-run - the selection stayed stale
+  // (in-render emphasis 352, app-state count still the log.fdr value).
+  {
+    let cornerAfter = 0;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 30000) {
+      const ov = await runHook(p1, 'overview', {});
+      cornerAfter = ov.selection ? ov.selection.features.count : 0;
+      if (cornerAfter > cornerBefore) break;
+      await new Promise(s => setTimeout(s, 1000));
+    }
+    record('axis switch re-derives the corner selection',
+      cornerAfter > cornerBefore,
+      `feature_count ${cornerBefore} -> ${cornerAfter}`);
+  }
 
   // agent apply targeting the pre-edit value (the drift scenario): the
   // quick view's axes must correct the manually drifted widget
