@@ -1232,7 +1232,9 @@ app_ms <- function(input, output, session) {
   omicsViewer:::meta_scatter_module(
     "feature_space", reactive_meta = shiny::reactive(.ms_fd),
     reactive_expr = shiny::reactive(.ms_ex), combine = "feature",
-    source = "scatter_meta_feature", store = .ms_store)
+    source = "scatter_meta_feature", store = .ms_store,
+    selection = omicsViewer:::selection_port(
+      omicsViewer:::selection_store_new(), "feature"))
 }
 shiny::testServer(app_ms, {
   session$flushReact()

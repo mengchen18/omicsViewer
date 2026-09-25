@@ -247,6 +247,23 @@ L1_data_space_module <- function(
   store_tab_pheno <- widget_store_child(store, "dataspace.tab_pheno")
   store_tab_feature <- widget_store_child(store, "dataspace.tab_feature")
   store_tab_expr <- widget_store_child(store, "dataspace.tab_expr")
+  # ------------------------------------------------------------------
+  # Unified selection bus: ONE canonical record per space ("feature",
+  # "sample") that every selection source reports into and every
+  # consumer reads from - scatter figure events and the volcano corner
+  # (reported by the meta_scatter modules), correlation / expression /
+  # dynamic heatmaps, feature/sample/expression table row clicks, the
+  # gene-set list, snapshot restore and agent state application. This
+  # replaces the former per-source adoption observers with their
+  # hand-rolled .xxx_last echo guards: the same rule (a source adopts
+  # only when its interaction REPORT VALUE changes) now lives in the
+  # bus (selection_report per-(key, origin) dedupe), and the derived
+  # views below (table-row mirrors, dynamic-heatmap filters, the
+  # result-space selections) are pure functions of the record.
+  # ------------------------------------------------------------------
+  selbus <- selection_store_new(c("feature", "sample"))
+  sel_feature <- selection_port(selbus, "feature")
+  sel_sample <- selection_port(selbus, "sample")
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -340,7 +357,8 @@ L1_data_space_module <- function(
       reactive_meta = fdata, reactive_expr = expr,
       combine = "feature", source = "scatter_meta_feature", reactive_x = reactive_x_f,
       reactive_y = reactive_y_f, reactive_status = reactive(status()$eset_fdata_fig),
-      store = store_feature
+      store = store_feature,
+      selection = sel_feature
     )
 
     # ============ sample space - scatter plot ============
@@ -349,136 +367,116 @@ L1_data_space_module <- function(
       "sample_space",
       reactive_meta = pdata, reactive_expr = expr, combine = "pheno", source = "scatter_meta_sample",
       reactive_x = reactive_x_s, reactive_y = reactive_y_s, reactive_status = reactive(status()$eset_pdata_fig),
-      store = store_sample
+      store = store_sample,
+      selection = sel_sample
     )
 
-    # ============ level 1 selection - forward to dynamic heatmap ============
+    # ============ level 1 selection - the unified bus views ============
 
     tab_rows_fdata <- reactiveVal(TRUE)
     tab_rows_pdata <- reactiveVal(TRUE)
     notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
+    ids_or_true <- function(ids)
+      if (notNullAndPosLength(ids)) as.character(ids) else TRUE
 
     ## ===== selection adoption - architectural rule =====================
     ## The feature/sample selection and the table-row filters are shared
-    ## state with many writer families (scatter, heatmaps, tables,
-    ## gene-set list, snapshot restore). EVERY adoption observer below
-    ## follows one rule: a source may adopt only when its interaction
-    ## REPORT VALUE changes. Module returns recompute for many
-    ## non-interaction reasons (snapshot status attributes riding the same
-    ## reactive, store pushes, dataset changes, late initialization of
-    ## heatmap clustering, DataTable redraw reports), and observeEvent does
-    ## NOT dedupe by value - an unconditional body re-adopted a stale or
-    ## empty report and clobbered a selection another source had just made
-    ## (live-observed repeatedly: the volcano corner auto-selection kept
-    ## being reverted minutes after it landed). Each observer keeps its
-    ## original creation slot (observer order is load-bearing for the DT
-    ## proxy protocol); only an early return on an unchanged report value
-    ## is added. New selection sources must follow the same rule.
+    ## state with many writer families (scatter figure events and the
+    ## volcano corner, heatmaps, tables, gene-set list, snapshot restore,
+    ## agent state application). Every writer reports into the selection
+    ## bus (auxi_selectionStore.R); ONE rule lives there: a source adopts
+    ## only when its interaction REPORT VALUE changes (per-(key, origin)
+    ## dedupe), because module returns recompute for many non-interaction
+    ## reasons and observeEvent does NOT dedupe by value - an unconditional
+    ## body re-adopted a stale or empty report and clobbered a selection
+    ## another source had just made (live-observed repeatedly: the volcano
+    ## corner auto-selection kept being reverted minutes after it landed).
+    ## The derived views (tab_rows_* mirrors, tab_rows_*2 dynamic-heatmap
+    ## filters, selectedFeatures/selectedSamples) are pure functions of
+    ## the record; the reactiveVal writes dedupe identical values, so an
+    ## unrelated record change (e.g. a small table selection) never
+    ## re-invalidates downstream consumers.
     ##
     ## ===== selection from correlation heatmap - only sample =====
 
-    .corhm_last <- reactiveVal(list(clicked = NULL, brushed = list(col = NULL, row = NULL)))
     observeEvent(s_cor_heatmap(), {
-      .rpt <- list(clicked = s_cor_heatmap()$clicked, brushed = s_cor_heatmap()$brushed)
-      if (identical(.rpt, isolate(.corhm_last()))) return(NULL)
-      .corhm_last(.rpt)
-      if (notNullAndPosLength(s_cor_heatmap()$brushed$col)) {
-        tab_rows_pdata(s_cor_heatmap()$brushed$col)
-      } else if (notNullAndPosLength(s_cor_heatmap()$clicked)) {
-        tab_rows_pdata(s_cor_heatmap()$clicked[["col"]])
+      hm <- s_cor_heatmap()
+      .rpt <- list(clicked = hm$clicked, brushed = hm$brushed)
+      ids <- if (notNullAndPosLength(hm$brushed$col)) {
+        hm$brushed$col
+      } else if (notNullAndPosLength(hm$clicked)) {
+        hm$clicked[["col"]]
       } else {
-        tab_rows_pdata(TRUE)
+        character(0)
       }
+      sel_sample$report(origin = "cor_heatmap", report = .rpt,
+                        ids = ids, mirror = ids_or_true(ids))
     })
 
-    ## ============== selection from heatmap - sample sand feature ========
+    ## ============== selection from heatmap - samples and feature ========
 
-    .exphm_last <- reactiveVal(list(clicked = NULL, brushed = list(col = NULL, row = NULL)))
     observeEvent(s_heatmap(), {
-      .rpt <- list(clicked = s_heatmap()$clicked, brushed = s_heatmap()$brushed)
-      if (identical(.rpt, isolate(.exphm_last()))) return(NULL)
-      .exphm_last(.rpt)
-      # fdata
-      if (notNullAndPosLength(s_heatmap()$brushed$row)) {
-        tab_rows_fdata(s_heatmap()$brushed$row)
-      } else if (notNullAndPosLength(s_heatmap()$clicked)) {
-        tab_rows_fdata(s_heatmap()$clicked[["row"]])
+      hm <- s_heatmap()
+      .rpt <- list(clicked = hm$clicked, brushed = hm$brushed)
+      ids_f <- if (notNullAndPosLength(hm$brushed$row)) {
+        hm$brushed$row
+      } else if (notNullAndPosLength(hm$clicked)) {
+        hm$clicked[["row"]]
       } else {
-        tab_rows_fdata(TRUE)
+        character(0)
       }
-      # pdata
-      if (notNullAndPosLength(s_heatmap()$brushed$col)) {
-        tab_rows_pdata(s_heatmap()$brushed$col)
-      } else if (notNullAndPosLength(s_heatmap()$clicked)) {
-        tab_rows_pdata(s_heatmap()$clicked[["col"]])
+      ids_s <- if (notNullAndPosLength(hm$brushed$col)) {
+        hm$brushed$col
+      } else if (notNullAndPosLength(hm$clicked)) {
+        hm$clicked[["col"]]
       } else {
-        tab_rows_pdata(TRUE)
+        character(0)
       }
+      sel_feature$report(origin = "heatmap", report = .rpt,
+                         ids = ids_f, mirror = ids_or_true(ids_f))
+      sel_sample$report(origin = "heatmap", report = .rpt,
+                        ids = ids_s, mirror = ids_or_true(ids_s))
     })
 
-    ## ============== selection from scatter plots - feature only ========
+    ## The scatter modules (feature and sample space) report their own
+    ## selections into the bus (origins "figure", "corner", "clear",
+    ## "restore") - no adoption observers here.
 
-    observeEvent(c(s_feature_fig()), {
-      if (notNullAndPosLength(s_feature_fig()$selected)) {
-        tab_rows_fdata(s_feature_fig()$selected)
-      } else if (notNullAndPosLength(s_feature_fig()$clicked)) {
-        tab_rows_fdata(s_feature_fig()$clicked)
-      } else {
-        tab_rows_fdata(TRUE)
-      }
-    })
+    ## ===== derived views of the bus records ============================
+    ## tab_rows_*: the table-row mirror (DT proxy highlight). Table-origin
+    ## reports never change it: a DT row click must not re-assert itself
+    ## through the proxy highlight (the proxy row selection is
+    ## indistinguishable from a user click server-side, which fed L1's
+    ## own state back through the table re-render and nondeterministically
+    ## resurrected stale selections).
+    ## tab_rows_*2: the dynamic-heatmap row filter - same as the mirror,
+    ## except a table-origin selection of one or two rows does not filter
+    ## (the dynamic heatmap needs at least three rows to cluster).
 
-    ## ============= selection from scatter plots - sample only ========
-
-    observeEvent(s_sample_fig(), {
-      if (notNullAndPosLength(s_sample_fig()$selected)) {
-        tab_rows_pdata(s_sample_fig()$selected)
-      } else if (notNullAndPosLength(s_sample_fig()$clicked)) {
-        tab_rows_pdata(s_sample_fig()$clicked)
-      } else {
-        tab_rows_pdata(TRUE)
-      }
-    })
-
-    ## ============ selection from feature table - feature only ============
-    ## need one more level of nesting to avoid circular dependency
     tab_rows_fdata2 <- reactiveVal(TRUE)
-
-    observeEvent(tab_rows_fdata(), {
-      tab_rows_fdata2(tab_rows_fdata())
-    })
-
-    observeEvent(tab_fd(), {
-      if (notNullAndPosLength(tab_fd())) {
-        if (length(tab_fd()) > 2) {
-          tab_rows_fdata2(tab_fd())
-        } else {
-          tab_rows_fdata2(TRUE)
-        }
-      } else {
-        tab_rows_fdata2(TRUE)
-      }
-    })
-
-    ## ============ selection from sample table - sample only ============
-    ## need one more level of nesting to avoid circular dependency
-
     tab_rows_pdata2 <- reactiveVal(TRUE)
-
-    observeEvent(tab_rows_pdata(), {
-      tab_rows_pdata2(tab_rows_pdata())
+    # The watch reactives are created ONCE at module level and kept
+    # referenced (observer-GC rule): an observer that creates an
+    # ephemeral reactive inline - selection_watch(...)() inside the body
+    # - holds its dependency only weakly and is garbage collected between
+    # flushes, silently killing later record pushes (the same sporadic
+    # restore/stress flakiness the store-glue observers once had).
+    .ds_sel_keep <- list(
+      feature = selection_watch(selbus, "feature"),
+      sample = selection_watch(selbus, "sample"))
+    observe({
+      rec <- .ds_sel_keep$feature()
+      tab_rows_fdata(rec$mirror)
+      tab_rows_fdata2(
+        if (identical(rec$origin, "table") && length(rec$ids) <= 2L) TRUE
+        else rec$mirror)
     })
-
-    observeEvent(tab_pd(), {
-      if (notNullAndPosLength(tab_pd())) {
-        if (length(tab_pd()) > 2) {
-          tab_rows_pdata2(tab_pd())
-        } else {
-          tab_rows_pdata2(TRUE)
-        }
-      } else {
-        tab_rows_pdata2(TRUE)
-      }
+    observe({
+      rec <- .ds_sel_keep$sample()
+      tab_rows_pdata(rec$mirror)
+      tab_rows_pdata2(
+        if (identical(rec$origin, "table") && length(rec$ids) <= 2L) TRUE
+        else rec$mirror)
     })
 
     ## tables
@@ -504,63 +502,19 @@ L1_data_space_module <- function(
       store = store_tab_expr
     )
 
-    ### return selected feature and samples
-    # Initialize to empty semantic selections. An unset reactiveVal raises a
-    # silent validation condition when the complete data-space snapshot state is
-    # read before the user has selected anything.
+    ### selected feature and samples - the bus records, mirrored into
+    ### stable reactiveVals (initialized empty; an unset reactiveVal
+    ### raises a silent validation condition when the complete data-space
+    ### snapshot state is read before the user has selected anything).
     selectedFeatures <- reactiveVal(character(0))
     selectedSamples <- reactiveVal(character(0))
-
-    .corhm2_last <- reactiveVal(list(clicked = NULL, brushed = list(col = NULL, row = NULL)))
-    observeEvent(s_cor_heatmap(), {
-      .rpt <- list(clicked = s_cor_heatmap()$clicked, brushed = s_cor_heatmap()$brushed)
-      if (identical(.rpt, isolate(.corhm2_last()))) return(NULL)
-      .corhm2_last(.rpt)
-      if (!is.null(s_cor_heatmap()$brushed$col)) {
-        selectedSamples(s_cor_heatmap()$brushed$col)
-      } else if (!is.null(s_cor_heatmap()$clicked)) {
-        selectedSamples(s_cor_heatmap()$clicked["col"]) # ?? else set to character(0)
-      } else {
-        selectedSamples(character(0))
-      }
+    observe({
+      rec <- .ds_sel_keep$feature()
+      selectedFeatures(rec$ids)
     })
-
-    .exphm2_last <- reactiveVal(list(clicked = NULL, brushed = list(col = NULL, row = NULL)))
-    observeEvent(s_heatmap(), {
-      .rpt <- list(clicked = s_heatmap()$clicked, brushed = s_heatmap()$brushed)
-      if (identical(.rpt, isolate(.exphm2_last()))) return(NULL)
-      .exphm2_last(.rpt)
-      if (!is.null(s_heatmap()$brushed$row)) {
-        selectedFeatures(s_heatmap()$brushed$row)
-      } else if (!is.null(s_heatmap()$clicked)) {
-        selectedFeatures(s_heatmap()$clicked["row"]) # ?? else set to character(0)
-      } else {
-        selectedFeatures(character(0))
-      }
-
-      if (!is.null(s_heatmap()$brushed$col)) {
-        selectedSamples(s_heatmap()$brushed$col)
-      } else if (!is.null(s_heatmap()$clicked)) {
-        selectedSamples(s_heatmap()$clicked["col"]) # ?? else set to character(0)
-      } else {
-        selectedSamples(character(0))
-      }
-    })
-
-    observeEvent(s_feature_fig(), {
-      if (!is.null(s_feature_fig()$selected) && length(s_feature_fig()$selected) > 0) {
-        selectedFeatures(s_feature_fig()$selected)
-      } else if (!is.null(s_feature_fig()$clicked)) {
-        selectedFeatures(s_feature_fig()$clicked)
-      }
-    })
-
-    observeEvent(s_sample_fig(), {
-      if (!is.null(s_sample_fig()$selected) && length(s_sample_fig()$selected) > 0) {
-        selectedSamples(s_sample_fig()$selected)
-      } else if (!is.null(s_sample_fig()$clicked)) {
-        selectedSamples(s_sample_fig()$clicked)
-      }
+    observe({
+      rec <- .ds_sel_keep$sample()
+      selectedSamples(rec$ids)
     })
 
     # Table adoptions key on the USER row-click signal exclusively
@@ -568,28 +522,26 @@ L1_data_space_module <- function(
     # tab_rows highlight, and adopting that echo feeds L1's own state back
     # through the table re-render, nondeterministically resurrecting stale
     # selections (observed live after volcano-view switches).
-    .tabpd_last <- reactiveVal(NULL)
     observeEvent(tab_pd(), {
       usr <- attr(tab_pd(), "user_selected")
-      if (is.null(usr) || identical(usr, isolate(.tabpd_last()))) return(NULL)
-      .tabpd_last(usr)
-      selectedSamples(usr)
+      if (is.null(usr)) return(NULL)
+      usr <- as.character(usr[!is.na(usr)])
+      sel_sample$report(origin = "table", report = usr,
+                        ids = usr, mirror = NULL)
     })
-
-    singleTrue <- function(x) !is.null(x) && is.logical(x) && length(x) == 1 && any(x)
-    .tabfd_last <- reactiveVal(NULL)
     observeEvent(tab_fd(), {
       usr <- attr(tab_fd(), "user_selected")
-      if (is.null(usr) || identical(usr, isolate(.tabfd_last()))) return(NULL)
-      .tabfd_last(usr)
-      selectedFeatures(usr)
+      if (is.null(usr)) return(NULL)
+      usr <- as.character(usr[!is.na(usr)])
+      sel_feature$report(origin = "table", report = usr,
+                         ids = usr, mirror = NULL)
     })
-    .tabexpr_last <- reactiveVal(NULL)
     observeEvent(tab_expr(), {
       usr <- attr(tab_expr(), "user_selected")
-      if (is.null(usr) || identical(usr, isolate(.tabexpr_last()))) return(NULL)
-      .tabexpr_last(usr)
-      selectedFeatures(usr)
+      if (is.null(usr)) return(NULL)
+      usr <- as.character(usr[!is.na(usr)])
+      sel_feature$report(origin = "table", report = usr,
+                         ids = usr, mirror = NULL)
     })
 
     # GS List
@@ -599,12 +551,11 @@ L1_data_space_module <- function(
       reactive_status = reactive(status()$eset_gslist_tab)
     )
 
-    .gslist_last <- reactiveVal(NULL)
     observeEvent(tab_gslist(), {
-      if (identical(tab_gslist(), isolate(.gslist_last()))) return(NULL)
-      .gslist_last(tab_gslist())
-      req(tab_gslist())
-      selectedFeatures(tab_gslist())
+      gs <- tab_gslist()
+      if (is.null(gs)) return(NULL)
+      sel_feature$report(origin = "gslist", report = gs,
+                         ids = as.character(gs), mirror = NULL)
     })
 
     # ============= status for snapshot ============
@@ -638,21 +589,22 @@ L1_data_space_module <- function(
       x
     }
     # Snapshot-status restore: write only fields the status actually
-    # carries. A NULL status (fresh load, no snapshot) used to write NULL
-    # over the live tab_rows - repairing it relied on other selection
-    # observers happening to re-write TRUE afterwards, which the
-    # value-guarded observers no longer do; the sample table then stayed
-    # empty ("Showing 0 to 0 of 0 entries") until some later selection.
+    # carries, through the selection bus (the single restore writer for
+    # the semantic selections and the table-row mirrors). A NULL status
+    # (fresh load, no snapshot) writes nothing.
     observe({
       .st <- status()
-      if (!is.null(.st)) {
-        if (!is.null(.st$eset_fdata_tabrows))
-          tab_rows_fdata(.st$eset_fdata_tabrows)
-        if (!is.null(.st$eset_pdata_tabrows))
-          tab_rows_pdata(.st$eset_pdata_tabrows)
-        selectedSamples(na2null(.st$eset_selected_samples))
-        selectedFeatures(.st$eset_selected_features)
-      }
+      if (is.null(.st)) return(NULL)
+      sel_feature$apply(
+        ids = as.character(.st$eset_selected_features %||% character(0)),
+        origin = "restore",
+        mirror = if (is.null(.st$eset_fdata_tabrows)) NULL
+                 else .st$eset_fdata_tabrows)
+      sel_sample$apply(
+        ids = as.character(na2null(.st$eset_selected_samples) %||% character(0)),
+        origin = "restore",
+        mirror = if (is.null(.st$eset_pdata_tabrows)) NULL
+                 else .st$eset_pdata_tabrows)
     })
 
     ############## dynamic heatmap function start ##################
@@ -691,27 +643,35 @@ L1_data_space_module <- function(
       store = store_dyn_heatmap
     )
 
-    .dynhm_last <- reactiveVal(list(clicked = NULL, brushed = list(col = NULL, row = NULL)))
     observeEvent(s_dyn_heatmap(), {
-      .rpt <- list(clicked = s_dyn_heatmap()$clicked, brushed = s_dyn_heatmap()$brushed)
-      if (identical(.rpt, isolate(.dynhm_last()))) return(NULL)
-      .dynhm_last(.rpt)
-      if (!is.null(s_dyn_heatmap()$brushed$row)) {
-        selectedFeatures(s_dyn_heatmap()$brushed$row)
-      } else if (!is.null(s_dyn_heatmap()$clicked)) {
-        selectedFeatures(s_dyn_heatmap()$clicked["row"])
-      } # ?? else set to character(0)
-      # else
-      # selectedFeatures(character(0))
-
-      if (!is.null(s_dyn_heatmap()$brushed$col)) {
-        selectedSamples(s_dyn_heatmap()$brushed$col)
-      } else if (!is.null(s_dyn_heatmap()$clicked)) {
-        selectedSamples(s_dyn_heatmap()$clicked["col"])
+      hm <- s_dyn_heatmap()
+      .rpt <- list(clicked = hm$clicked, brushed = hm$brushed)
+      ids_f <- if (notNullAndPosLength(hm$brushed$row)) {
+        hm$brushed$row
+      } else if (notNullAndPosLength(hm$clicked)) {
+        hm$clicked["row"]
+      } else {
+        character(0)
       }
-      # ?? else set to character(0)
-      # else
-      # selectedSamples(character(0))
+      ids_s <- if (notNullAndPosLength(hm$brushed$col)) {
+        hm$brushed$col
+      } else if (notNullAndPosLength(hm$clicked)) {
+        hm$clicked["col"]
+      } else {
+        character(0)
+      }
+      # The dynamic heatmap's own matrix is SUBSET by the selection (the
+      # row filter below), so its return re-fires with an empty report
+      # whenever the selection changes elsewhere and the heatmap
+      # re-renders. An empty report must therefore not clear the
+      # selection (the historic commented-out else branches): only
+      # genuine clicks/brushes are reported.
+      if (notNullAndPosLength(ids_f))
+        sel_feature$report(origin = "dyn_heatmap", report = .rpt,
+                           ids = ids_f, mirror = NULL)
+      if (notNullAndPosLength(ids_s))
+        sel_sample$report(origin = "dyn_heatmap", report = .rpt,
+                          ids = ids_s, mirror = NULL)
     })
 
     ############## dynamic heatmap function end ##################

@@ -151,7 +151,8 @@ scenario_quick <- function(model) {
   meta_scatter_module("df", reactive_meta = reactive(fd), reactive_expr = reactive(ex),
     combine = "feature", source = "df",
     reactive_x = reactive("ttest|RE_vs_ME|mean.diff"),
-    reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = st), {
+    reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = st,
+    selection = selection_port(selection_store_new(), "feature")), {
   ph_init_inputs(session, "df", c("df-tris_main_scatter1", "df-tris_main_scatter2",
                                   paste0("df-a4selector-", A4)))
   ph_ack(session, model)
@@ -184,7 +185,8 @@ scenario_custom <- function(model) {
   meta_scatter_module("df", reactive_meta = reactive(fd), reactive_expr = reactive(ex),
     combine = "feature", source = "df",
     reactive_x = reactive("ttest|RE_vs_ME|mean.diff"),
-    reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = st), {
+    reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = st,
+    selection = selection_port(selection_store_new(), "feature")), {
   ph_init_inputs(session, "df", c("df-tris_main_scatter1", "df-tris_main_scatter2",
                                   paste0("df-a4selector-", A4)))
   ph_ack(session, model)
@@ -278,13 +280,16 @@ scenario_fanout <- function() {
   s <- lapply(c(df = "dataspace.feature_space", ds = "dataspace.sample_space",
                 fg = "resultspace.feature_general", sg = "resultspace.sample_general"),
               function(p) widget_store_child(store, p))
+  fan_sel <- selection_store_new()
   testServer(function(input, output, session) {
     meta_scatter_module("df", reactive_meta = reactive(fd), reactive_expr = reactive(ex),
       combine = "feature", source = "df", reactive_x = reactive("ttest|RE_vs_ME|mean.diff"),
-      reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = s$df)
+      reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = s$df,
+      selection = selection_port(fan_sel, "feature"))
     meta_scatter_module("ds", reactive_meta = reactive(pd), reactive_expr = reactive(ex),
       combine = "pheno", source = "ds", reactive_x = reactive("PCA|All|PC1(10.5%)"),
-      reactive_y = reactive("PCA|All|PC2(7.2%)"), store = s$ds)
+      reactive_y = reactive("PCA|All|PC2(7.2%)"), store = s$ds,
+      selection = selection_port(fan_sel, "sample"))
     feature_general_module("fg", reactive_expr = reactive(ex), reactive_i = reactive(5L),
       reactive_phenoData = reactive(pd), reactive_featureData = reactive(fd), store = s$fg)
     sample_general_module("sg", reactive_phenoData = reactive(pd), reactive_expr = reactive(ex),
@@ -333,7 +338,8 @@ scenario_selection <- function(model) {
     s_fig <- meta_scatter_module("df", reactive_meta = reactive(fd), reactive_expr = reactive(ex),
       combine = "feature", source = "df",
       reactive_x = reactive("ttest|RE_vs_ME|mean.diff"),
-      reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = st)
+      reactive_y = reactive("ttest|RE_vs_ME|log.fdr"), store = st,
+      selection = selection_port(selection_store_new(), "feature"))
     exported <<- list(fig = s_fig)
   }, {
     ph_init_inputs(session, "df", c("df-tris_main_scatter1", "df-tris_main_scatter2",

@@ -108,16 +108,25 @@ meta_scatter_ui <- function(id) {
 #'   mode state lives in the store; the hand-rolled xax/yax/axisRequest
 #'   sync machinery was replaced by the store protocol (plan section 6,
 #'   phase S2).
+#' @param selection Selection-bus port (\code{\link{selection_port}})
+#'   bound to this scatter's space ("feature" or "sample"). The scatter
+#'   is the figure-space writer of the unified selection: lasso/box/click
+#'   events, the volcano corner auto-selection, clear and snapshot
+#'   restore all report through the port (origins "figure", "corner",
+#'   "clear", "restore"), and every consumer (tables, result space,
+#'   snapshot) reads the bus instead of adopting module returns.
 #'
 meta_scatter_module <- function(
   id, reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
   combine = c("pheno", "feature"), source = "plotlyscattersource",
   reactive_x = reactive(NULL), reactive_y = reactive(NULL),
   reactive_status = reactive(NULL),
-  store = NULL
+  store = NULL,
+  selection = NULL
 ) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    stopifnot(!is.null(store), !is.null(selection))
     notNullAndPositiveLength <- function(x) !is.null(x) && length(x) > 0
 
     # Helper: Get feature/sample names based on combine mode
@@ -303,13 +312,51 @@ meta_scatter_module <- function(
       updateTabsetPanel(session, "axisModeTabs", selected = mode)
     })
 
-    # Plotly owns the visible box/lasso immediately after a user selection. We
-    # therefore do not make selection emphasis a reactive dependency of the
-    # plot. These values allow a later redraw to emphasize only the selection
-    # belonging to the current axes; changing axes clears that emphasis.
+    # ------------------------------------------------------------------
+    # Selection display contract (unified).
+    #
+    # Emphasis (the inSelection opacity vector) is resolved IN-RENDER,
+    # from the current display authority:
+    #
+    #   - "corner": the volcano corner owns the display. The emphasized
+    #     ids are recomputed from the LIVE rectangles and coordinates, so
+    #     the emphasis always lands in the SAME paint as an axis or cutoff
+    #     change (a selection written by an observer lands one queue
+    #     position after the render consumers and would otherwise paint a
+    #     figure whose emphasis contradicts the propagated selection - the
+    #     log.fdr -> log.pvalue switch left the corner genes selected in
+    #     the tables but emphasized nothing).
+    #   - "browser"/"restore": the anchor path - Plotly owns the visible
+    #     box/lasso immediately after a user selection, so a selection is
+    #     never a reactive dependency of the plot (a replot would erase
+    #     the browser-owned selection shape); emphasis comes from the
+    #     settled selVal, gated on the axes it was made/restored on.
+    #   - "none": no emphasis (cleared).
+    #
+    # cornerAuthority is read ISOLATED: an authority flip alone must not
+    # repaint (it would erase a browser-owned lasso). Writers that need a
+    # repaint Plotly does not own (clear, restore on unchanged axes, the
+    # first corner arm) bump selectionDisplayTrigger, whose seed rides
+    # the params through an attribute the render barrier's identical()
+    # compares but do.call drops.
+    #
+    # cornerEngaged (propagation gate) is a SEPARATE concept: whether
+    # corner changes may CLAIM the selection at all. Disengaged by clear
+    # and by a manual-selection restore; re-engaged by any genuine
+    # cutoff/corner edit. The historic returnCornerSelection/sbc pair
+    # collapsed into these two flags.
     selectionDisplayAxes <- reactiveVal(NULL)
     pendingSelectionDisplayAxes <- reactiveVal(NULL)
     selectionDisplayTrigger <- reactiveVal(0L)
+    cornerEngaged <- reactiveVal(TRUE)
+    cornerAuthority <- reactiveVal(FALSE)
+    .scatter_ids_in_rects <- function(coords, rects) {
+      i <- lapply(rects, function(r1) {
+        which(coords$x > r1["x0"] & coords$x < r1["x1"] &
+              coords$y > r1["y0"] & coords$y < r1["y1"])
+      })
+      sort(unique(unlist(i)))
+    }
     .scatter_keep(observe({
       current_axes <- .scatter_axis_signature(v1(), v2())
       pending_axes <- pendingSelectionDisplayAxes()
@@ -456,34 +503,58 @@ meta_scatter_module <- function(
       l$tooltips <- attr4select$tooltips
       l$highlight <- attr4select$highlight
       l$highlightName <- attr4select$highlightName
-      l$rect <- rectval()
+      rr0 <- rectval()
+      l$rect <- rr0
       # A restoration on unchanged axes needs one deliberate redraw. The
       # seed rides as an attribute: the render barrier's identical()
       # compares attributes (so a seed bump forces exactly one commit and
       # repaint), while c() in plotly_scatter's do.call drops attributes,
-      # so it never reaches the plotly call itself. Ordinary selection
-      # emphasis is deliberately isolated above so a lasso/box event does
-      # not immediately erase Plotly's browser-owned selection shape. When
-      # the axes change, the triselector outputs already invalidate this
-      # reactive.
+      # so it never reaches the plotly call itself.
       attr(l, "redrawSeed") <- selectionDisplayTrigger()
 
-      # Do not carry an opacity vector from one figure into another. Emphasize
-      # semantic IDs only when the current axes match either a restored axis
-      # pair or the axis pair on which the user made the selection.
+      # ---- emphasis resolution (see the display contract above) ----
+      # Two display sources, resolved by VALUE (no observer ordering):
+      #
+      # - the anchor path (browser/restore authority): ids from the
+      #   settled selVal, gated on the axes the selection was made or
+      #   restored on. Read isolated: a browser event must not repaint
+      #   (Plotly owns the visible box/lasso; a replot would erase it).
+      # - the corner path (server-owned rects): ids recomputed from the
+      #   LIVE rectangles and coordinates while the corner is engaged, so
+      #   the emphasis lands in the SAME paint as an axis or cutoff
+      #   change (a selection written by an observer lands one queue
+      #   position after the render consumers and would otherwise paint
+      #   a figure whose emphasis contradicts the propagated selection -
+      #   the log.fdr -> log.pvalue switch left the corner genes selected
+      #   in the tables but emphasized nothing).
+      #
+      # The anchor path wins only when it holds a DIFFERENT, non-empty
+      # selection on these exact axes (a browser lasso or a manual
+      # restore overriding the corner). When the corner owned the display
+      # and its rects vanished (disarmed corner, left the volcano), the
+      # anchor is skipped: nothing else has claimed the display since,
+      # and the settle observer is about to clear the residual state.
       current_axes <- .scatter_axis_signature(v1(), v2())
       restored_axes <- isolate(pendingSelectionDisplayAxes())
       displayed_axes <- isolate(selectionDisplayAxes())
       if (!is.null(restored_axes) && identical(restored_axes, current_axes)) {
         displayed_axes <- restored_axes
       }
-      selected_ids <- if (
-        !is.null(displayed_axes) && identical(displayed_axes, current_axes)
-      ) {
-        isolate(selVal()$selected)
+      anchor_ids <- if (!is.null(displayed_axes) && identical(displayed_axes, current_axes)) {
+        as.character(isolate(selVal()$selected))
       } else {
         character(0)
       }
+      if (isTRUE(isolate(cornerAuthority())) && is.null(rr0))
+        anchor_ids <- character(0)
+      corner_ids <- if (isTRUE(isolate(cornerEngaged())) && notNullAndPositiveLength(rr0)) {
+        get_names()[.scatter_ids_in_rects(l, rr0)]
+      } else {
+        character(0)
+      }
+      selected_ids <- if (notNullAndPositiveLength(anchor_ids) &&
+                          !identical(anchor_ids, corner_ids))
+        anchor_ids else corner_ids
       l$inSelection <- if (notNullAndPositiveLength(selected_ids)) {
         which(get_names() %in% selected_ids)
       } else {
@@ -515,16 +586,44 @@ meta_scatter_module <- function(
         selected = character(0)
       )
     )
-    sbc <- reactiveVal(FALSE)
 
+    # Clear (user button or dataset change): the selection is empty
+    # everywhere - propagation through the bus (mirror = TRUE un-filters
+    # the tables), emphasis gone (authority "none"), and the corner is
+    # DISENGAGED so a later rectval echo cannot resurrect the selection
+    # (observeEvent fires on invalidation, not on value change: the
+    # clear_counter dependency re-armed the corner observer and it
+    # re-selected the corner genes immediately after the clear). A genuine
+    # cutoff/corner edit re-engages (observer below). The seed bump forces
+    # the one repaint that drops the emphasis; the rects stay rendered -
+    # they visualize the cutoff configuration, which clear does not touch.
+    # The FIRST computation of reactive_expr() also fires this observer
+    # (observeEvent does not ignore it); it is not a dataset change, so a
+    # signature guard skips it - an init-time clear report would disarm
+    # the corner before the load-time volcano intent arms it.
+    .clear_expr_sig <- reactiveVal(NULL)
     .scatter_keep(observeEvent(list(input$clear, reactive_expr()), {
+      if (is.null(input$clear) || input$clear == 0L) {
+        e <- tryCatch(reactive_expr(), error = function(e) NULL)
+        sig <- paste(dim(e), collapse = "x")
+        prev <- .clear_expr_sig()
+        .clear_expr_sig(sig)
+        if (is.null(prev) || identical(sig, prev))
+          return(NULL)
+      }
       selVal(list(
         clicked = character(0),
         selected = character(0)
       ))
       selectionDisplayAxes(NULL)
       pendingSelectionDisplayAxes(NULL)
-      sbc(FALSE)
+      cornerEngaged(FALSE)
+      cornerAuthority(FALSE)
+      selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
+      selection$report(
+        origin = "clear",
+        report = list(src = "clear", n = isolate(selectionDisplayTrigger())),
+        ids = character(0), anchor = NULL, mirror = TRUE)
     }))
 
     # Workaround: Track previous selection to prevent redundant updates
@@ -540,20 +639,49 @@ meta_scatter_module <- function(
       # Only update if selection actually changed
       req(!identical(tmp <- c(u_c, u_s), clientSideSelection()))
       clientSideSelection(tmp)
+      axes <- if (notNullAndPositiveLength(tmp))
+        .scatter_axis_signature(v1(), v2()) else NULL
       selVal(list(
         clicked = u_c,
         selected = u_s
       ))
-      selectionDisplayAxes(
-        if (notNullAndPositiveLength(tmp))
-          .scatter_axis_signature(v1(), v2())
-        else
-          NULL
-      )
-      sbc(FALSE)
+      selectionDisplayAxes(axes)
+      # a browser event overrides the corner display authority; the flip
+      # is isolated in scatter_vars, so Plotly's own lasso/box shape is
+      # never erased by a repaint
+      cornerAuthority(FALSE)
+      # unified propagation: selected wins over clicked (the effective
+      # selection), anchored to the axes it was made on and mirrored into
+      # the table row highlight
+      eff <- if (notNullAndPositiveLength(u_s)) u_s else u_c
+      selection$report(
+        origin = "figure",
+        report = list(clicked = u_c, selected = u_s),
+        ids = eff,
+        clicked = u_c, anchor = axes,
+        mirror = if (notNullAndPositiveLength(eff)) eff else TRUE)
     }))
 
-    returnCornerSelection <- reactiveVal(TRUE)
+    # Re-engagement: any GENUINE cutoff/corner configuration change (user
+    # edit of xcut/ycut/scorner) re-arms the corner auto-selection. The
+    # historic returnCornerSelection flag was only ever cleared (by a
+    # manual-selection restore) and never re-armed, leaving the corner
+    # dead for the rest of the session. Value-guarded: cutoff_effective
+    # recomputes on every axis write (corner_valid_on_axes reads the
+    # displayed axes) without the cutoff VALUE changing.
+    .cutoff_key <- reactiveVal(NULL)
+    .scatter_keep(observe({
+      cutoff <- attr4select$cutoff_reactive
+      l <- if (is.function(cutoff)) cutoff() else attr4select$cutoff
+      if (is.null(l))
+        return(NULL)
+      key <- paste(l$corner %||% "", l$x %||% "", l$y %||% "", sep = "\r")
+      if (identical(key, .cutoff_key()))
+        return(NULL)
+      .cutoff_key(key)
+      cornerEngaged(TRUE)
+    }))
+
     # The corner selection consumes only SETTLED state, and the observer
     # is kept referenced (observer-GC rule). Mid-cascade evaluations of
     # rectval carry stale components - the triselector outputs hold the
@@ -565,8 +693,15 @@ meta_scatter_module <- function(
     # collected between flushes, silently swallowing the clearing fire
     # and leaving the stale selection alive (both observed live: quick
     # view switches resurrected the previous volcano's corner genes).
+    #
+    # observeEvent fires on INVALIDATION, not on value change: rectval
+    # also invalidates on clear_counter bumps and cutoff echoes, so the
+    # value is deduped explicitly - a same-value re-fire must not claim
+    # the selection again (that is what resurrected the corner genes
+    # right after a clear).
+    .rectval_last <- reactiveVal(NULL)
     .scatter_keep(observeEvent(rectval(), {
-      if (!returnCornerSelection()) {
+      if (!isTRUE(cornerEngaged())) {
         return(NULL)
       }
       if (!isTRUE(tryCatch(.scatter_axes_converged(),
@@ -575,27 +710,45 @@ meta_scatter_module <- function(
       }
 
       rec <- rectval()
+      if (identical(rec, .rectval_last())) {
+        return(NULL)
+      }
+      .rectval_last(rec)
+
       if (is.null(rec)) {
         selVal(list(
           clicked = character(0),
           selected = character(0)
         ))
         selectionDisplayAxes(NULL)
+        cornerAuthority(FALSE)
+        selection$report(
+          origin = "corner",
+          report = list(corner = "None"),
+          ids = character(0), mirror = TRUE)
         return(NULL)
       }
       req(cc <- xycoord())
       l <- get_names()
 
-      i <- lapply(rec, function(r1) {
-        which(cc$x > r1["x0"] & cc$x < r1["x1"] & cc$y > r1["y0"] & cc$y < r1["y1"])
-      })
-      i <- sort(unique(unlist(i)))
+      i <- .scatter_ids_in_rects(cc, rec)
+      axes <- .scatter_axis_signature(v1(), v2())
       selVal(list(
         clicked = character(0),
         selected = l[i]
       ))
-      selectionDisplayAxes(.scatter_axis_signature(v1(), v2()))
-      sbc(TRUE)
+      selectionDisplayAxes(axes)
+      # the corner claims the display. No repaint seed is needed: every
+      # state change that alters the emphasis (axis switch, cutoff edit)
+      # already recomputes the params, and the emphasis is resolved
+      # IN-RENDER from the live rects - the value-identical recompute a
+      # flip would cause is absorbed by the render barrier's identical().
+      cornerAuthority(TRUE)
+      selection$report(
+        origin = "corner",
+        report = list(rects = rec),
+        ids = l[i], anchor = axes,
+        mirror = if (notNullAndPositiveLength(l[i])) l[i] else TRUE)
     }, ignoreNULL = FALSE))
 
     ############## status save ###############
@@ -618,7 +771,9 @@ meta_scatter_module <- function(
         attr4 = safe_state_value(attr4select$status),
         selection_clicked = current$clicked,
         selection_selected = current$selected,
-        selectByCorner = sbc()
+        # the authority flag is "the corner made the current selection"
+        # (the historic sbc): restored as the corner engagement below
+        selectByCorner = isTRUE(isolate(cornerAuthority()))
       )
     })
 
@@ -668,11 +823,28 @@ meta_scatter_module <- function(
 
       # Computed hypothesis-test output is intentionally not restored; it is
       # recalculated from the restored widget and selection state.
-      returnCornerSelection(s$selectByCorner)
+      #
+      # Corner engagement: a corner-made snapshot re-engages the corner
+      # (the rectval observer re-derives and re-claims it once the restored
+      # axes settle); a manual-selection snapshot disengages it (the corner
+      # must not override the restored selection) until the user edits a
+      # cutoff (re-engagement observer above).
+      cornerEngaged(isTRUE(s$selectByCorner))
+      cornerAuthority(FALSE)
       selVal(list(
-        clicked = s$selection_clicked,
-        selected = s$selection_selected
+        clicked = s$selection_clicked %||% character(0),
+        selected = s$selection_selected %||% character(0)
       ))
+      # unified propagation: the restored selection is the bus record for
+      # this space (ids only; the table-row mirror is restored separately
+      # by the owning data-space module from its own status fields)
+      selection$report(
+        origin = "restore",
+        report = list(clicked = s$selection_clicked %||% character(0),
+                      selected = s$selection_selected %||% character(0)),
+        ids = s$selection_selected %||% character(0),
+        clicked = s$selection_clicked %||% character(0),
+        anchor = restored_axes)
     }))
     #############################################
 
