@@ -290,14 +290,8 @@ attr4selector_module <- function(
       if (is.null(input$xcut) || is.null(input$ycut) || is.null(input$scorner))
         return(NULL)
       .a4_seeded <<- TRUE
-      vals <- list(xcut = input$xcut, ycut = input$ycut, scorner = input$scorner)
-      held <- store_read(store4, names(vals))
-      patch <- vals[vapply(names(vals), function(k)
-        is.null(held[[paste0(store4$prefix, ".", k)]]), logical(1))]
-      if (length(patch))
-        tryCatch(store_apply(store4, patch, origin = "system", strict = FALSE,
-                             mark_pending = FALSE),
-                 error = function(e) NULL)
+      store_seed(store4, list(xcut = input$xcut, ycut = input$ycut,
+                              scorner = input$scorner))
     }))
 
     # Store -> UI push for external writes only; the cascades re-derive from

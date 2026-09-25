@@ -248,7 +248,7 @@ scenario_feature_general <- function() {
     # WP4 target: seeds must not leave un-acknowledgeable pending entries
     left <- names(Filter(Negate(is.null), store$pending))
     ph_row("seed leaves no un-acknowledgeable pending", "-", length(left), 0L,
-           paste(left, collapse = ", "), assert = FALSE)
+           paste(left, collapse = ", "))
   })
 }
 

@@ -102,12 +102,7 @@ survival_module <- function(
       if (.sv_seeded) return(NULL)
       if (is.null(input$censor)) return(NULL)
       .sv_seeded <<- TRUE
-      held <- store_read(store, "survival_censor")
-      if (is.null(held[[paste0(store$prefix, ".survival_censor")]]))
-        tryCatch(store_apply(store,
-                             list(survival_censor = input$censor),
-                             origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, list(survival_censor = input$censor))
     }))
     # store -> UI push, gated on the survival view (the slider is
     # renderUI'd only there) and clamped to the rendered range

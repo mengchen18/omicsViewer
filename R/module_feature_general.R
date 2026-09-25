@@ -361,14 +361,8 @@ feature_general_module <- function(id,
       if (is.null(input$internal_radio) || is.null(showRegLine()))
         return(NULL)
       .fg_seeded <<- TRUE
-      vals <- list(plot_type = input$internal_radio,
-                   regression_line = showRegLine())
-      held <- store_read(store, names(vals))
-      patch <- vals[vapply(names(vals), function(k)
-        is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
-      if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, list(plot_type = input$internal_radio,
+                             regression_line = showRegLine()))
     }))
 
     # Store -> UI push for external writes only (pending entries mark them);

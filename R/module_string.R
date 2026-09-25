@@ -174,13 +174,8 @@ string_module <- function(
       if (.str_seeded) return(NULL)
       if (is.null(input$tax) || is.null(input$showLabel)) return(NULL)
       .str_seeded <<- TRUE
-      vals <- list(taxonomy = input$tax, show_labels = input$showLabel)
-      held <- store_read(store, names(vals))
-      patch <- vals[vapply(names(vals), function(k)
-        is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
-      if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, list(taxonomy = input$tax,
+                             show_labels = input$showLabel))
     }))
     # store -> UI push for external writes only (pending entries mark them)
     .str_epoch <- store_epoch(store)

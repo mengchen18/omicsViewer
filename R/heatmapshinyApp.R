@@ -468,13 +468,7 @@ iheatmapModule <- function(
       if (any(vapply(vals, is.null, logical(1))))
         return(NULL)
       .heatmap_seeded <<- TRUE
-      # store_read on a child view keys results by FULL canonical ids
-      held <- store_read(store, names(vals))
-      patch <- vals[vapply(names(vals), function(k)
-        is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
-      if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, vals)
     }))
 
     # Store -> UI push for external writes only (pending entries mark

@@ -333,7 +333,8 @@ app_hm2 <- function(input, output, session) {
     pd = shiny::reactive(data.frame(group = c("A", "B"),
                                     row.names = c("S1", "S2"))),
     fd = shiny::reactive(data.frame(score = c(1, 2),
-                                    row.names = c("G1", "G2"))),
+                                   pathway = c("x", "y"),
+                                   row.names = c("G1", "G2"))),
     status = shiny::reactive(NULL),
     store = hm_store2
   )
@@ -374,10 +375,13 @@ shiny::testServer(app_hm2, {
   )
 
   # external writes push to the right updater (selectize for server-side
-  # rowSortBy/annotRow, plain select otherwise)
+  # rowSortBy/annotRow, plain select otherwise). annot_row writes a value
+  # DIFFERENT from the seeded one: after WP4 the seed no longer arms an
+  # un-acknowledgeable pending, so an identical no-op write correctly
+  # pushes nothing - the widget already displays that value.
   store_apply(hm_store2,
     list(annot_col = "group", cluster_col_link = "complete",
-         row_sort_by = "score", annot_row = "score"),
+         row_sort_by = "score", annot_row = "pathway"),
     origin = "agent")
   session$flushReact()
 
@@ -406,7 +410,7 @@ ok(
 )
 ok(
   any(vapply(.sent_hm$msgs, function(m)
-    grepl("(^|\\.)annotRow$", m$id) && identical(m$msg$value, "score"),
+    grepl("(^|\\.)annotRow$", m$id) && identical(m$msg$value, "pathway"),
     logical(1))),
   "agent row-annotation write reaches the server-side selectize widget"
 )

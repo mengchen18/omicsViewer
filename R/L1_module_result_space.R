@@ -101,11 +101,7 @@ L1_result_space_module <- function(
         if (.rs_seeded) return(NULL)
         if (is.null(input$analyst)) return(NULL)
         .rs_seeded <<- TRUE
-        held <- store_read(store_rs, "analyst_tab")
-        if (is.null(held[[paste0(store_rs$prefix, ".analyst_tab")]]))
-          tryCatch(store_apply(store_rs, list(analyst_tab = input$analyst),
-                               origin = "system", strict = FALSE),
-                   error = function(e) NULL)
+        store_seed(store_rs, list(analyst_tab = input$analyst))
       }))
       .rs_epoch <- store_epoch(store_rs)
       .rs_keep(observe({

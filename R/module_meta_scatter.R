@@ -233,18 +233,17 @@ meta_scatter_module <- function(
       if (identical(stamp, last_seeded))
         return(NULL)
       last_seeded <<- stamp
-      patch <- list()
       tx <- .scatter_axis_triple(dx)
       ty <- .scatter_axis_triple(dy)
-      vals <- store_read(store, c("x_analysis", "y_analysis"))
-      if (!is.null(tx) && is.null(vals[[kx1]]))
-        patch <- c(patch, stats::setNames(as.list(tx), c("x_analysis", "x_subset", "x_variable")))
-      if (!is.null(ty) && is.null(vals[[ky1]]))
-        patch <- c(patch, stats::setNames(as.list(ty), c("y_analysis", "y_subset", "y_variable")))
-      if (!length(patch))
-        return(NULL)
-      tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
-               error = function(e) NULL)
+      vals <- list()
+      if (!is.null(tx))
+        vals <- c(vals, stats::setNames(as.list(tx),
+                   c("x_analysis", "x_subset", "x_variable")))
+      if (!is.null(ty))
+        vals <- c(vals, stats::setNames(as.list(ty),
+                   c("y_analysis", "y_subset", "y_variable")))
+      if (length(vals))
+        store_seed(store, vals)
     }))
 
     v1 <- triselector_module("tris_main_scatter1",

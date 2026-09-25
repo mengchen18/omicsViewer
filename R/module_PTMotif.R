@@ -108,17 +108,9 @@ ptmotif_module <- function(
       ts <- tryCatch(triset(), shiny.silent.error = function(e) NULL,
                     error = function(e) NULL)
       if (is.null(ts) || nrow(ts) == 0L) return(NULL)
-      held <- store_read(store, c("xax_analysis", "xax_subset", "xax_variable"))
-      patch <- list()
-      if (is.null(held[[paste0(store$prefix, ".xax_analysis")]]))
-        patch$xax_analysis <- ts[1, 1]
-      if (is.null(held[[paste0(store$prefix, ".xax_subset")]]))
-        patch$xax_subset <- ts[1, 2]
-      if (is.null(held[[paste0(store$prefix, ".xax_variable")]]))
-        patch$xax_variable <- ts[1, 3]
-      if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, list(xax_analysis = ts[1, 1],
+                             xax_subset = ts[1, 2],
+                             xax_variable = ts[1, 3]))
     }))
   } else {
     observe({

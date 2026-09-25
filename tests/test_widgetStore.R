@@ -412,3 +412,63 @@ ok(
   identical(store_read(ms3)$tab.columns, c("b", "a")),
   "in-bounds multi_select applies preserving order"
 )
+
+## ------------------------------------------------- [WP4] store_seed ----
+store_seed <- omicsViewer:::store_seed
+sd <- mk()
+# seeding fills unset keys without arming pending (origin system)
+r1 <- store_seed(sd, list("app.main_tab" = "Feature", "app.theme" = "bw",
+                          "app.show_labels" = TRUE))
+ok(
+  identical(r1$applied, c("app.main_tab", "app.theme", "app.show_labels")) &&
+    identical(sd$origins$app.main_tab, "system"),
+  "store_seed fills unset keys with origin system"
+)
+ok(
+  length(Filter(Negate(is.null), sd$pending)) == 0L,
+  "store_seed never marks pending (no un-acknowledgeable entries)"
+)
+# held keys are never overwritten (restore/agent-first wins)
+store_apply(sd, list("app.main_tab" = "Sample"), origin = "restore")
+r2 <- store_seed(sd, list("app.main_tab" = "Heatmap", "app.min_size" = 15L))
+ok(
+  identical(r2$applied, "app.min_size") &&
+    identical(store_read(sd)$app.main_tab, "Sample"),
+  "store_seed skips keys the store already holds"
+)
+# unknown ids and NULL/invalid values are best-effort skipped, not errors
+# (held keys skip before validation, so use an UNSET key for rejection)
+r3 <- store_seed(sd, list("app.nope" = "x", "app.show_labels" = NULL,
+                          "app.y_analysis" = "not-a-theme"))
+ok(
+  identical(r3$applied, character(0)) &&
+    length(r3$rejected) == 1L && identical(r3$rejected[[1]]$id, "app.y_analysis"),
+  "store_seed drops sentinels/unknown ids and per-key rejects invalid values"
+)
+# child views prefix seed ids like every other write path
+sc <- widget_store_child(mk(), "app")
+store_register(sc, widget_binding("extra", "string", label = "x", help = "y"))
+store_seed(sc, list(extra = "hello"))
+ok(
+  identical(store_read(sc)[["app.extra"]], "hello"),
+  "store_seed resolves module-local ids through child prefixes"
+)
+# held-value guard in store_sync_from_ui: identical report with nothing
+# in flight is a no-op (no user-override record, no origin rewrite)
+sg <- mk()
+store_seed(sg, list("app.theme" = "bw"))
+before <- sg$origins$app.theme
+ov <- store_sync_from_ui(sg, "app.theme", "bw")
+ok(
+  isFALSE(ov) && identical(sg$origins$app.theme, before) &&
+    !length(sg$override_log),
+  "sync of the held value is a no-op (no override logged)"
+)
+# an in-flight write is still acknowledged through the ack branch
+store_apply(sg, list("app.theme" = "classic"), origin = "agent")
+need <- store_sync_from_ui(sg, "app.theme", "classic")
+ok(
+  isFALSE(need) && is.null(sg$pending$app.theme) &&
+    identical(store_read(sg)$app.theme, "classic"),
+  "ack branch still clears matching pending entries (guard skips it)"
+)

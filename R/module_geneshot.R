@@ -226,12 +226,7 @@ geneshot_module <- function(
       if (.gs_seeded) return(NULL)
       if (is.null(input$term)) return(NULL)
       .gs_seeded <<- TRUE
-      held <- store_read(store, "term")
-      if (is.null(held[[paste0(store$prefix, ".term")]]) &&
-          nzchar(input$term))
-        tryCatch(store_apply(store, list(term = input$term),
-                             origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, list(term = input$term))
     }))
     # store -> UI push for external writes only (pending entries mark them)
     .gs_epoch <- store_epoch(store)

@@ -147,14 +147,8 @@ batch_comparison_module <- function(
         if (is.null(input$show_phenotype) || is.null(input$show_features))
           return(NULL)
         .bc_seeded <<- TRUE
-        vals <- list(batch_show_phenotype = input$show_phenotype,
-                     batch_show_features = input$show_features)
-        held <- store_read(store, names(vals))
-        patch <- vals[vapply(names(vals), function(k)
-          is.null(held[[paste0(store$prefix, ".", k)]]), logical(1))]
-        if (length(patch))
-          tryCatch(store_apply(store, patch, origin = "system", strict = FALSE),
-                   error = function(e) NULL)
+        store_seed(store, list(batch_show_phenotype = input$show_phenotype,
+                               batch_show_features = input$show_features))
       }))
       .bc_epoch <- store_epoch(store)
       .bc_keep(observe({

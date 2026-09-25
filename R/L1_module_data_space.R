@@ -283,11 +283,7 @@ L1_data_space_module <- function(
       if (.ds_seeded) return(NULL)
       if (is.null(input$eset)) return(NULL)
       .ds_seeded <<- TRUE
-      held <- store_read(store_ds, "active_tab")
-      if (is.null(held[[paste0(store_ds$prefix, ".active_tab")]]))
-        tryCatch(store_apply(store_ds, list(active_tab = input$eset),
-                             origin = "system", strict = FALSE),
-                 error = function(e) NULL)
+      store_seed(store_ds, list(active_tab = input$eset))
     }))
     # store -> UI push for external writes only (pending entries mark them)
     .ds_epoch <- store_epoch(store_ds)

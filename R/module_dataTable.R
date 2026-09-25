@@ -320,33 +320,19 @@ dataTable_module <- function(
       if (.dt_seeded) return(NULL)
       if (is.null(input$multisel) || is.null(scn())) return(NULL)
       .dt_seeded <<- TRUE
-      held <- store_read(store, names(.dt_keys))
-      patch <- list()
-      if (is.null(held[[paste0(store$prefix, ".multi_selection")]]))
-        patch$multi_selection <- input$multisel
-      if (is.null(held[[paste0(store$prefix, ".columns")]]))
-        patch$columns <- scn()
-      if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE,
-                             mark_pending = FALSE),
-                 error = function(e) NULL)
+      store_seed(store, list(multi_selection = input$multisel,
+                             columns = scn()))
     }))
     .dt_keep(observe({
       if (.dt_seeded_state) return(NULL)
       st <- input$table_state
       if (is.null(st) || !is.list(st)) return(NULL)
       .dt_seeded_state <<- TRUE
-      held <- store_read(store, names(.dt_keys))
-      patch <- list()
       pg <- .dt_state_page(st)
-      if (!is.null(pg) && is.null(held[[paste0(store$prefix, ".page")]]))
-        patch$page <- pg
-      if (is.null(held[[paste0(store$prefix, ".column_filters")]]))
-        patch$column_filters <- .dt_state_filters(st, scn())
-      if (length(patch))
-        tryCatch(store_apply(store, patch, origin = "system", strict = FALSE,
-                             mark_pending = FALSE),
-                 error = function(e) NULL)
+      fl <- .dt_state_filters(st, scn())
+      store_seed(store, list(
+        page = if (!is.null(pg)) pg,
+        column_filters = fl))
     }))
 
     # Store -> UI push for external writes only (pending entries mark

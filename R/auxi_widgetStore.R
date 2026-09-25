@@ -617,6 +617,56 @@ store_apply <- function(store, patch,
   invisible(receipt)
 }
 
+#' Seed unset keys from live widget values
+#'
+#' The single sanctioned seeding path for values copied FROM the live
+#' widgets into a still-empty store (the per-module "widget defaults"
+#' observers). Per key: NULL values are dropped (omitted sentinels),
+#' unknown ids are skipped silently (seeds are best-effort), and keys the
+#' store already holds are never overwritten (restores and agent applies
+#' that land first win). Writes go through \code{\link{store_apply}}
+#' with \code{origin = "system"}, \code{strict = FALSE} and
+#' \code{mark_pending = FALSE}: seeded values are known to already sit
+#' in the widgets, so arming the bounded re-assert loop would arm pushes
+#' that can never be acknowledged (an input whose value does not change
+#' fires no event) and a stale re-assert could later clobber unrelated
+#' direct updates on the same widget.
+#'
+#' @param store Store (or child view).
+#' @param patch Named list of module-local id -> widget-reported value.
+#' @return Invisible receipt: \code{applied}, \code{skipped} (held,
+#'   dropped or unknown keys), and \code{rejected} (invalid values).
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_seed <- function(store, patch) {
+  if (!is.null(store$parent)) {
+    prefix <- store$prefix
+    store <- store$parent
+  } else {
+    prefix <- NULL
+  }
+  if (!is.list(patch))
+    stop("Seed patch must be a named list.")
+  all_keys <- if (is.null(prefix)) names(patch)
+              else paste(prefix, names(patch), sep = ".")
+  seed <- list()
+  for (k in names(patch)) {
+    value <- .widget_store_sentinel(patch[[k]])
+    if (is.null(value)) next
+    key <- if (is.null(prefix)) k else paste(prefix, k, sep = ".")
+    if (is.null(store$bindings[[key]])) next  # unknown ids: best effort
+    if (!is.null(store$values[[key]]$val)) next  # held: never overwrite
+    seed[[key]] <- value
+  }
+  if (!length(seed))
+    return(invisible(list(applied = character(),
+                          skipped = all_keys, rejected = list())))
+  receipt <- store_apply(store, seed, origin = "system", strict = FALSE,
+                         mark_pending = FALSE)
+  receipt$skipped <- union(receipt$skipped, setdiff(all_keys, receipt$applied))
+  invisible(receipt)
+}
+
 ############################################################################
 ### [4] acknowledgement and UI-to-store synchronisation
 ############################################################################
@@ -682,6 +732,13 @@ store_sync_from_ui <- function(store, id, value) {
     store$values[[key]]$rv(value)
     return(invisible(FALSE))
   }
+  # held-value guard: a report identical to the held value with nothing
+  # in flight is a pure no-op (reactiveVal writes of identical values do
+  # not invalidate anyway, so this only saves work). The ack branch above
+  # already handled any pending entry; the override branch below needs
+  # one to log, so neither is skipped by this early return.
+  if (is.null(pending) && identical(value, store$values[[key]]$val))
+    return(invisible(FALSE))
   overridden <- !is.null(store$pending[[key]])
   if (overridden) {
     store$override_log <- c(

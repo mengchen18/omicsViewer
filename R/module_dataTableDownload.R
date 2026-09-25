@@ -261,15 +261,8 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
       if (.dtd_seeded) return(NULL)
       if (is.null(input$table_rows_selected)) return(NULL)
       .dtd_seeded <<- TRUE
-      held <- store_read(storeTab, store_key)[[1]]
-      if (is.null(held)) {
-        id <- isolate(.dtd_current_id())
-        if (!is.null(id))
-          tryCatch(
-            store_apply(storeTab, stats::setNames(list(id), store_key),
-                        origin = "system", strict = FALSE),
-            error = function(e) NULL)
-      }
+      store_seed(storeTab,
+                 stats::setNames(list(isolate(.dtd_current_id())), store_key))
     }))
     # store -> UI push: re-render with the pushed row preselected; DT
     # reports the selection and the sync observer above acknowledges
