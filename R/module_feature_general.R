@@ -228,17 +228,38 @@ feature_general_module <- function(id,
     length(reactive_i()) == 0 || length(reactive_i()) >= 10)
   showBeeswarm <- reactive(pheno_cat() && length(reactive_i()) > 0 && length(reactive_i()) < 10)
   showScatter <- reactive( single_i () && pheno_num() )
-  
+
+  # WP6: derive the view type ONCE through a reactiveVal carrier (written
+  # by one kept observer, value-deduped) so the renderUI re-runs only on a
+  # genuine view-type change or a radio flip. Reading the show* reactives
+  # directly in the renderUI rebuilt the plot container on EVERY feature
+  # selection change (identical() containers, but a remount resets plotly
+  # state and flashes the panel). Observer-GC rule: kept referenced.
+  .fg_view_type <- reactiveVal(NULL)
+  .fg_view_observers <- list()
+  .fg_view_keep <- function(obs) {
+    .fg_view_observers[[length(.fg_view_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
+  .fg_view_keep(observe({
+    vt <- if (showBoxplot()) "boxplot"
+          else if (showScatter()) "scatter"
+          else if (showBeeswarm()) "dual"
+          else NULL
+    if (!identical(vt, .fg_view_type()))
+      .fg_view_type(vt)
+  }))
+
   output$feature_general_plot <- renderUI({
-    if (showBoxplot())
+    vt <- .fg_view_type()
+    if (identical(vt, "boxplot"))
       return( plotly_boxplot_ui(ns("feature_general_boxplotly")) )
-    if (showScatter())
+    if (identical(vt, "scatter"))
       return( plotly_scatter_ui(ns("feature_general_scatter")) )
-    if (showBeeswarm()) {
-      if (input$internal_radio == "Bees")
-        r <- plotly_scatter_ui(ns("feature_general_beeswarm")) else
-          r <- plot_roc_pr_ui(ns("feature_general_roc_pr")) 
-      r          
+    if (identical(vt, "dual")) {
+      if (identical(input$internal_radio, "Bees"))
+        plotly_scatter_ui(ns("feature_general_beeswarm")) else
+          plot_roc_pr_ui(ns("feature_general_roc_pr"))
     }
   })
 

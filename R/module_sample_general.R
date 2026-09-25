@@ -26,7 +26,13 @@ sample_general_ui <- function(id) {
         width = 5
       ),
       shinydashboard::box(
-        uiOutput(ns("sample_general_plot")),
+        # WP6: the attr4 panel is STATIC (it was re-created by every
+        # renderUI run, rebuilding its widgets on unchanged view types);
+        # the plot itself swaps through the uiOutput below
+        tagList(
+          column(11, uiOutput(ns("sample_general_plot"))),
+          column(1, attr4selector_ui(ns("a4_gp"), circle = FALSE, right = TRUE))
+        ),
         height = "500px",
         width = 7
       )
@@ -216,18 +222,33 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     select
   })
   
+  # WP6: derive the view type once through a value-deduped reactiveVal
+  # carrier (one kept observer) - pheno() recomputes on every link change
+  # but only its $type decides the view, so the container must not be
+  # rebuilt while the type is unchanged (remounts reset plot state and
+  # rebuild the attr4 panel). Observer-GC rule: kept referenced.
+  .sg_view_type <- reactiveVal(NULL)
+  .sg_view_observers <- list()
+  .sg_view_keep <- function(obs) {
+    .sg_view_observers[[length(.sg_view_observers) + 1L]] <<- obs
+    invisible(obs)
+  }
+  .sg_view_keep(observe({
+    vt <- tryCatch(pheno()$type, shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    if (!identical(vt, .sg_view_type()))
+      .sg_view_type(vt)
+  }))
+
   output$sample_general_plot <- renderUI({
-    req(pheno()$type)
-    if (pheno()$type == "beeswarm")
-      r <-  plotly_scatter_ui(ns("sample_general_beeswarm")) 
-    if (pheno()$type == "table")
-      r <- factorIndependency_ui(ns("sample_general_contab"))
-    if (pheno()$type == "surv")
-      r <- survival_ui(ns("sample_general_surv")) 
-    tagList(
-      column(11, r),
-      column(1, attr4selector_ui(ns("a4_gp"), circle = FALSE, right = TRUE))      
-      )
+    vt <- .sg_view_type()
+    if (identical(vt, "beeswarm"))
+      return(plotly_scatter_ui(ns("sample_general_beeswarm")))
+    if (identical(vt, "table"))
+      return(factorIndependency_ui(ns("sample_general_contab")))
+    if (identical(vt, "surv"))
+      return(survival_ui(ns("sample_general_surv")))
+    NULL
   })
   
   ## beeswarm

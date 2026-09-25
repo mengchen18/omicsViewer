@@ -221,6 +221,45 @@ const plotState = (page) => page.evaluate(() => {
   record('sample table shows all 60 rows',
     tabInfo.some(t => /60\s+entries/.test(t)), tabInfo.slice(0, 3).join(' / ') || 'no info');
 
+  // ---- WP6: right panel must not rebuild on feature-selection changes ----
+  // Open the Feature ANALYSIS tab (right panel); the boxplot container
+  // element must SURVIVE a selection change (corner 107 -> 239 via the
+  // store-driven quick view) - a renderUI rebuild would replace the DOM
+  // node (remount resets plotly state and flashes the panel).
+  await page.evaluate(() => {
+    const el = Array.from(document.querySelectorAll('#app-resultspace-analyst a[data-value="Feature"]'))
+      .filter(e => e.offsetParent !== null)[0];
+    if (el) el.click();
+  });
+  let fgEl = null;
+  for (let i = 0; i < 30 && !fgEl; i++) {
+    await page.waitForTimeout(1000);
+    fgEl = await page.evaluate(() => {
+      const p = Array.from(document.querySelectorAll('.js-plotly-plot'))
+        .filter(e => e.offsetParent !== null)
+        .find(e => (e.closest('[id*="feature_general"]') || e.id.includes('feature_general')));
+      if (p) { window.__fgEl = p; return true; }
+      return false;
+    });
+  }
+  record('analysis tab: feature_general plot renders', !!fgEl);
+  if (fgEl) {
+    // selection change via the store apply path (works from any tab;
+    // quick badges are only visible on the Feature scatter tab)
+    const res = await runHook(page, 'scatter', { space: 'feature', quick_view_id: 'volcano_RE_vs_LE' });
+    await page.waitForTimeout(4500);
+    const survived = await page.evaluate(() =>
+      window.__fgEl && window.__fgEl.isConnected && window.__fgEl.offsetParent !== null);
+    record('WP6: right-panel plot container survives selection change',
+      survived && !res.hook_error,
+      (survived ? '' : 'container was replaced (renderUI rebuild)') +
+        (res.hook_error ? ' hook_error: ' + res.hook_error : ''));
+    ov = await runHook(page, 'overview', {});
+    record('WP6: selection followed the hook apply (239)',
+      ov.selection && ov.selection.features && ov.selection.features.count === 239,
+      ov.selection ? `features=${ov.selection.features.count}` : 'no selection');
+  }
+
   record('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' ;; '));
 
   await browser.close();

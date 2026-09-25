@@ -15,8 +15,8 @@
 # reproduces the documented 11/35 baseline on pre-WP1 code unchanged.
 #
 # Rows owned by WP4 (store hygiene), WP5 (epoch scoping) and WP6
-# (renderUI rebuilds) are printed but not asserted until those work
-# packages land; flip their assert = FALSE to TRUE with the matching WP.
+# (renderUI rebuilds) are asserted since those work packages landed
+# (commits WP4..WP6 on scatter-render-stability); all 46 rows are green.
 
 suppressMessages({
   library(shiny)
@@ -233,7 +233,7 @@ scenario_feature_general <- function() {
     for (i in 1:5) { session$flushReact(); try(session$output$`fg-feature_general_plot`, silent = TRUE) }
     # WP6 target: renderUI must not rebuild on an unchanged view type
     ph_row("feature_general: selection change, same view type -> container rebuilds",
-           "-", PH$ui, 0L, assert = FALSE)
+           "-", PH$ui, 0L)
     ph_row("feature_general: selection change, same view type -> paints", "-",
            length(ph_paints("fg-feature_general_beeswarm")), 1L)
     # a restore of a different analysis, acknowledged one widget per round trip
@@ -267,10 +267,8 @@ scenario_sample_general <- function() {
     PH$ui <- 0L; PH$a4 <- 0L
     set("General|All|Doubleing.Time"); pump()  # numeric -> numeric: same view type
     # WP6 targets
-    ph_row("sample_general: link change, same view type -> container rebuilds", "-", PH$ui, 0L,
-           assert = FALSE)
-    ph_row("sample_general: link change, same view type -> attr4 panel rebuilds", "-", PH$a4, 0L,
-           assert = FALSE)
+    ph_row("sample_general: link change, same view type -> container rebuilds", "-", PH$ui, 0L)
+    ph_row("sample_general: link change, same view type -> attr4 panel rebuilds", "-", PH$a4, 0L)
   })
 }
 
