@@ -16,6 +16,7 @@ store_snapshot <- omicsViewer:::store_snapshot
 store_restore <- omicsViewer:::store_restore
 store_registry_view <- omicsViewer:::store_registry_view
 store_describe <- omicsViewer:::store_describe
+store_epoch <- omicsViewer:::store_epoch
 
 ## ---------------------------------------------------------------- [1] ----
 mk <- function() {
@@ -471,4 +472,41 @@ ok(
   isFALSE(need) && is.null(sg$pending$app.theme) &&
     identical(store_read(sg)$app.theme, "classic"),
   "ack branch still clears matching pending entries (guard skips it)"
+)
+
+## ------------------------------------------------- [WP5] scoped epochs ----
+ep <- widget_store_new()
+e_ds <- widget_store_child(ep, "dataspace")
+e_fs <- widget_store_child(ep, "dataspace.feature_space")
+e_rs <- widget_store_child(ep, "resultspace.sample_general")
+for (ch in list(e_ds, e_fs, e_rs)) store_register(ch,
+  widget_binding("theme", "string", label = "t", help = "h"))
+read_ep <- function(store) shiny::isolate(store_epoch(store)())
+g0 <- read_ep(ep); ds0 <- read_ep(e_ds); fs0 <- read_ep(e_fs); rs0 <- read_ep(e_rs)
+# a write under one module's prefix bumps its own epoch and every ANCESTOR
+# prefix, but leaves sibling modules' epochs untouched
+store_apply(e_fs, list(theme = "a"))
+ok(
+  read_ep(e_fs) == fs0 + 1L && read_ep(e_ds) == ds0 + 1L &&
+    read_ep(e_rs) == rs0 && read_ep(ep) == g0 + 1L,
+  "scoped epochs: own prefix and ancestors advance, siblings stay quiet"
+)
+# one bump per transaction regardless of how many keys under the prefix
+store_apply(e_fs, list(theme = "b"))
+ok(read_ep(e_fs) == fs0 + 2L,
+   "scoped epochs advance once per transaction")
+# writes through the ROOT store (agent tier) still bump module epochs
+store_apply(ep, list("resultspace.sample_general.theme" = "c"),
+            origin = "agent")
+ok(
+  read_ep(e_rs) == rs0 + 1L && read_ep(e_fs) == fs0 + 2L,
+  "root-store applies bump the written module's scoped epoch"
+)
+# child-of-child writes advance the parent module's epoch (attr4 pattern)
+e_a4 <- widget_store_child(ep, "dataspace.feature_space.attr4")
+store_register(e_a4, widget_binding("scorner", "string", label = "s", help = "h"))
+store_apply(e_a4, list(scorner = "volcano"))
+ok(
+  read_ep(e_a4) == 1L && read_ep(e_fs) == fs0 + 3L,
+  "subtree writes advance the ancestor module's scoped epoch"
 )

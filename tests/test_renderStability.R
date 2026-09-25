@@ -301,12 +301,16 @@ scenario_fanout <- function() {
     PH$q <- list()
     store_apply(s$df, list(x_subset = "MT_vs_WT", y_subset = "MT_vs_WT"), origin = "system")
     session$flushReact()
-    owner <- sub("-x", "", vapply(PH$q, `[[`, "", "id"))
+    # owner = the module instance owning the widget: harness ids are
+    # testServer-namespaced (<module>-<widget...>), so the first dashed
+    # segment is the module id ("df-tris_main_scatter1-subset" -> "df").
+    # The old sub("-x", ...) never matched triselector ids and counted
+    # the involved module's own re-asserts as foreign.
+    owner <- sub("-.*", "", vapply(PH$q, `[[`, "", "id"))
     # WP5 target: epoch scoping must keep uninvolved modules quiet
     ph_row("fan-out: updates sent to modules NOT involved in the switch", "-",
            sum(owner != "df"), 0L,
-           paste(names(table(owner)), table(owner), sep = "=", collapse = ", "),
-           assert = FALSE)
+           paste(names(table(owner)), table(owner), sep = "=", collapse = ", "))
   })
 }
 

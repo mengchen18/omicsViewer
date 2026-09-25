@@ -59,6 +59,7 @@ widget_store_new <- function() {
   store$origins <- list()       # canonical id -> last write origin
   store$global_epoch <- 0L
   store$epoch_rv <- shiny::reactiveVal(0L)  # reactive transaction counter
+  store$prefix_epochs <- list() # namespace prefix -> list(n, rv) scoped epoch
   store$override_log <- list()  # user-overridden in-flight agent writes
   store
 }
@@ -82,7 +83,41 @@ widget_store_child <- function(store, prefix) {
   child <- new.env(parent = emptyenv())
   child$parent <- store
   child$prefix <- prefix
+  # WP5 scoped epochs: materialise this prefix's epoch counter now, in
+  # the creating session's domain, exactly where store_epoch(child) will
+  # later be consumed (module setup). get-or-create keeps re-entrant
+  # child creation for the same prefix idempotent.
+  root <- if (is.null(store$parent)) store else store$parent
+  .widget_store_prefix_epoch(root, prefix)
   child
+}
+
+# WP5 scoped epochs: one counter (plain integer + reactiveVal signal) per
+# namespace prefix, stored on the root. store_apply bumps the epoch of
+# every ANCESTOR prefix of each written key, so watchers scoped to a
+# module's own prefix re-derive on that module's writes (and on writes to
+# any subtree below it) but stay quiet on unrelated modules' writes.
+.widget_store_prefix_epoch <- function(root, prefix) {
+  holder <- root$prefix_epochs[[prefix]]
+  if (is.null(holder)) {
+    # environment, not list: bumping mutates in place - a list holder
+    # would copy on write, never advance the stored counter, and the
+    # reactiveVal would then be rewritten with the SAME value (deduped,
+    # no invalidation) on every transaction after the first
+    holder <- new.env(parent = emptyenv())
+    holder$n <- 0L
+    holder$rv <- shiny::reactiveVal(0L)
+    root$prefix_epochs[[prefix]] <- holder
+  }
+  holder
+}
+
+.widget_store_ancestor_prefixes <- function(id) {
+  parts <- strsplit(id, ".", fixed = TRUE)[[1]]
+  if (length(parts) < 2L)
+    return(character(0))
+  vapply(seq_len(length(parts) - 1L),
+         function(i) paste(parts[seq_len(i)], collapse = "."), "")
 }
 
 #' Describe one widget binding for the store
@@ -603,6 +638,15 @@ store_apply <- function(store, patch,
   if (length(plan)) {
     store$global_epoch <- store$global_epoch + 1L
     store$epoch_rv(store$global_epoch)  # invalidate reactive consumers once per transaction
+    # WP5: scoped epochs - bump each ancestor prefix of each written key
+    # once per transaction, so only watchers under those prefixes
+    # (module-scoped epochs) re-derive on this write.
+    for (p in unique(unlist(lapply(plan, .widget_store_ancestor_prefixes),
+                             use.names = FALSE))) {
+      holder <- .widget_store_prefix_epoch(store, p)
+      holder$n <- holder$n + 1L
+      holder$rv(holder$n)
+    }
   }
 
   receipt <- list(
@@ -825,16 +869,26 @@ store_watch <- function(store, id) {
 #'
 #' Bumped once per applying transaction. Consumers that must re-assert after
 #' ANY external write (e.g. a cascade group) watch this instead of tracking
-#' per-key epochs.
+#' per-key epochs. WP5 scopes the counter: the ROOT store yields the
+#' global epoch (every transaction), while a CHILD view yields its own
+#' namespace prefix's epoch, which advances only when a write touches
+#' that prefix or any subtree below it - store-driven cascades stop
+#' re-deriving on unrelated modules' writes.
 #'
 #' @param store Store (or child view).
-#' @return A reactive expression yielding the global epoch.
+#' @return A reactive expression yielding the (scoped) epoch.
 #' @keywords internal
 #' @rdname widgetStoreHelpers
 store_epoch <- function(store) {
-  root <- if (is.null(store$parent)) store else store$parent
-  # epoch_rv stores the global epoch as its value
-  shiny::reactive(root$epoch_rv())
+  if (is.null(store$parent)) {
+    root <- store
+    # epoch_rv stores the global epoch as its value
+    shiny::reactive(root$epoch_rv())
+  } else {
+    root <- store$parent
+    holder <- .widget_store_prefix_epoch(root, store$prefix)
+    shiny::reactive(holder$rv())
+  }
 }
 
 ############################################################################
