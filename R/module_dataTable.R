@@ -260,13 +260,53 @@ dataTable_module <- function(
       if (is.null(scn())) return(NULL)
       store_sync_from_ui(store, "columns", scn())
     }))
+    # Browser-state acknowledgement with a bounded re-assert: a redraw
+    # racing an in-flight push re-reports the PRE-push state (observed
+    # live: selectPage/updateSearch land, a concurrent re-render reports
+    # start=0 with empty search, and the plain sync then overrode the
+    # push - the page/filter simply never arrived). A report disagreeing
+    # with an armed pending value re-asserts the push a bounded number of
+    # times instead of overriding it; once the push lands (or the bound is
+    # hit), reports sync normally and a genuine user interaction wins.
+    .dt_reassert <- new.env(parent = emptyenv())
+    .dt_reassert$page <- 0L
+    .dt_reassert$filters <- 0L
+    .dt_reassert$epoch <- -1L
     .dt_keep(observe({
       st <- input$table_state
       if (is.null(st) || !is.list(st)) return(NULL)
       pg <- .dt_state_page(st)
-      if (!is.null(pg))
+      flt <- .dt_state_filters(st, scn())
+      full_pg <- paste0(store$prefix, ".page")
+      full_fl <- paste0(store$prefix, ".column_filters")
+      pend_pg <- .dt_store_root$pending[[full_pg]]
+      pend_fl <- .dt_store_root$pending[[full_fl]]
+      # reset the bounds whenever a fresh push is armed
+      pend_epoch <- max(c(pend_pg$epoch %||% -1L, pend_fl$epoch %||% -1L))
+      if (!identical(pend_epoch, .dt_reassert$epoch)) {
+        .dt_reassert$epoch <- pend_epoch
+        .dt_reassert$page <- 0L
+        .dt_reassert$filters <- 0L
+      }
+      if (!is.null(pend_pg) && !is.null(pg) &&
+          !identical(pg, pend_pg$value) && .dt_reassert$page < 3L) {
+        .dt_reassert$page <- .dt_reassert$page + 1L
+        tryCatch(DT::selectPage(tabproxy, as.integer(pend_pg$value)),
+                 error = function(e) NULL)
+      } else if (!is.null(pg)) {
         store_sync_from_ui(store, "page", pg)
-      store_sync_from_ui(store, "column_filters", .dt_state_filters(st, scn()))
+      }
+      if (!is.null(pend_fl) && !identical(flt, pend_fl$value) &&
+          .dt_reassert$filters < 3L) {
+        .dt_reassert$filters <- .dt_reassert$filters + 1L
+        shown <- scn()
+        if (!is.null(shown) && length(shown))
+          tryCatch(DT::updateSearch(tabproxy, list(
+            columns = .dt_filters_for_proxy(pend_fl$value, shown)
+          )), error = function(e) NULL)
+      } else {
+        store_sync_from_ui(store, "column_filters", flt)
+      }
     }))
 
     # Seed unset keys with the widget defaults once the inputs exist, so
@@ -449,8 +489,11 @@ dataTable_module <- function(
     r <- character(0)
     if (!is.null(tab_rows()))
       r <- tab_rows()
-    if (notNullAndPosLength(input$table_rows_selected))
+    user_r <- NULL
+    if (notNullAndPosLength(input$table_rows_selected)) {
       r <- rownames(rdd())[input$table_rows_selected]
+      user_r <- unique(r)
+    }
     sta <- data_table_widget_state(input$table_state)
     if (is.null(sta))
       sta <- list()
@@ -460,6 +503,14 @@ dataTable_module <- function(
     rn <- rownames(rdd())
     if (!is.null(rn) && notNullAndPosLength(input$table_rows_selected))
       sta$selected_rows <- unique(rn[input$table_rows_selected])
+    # The return mixes the external tab_rows mirror (for rendering and
+    # snapshot status) with the user's own row clicks. Downstream
+    # selection adoption MUST key on the user signal only: adopting the
+    # mirror feeds L1's own state back through the table re-render and
+    # resurrects stale selections nondeterministically (observed live:
+    # switching away from a volcano view re-adopted the previous corner
+    # selection from the echo).
+    attr(r, "user_selected") <- user_r
     attr(r, "status") <- sta
     r
     })

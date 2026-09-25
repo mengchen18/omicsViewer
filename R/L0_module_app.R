@@ -564,7 +564,18 @@ app_module <- function(
   observeEvent( v1(), {
     ri( c(v1()$feature) )
     })
-  observeEvent( expr(), ri(NULL) )
+  .expr_reset_last <- reactiveVal(NULL)
+  observeEvent( expr(), {
+    # same-value recomputes of the expression reactive must not clear the
+    # live selection (observeEvent does not dedupe); dims + boundary ids
+    # are the dataset-change granularity this reset means
+    e <- expr()
+    sig <- paste(nrow(e), ncol(e), head(rownames(e), 1), tail(rownames(e), 1),
+                 head(colnames(e), 1), tail(colnames(e), 1), sep = "|")
+    if (identical(sig, isolate(.expr_reset_last()))) return(NULL)
+    .expr_reset_last(sig)
+    ri(NULL)
+  } )
 
   rh <- reactiveVal()
   observeEvent( v1(), {
@@ -617,7 +628,11 @@ app_module <- function(
     req(reactive_eset())
     paste(current_dataset_id(), dataset_fingerprint(reactive_eset(), id = current_dataset_id()))
   })
+  .dsig_last <- reactiveVal(NULL)
   observeEvent(dataset_signature(), {
+    sig <- dataset_signature()
+    if (identical(sig, isolate(.dsig_last()))) return(NULL)
+    .dsig_last(sig)
     esv_status(NULL)
     ri(NULL)
     rh(NULL)

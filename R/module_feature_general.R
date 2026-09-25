@@ -207,8 +207,15 @@ feature_general_module <- function(id,
 
   # what to do
   pheno <- reactive({
-    req(v1())
-    cs <- do.call(paste, list(v1(), collapse = "|"))    
+    # v1() reports only SETTLED triples; NULL means no link variable has
+    # been picked yet - the same situation the "--select--" placeholder
+    # used to represent. Both must fall through to NULL so the boxplot
+    # fallback ("relative abundance" view) renders while unset.
+    tv <- tryCatch(v1(), shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    if (is.null(tv))
+      return(NULL)
+    cs <- do.call(paste, list(tv, collapse = "|"))    
     if (!cs %in% colnames(reactive_input()))
       return(NULL)
     reactive_input()[, cs]
@@ -332,22 +339,11 @@ feature_general_module <- function(id,
   # ------------------------------------------------------------------
   if (!is.null(store)) {
     .fg_root_store <- if (is.null(store$parent)) store else store$parent
-    .fg_read_tris <- function(sel)
-      tryCatch(sel(), shiny.silent.error = function(e) NULL,
-               error = function(e) NULL)
-    .fg_component_set <- function(sel)
-      !is.null(sel) &&
-        nzchar(sel$analysis %||% "") && !identical(sel$analysis, "--select--") &&
-        nzchar(sel$subset %||% "") && !identical(sel$subset, "--select--") &&
-        nzchar(sel$variable %||% "") && !identical(sel$variable, "--select--")
-    .fg_keep(observe({
-      xv <- .fg_read_tris(v1)
-      if (.fg_component_set(xv)) {
-        store_sync_from_ui(store, "xax_analysis", xv$analysis)
-        store_sync_from_ui(store, "xax_subset", xv$subset)
-        store_sync_from_ui(store, "xax_variable", xv$variable)
-      }
-    }))
+    # UI -> store: settled triples only (WP2 store_bind_triselector)
+    store_bind_triselector(store,
+      keys = c(analysis = "xax_analysis", subset = "xax_subset",
+               variable = "xax_variable"),
+      sel = v1, keep = .fg_keep)
     .fg_keep(observeEvent(input$internal_radio, {
       if (!is.null(input$internal_radio))
         store_sync_from_ui(store, "plot_type", input$internal_radio)
