@@ -289,8 +289,8 @@ Environment variables are intentionally limited to provider selection, model
 selection, an optional OpenAI-compatible base URL, and credentials. The API
 key is never placed in Shiny UI state, snapshots, tool results, or logs.
 
-Providers may serialize omitted array optionals as literal sentinel
-strings (glm flash) or as JSON lists; both are normalized here so
+Accepts a character vector (or list) of requested section names from
+the canonical tool-argument document and normalizes it so
 \code{agent_compact_state} never sees an ambiguous request.
 
 Layer-0 overview anchors (plan section 3, WP1): the x/y axis triples and

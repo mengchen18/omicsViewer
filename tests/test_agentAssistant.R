@@ -200,14 +200,16 @@ ok(
 )
 
 # provider sentinel artifacts (glm flash serializes omitted optionals as
-# literal "null"/"{}" strings): they must be treated as absent, not rejected
+# literal "null"/"{}" strings): the WP15 seam (agent_args_sanitize at
+# tool entry) turns them into absent values before validation, so they
+# are treated as omitted, not rejected
 sentinel_update <- agent_normalize_state_update(
-  update = list(
+  update = omicsViewer:::agent_args_sanitize(list(
     data_space_tab = "Heatmap",
     analysis_space_tab = "null",
     features = "null",
     samples = "[]"
-  ),
+  )),
   data_tabs = c("Feature", "Sample", "Heatmap"),
   analysis_tabs = c("Feature", "ORA"),
   feature_ids = rownames(fd),
@@ -220,7 +222,9 @@ ok(
 ok(
   ut_cmp_error(
     agent_normalize_scatter_view(
-      space = "feature", x_axis = "{}", y_axis = "ttest|A_vs_B|log.fdr",
+      space = "feature",
+      x_axis = omicsViewer:::agent_args_sanitize("{}"),
+      y_axis = "ttest|A_vs_B|log.fdr",
       feature_columns = colnames(fd)
     ),
     "requires either quick_view_id or both"
@@ -230,7 +234,7 @@ ok(
 ok(
   ut_cmp_error(
     agent_normalize_state_update(
-      list(data_space_tab = "{}"),
+      omicsViewer:::agent_args_sanitize(list(data_space_tab = "{}")),
       c("Feature", "Sample"), c("Feature"), rownames(fd), rownames(pd)
     ),
     "contains no changes"
@@ -357,7 +361,8 @@ ok(
 ok(
   ut_cmp_identical(
     agent_normalize_scatter_view(
-      space = "feature", quick_view_id = "null",
+      space = "feature",
+      quick_view_id = omicsViewer:::agent_args_sanitize("null"),
       x_axis = "ttest|A_vs_B|log.fdr", y_axis = "ttest|A_vs_B|log.fdr",
       quick_views = NULL,
       feature_columns = colnames(fd), sample_columns = colnames(pd))$mode,
@@ -474,7 +479,8 @@ ok(
 ok(
   ut_cmp_identical(
     do.call(agent_compact_state,
-            c(list(state = full_state, sections = "null"), state_args))$selection,
+            c(list(state = full_state,
+                   sections = omicsViewer:::agent_args_sanitize("null")), state_args))$selection,
     overview$selection
   ),
   "literal 'null' sections sentinel is treated as omitted"

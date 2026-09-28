@@ -359,8 +359,8 @@ agent_quick_view_records <- function(views) {
 
 #' Normalize a requested state-section list
 #'
-#' Providers may serialize omitted array optionals as literal sentinel
-#' strings (glm flash) or as JSON lists; both are normalized here so
+#' Accepts a character vector (or list) of requested section names from
+#' the canonical tool-argument document and normalizes it so
 #' \code{agent_compact_state} never sees an ambiguous request.
 #'
 #' @param sections Character vector (or list) of requested section names,
@@ -370,8 +370,6 @@ agent_quick_view_records <- function(views) {
 #' @rdname agentAssistantHelpers
 .agent_normalize_state_sections <- function(sections) {
   if (is.null(sections))
-    return(character())
-  if (agent_sentinel_string(sections))
     return(character())
   sections <- as.character(sections)
   sections <- trimws(sections)
@@ -764,11 +762,6 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 
   normalize_ids <- function(x, ids, label, max_n) {
     if (is.null(x)) return(NULL)
-    # providers may serialize omitted array optionals as literal "null" /
-    # "[]" strings (glm flash); treat them as absent
-    if (is.character(x) && length(x) == 1L &&
-        x %in% c("null", "NULL", "[]", "{}"))
-      return(NULL)
     x <- as.character(x)
     if (any(is.na(x)) || any(!nzchar(x)))
       stop(label, " must contain non-empty IDs.")
@@ -828,12 +821,9 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 #' @keywords internal
 #' @rdname agentAssistantHelpers
 .agent_nullable_scalar <- function(x) {
-  # Some providers serialize omitted optional string arguments as literal
-  # sentinel strings instead of JSON null (see AGENT_SENTINEL_STRINGS);
-  # normalize those artifacts to an empty string so downstream nzchar()
-  # logic treats the argument as absent.
-  x <- .agent_trim_scalar(x)
-  if (agent_sentinel_string(x)) "" else x
+  # Trim to a scalar string; absent values (NULL / empty) normalize to ""
+  # so downstream nzchar() logic treats the argument as absent.
+  .agent_trim_scalar(x)
 }
 
 agent_normalize_scatter_view <- function(space, quick_view_id = NULL,

@@ -488,8 +488,8 @@ shiny::testServer(
       error = function(e) conditionMessage(e)
     )
     ok(
-      grepl("Unknown or not user-editable widget id", swept_id_error),
-      "get_widget reports a sentinel id as unknown (required-arg honesty)"
+      grepl('argument "id" is missing', swept_id_error),
+      "get_widget treats a sentinel id as an omitted required arg"
     )
     swept_figures <- tools$create_figure(
       spec = list(

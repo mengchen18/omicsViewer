@@ -112,7 +112,8 @@ ok(
   is.null(store_read(s, "app.y_axis")$app.y_axis),
   "sentinel values register as NULL"
 )
-r <- store_apply(s, list(app.y_axis = "null", app.theme = "{}"))
+r <- store_apply(s, omicsViewer:::agent_args_sanitize(list(
+  app.y_axis = "null", app.theme = "{}")))
 ok(
   identical(r$applied, character()),
   "literal null/{} sentinels are treated as omitted (no writes)"
@@ -343,8 +344,9 @@ ok(
   identical(store_read(ms)$hm.annot_col, character(0)),
   "an empty JSON array clears a multi_select"
 )
-# sentinel strings are omitted optionals, not writes
-r <- store_apply(ms, list(hm.annot_col = "[]"))
+# sentinel strings are omitted optionals, not writes (the WP15 seam
+# collapses them before any agent write reaches the store)
+r <- store_apply(ms, omicsViewer:::agent_args_sanitize(list(hm.annot_col = "[]")))
 ok(
   identical(r$applied, character()) &&
     identical(store_read(ms)$hm.annot_col, character(0)),

@@ -54,7 +54,7 @@ agent_widget_ids <- function(store) {
 agent_widget_list <- function(store, section = NULL) {
   if (!is.null(section)) {
     section <- .agent_trim_scalar(section)
-    if (!nzchar(section) || agent_sentinel_string(section))
+    if (!nzchar(section))
       section <- NULL
   }
   view <- store_registry_view(store, prefix = section)
@@ -93,10 +93,9 @@ agent_widget_describe <- function(store, id) {
 #'
 #' The ellmer tool declares the patch as a JSON-object string (the tool
 #' schema cannot express dynamic keys), so the primary input is JSON text.
-#' Direct R callers may pass a named list, an unnamed list of
-#' \code{list(id =, value =)} records, or a data.frame with \code{id} and
-#' \code{value} columns (the ellmer tibble coercion of array-of-object
-#' arguments); all shapes normalize to one named list.
+#' Direct R callers may pass a named list or an unnamed list of
+#' \code{list(id =, value =)} records; all shapes normalize to one named
+#' list.
 #'
 #' @param patch JSON-object string or already-parsed patch structure.
 #' @return Named list of canonical id -> proposed value, possibly empty.
@@ -107,7 +106,7 @@ agent_widget_describe <- function(store, id) {
     return(list())
   if (is.character(patch) && length(patch) == 1L) {
     txt <- trimws(patch)
-    if (!nzchar(txt) || agent_sentinel_string(txt))
+    if (!nzchar(txt))
       return(list())
     parsed <- tryCatch(
       jsonlite::fromJSON(txt, simplifyVector = FALSE),
@@ -116,13 +115,7 @@ agent_widget_describe <- function(store, id) {
     )
     patch <- parsed
   }
-  if (is.data.frame(patch)) {
-    if (!all(c("id", "value") %in% names(patch)))
-      stop("A patch table requires 'id' and 'value' columns.")
-    ids <- as.character(patch$id)
-    patch <- as.list(patch$value)
-    names(patch) <- ids
-  } else if (is.list(patch) && is.null(names(patch))) {
+  if (is.list(patch) && is.null(names(patch))) {
     # unnamed list of {id, value} records
     if (length(patch) && all(vapply(patch, function(e)
       is.list(e) && !is.null(e$id) && !is.null(e$value), logical(1)))) {

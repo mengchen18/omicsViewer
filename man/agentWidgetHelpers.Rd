@@ -66,10 +66,9 @@ allowed values, and present state.
 
 The ellmer tool declares the patch as a JSON-object string (the tool
 schema cannot express dynamic keys), so the primary input is JSON text.
-Direct R callers may pass a named list, an unnamed list of
-\code{list(id =, value =)} records, or a data.frame with \code{id} and
-\code{value} columns (the ellmer tibble coercion of array-of-object
-arguments); all shapes normalize to one named list.
+Direct R callers may pass a named list or an unnamed list of
+\code{list(id =, value =)} records; all shapes normalize to one named
+list.
 
 The tier-2 counterpart of the curated apply callbacks: validates ids
 against the agent-visible registry, then delegates to

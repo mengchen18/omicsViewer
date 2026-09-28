@@ -219,7 +219,7 @@ agent_capability_records <- function(store = NULL) {
 #' @rdname agentCapabilityHelpers
 agent_capability_search <- function(store = NULL, query, max_results = 20L) {
   query <- .agent_trim_scalar(query)
-  if (agent_sentinel_string(query) || !nzchar(query))
+  if (!nzchar(query))
     stop("A non-empty capability search query is required.")
   if (nchar(query) > 128L)
     stop("Capability search query must be at most 128 characters.")
@@ -384,10 +384,10 @@ agent_normalize_enrichment_update <- function(update, feature_data) {
   expression_table = "Expression"
 )
 
-# Sentinel-aware scalar-absent test: NULL, NA, and the literal sentinel
-# strings all count as omitted (the AGENT_SENTINEL_STRINGS convention).
+# Scalar-absent test: NULL and NA count as omitted in the canonical
+# tool-argument document.
 .agent_capability_absent <- function(x) {
-  is.null(x) || (length(x) == 1L && is.na(x)) || agent_sentinel_string(x)
+  is.null(x) || (length(x) == 1L && is.na(x))
 }
 
 # Lenient logical coercion for boolean tool arguments (providers may send
@@ -415,7 +415,7 @@ agent_normalize_enrichment_update <- function(update, feature_data) {
     return(NULL)
   if (is.character(value) && length(value) == 1L) {
     txt <- trimws(value)
-    if (!nzchar(txt) || agent_sentinel_string(txt))
+    if (!nzchar(txt))
       return(NULL)
     parsed <- tryCatch(
       jsonlite::fromJSON(txt, simplifyVector = FALSE),
@@ -480,11 +480,8 @@ agent_normalize_table_view_update <- function(update) {
   if (!is.null(columns)) {
     if (is.list(columns))
       columns <- unlist(columns, use.names = FALSE)
-    if (is.character(columns) && length(columns) == 1L &&
-        agent_sentinel_string(columns))
-      columns <- NULL
-    else if (!is.character(columns) || any(is.na(columns)) ||
-             any(!nzchar(columns)))
+    if (!is.character(columns) || any(is.na(columns)) ||
+        any(!nzchar(columns)))
       stop("columns must be an array of exact column names (at least one).")
     else if (!length(columns))
       stop("columns cannot be empty; at least one column must remain shown.")

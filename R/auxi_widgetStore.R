@@ -298,16 +298,12 @@ store_register <- function(store, ...) {
 }
 
 ############################################################################
-### [2] value validation (per kind, boundary sentinels)
+### [2] value validation (per kind)
 ############################################################################
 
-# Some providers serialise omitted optional strings as literal sentinels
-# (see AGENT_SENTINEL_STRINGS in constants.R). Normalise at the store
-# boundary so every widget kind benefits instead of each tool patching its
-# own arguments.
-.widget_store_sentinel <- function(value) {
-  if (agent_sentinel_string(value)) NULL else value
-}
+# Tool-argument documents arrive sanitized at the WP15 seam
+# (agent_args_sanitize), so the store never sees provider sentinel
+# strings -- only canonical values.
 
 .widget_store_allowed_values <- function(binding, effective) {
   if (is.function(binding$choices_provider)) {
@@ -320,7 +316,6 @@ store_register <- function(store, ...) {
 }
 
 .widget_store_validate_value <- function(binding, value, effective) {
-  value <- .widget_store_sentinel(value)
   if (is.null(value))
     return(list(value = NULL))
   kind <- binding$kind
@@ -573,10 +568,10 @@ store_apply <- function(store, patch,
   if (!is.list(patch))
     stop("Patch must be a named list.")
 
-  # drop explicit NULLs (omitted sentinels)
+  # drop explicit NULLs (omitted optionals)
   entries <- list()
   for (id in ids) {
-    value <- .widget_store_sentinel(patch[[id]])
+    value <- patch[[id]]
     if (is.null(value)) next
     binding <- store$bindings[[id]]
     if (is.null(binding))
@@ -695,7 +690,7 @@ store_seed <- function(store, patch) {
               else paste(prefix, names(patch), sep = ".")
   seed <- list()
   for (k in names(patch)) {
-    value <- .widget_store_sentinel(patch[[k]])
+    value <- patch[[k]]
     if (is.null(value)) next
     key <- if (is.null(prefix)) k else paste(prefix, k, sep = ".")
     if (is.null(store$bindings[[key]])) next  # unknown ids: best effort
@@ -737,7 +732,7 @@ store_ack <- function(store, id, widget_value) {
   }
   if (is.null(pending))
     return(FALSE)
-  if (identical(.widget_store_sentinel(widget_value), pending$value)) {
+  if (identical(widget_value, pending$value)) {
     store$pending[[key]] <- NULL
     FALSE
   } else {

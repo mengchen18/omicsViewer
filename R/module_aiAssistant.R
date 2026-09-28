@@ -427,7 +427,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
 
     chat_object <- NULL
     if (dependencies_available) {
-      get_state_tool <- ellmer::tool(
+      get_state_tool <- agent_tool(
         function(sections = NULL, `_intent`) {
           current <- state(sections = sections)
           if (is.null(current))
@@ -478,7 +478,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      search_tool <- ellmer::tool(
+      search_tool <- agent_tool(
         function(space, query, max_results = 20L, `_intent`) {
           result <- agent_search_annotations(
             space = space,
@@ -514,7 +514,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      summary_tool <- ellmer::tool(
+      summary_tool <- agent_tool(
         function(space, column, max_values = 12L, `_intent`) {
           result <- agent_summarize_annotation(
             space = space,
@@ -550,7 +550,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      set_state_tool <- ellmer::tool(
+      set_state_tool <- agent_tool(
         function(data_space_tab = NULL, analysis_space_tab = NULL,
                  features = NULL, samples = NULL, `_intent`) {
           proposal <- list(
@@ -603,7 +603,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      set_scatter_tool <- ellmer::tool(
+      set_scatter_tool <- agent_tool(
         function(space, quick_view_id = NULL, x_axis = NULL, y_axis = NULL, `_intent`) {
           result <- shiny::withReactiveDomain(
             session_domain,
@@ -649,7 +649,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # canonical widget store. isolate() is required: validation reads
       # choices providers, which read module reactives (triset() etc.).
       # ----------------------------------------------------------------
-      list_widgets_tool <- ellmer::tool(
+      list_widgets_tool <- agent_tool(
         function(section = NULL, `_intent`) {
           result <- shiny::isolate(shiny::withReactiveDomain(
             session_domain, agent_widget_list(store, section)))
@@ -683,7 +683,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      get_widget_tool <- ellmer::tool(
+      get_widget_tool <- agent_tool(
         function(id, `_intent`) {
           result <- shiny::isolate(shiny::withReactiveDomain(
             session_domain, agent_widget_describe(store, id)))
@@ -714,7 +714,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      set_widgets_tool <- ellmer::tool(
+      set_widgets_tool <- agent_tool(
         function(patch, `_intent`) {
           result <- shiny::isolate(shiny::withReactiveDomain(
             session_domain, agent_widget_apply(store, patch)))
@@ -762,7 +762,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # canonical widget store. Descriptions mirror the shared capability
       # metadata (auxi_agentCapabilities.R) - one source of truth.
       # ----------------------------------------------------------------
-      set_enrichment_tool <- ellmer::tool(
+      set_enrichment_tool <- agent_tool(
         function(method, collapse = NULL, selected_pathway = NULL, `_intent`) {
           result <- shiny::withReactiveDomain(
             session_domain,
@@ -820,7 +820,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      set_table_view_tool <- ellmer::tool(
+      set_table_view_tool <- agent_tool(
         function(table, columns = NULL, multi_selection = NULL,
                  column_filters = NULL, page = NULL, clear_filters = NULL,
                  `_intent`) {
@@ -897,7 +897,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # WP9 discovery tools: generated from the capability registry
       # (widget bindings + tool metadata) - one source of truth.
       # ----------------------------------------------------------------
-      search_capabilities_tool <- ellmer::tool(
+      search_capabilities_tool <- agent_tool(
         function(query, max_results = 20L, `_intent`) {
           result <- shiny::isolate(shiny::withReactiveDomain(
             session_domain, agent_capability_search(store, query, max_results)))
@@ -935,7 +935,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      get_capability_tool <- ellmer::tool(
+      get_capability_tool <- agent_tool(
         function(id, `_intent`) {
           result <- shiny::isolate(shiny::withReactiveDomain(
             session_domain, agent_capability_get(store, id)))
@@ -1268,15 +1268,14 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       }
 
-      create_figure_tool <- ellmer::tool(
+      create_figure_tool <- agent_tool(
         function(spec = NULL, template = NULL, x = NULL, y = NULL, color = NULL,
                  label_top_n = NULL, title = NULL, space = NULL, features = NULL,
                  samples = NULL, `_intent`) {
           if (length(isolate(figures())) >= 20L)
             stop("This session already has the maximum of 20 AI figures.")
           template_name <- NULL
-          spec_absent <- is.null(spec) || length(spec) == 0L ||
-            agent_sentinel_string(spec)
+          spec_absent <- is.null(spec) || length(spec) == 0L
           template_present <- !.agent_param_absent(template)
           template_ignored <- FALSE
           if (template_present) {
@@ -1376,7 +1375,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      update_figure_tool <- ellmer::tool(
+      update_figure_tool <- agent_tool(
         function(figure_id, spec, `_intent`) {
           current <- isolate(figures())
           if (!.agent_figure_scalar(figure_id) %in% names(current))

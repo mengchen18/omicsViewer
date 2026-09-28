@@ -63,9 +63,9 @@ ok(
   "unknown section lists nothing"
 )
 ok(
-  identical(agent_widget_list(s, "null")$widget_count, 4L) &&
-    identical(agent_widget_list(s, "{}")$widget_count, 4L) &&
-    is.null(agent_widget_list(s, "null")$section),
+  identical(agent_widget_list(s, omicsViewer:::agent_args_sanitize("null"))$widget_count, 4L) &&
+    identical(agent_widget_list(s, omicsViewer:::agent_args_sanitize("{}"))$widget_count, 4L) &&
+    is.null(agent_widget_list(s, omicsViewer:::agent_args_sanitize("null"))$section),
   "sentinel section strings are treated as omitted"
 )
 ok(
@@ -124,9 +124,12 @@ ok(
   "JSON string patch coerces string scalars to integer/boolean kinds"
 )
 
-# omitted-optional sentinels ("null"/"{}") are dropped, not errors
+# an empty JSON-object patch (with or without the seam collapsing it
+# to NULL) reports no entries instead of erroring obscurely
 ok(
-  ut_cmp_error(agent_widget_apply(s, "{}"), "contains no entries"),
+  ut_cmp_error(agent_widget_apply(s, "{}"), "contains no entries") &&
+    ut_cmp_error(agent_widget_apply(s, omicsViewer:::agent_args_sanitize("{}")),
+                 "contains no entries"),
   "empty JSON object reports no entries"
 )
 
@@ -180,8 +183,9 @@ ok(
   "unnamed patch entries are refused"
 )
 
-# ellmer coercions: tibble / record arrays normalize to one named patch
-# (fresh store: shape normalization, independent of earlier sequences)
+# record arrays (the canonical array-of-objects shape) normalize to one
+# named patch (fresh store: shape normalization, independent of earlier
+# sequences)
 s3 <- mk()
 r <- agent_widget_apply(s3, list(
   list(id = "app.theme", value = "classic"),
@@ -191,14 +195,6 @@ ok(
   setequal(r$applied, c("app.theme", "app.min_size")) &&
     identical(store_read(s3)$app.theme, "classic"),
   "array-of-records patch normalizes"
-)
-r <- agent_widget_apply(s3, data.frame(
-  id = c("app.theme", "app.show_labels"), value = c("bw", "true"),
-  stringsAsFactors = FALSE))
-ok(
-  setequal(r$applied, c("app.theme", "app.show_labels")) &&
-    identical(store_read(s3)$app.show_labels, TRUE),
-  "data.frame (tibble) patch normalizes"
 )
 
 ## ------------------------------------------ reactive choices contract ----

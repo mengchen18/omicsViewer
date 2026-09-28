@@ -101,6 +101,14 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
       )
       if (!is.null(parsed$hook_error))
         return(parsed)
+      # The hooks that mirror a model tool surface (overview, widgets,
+      # enrichment, tableview, capabilities, scatter, state) pass their
+      # payload through the same canonical tool-argument transport
+      # (WP15) the assistant tools use. The history hooks carry
+      # conversation snapshots, not tool arguments, and bypass it.
+      if (!identical(op, "history_save") && !identical(op, "history_restore") &&
+          !identical(op, "store"))
+        parsed <- agent_args_sanitize(parsed)
 
       tryCatch(
         if (identical(op, "overview")) {

@@ -58,8 +58,10 @@ ok(
 )
 
 # provider sentinel sweep (glm flash serializes omitted optionals as
-# literal "null"/"{}"/"[]" strings): every sentinel falls back to the
-# omitted-value default instead of erroring or rendering literally
+# literal "null"/"{}"/"[]" strings): the WP15 seam
+# (agent_args_sanitize at tool entry) turns every sentinel into an
+# absent value BEFORE validation, so the omitted-value defaults apply
+# instead of erroring or rendering literally
 sentinel_spec <- list(
   data_source = "expression",
   features = "null",
@@ -76,7 +78,8 @@ sentinel_spec <- list(
   labels = list(title = "null", caption = "{}", x = "score")
 )
 sentinel_normalized <- agent_normalize_figure_spec(
-  sentinel_spec, fd, pd, mat, paste0("F", 1:3), character()
+  omicsViewer:::agent_args_sanitize(sentinel_spec), fd, pd, mat,
+  paste0("F", 1:3), character()
 )
 ok(
   ut_cmp_identical(sentinel_normalized$theme, "minimal") &&
@@ -100,8 +103,9 @@ ok(
 
 # glm flash also echoes omitted optionals as EMPTY OBJECTS on the spec
 # round-trip path (observed live 2026-09-24: facet_ncol = {} rejected
-# twice with "must be an integer between 1 and 6"): length-0 values must
-# behave exactly like omitted values in every param helper
+# twice with "must be an integer between 1 and 6"): the seam collapses
+# empty objects/arrays to NULL, so length-0 values behave exactly like
+# omitted values in every param helper
 empty_object_spec <- list(
   data_source = "feature_annotation",
   layers = list(list(
@@ -112,7 +116,8 @@ empty_object_spec <- list(
   facet_by = character(0)
 )
 empty_object_normalized <- agent_normalize_figure_spec(
-  empty_object_spec, fd, pd, mat, character(), character()
+  omicsViewer:::agent_args_sanitize(empty_object_spec), fd, pd, mat,
+  character(), character()
 )
 ok(
   is.null(empty_object_normalized$facet_ncol) &&
@@ -252,77 +257,56 @@ ok(
   "thirteen layers are rejected with merge guidance"
 )
 
-# ellmer converts type_array(type_object) tool arguments into tibbles: the
-# chat-path spec has layers as an N-row/15-column data.frame (length() counts
-# columns) and params as df-columns, with JSON nulls turned into NA. This
-# shape previously failed the layer-count check (15 > cap) even though the
-# model sent four layers.
-if (requireNamespace("ellmer", quietly = TRUE)) {
-  layer_type <- ellmer::type_object(
-    geom = ellmer::type_string("geom"),
-    x = ellmer::type_string("x", required = FALSE),
-    y = ellmer::type_string("y", required = FALSE),
-    color = ellmer::type_string("color", required = FALSE),
-    fill = ellmer::type_string("fill", required = FALSE),
-    params = ellmer::type_object(
-      alpha = ellmer::type_number(required = FALSE),
-      yintercept = ellmer::type_number(required = FALSE),
-      .required = FALSE
-    ),
-    .required = FALSE
+# WP15: tool arguments travel on the canonical JSON-document transport
+# (agent_tool/agent_args_sanitize at the seam; ellmer convert = FALSE), so
+# the chat-path spec is the parsed JSON document itself -- named lists,
+# atomic vectors, NULL for absent -- and never an ellmer tibble. Replicate
+# the wire path: serialize, re-parse as the provider payload, sanitize at
+# the seam, normalize.
+wire_spec <- jsonlite::fromJSON(jsonlite::toJSON(list(
+  layers = list(
+    list(geom = "point", x = "score", y = "score",
+         params = list(alpha = NULL)),
+    list(geom = "hline", params = list(yintercept = 1.5))
   )
-  spec_type <- ellmer::type_object(
-    layers = ellmer::type_array(layer_type, "layers", required = TRUE)
-  )
-  raw <- jsonlite::fromJSON(jsonlite::toJSON(list(
-    layers = list(
-      list(geom = "point", x = "score", y = "score",
-           params = list(alpha = NULL)),
-      list(geom = "hline", params = list(yintercept = 1.5))
-    ),
-    auto_unbox = FALSE
-  ), auto_unbox = TRUE), simplifyVector = FALSE)
-  converted <- ellmer:::convert_from_type(raw, spec_type)
-  ok(
-    ut_cmp_identical(is.data.frame(converted$layers), TRUE),
-    "ellmer array-of-object conversion yields a data.frame (shape replicated)"
-  )
-  normalized_tibble <- agent_normalize_figure_spec(
-    converted, fd, pd, mat, character(), character()
-  )
-  ok(
-    ut_cmp_identical(length(normalized_tibble$layers), 2L),
-    "tibble-shaped layers are coerced to row-lists and counted correctly"
-  )
-  ok(
-    ut_cmp_identical(normalized_tibble$layers[[2]]$params$yintercept, 1.5),
-    "numeric params pass through the tibble coercion"
-  )
-  ok(
-    ut_cmp_identical(is.null(normalized_tibble$layers[[1]]$params$alpha), FALSE),
-    "NA alpha from JSON null falls back to its default"
-  )
+), auto_unbox = TRUE), simplifyVector = FALSE)
+sanitized_spec <- omicsViewer:::agent_args_sanitize(wire_spec)
+ok(
+  ut_cmp_identical(is.data.frame(sanitized_spec$layers), FALSE) &&
+    ut_cmp_identical(length(sanitized_spec$layers), 2L),
+  "the seam delivers layers as a plain list, not an ellmer tibble"
+)
+normalized_wire <- agent_normalize_figure_spec(
+  sanitized_spec, fd, pd, mat, character(), character()
+)
+ok(
+  ut_cmp_identical(length(normalized_wire$layers), 2L),
+  "canonical layers are counted correctly"
+)
+ok(
+  ut_cmp_identical(normalized_wire$layers[[2]]$params$yintercept, 1.5),
+  "numeric params pass through the canonical transport"
+)
+ok(
+  ut_cmp_identical(is.null(normalized_wire$layers[[1]]$params$alpha), FALSE),
+  "explicit JSON null params fall back to their default"
+)
 
-  # WP3 live-path replication: the echo spec is serialized to JSON (tool
-  # result), re-parsed and schema-converted by ellmer (tool arguments),
-  # then normalized - and must reproduce the original normalized spec.
-  echo_raw <- jsonlite::fromJSON(
-    jsonlite::toJSON(agent_figure_spec_echo(normalized), auto_unbox = TRUE),
-    simplifyVector = FALSE
-  )
-  echo_converted <- ellmer:::convert_from_type(
-    list(layers = echo_raw$layers), spec_type
-  )
-  echo_renormalized <- agent_normalize_figure_spec(
-    echo_converted, fd, pd, mat, character(), character()
-  )
-  ok(
-    ut_cmp_identical(echo_renormalized$layers, normalized$layers),
-    "echo spec survives the JSON -> ellmer -> normalize round-trip"
-  )
-} else {
-  ok(TRUE, "ellmer conversion-shape test skipped: ellmer unavailable")
-}
+# WP3 live-path replication: the echo spec is serialized to JSON (tool
+# result), re-parsed as the provider payload (tool arguments), sanitized
+# at the seam, then normalized - and must reproduce the original.
+echo_raw <- jsonlite::fromJSON(
+  jsonlite::toJSON(agent_figure_spec_echo(normalized), auto_unbox = TRUE),
+  simplifyVector = FALSE
+)
+echo_renormalized <- agent_normalize_figure_spec(
+  omicsViewer:::agent_args_sanitize(echo_raw), fd, pd, mat,
+  character(), character()
+)
+ok(
+  ut_cmp_identical(echo_renormalized$layers, normalized$layers),
+  "echo spec survives the JSON -> seam -> normalize round-trip"
+)
 
 # ---- WP3: normalized specs are re-submittable (round-trip) -------------
 renormalized <- agent_normalize_figure_spec(
@@ -659,10 +643,15 @@ ok(
   ),
   "missing template is rejected"
 )
-sentinel_template <- agent_figure_template_spec(
-  template = "volcano", x = "logFC", y = "logFdr",
-  color = "null", label_top_n = "null", title = "{}", space = "[]",
-  feature_data = fd2, sample_data = pd2
+sentinel_template <- do.call(
+  agent_figure_template_spec,
+  c(
+    omicsViewer:::agent_args_sanitize(list(
+      template = "volcano", x = "logFC", y = "logFdr",
+      color = "null", label_top_n = "null", title = "{}", space = "[]"
+    )),
+    list(feature_data = fd2, sample_data = pd2)
+  )
 )
 ok(
   is.null(sentinel_template$spec$layers[[1]]$mappings$color) &&
@@ -774,16 +763,19 @@ ok(
   "WP6b: expression boxplot honors an explicit samples subset"
 )
 
-# sentinel shapes are treated as omitted across array providers
+# sentinel shapes are treated as omitted across array providers: the
+# seam collapses sentinel strings, empty arrays, and all-null arrays to
+# NULL before the id-array helper runs
 agent_figure_ids_param <- omicsViewer:::.agent_figure_ids_param
+sanitize <- omicsViewer:::agent_args_sanitize
 ok(
   is.null(agent_figure_ids_param(NULL, "features")) &&
     is.null(agent_figure_ids_param(character(), "features")) &&
     is.null(agent_figure_ids_param(NA_character_, "features")) &&
-    is.null(agent_figure_ids_param(c("null", "[]"), "features")) &&
-    is.null(agent_figure_ids_param(list(), "features")) &&
+    is.null(agent_figure_ids_param(sanitize(list("null", "[]")), "features")) &&
+    is.null(agent_figure_ids_param(sanitize(list()), "features")) &&
     ut_cmp_identical(
-      agent_figure_ids_param(list("F1", "F2"), "features"), c("F1", "F2")
+      agent_figure_ids_param(sanitize(list("F1", "F2")), "features"), c("F1", "F2")
     ) &&
     ut_cmp_identical(
       agent_figure_ids_param(c(" F1 ", "", "F2"), "features"), c("F1", "F2")
@@ -910,17 +902,19 @@ ok(
   ),
   "where leaf cap is enforced"
 )
-# sentinels behave like omitted values everywhere
+# sentinels behave like omitted values everywhere: the seam turns
+# sentinel strings and empty/all-null structures into NULL before the
+# filter canonicalizer runs
 ok(
-  is.null(agent_where_normalize("null")) &&
-    is.null(agent_where_normalize(list())) &&
+  is.null(agent_where_normalize(sanitize("null"))) &&
+    is.null(agent_where_normalize(sanitize(list()))) &&
     is.null(agent_where_normalize(NA)),
   "where sentinels are treated as omitted"
 )
 ok(
   ut_cmp_identical(
     agent_where_normalize(list(column = "category", op = "in",
-                               values = list("kinase", "null", "", NA)))[[ "values" ]],
+                               values = sanitize(list("kinase", "null", "", NA))))[[ "values" ]],
     "kinase"
   ),
   "where in-values drop NA/empty/sentinel entries"
@@ -1119,12 +1113,14 @@ ok(
   ),
   "duplicate scale categories are rejected"
 )
-# sentinel sweep on the new spec fields
+# sentinel sweep on the new spec fields (through the WP15 seam)
 sentinel_wide <- agent_normalize_figure_spec(
-  list(data_source = "feature_annotation",
-       layers = list(list(geom = "point", x = "score", y = "score",
-                          filter = "null")),
-       scale = "{}", theme_options = "null"),
+  omicsViewer:::agent_args_sanitize(list(
+    data_source = "feature_annotation",
+    layers = list(list(geom = "point", x = "score", y = "score",
+                       filter = "null")),
+    scale = "{}", theme_options = "null"
+  )),
   fd, pd, mat, character(), character()
 )
 ok(
@@ -1132,25 +1128,6 @@ ok(
     is.null(sentinel_wide$scale) &&
     is.null(sentinel_wide$theme_options),
   "sentinel filter/scale/theme_options behave like omitted values"
-)
-# ellmer tibble artifact: filter itself arrives as a 1-row data.frame and
-# its all-children as tibbles with list-columns (array-of-object conversion)
-tbl_inner <- data.frame(column = "category", op = "in", stringsAsFactors = FALSE)
-tbl_inner$values <- list(c("kinase"))
-tbl_filter <- data.frame(column = NA_character_, op = NA_character_,
-                         stringsAsFactors = FALSE)
-tbl_filter$value <- NA_real_
-tbl_filter$all <- list(tbl_inner)
-tbl_norm <- agent_normalize_figure_spec(
-  list(data_source = "feature_annotation",
-       layers = list(list(geom = "point", x = "score", y = "score",
-                          filter = tbl_filter))),
-  fd, pd, mat, character(), character()
-)
-ok(
-  ut_cmp_identical(tbl_norm$layers[[1]]$filter$all[[1]][["values"]], "kinase") &&
-    ut_cmp_identical(tbl_norm$layers[[1]]$filter$all[[1]]$column, "category"),
-  "tibble-shaped filters normalize through row coercion"
 )
 # round-trip: the echo shape re-normalizes identically (WP3 contract)
 wide_echo <- agent_figure_spec_echo(wide_norm)

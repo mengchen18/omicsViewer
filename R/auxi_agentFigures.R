@@ -160,18 +160,15 @@ agent_figure_grammar <- function() {
   if (is.null(x) || length(x) == 0 || is.na(x))
     return(fallback)
   out <- trimws(as.character(x)[1])
-  # providers may serialize omitted optional strings as literal sentinels
-  # (see AGENT_SENTINEL_STRINGS); treat them like absent values
-  if (is.na(out) || agent_sentinel_string(out)) return(fallback)
+  if (is.na(out)) return(fallback)
   if (nzchar(out) && nchar(out, type = "chars", allowNA = TRUE) > max_chars)
     out <- paste0(substr(out, 1L, max_chars), " ...")
   out
 }
 
 .agent_figure_numeric_param <- function(value, name, min, max, default) {
-  # ellmer converts JSON null to NA and some providers (glm flash) echo
-  # omitted optionals as empty objects or literal sentinels; treat NA,
-  # length-0, empty-list, and sentinel-string values like an omitted value.
+  # Absent (NULL / empty) means omitted and takes the default; every
+  # other out-of-range or non-numeric value is a self-correctable error.
   if (.agent_param_absent(value)) return(default)
   value <- suppressWarnings(as.numeric(value)[1])
   if (is.na(value) || value < min || value > max)
@@ -180,9 +177,6 @@ agent_figure_grammar <- function() {
 }
 
 .agent_figure_integer_param <- function(value, name, min, max, default) {
-  # ellmer converts JSON null to NA and some providers (glm flash) echo
-  # omitted optionals as empty objects or literal sentinels; treat NA,
-  # length-0, empty-list, and sentinel-string values like an omitted value.
   if (.agent_param_absent(value)) return(default)
   value <- suppressWarnings(as.integer(value)[1])
   if (is.na(value) || value < min || value > max)
@@ -191,36 +185,29 @@ agent_figure_grammar <- function() {
 }
 
 .agent_param_absent <- function(value) {
-  # tibble artifacts (ellmer array-of-object conversion) count rows, not
-  # columns: a 0-row tibble is absent, any populated one is present; a
-  # plain list whose every element is itself absent (ellmer materializes
-  # omitted nested properties as list(NULL)) counts as absent too.
-  # isTRUE() guards is.na()'s logical(0) on empty-list elements so the
-  # scalar branches can never error on exotic shapes.
-  if (is.data.frame(value))
-    return(nrow(value) == 0L)
+  # Absent in the canonical tool-argument document: NULL, empty, or a
+  # list (object or array) whose every element is itself absent -- the
+  # model may echo an all-null object explicitly. isTRUE() guards
+  # is.na()'s logical(0) on empty-list elements so the scalar branches
+  # can never error on exotic shapes.
   if (is.null(value) || length(value) == 0L)
     return(TRUE)
   if (is.list(value))
     return(all(vapply(value, function(v) .agent_param_absent(v), logical(1))))
-  isTRUE(is.na(value[1])) ||
-    (is.character(value) && agent_sentinel_string(value[1]))
+  isTRUE(is.na(value[1]))
 }
 
 .agent_figure_ids_param <- function(value, name) {
-  # WP6b: optional ID-array template argument (features/samples). Normalizes
-  # the provider-artifact shapes seen in tool traffic — ellmer tibbles,
-  # record lists, NA entries, literal sentinel strings ("null", "[]") — to
-  # a trimmed character vector, or NULL when effectively omitted.
+  # WP6b: optional ID-array template argument (features/samples).
+  # Canonical transport delivers a character vector or NULL; trim and
+  # drop empty entries, or return NULL when effectively omitted.
   if (.agent_param_absent(value)) return(NULL)
-  if (inherits(value, "data.frame"))
-    value <- unlist(lapply(as.list(value), as.character), use.names = FALSE)
-  else if (is.list(value))
+  if (is.list(value))
     value <- unlist(lapply(value, function(v) as.character(v)[1]), use.names = FALSE)
   else
     value <- as.character(value)
   value <- trimws(value[!is.na(value)])
-  value <- value[nzchar(value) & !(value %in% AGENT_SENTINEL_STRINGS)]
+  value <- value[nzchar(value)]
   if (!length(value)) return(NULL)
   if (anyDuplicated(value))
     stop("Figure ", name, " must be unique IDs; duplicate entries found.")
@@ -228,8 +215,7 @@ agent_figure_grammar <- function() {
 }
 
 .agent_figure_choice <- function(value, choices, name, fallback = NULL) {
-  if (is.null(value) || length(value) == 0 || is.na(value) ||
-      agent_sentinel_string(value))
+  if (is.null(value) || length(value) == 0 || is.na(value))
     return(fallback)
   value <- .agent_figure_scalar(value, max_chars = 100L)
   if (is.null(value) || !value %in% choices)
@@ -240,13 +226,12 @@ agent_figure_grammar <- function() {
 
 .agent_figure_selection <- function(x) {
   if (is.null(x) || length(x) == 0) return(character())
-  if (agent_sentinel_string(x)) return(character())
   x <- as.character(x)
   unique(x[!is.na(x) & nzchar(x)])
 }
 
 .agent_figure_ids <- function(x, valid_ids, label, max_n, allow_default = TRUE) {
-  if (is.null(x) || agent_sentinel_string(x)) {
+  if (is.null(x)) {
     if (!allow_default)
       stop("Figure requires at least one ", label, " ID.")
     return(NULL)
@@ -296,7 +281,7 @@ agent_figure_grammar <- function() {
   if (.agent_param_absent(values)) stop("Figure filter ", name, " is required for this operator.")
   values <- .agent_flatten_strings(values)
   values <- trimws(values[!is.na(values)])
-  values <- values[nzchar(values) & !(values %in% AGENT_SENTINEL_STRINGS)]
+  values <- values[nzchar(values)]
   if (!length(values))
     stop("Figure filter ", name, " needs at least one value ",
          "(send numbers as strings on numeric columns).")
@@ -306,12 +291,9 @@ agent_figure_grammar <- function() {
   values
 }
 
-# Flatten one provider shape or another into a plain character vector:
-# atomic vectors, lists of scalars, tibble columns whose entries are
-# themselves vectors (array-of-object conversion), or nested NULLs.
+# Flatten a values argument into a plain character vector: atomic
+# vectors, lists of scalars, or nested lists.
 .agent_flatten_strings <- function(values) {
-  if (is.data.frame(values))
-    values <- as.list(values)
   if (!is.list(values))
     return(as.character(values))
   unlist(lapply(values, function(v) {
@@ -334,22 +316,11 @@ agent_figure_grammar <- function() {
 # mapping table, used to resolve the 'x'/'y' column shorthands.
 agent_where_normalize <- function(where, mappings = NULL) {
   if (.agent_param_absent(where)) return(NULL)
-  if (is.data.frame(where)) {
-    if (nrow(where) > 1L)
-      stop("Figure layer filter must be a single object, not an array.")
-    where <- as.list(where[1, , drop = FALSE])
-  }
   if (!is.list(where))
     stop("Figure layer filter must be an object.")
 
   all_value <- where$all
   any_value <- where$any
-  if (is.data.frame(all_value) && nrow(all_value) > 0L)
-    all_value <- lapply(seq_len(nrow(all_value)),
-                        function(i) as.list(all_value[i, , drop = FALSE]))
-  if (is.data.frame(any_value) && nrow(any_value) > 0L)
-    any_value <- lapply(seq_len(nrow(any_value)),
-                        function(i) as.list(any_value[i, , drop = FALSE]))
   has_all <- !.agent_param_absent(all_value)
   has_any <- !.agent_param_absent(any_value)
   if (has_all || has_any) {
@@ -360,15 +331,15 @@ agent_where_normalize <- function(where, mappings = NULL) {
       stop("Figure layer filter combinator must be a non-empty array of conditions.")
     out <- lapply(children, agent_where_normalize, mappings = mappings)
     out <- out[!vapply(out, is.null, logical(1))]
-    # an all/any whose every child is absent is itself absent (ellmer
-    # materializes omitted nested arrays as list(NULL) columns)
+    # an all/any whose every child is absent is itself absent (the model
+    # may echo an all-null combinator array explicitly)
     if (!length(out)) return(NULL)
     return(setNames(list(out), if (has_all) "all" else "any"))
   }
 
   allowed <- c("column", "op", "value", "text", "min", "max", "values", "not")
   # all/any were already deemed absent by the guard above; other keys count
-  # only when their value is not absent (tibbles carry NA columns)
+  # only when their value is not absent
   present_names <- names(where)[vapply(names(where), function(n) {
     !identical(n, "all") && !identical(n, "any") &&
       !.agent_param_absent(where[[n]])
@@ -394,8 +365,8 @@ agent_where_normalize <- function(where, mappings = NULL) {
     stop("Figure filter requires an operator from: ",
          paste(.agent_figure_where_ops, collapse = ", "), ".")
 
-  # ellmer delivers absent array-of-object properties as NA (not NULL),
-  # so presence must be tested with the absence helper, not names()
+  # presence must be tested with the absence helper, not names(): the
+  # model may echo an all-null object with every field explicitly null
   given <- Filter(function(n) !.agent_param_absent(where[[n]]),
                   c("value", "text", "min", "max", "values"))
   needed <- switch(
@@ -578,7 +549,7 @@ agent_where_eval <- function(where, data) {
   if (.agent_param_absent(value)) return(NULL)
   value <- .agent_flatten_strings(value)
   value <- trimws(value[!is.na(value)])
-  value <- value[nzchar(value) & !(value %in% AGENT_SENTINEL_STRINGS)]
+  value <- value[nzchar(value)]
   if (!length(value))
     stop("Figure ", name, " needs at least one entry",
          if (!is.null(empty_hint)) paste0(" ", empty_hint) else "", ".")
@@ -593,10 +564,7 @@ agent_where_eval <- function(where, data) {
 # Returns a named character vector (category -> lowercase hex).
 .agent_figure_scale_values <- function(values) {
   if (.agent_param_absent(values)) return(NULL)
-  if (is.data.frame(values)) {
-    category <- as.character(values$category)
-    color <- as.character(values$color)
-  } else if (is.list(values)) {
+  if (is.list(values)) {
     scalar <- vapply(values, function(v) is.atomic(v), logical(1))
     if (all(scalar)) {
       category <- names(values)
@@ -609,8 +577,7 @@ agent_where_eval <- function(where, data) {
     category <- names(values)
     color <- as.character(values)
   }
-  keep <- !is.na(category) & nzchar(trimws(category)) &
-    !is.na(color) & !(as.character(color) %in% AGENT_SENTINEL_STRINGS)
+  keep <- !is.na(category) & nzchar(trimws(category)) & !is.na(color)
   category <- trimws(category[keep])
   color <- color[keep]
   if (!length(category))
@@ -788,7 +755,6 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
   # every sample. The ad-hoc cap exists to bound hand-written subsets; a
   # verbatim full set must survive re-submission on larger datasets.
   samples_are_full_set <- !is.null(spec$samples) &&
-    !agent_sentinel_string(spec$samples) &&
     identical(as.character(spec$samples), sample_ids)
   samples <- .agent_figure_ids(
     spec$samples, sample_ids, "sample",
@@ -807,21 +773,8 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       samples <- sample_ids
   }
 
-  # ellmer converts type_array(of type_object) arguments into tibbles, so a
-  # figure spec arriving through the chat tool path has layers as an
-  # N-row/15-column data.frame (where length() counts columns!) and params
-  # as df-columns. Coerce both to plain row-lists BEFORE counting, and keep
-  # plain-list specs (unit tests, programmatic callers) working unchanged.
-  if (is.data.frame(spec$layers)) {
-    spec$layers <- lapply(seq_len(nrow(spec$layers)), function(i)
-      as.list(spec$layers[i, , drop = FALSE]))
-  }
-  spec$layers <- lapply(spec$layers, function(layer) {
-    if (is.data.frame(layer$params))
-      layer$params <- as.list(layer$params[1, , drop = FALSE])
-    layer
-  })
-
+  # Layers arrive as a list of layer objects in the canonical
+  # tool-argument document (agent_args_sanitize at the tool seam).
   if (!is.list(spec$layers) || length(spec$layers) < 1L)
     stop("Figure requires between 1 and 12 layers.")
   if (length(spec$layers) > 12L)
