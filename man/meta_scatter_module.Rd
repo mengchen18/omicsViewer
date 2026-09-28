@@ -13,7 +13,8 @@ meta_scatter_module(
   reactive_x = reactive(NULL),
   reactive_y = reactive(NULL),
   reactive_status = reactive(NULL),
-  store = NULL
+  store = NULL,
+  selection = NULL
 )
 }
 \arguments{
@@ -38,6 +39,14 @@ meta_scatter_module(
 mode state lives in the store; the hand-rolled xax/yax/axisRequest
 sync machinery was replaced by the store protocol (plan section 6,
 phase S2).}
+
+\item{selection}{Selection-bus port (\code{\link{selection_port}})
+bound to this scatter's space ("feature" or "sample"). The scatter
+is the figure-space writer of the unified selection: lasso/box/click
+events, the volcano corner auto-selection, clear and snapshot
+restore all report through the port (origins "figure", "corner",
+"clear", "restore"), and every consumer (tables, result space,
+snapshot) reads the bus instead of adopting module returns.}
 }
 \description{
 Utility - scatter plot for meta shiny module

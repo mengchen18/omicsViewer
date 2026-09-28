@@ -9,6 +9,7 @@
 \alias{.store_write_plan}
 \alias{store_read}
 \alias{store_apply}
+\alias{store_seed}
 \alias{store_ack}
 \alias{store_sync_from_ui}
 \alias{store_bind_triselector}
@@ -55,6 +56,8 @@ store_apply(
   strict = TRUE,
   mark_pending = TRUE
 )
+
+store_seed(store, patch)
 
 store_ack(store, id, widget_value)
 
@@ -130,8 +133,7 @@ not invoked by the S1 core.}
 
 \item{ids}{Optional ids to read; default all.}
 
-\item{patch}{Named list of canonical id -> proposed value; \code{NULL}
-values are treated as omitted sentinels and dropped.}
+\item{patch}{Named list of module-local id -> widget-reported value.}
 
 \item{origin}{One of \code{"agent"}, \code{"restore"}, \code{"system"}.
 Agent-origin writes require agent-writable (user-editable) widgets;
@@ -189,6 +191,9 @@ Invisible receipt: \code{applied} (ordered ids), \code{diff},
   \code{epochs}, \code{skipped} (no-op keys), \code{global_epoch},
   and (when not strict) \code{rejected}.
 
+Invisible receipt: \code{applied}, \code{skipped} (held,
+  dropped or unknown keys), and \code{rejected} (invalid values).
+
 TRUE when a re-assert (re-send) is needed, otherwise FALSE.
 
 Invisible TRUE when an agent write was overridden.
@@ -197,7 +202,7 @@ Invisible NULL.
 
 A reactive expression yielding the current stored value.
 
-A reactive expression yielding the global epoch.
+A reactive expression yielding the (scoped) epoch.
 
 A plain list with \code{values} and \code{epochs} for every
   registered id (including internal state).
@@ -230,6 +235,19 @@ touched keys in dependency order, bumping epochs and recording pending
 (unacknowledged) values. Untouched keys are never written, so applies
 have no side effects beyond what was requested.
 
+The single sanctioned seeding path for values copied FROM the live
+widgets into a still-empty store (the per-module "widget defaults"
+observers). Per key: NULL values are dropped (omitted sentinels),
+unknown ids are skipped silently (seeds are best-effort), and keys the
+store already holds are never overwritten (restores and agent applies
+that land first win). Writes go through \code{\link{store_apply}}
+with \code{origin = "system"}, \code{strict = FALSE} and
+\code{mark_pending = FALSE}: seeded values are known to already sit
+in the widgets, so arming the bounded re-assert loop would arm pushes
+that can never be acknowledged (an input whose value does not change
+fires no event) and a stale re-assert could later clobber unrelated
+direct updates on the same widget.
+
 Called by S2 session glue when a widget confirms (or reports) its current
 value. Clears matching pending entries; a mismatch returns a re-assert
 signal so the bounded retry loop can re-send the store value.
@@ -255,7 +273,11 @@ reactiveVal, so effects can depend on store writes directly.
 
 Bumped once per applying transaction. Consumers that must re-assert after
 ANY external write (e.g. a cascade group) watch this instead of tracking
-per-key epochs.
+per-key epochs. WP5 scopes the counter: the ROOT store yields the
+global epoch (every transaction), while a CHILD view yields its own
+namespace prefix's epoch, which advances only when a write touches
+that prefix or any subtree below it - store-driven cascades stop
+re-deriving on unrelated modules' writes.
 
 Restore-origin patches may set internal (non-user-editable) state, which
 is exactly how snapshot round-trips reach keys the agent may never

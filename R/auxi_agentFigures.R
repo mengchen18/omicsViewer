@@ -30,6 +30,20 @@ NULL
 # WP6 figure templates (plan decision 4: volcano/boxplot/histogram/scatter
 # ship now; density/barplot stay log-gated; pca is deferred)
 .agent_figure_templates <- c("volcano", "scatter", "boxplot", "histogram")
+# Widened grammar (2026-09-26): structured row predicates (layer `filter`),
+# constant color/fill params, explicit scale overrides, and bounded theme
+# tweaks. Still fully declarative — a fixed operator table interpreted
+# server-side, never parsed or evaluated as code.
+.agent_figure_where_ops <- c(
+  ">", ">=", "<", "<=", "abs>", "abs>=", "==", "!=", "between",
+  "in", "not_in", "is_na", "not_na", "starts_with", "ends_with"
+)
+.agent_figure_where_max_depth <- 3L
+.agent_figure_where_max_leaves <- 8L
+.agent_figure_where_max_values <- 50L
+.agent_figure_scale_max_values <- 26L
+.agent_figure_hex_pattern <- "^#[0-9a-fA-F]{3,8}$"
+.agent_figure_legend_positions <- c("top", "bottom", "left", "right", "none")
 
 #' Describe the allowlisted model-facing figure grammar
 #'
@@ -57,12 +71,86 @@ agent_figure_grammar <- function() {
     themes = .agent_figure_themes,
     palettes = .agent_figure_palettes,
     templates = agent_figure_templates(),
+    layer_filters = list(
+      description = paste(
+        "Optional row filter on any layer: only matching rows are drawn by",
+        "that layer (applied before max_labels). Combine a highlight overlay,",
+        "a labeled subset, or per-group coloring by stacking filtered layers",
+        "with constant params.color/params.fill."
+      ),
+      form = paste(
+        "One leaf condition {column, op, ...} or one combinator",
+        "{all: [leaf, ...]} / {any: [leaf, ...]}; at most",
+        .agent_figure_where_max_depth, "nesting levels and",
+        .agent_figure_where_max_leaves, "leaves per filter."
+      ),
+      ops = list(
+        `>` = "numeric column greater than value.",
+        `>=` = "numeric column greater than or equal to value.",
+        `<` = "numeric column less than value.",
+        `<=` = "numeric column less than or equal to value.",
+        `abs>` = "absolute numeric column value greater than value.",
+        `abs>=` = "absolute numeric column value greater than or equal to value.",
+        `==` = "equal to value (numeric columns) or text (text columns).",
+        `!=` = "not equal to value (numeric columns) or text (text columns).",
+        between = "numeric column between min and max (inclusive).",
+        `in` = "column value one of values (send numbers as strings on numeric columns).",
+        not_in = "column value none of values.",
+        is_na = "column value is missing.",
+        not_na = "column value is present.",
+        starts_with = "text column value starts with text.",
+        ends_with = "text column value ends with text."
+      ),
+      leaf_fields = list(
+        column = paste(
+          "Exact data column (feature__/sample__ prefixed in expression figures),",
+          "or 'x'/'y' for this layer's own axis mapping."
+        ),
+        value = "Number, for > >= < <= abs> abs>= == !=.",
+        text = "String, for == != starts_with ends_with on text columns.",
+        min = "Number, between lower bound.",
+        max = "Number, between upper bound.",
+        values = paste("1-", .agent_figure_where_max_values,
+                       " strings, for in/not_in.", sep = ""),
+        not = "true negates the leaf condition."
+      ),
+      semantics = paste(
+        "Rows with NA values never match a comparison; use is_na/not_na",
+        "to match them explicitly."
+      )
+    ),
+    constant_layer_params = list(
+      color = "Hex color (e.g. #b2182b) for every row of the layer; mutually exclusive with mapping the color aesthetic.",
+      fill = "Hex color for every row of the layer; mutually exclusive with mapping the fill aesthetic."
+    ),
+    scale_overrides = list(
+      description = paste(
+        "Explicit per-channel scale control; beats the palette preset for",
+        "that channel. Discrete mappings take values (category-to-hex pairs);",
+        "continuous mappings take limits (two numbers) or midpoint",
+        "(diverging gradient around the midpoint)."
+      ),
+      channels = c("color", "fill")
+    ),
+    theme_options = list(
+      description = "Bounded tweaks applied on top of the chosen theme.",
+      fields = list(
+        base_size = "Integer 8-24; base font size.",
+        legend_position = "'top', 'bottom', 'left', 'right', or 'none'.",
+        rotate_x_labels = "Number 0-90; degrees to rotate x-axis labels.",
+        show_grid = "true/false; hide panel grid lines when false."
+      )
+    ),
     limits = list(
       max_layers = 12L,
       max_annotation_rows = 20000L,
       max_expression_features = 50L,
       max_expression_samples = 200L,
       max_text_labels = 50L,
+      max_filter_depth = .agent_figure_where_max_depth,
+      max_filter_leaves = .agent_figure_where_max_leaves,
+      max_in_values = .agent_figure_where_max_values,
+      max_scale_values = .agent_figure_scale_max_values,
       max_full_png_mb = 10
     )
   )
@@ -103,7 +191,19 @@ agent_figure_grammar <- function() {
 }
 
 .agent_param_absent <- function(value) {
-  is.null(value) || length(value) == 0L || is.na(value[1]) ||
+  # tibble artifacts (ellmer array-of-object conversion) count rows, not
+  # columns: a 0-row tibble is absent, any populated one is present; a
+  # plain list whose every element is itself absent (ellmer materializes
+  # omitted nested properties as list(NULL)) counts as absent too.
+  # isTRUE() guards is.na()'s logical(0) on empty-list elements so the
+  # scalar branches can never error on exotic shapes.
+  if (is.data.frame(value))
+    return(nrow(value) == 0L)
+  if (is.null(value) || length(value) == 0L)
+    return(TRUE)
+  if (is.list(value))
+    return(all(vapply(value, function(v) .agent_param_absent(v), logical(1))))
+  isTRUE(is.na(value[1])) ||
     (is.character(value) && agent_sentinel_string(value[1]))
 }
 
@@ -165,6 +265,448 @@ agent_figure_grammar <- function() {
   x
 }
 
+# ---- structured row predicates (widened grammar) -------------------------
+#
+# A filter is a small JSON tree: leaves carry a column, an operator from a
+# closed table, and typed value fields; combinators are all/any. Nothing is
+# ever parsed or evaluated as code — agent_where_normalize canonicalizes the
+# tree at spec-normalization time (validating operators, value types, caps,
+# and x/y aesthetic references) and agent_where_eval interprets the canonical
+# tree against the built plotting data. Field names are deliberately typed
+# (value = number, text = string, min/max = numbers, values = string array)
+# because ellmer NA-converts type-mismatched scalars inside arrays of
+# objects — a polymorphic value field would silently arrive as NA.
+
+.agent_where_number <- function(value, name, min = -1e12, max = 1e12) {
+  if (.agent_param_absent(value)) stop("Figure filter ", name, " is required for this operator.")
+  value <- suppressWarnings(as.numeric(value)[1])
+  if (is.na(value) || value < min || value > max)
+    stop("Figure filter ", name, " must be a number between ", min, " and ", max, ".")
+  value
+}
+
+.agent_where_text <- function(value, name) {
+  if (.agent_param_absent(value)) stop("Figure filter ", name, " is required for this operator.")
+  out <- .agent_figure_scalar(value, max_chars = 200L)
+  if (is.null(out)) stop("Figure filter ", name, " is required for this operator.")
+  out
+}
+
+.agent_where_values <- function(values, name) {
+  if (.agent_param_absent(values)) stop("Figure filter ", name, " is required for this operator.")
+  values <- .agent_flatten_strings(values)
+  values <- trimws(values[!is.na(values)])
+  values <- values[nzchar(values) & !(values %in% AGENT_SENTINEL_STRINGS)]
+  if (!length(values))
+    stop("Figure filter ", name, " needs at least one value ",
+         "(send numbers as strings on numeric columns).")
+  if (length(values) > .agent_figure_where_max_values)
+    stop("Figure filter ", name, " accepts at most ",
+         .agent_figure_where_max_values, " values.")
+  values
+}
+
+# Flatten one provider shape or another into a plain character vector:
+# atomic vectors, lists of scalars, tibble columns whose entries are
+# themselves vectors (array-of-object conversion), or nested NULLs.
+.agent_flatten_strings <- function(values) {
+  if (is.data.frame(values))
+    values <- as.list(values)
+  if (!is.list(values))
+    return(as.character(values))
+  unlist(lapply(values, function(v) {
+    if (is.null(v) || length(v) == 0L) character(0)
+    else if (is.list(v)) .agent_flatten_strings(v)
+    else as.character(v)
+  }), use.names = FALSE)
+}
+
+.agent_where_flag <- function(value, name) {
+  if (.agent_param_absent(value)) return(FALSE)
+  if (is.logical(value)) return(isTRUE(value[1]))
+  value <- tolower(.agent_figure_scalar(value, max_chars = 10L) %||% "")
+  if (!value %in% c("true", "false"))
+    stop("Figure filter ", name, " must be true or false.")
+  identical(value, "true")
+}
+
+# Canonicalize one filter object. mappings is the layer's own aesthetic
+# mapping table, used to resolve the 'x'/'y' column shorthands.
+agent_where_normalize <- function(where, mappings = NULL) {
+  if (.agent_param_absent(where)) return(NULL)
+  if (is.data.frame(where)) {
+    if (nrow(where) > 1L)
+      stop("Figure layer filter must be a single object, not an array.")
+    where <- as.list(where[1, , drop = FALSE])
+  }
+  if (!is.list(where))
+    stop("Figure layer filter must be an object.")
+
+  all_value <- where$all
+  any_value <- where$any
+  if (is.data.frame(all_value) && nrow(all_value) > 0L)
+    all_value <- lapply(seq_len(nrow(all_value)),
+                        function(i) as.list(all_value[i, , drop = FALSE]))
+  if (is.data.frame(any_value) && nrow(any_value) > 0L)
+    any_value <- lapply(seq_len(nrow(any_value)),
+                        function(i) as.list(any_value[i, , drop = FALSE]))
+  has_all <- !.agent_param_absent(all_value)
+  has_any <- !.agent_param_absent(any_value)
+  if (has_all || has_any) {
+    if (has_all && has_any)
+      stop("Figure layer filter accepts either 'all' or 'any', not both.")
+    children <- if (has_all) all_value else any_value
+    if (!is.list(children) || !length(children))
+      stop("Figure layer filter combinator must be a non-empty array of conditions.")
+    out <- lapply(children, agent_where_normalize, mappings = mappings)
+    out <- out[!vapply(out, is.null, logical(1))]
+    # an all/any whose every child is absent is itself absent (ellmer
+    # materializes omitted nested arrays as list(NULL) columns)
+    if (!length(out)) return(NULL)
+    return(setNames(list(out), if (has_all) "all" else "any"))
+  }
+
+  allowed <- c("column", "op", "value", "text", "min", "max", "values", "not")
+  # all/any were already deemed absent by the guard above; other keys count
+  # only when their value is not absent (tibbles carry NA columns)
+  present_names <- names(where)[vapply(names(where), function(n) {
+    !identical(n, "all") && !identical(n, "any") &&
+      !.agent_param_absent(where[[n]])
+  }, logical(1))]
+  unknown <- setdiff(present_names, allowed)
+  if (length(unknown))
+    stop("Unknown figure filter field(s): ", paste(unknown, collapse = ", "))
+
+  column <- .agent_figure_scalar(where$column, max_chars = 500L)
+  if (is.null(column))
+    stop("Figure filter requires a column.")
+  if (column %in% c("x", "y")) {
+    mapped <- if (!is.null(mappings)) mappings[[column]] else NULL
+    mapped <- .agent_figure_scalar(mapped, max_chars = 500L)
+    if (is.null(mapped))
+      stop("Figure filter column '", column, "' refers to this layer's ", column,
+           " aesthetic, which the layer does not map.")
+    column <- mapped
+  }
+
+  op <- .agent_figure_choice(where$op, .agent_figure_where_ops, "filter operator")
+  if (is.null(op))
+    stop("Figure filter requires an operator from: ",
+         paste(.agent_figure_where_ops, collapse = ", "), ".")
+
+  # ellmer delivers absent array-of-object properties as NA (not NULL),
+  # so presence must be tested with the absence helper, not names()
+  given <- Filter(function(n) !.agent_param_absent(where[[n]]),
+                  c("value", "text", "min", "max", "values"))
+  needed <- switch(
+    op,
+    `>` = , `>=` = , `<` = , `<=` = , `abs>` = , `abs>=` = "value",
+    between = c("min", "max"),
+    `==` = , `!=` = c("value", "text"),
+    `in` = , `not_in` = "values",
+    `is_na` = , `not_na` = character(),
+    starts_with = , ends_with = "text"
+  )
+  if (!length(needed)) {
+    if (length(given))
+      stop("Figure filter operator ", op, " takes no comparison value.")
+  } else if (identical(needed, c("value", "text"))) {
+    if (length(given) != 1L || !given %in% needed)
+      stop("Figure filter operator ", op, " takes exactly one of value (number) or text (string).")
+  } else {
+    missing <- setdiff(needed, given)
+    if (length(missing))
+      stop("Figure filter operator ", op, " requires field(s): ",
+           paste(missing, collapse = ", "), ".")
+    extra <- setdiff(given, needed)
+    if (length(extra))
+      stop("Figure filter operator ", op, " does not accept field(s): ",
+           paste(extra, collapse = ", "), ".")
+  }
+
+  leaf <- list(column = column, op = op)
+  if (identical(op, "between")) {
+    leaf$min <- .agent_where_number(where$min, "min")
+    leaf$max <- .agent_where_number(where$max, "max")
+    if (leaf$min > leaf$max)
+      stop("Figure filter between requires min <= max.")
+  } else if (op %in% c("==", "!=")) {
+    if ("value" %in% given) leaf$value <- .agent_where_number(where$value, "value")
+    else leaf$text <- .agent_where_text(where$text, "text")
+  } else if (op %in% c(">", ">=", "<", "<=", "abs>", "abs>=")) {
+    leaf$value <- .agent_where_number(where$value, "value")
+  } else if (op %in% c("in", "not_in")) {
+    leaf$values <- .agent_where_values(where$values, "values")
+  } else if (op %in% c("starts_with", "ends_with")) {
+    leaf$text <- .agent_where_text(where$text, "text")
+  }
+  if (.agent_where_flag(where$not, "not")) leaf$not <- TRUE
+  leaf
+}
+
+.agent_where_depth <- function(node) {
+  if (!is.null(node$all) || !is.null(node$any))
+    return(1L + max(vapply(.agent_where_children(node), .agent_where_depth, integer(1))))
+  1L
+}
+
+.agent_where_children <- function(node) {
+  if (!is.null(node$all)) return(node$all)
+  node$any
+}
+
+.agent_where_leaves <- function(node) {
+  if (!is.null(node$all) || !is.null(node$any))
+    return(sum(vapply(.agent_where_children(node), .agent_where_leaves, integer(1))))
+  1L
+}
+
+.agent_where_validate_caps <- function(node) {
+  if (.agent_where_depth(node) > .agent_figure_where_max_depth)
+    stop("Figure layer filter nests at most ", .agent_figure_where_max_depth, " levels deep.")
+  if (.agent_where_leaves(node) > .agent_figure_where_max_leaves)
+    stop("Figure layer filter accepts at most ", .agent_figure_where_max_leaves, " conditions.")
+  invisible(node)
+}
+
+# Interpret a canonical filter against the built plotting data. Returns a
+# settled logical vector (no NAs): rows with NA values never match a
+# comparison — is_na/not_na are the explicit way to match them.
+agent_where_eval <- function(where, data) {
+  if (is.null(where)) return(rep(TRUE, nrow(data)))
+  hit <- .agent_where_eval_node(where, data)
+  hit[is.na(hit)] <- FALSE
+  hit
+}
+
+.agent_where_eval_node <- function(node, data) {
+  if (!is.null(node$all) || !is.null(node$any)) {
+    hits <- lapply(.agent_where_children(node), .agent_where_eval_node, data)
+    if (any(vapply(hits, function(h) length(h) != nrow(data), logical(1))))
+      stop("Figure filter produced an invalid result.")
+    if (!is.null(node$all)) return(Reduce(`&`, hits))
+    return(Reduce(`|`, hits))
+  }
+
+  column <- .agent_figure_scalar(node$column, max_chars = 500L)
+  if (is.null(column) || !column %in% colnames(data))
+    stop("Figure filter column is unavailable: ", column, ".",
+         .agent_suggest_text(column, colnames(data)))
+  vals <- data[[column]]
+  op <- node$op
+
+  require_numeric <- function() {
+    if (!is.numeric(vals))
+      stop("Figure filter operator ", op, " requires a numeric column, but '",
+           column, "' is not numeric.")
+  }
+  numeric_text <- function(value, text) {
+    out <- suppressWarnings(as.numeric(if (is.null(value)) text else value)[1])
+    if (is.na(out))
+      stop("Figure filter compares numeric column '", column,
+           "' with a non-numeric value; pass it as a number.")
+    out
+  }
+
+  hit <- switch(
+    op,
+    `>` = , `>=` = , `<` = , `<=` = , `abs>` = , `abs>=` = {
+      require_numeric()
+      lhs <- if (op %in% c("abs>", "abs>=")) abs(vals) else vals
+      switch(op,
+             `>` = lhs > node$value,
+             `>=` = lhs >= node$value,
+             `<` = lhs < node$value,
+             `<=` = lhs <= node$value,
+             `abs>` = lhs > node$value,
+             `abs>=` = lhs >= node$value)
+    },
+    between = {
+      require_numeric()
+      vals >= node$min & vals <= node$max
+    },
+    `==` = , `!=` = {
+      if (is.numeric(vals)) {
+        rhs <- numeric_text(node$value, node$text)
+        if (identical(op, "==")) vals == rhs else vals != rhs
+      } else {
+        rhs <- as.character(if (is.null(node$text)) node$value else node$text)
+        if (identical(op, "==")) as.character(vals) == rhs else as.character(vals) != rhs
+      }
+    },
+    `in` = , `not_in` = {
+      rhs <- if (is.numeric(vals)) {
+        nums <- suppressWarnings(as.numeric(node$values))
+        if (anyNA(nums))
+          stop("Figure filter in/not_in on numeric column '", column,
+               "' needs numeric values (send them as strings, e.g. \"1.5\").")
+        nums
+      } else {
+        node$values
+      }
+      hit <- vals %in% rhs
+      if (identical(op, "not_in")) hit <- !hit & !is.na(vals)
+      hit
+    },
+    is_na = is.na(vals),
+    not_na = !is.na(vals),
+    starts_with = , ends_with = {
+      if (!is.character(vals) && !is.factor(vals))
+        stop("Figure filter operator ", op, " requires a text column, but '",
+             column, "' is not text.")
+      fun <- if (identical(op, "starts_with")) startsWith else endsWith
+      fun(as.character(vals), node$text)
+    },
+    stop("Unsupported figure filter operator: ", op, ".")
+  )
+
+  if (isTRUE(node$not)) hit <- !hit
+  hit
+}
+
+# ---- constant colors, scale overrides, theme tweaks --------------------
+
+.agent_figure_color_scalar <- function(value, what) {
+  out <- .agent_figure_scalar(value, max_chars = 9L)
+  if (is.null(out)) return(NULL)
+  if (!grepl(.agent_figure_hex_pattern, out))
+    stop("Figure ", what, " must be a hex color like '#b2182b', not: ", out, ".")
+  tolower(out)
+}
+
+.agent_figure_clean_strings <- function(value, name, max_n, empty_hint = NULL) {
+  if (.agent_param_absent(value)) return(NULL)
+  value <- .agent_flatten_strings(value)
+  value <- trimws(value[!is.na(value)])
+  value <- value[nzchar(value) & !(value %in% AGENT_SENTINEL_STRINGS)]
+  if (!length(value))
+    stop("Figure ", name, " needs at least one entry",
+         if (!is.null(empty_hint)) paste0(" ", empty_hint) else "", ".")
+  if (length(value) > max_n)
+    stop("Figure ", name, " accepts at most ", max_n, " entries.")
+  value
+}
+
+# Discrete per-category colors: schema shape is an array of
+# {category, color} pairs (ellmer type_object cannot declare dynamic-key
+# maps); named lists/vectors from programmatic callers are accepted too.
+# Returns a named character vector (category -> lowercase hex).
+.agent_figure_scale_values <- function(values) {
+  if (.agent_param_absent(values)) return(NULL)
+  if (is.data.frame(values)) {
+    category <- as.character(values$category)
+    color <- as.character(values$color)
+  } else if (is.list(values)) {
+    scalar <- vapply(values, function(v) is.atomic(v), logical(1))
+    if (all(scalar)) {
+      category <- names(values)
+      color <- vapply(values, function(v) as.character(v)[1], character(1))
+    } else {
+      category <- vapply(values, function(v) as.character(v$category)[1], character(1))
+      color <- vapply(values, function(v) as.character(v$color)[1], character(1))
+    }
+  } else {
+    category <- names(values)
+    color <- as.character(values)
+  }
+  keep <- !is.na(category) & nzchar(trimws(category)) &
+    !is.na(color) & !(as.character(color) %in% AGENT_SENTINEL_STRINGS)
+  category <- trimws(category[keep])
+  color <- color[keep]
+  if (!length(category))
+    stop("Figure scale values need at least one category/color pair.")
+  if (anyDuplicated(category))
+    stop("Figure scale values contain duplicate categories: ",
+         paste(utils::head(category[duplicated(category)], 3L), collapse = ", "), ".")
+  if (length(category) > .agent_figure_scale_max_values)
+    stop("Figure scale values accept at most ", .agent_figure_scale_max_values,
+         " categories; merge rare levels or use a mapped palette instead.")
+  color <- vapply(seq_along(color), function(i)
+    .agent_figure_color_scalar(color[i], paste0("scale color for '", category[i], "'")),
+    character(1))
+  setNames(color, category)
+}
+
+.agent_figure_scale_normalize <- function(scale) {
+  if (.agent_param_absent(scale)) return(NULL)
+  if (!is.list(scale))
+    stop("Figure scale override must be an object.")
+  unknown <- setdiff(names(scale), c("color", "fill"))
+  if (length(unknown))
+    stop("Unknown figure scale field(s): ", paste(unknown, collapse = ", "))
+  out <- list()
+  for (channel in c("color", "fill")) {
+    channel_spec <- scale[[channel]]
+    if (.agent_param_absent(channel_spec)) next
+    if (!is.list(channel_spec))
+      stop("Figure scale ", channel, " override must be an object.")
+    unknown_channel <- setdiff(names(channel_spec), c("values", "limits", "midpoint"))
+    if (length(unknown_channel))
+      stop("Unknown figure scale ", channel, " field(s): ",
+           paste(unknown_channel, collapse = ", "))
+    channel_out <- list(
+      values = .agent_figure_scale_values(channel_spec$values),
+      limits = .agent_figure_clean_strings(
+        channel_spec$limits, paste0("scale ", channel, " limits"),
+        .agent_figure_scale_max_values)
+    )
+    if (!.agent_param_absent(channel_spec$midpoint)) {
+      midpoint <- suppressWarnings(as.numeric(channel_spec$midpoint)[1])
+      if (is.na(midpoint))
+        stop("Figure scale ", channel, " midpoint must be a number.")
+      channel_out$midpoint <- midpoint
+    }
+    if (is.null(channel_out$values) && is.null(channel_out$limits) &&
+        is.null(channel_out$midpoint))
+      stop("Figure scale ", channel,
+           " override requires values, limits, or midpoint.")
+    if (!is.null(channel_out$values) && !is.null(channel_out$midpoint))
+      stop("Figure scale ", channel,
+           " values apply to discrete mappings while midpoint applies to continuous ones; pick one.")
+    channel_out <- channel_out[!vapply(channel_out, is.null, logical(1))]
+    out[[channel]] <- channel_out
+  }
+  if (!length(out))
+    stop("Figure scale override requires a color or fill channel.")
+  out
+}
+
+.agent_figure_theme_options_normalize <- function(options) {
+  if (.agent_param_absent(options)) return(NULL)
+  if (!is.list(options))
+    stop("Figure theme options must be an object.")
+  unknown <- setdiff(names(options),
+                     c("base_size", "legend_position", "rotate_x_labels", "show_grid"))
+  if (length(unknown))
+    stop("Unknown figure theme option(s): ", paste(unknown, collapse = ", "))
+  out <- list()
+  base_size <- .agent_figure_integer_param(
+    options$base_size, "theme base_size", 8L, 24L, NULL)
+  if (!is.null(base_size)) out$base_size <- base_size
+  legend_position <- .agent_figure_choice(
+    options$legend_position, .agent_figure_legend_positions,
+    "theme legend_position")
+  if (!is.null(legend_position)) out$legend_position <- legend_position
+  if (!.agent_param_absent(options$rotate_x_labels)) {
+    rot <- options$rotate_x_labels
+    if (is.logical(rot)) rot <- if (isTRUE(rot[1])) 45 else 0
+    rot <- suppressWarnings(as.numeric(rot)[1])
+    if (is.na(rot) || rot < 0 || rot > 90)
+      stop("Figure theme option rotate_x_labels must be between 0 and 90 degrees.")
+    out$rotate_x_labels <- rot
+  }
+  if (!.agent_param_absent(options$show_grid)) {
+    flag <- options$show_grid
+    parsed <- tolower(as.character(flag)[1])
+    if (is.logical(flag)) parsed <- if (isTRUE(flag[1])) "true" else "false"
+    if (!parsed %in% c("true", "false"))
+      stop("Figure theme option show_grid must be true or false.")
+    out$show_grid <- identical(parsed, "true")
+  }
+  if (!length(out)) return(NULL)
+  out
+}
+
 #' Convert a normalized figure spec to its re-submittable echo shape
 #'
 #' Tool results must carry the spec in the exact shape the tool schema
@@ -183,6 +725,7 @@ agent_figure_grammar <- function() {
 agent_figure_spec_echo <- function(spec) {
   layers <- lapply(spec$layers, function(layer) {
     out <- c(list(geom = layer$geom), layer$mappings)
+    if (!is.null(layer$filter)) out$filter <- layer$filter
     if (!is.null(layer$params)) out$params <- layer$params
     out
   })
@@ -219,7 +762,8 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
 
   allowed <- c(
     "data_source", "features", "samples", "layers", "facet_by", "facet_ncol",
-    "x_transform", "y_transform", "theme", "palette", "labels"
+    "x_transform", "y_transform", "theme", "palette", "labels",
+    "scale", "theme_options"
   )
   unknown <- setdiff(names(spec), allowed)
   if (length(unknown))
@@ -304,7 +848,7 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       }
       layer$mappings <- NULL
     }
-    allowed_layer <- c("geom", .agent_figure_aesthetics, "params")
+    allowed_layer <- c("geom", .agent_figure_aesthetics, "params", "filter")
     unknown_layer <- setdiff(names(layer), allowed_layer)
     if (length(unknown_layer))
       stop("Unknown figure layer field(s): ", paste(unknown_layer, collapse = ", "))
@@ -339,7 +883,7 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       params <- layer$params
     allowed_params <- c(
       "alpha", "size", "linewidth", "bins", "method", "se", "position",
-      "xintercept", "yintercept", "max_labels"
+      "xintercept", "yintercept", "max_labels", "color", "fill"
     )
     unknown_params <- setdiff(names(params), allowed_params)
     if (length(unknown_params))
@@ -366,7 +910,23 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
         stop("Figure layer vline requires numeric xintercept.")
     }
 
-    list(geom = geom, mappings = mappings, params = params)
+    # widened grammar: constant per-layer colors (hex-validated) and a
+    # structured row filter. A constant color is mutually exclusive with
+    # mapping the same aesthetic — otherwise the constant silently wins
+    # and the model cannot tell why its mapped legend disappeared.
+    params$color <- .agent_figure_color_scalar(params$color, "layer params.color")
+    params$fill <- .agent_figure_color_scalar(params$fill, "layer params.fill")
+    if (!is.null(params$color) && !is.null(mappings$color))
+      stop("Figure layer maps color to '", mappings$color,
+           "' and also sets constant params.color; remove one of the two.")
+    if (!is.null(params$fill) && !is.null(mappings$fill))
+      stop("Figure layer maps fill to '", mappings$fill,
+           "' and also sets constant params.fill; remove one of the two.")
+
+    filter <- agent_where_normalize(layer$filter, mappings = mappings)
+    if (!is.null(filter)) .agent_where_validate_caps(filter)
+
+    list(geom = geom, mappings = mappings, params = params, filter = filter)
   })
 
   facet_by <- .agent_figure_scalar(spec$facet_by, max_chars = 500L)
@@ -377,8 +937,11 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
   y_transform <- .agent_figure_choice(
     spec$y_transform, .agent_figure_transforms, "y transform", "identity"
   )
-  theme <- .agent_figure_choice(spec$theme, .agent_figure_themes, "theme", "minimal")
-  palette <- .agent_figure_choice(spec$palette, .agent_figure_palettes, "palette", "default")
+  # exact access: list `$` partial matching would resolve the absent
+  # `theme` field to `theme_options`
+  theme <- .agent_figure_choice(
+    spec[["theme"]], .agent_figure_themes, "theme", "minimal")
+  palette <- .agent_figure_choice(spec[["palette"]], .agent_figure_palettes, "palette", "default")
 
   labels <- if (is.list(spec$labels)) spec$labels else list()
   unknown_labels <- setdiff(names(labels), c("title", "subtitle", "x", "y", "caption"))
@@ -386,6 +949,9 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     stop("Unknown figure label field(s): ", paste(unknown_labels, collapse = ", "))
   labels <- lapply(labels, function(x) .agent_figure_scalar(x, max_chars = 200L))
   labels <- labels[!vapply(labels, is.null, logical(1))]
+
+  scale <- .agent_figure_scale_normalize(spec[["scale"]])
+  theme_options <- .agent_figure_theme_options_normalize(spec[["theme_options"]])
 
   list(
     data_source = data_source,
@@ -398,7 +964,9 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     y_transform = y_transform,
     theme = theme,
     palette = palette,
-    labels = labels
+    labels = labels,
+    scale = scale,
+    theme_options = theme_options
   )
 }
 
@@ -883,53 +1451,90 @@ agent_build_figure_plot <- function(data, spec) {
     params <- layer$params
     mapping <- make_mapping(mappings)
 
-    if (geom %in% c("text", "label") && params$max_labels > 0L) {
-      layer_data <- utils::head(data, params$max_labels)
-    } else {
-      layer_data <- NULL
+    # widened grammar: the structured row filter composites before the
+    # max_labels cap (filter first, then cap the surviving rows)
+    layer_data <- NULL
+    if (!is.null(layer$filter)) {
+      hit <- agent_where_eval(layer$filter, data)
+      if (!any(hit))
+        warning("Figure layer ", geom, " filter matches no rows; the layer is empty.")
+      layer_data <- data[hit, , drop = FALSE]
     }
+    if (geom %in% c("text", "label") && params$max_labels > 0L) {
+      layer_data <- utils::head(
+        if (is.null(layer_data)) data else layer_data, params$max_labels
+      )
+    }
+
+    # constant per-layer colors (hex-validated at normalization time)
+    constant <- list()
+    if (!is.null(params$color)) constant$color <- params$color
+    if (!is.null(params$fill)) constant$fill <- params$fill
+    # filtered layers draw their subset explicitly; unfiltered ones inherit
+    # the plot data (passing data = NULL would be equivalent)
+    inherit <- if (is.null(layer_data)) list() else list(data = layer_data)
 
     new_layer <- switch(
       geom,
       point = if (identical(params$position, "jitter")) {
-        ggplot2::geom_jitter(mapping = mapping, alpha = params$alpha, size = params$size)
+        do.call(ggplot2::geom_jitter, c(inherit, list(
+          mapping = mapping, alpha = params$alpha, size = params$size
+        ), constant))
       } else {
-        ggplot2::geom_point(mapping = mapping, alpha = params$alpha, size = params$size)
+        do.call(ggplot2::geom_point, c(inherit, list(
+          mapping = mapping, alpha = params$alpha, size = params$size
+        ), constant))
       },
-      line = ggplot2::geom_line(mapping = mapping, alpha = params$alpha, linewidth = params$linewidth),
-      path = ggplot2::geom_path(mapping = mapping, alpha = params$alpha, linewidth = params$linewidth),
+      line = do.call(ggplot2::geom_line, c(inherit, list(
+        mapping = mapping, alpha = params$alpha, linewidth = params$linewidth
+      ), constant)),
+      path = do.call(ggplot2::geom_path, c(inherit, list(
+        mapping = mapping, alpha = params$alpha, linewidth = params$linewidth
+      ), constant)),
       bar = {
-        args <- list(mapping = mapping, alpha = params$alpha)
+        args <- c(inherit, list(mapping = mapping, alpha = params$alpha), constant)
         if (!is.null(mappings$y)) args$stat <- "identity"
         if (params$position %in% c("stack", "dodge", "fill"))
           args$position <- params$position
         do.call(ggplot2::geom_bar, args)
       },
-      boxplot = ggplot2::geom_boxplot(mapping = mapping, alpha = params$alpha),
-      violin = ggplot2::geom_violin(mapping = mapping, alpha = params$alpha),
-      histogram = ggplot2::geom_histogram(
+      boxplot = do.call(ggplot2::geom_boxplot, c(inherit, list(
+        mapping = mapping, alpha = params$alpha
+      ), constant)),
+      violin = do.call(ggplot2::geom_violin, c(inherit, list(
+        mapping = mapping, alpha = params$alpha
+      ), constant)),
+      histogram = do.call(ggplot2::geom_histogram, c(inherit, list(
         mapping = mapping, alpha = params$alpha, bins = params$bins,
         position = if (params$position %in% c("stack", "dodge", "fill")) params$position else "stack"
-      ),
-      density = ggplot2::geom_density(mapping = mapping, alpha = params$alpha, linewidth = params$linewidth),
+      ), constant)),
+      density = do.call(ggplot2::geom_density, c(inherit, list(
+        mapping = mapping, alpha = params$alpha, linewidth = params$linewidth
+      ), constant)),
       text = do.call(
         ggplot2::geom_text,
-        list(data = layer_data, mapping = mapping, size = params$size, alpha = params$alpha)
+        c(list(data = layer_data, mapping = mapping, size = params$size, alpha = params$alpha), constant)
       ),
       label = do.call(
         ggplot2::geom_label,
-        list(data = layer_data, mapping = mapping, size = params$size, alpha = params$alpha)
+        c(list(data = layer_data, mapping = mapping, size = params$size, alpha = params$alpha), constant)
       ),
-      smooth = ggplot2::geom_smooth(
+      smooth = do.call(ggplot2::geom_smooth, c(inherit, list(
         mapping = mapping, method = params$method, se = params$se,
         alpha = params$alpha, linewidth = params$linewidth
-      ),
-      errorbar = ggplot2::geom_errorbar(
+      ), constant)),
+      errorbar = do.call(ggplot2::geom_errorbar, c(inherit, list(
         mapping = mapping, alpha = params$alpha, linewidth = params$linewidth
-      ),
-      ribbon = ggplot2::geom_ribbon(mapping = mapping, alpha = params$alpha),
-      hline = ggplot2::geom_hline(yintercept = params$yintercept, alpha = params$alpha, linewidth = params$linewidth),
-      vline = ggplot2::geom_vline(xintercept = params$xintercept, alpha = params$alpha, linewidth = params$linewidth),
+      ), constant)),
+      ribbon = do.call(ggplot2::geom_ribbon, c(inherit, list(
+        mapping = mapping, alpha = params$alpha
+      ), constant)),
+      hline = do.call(ggplot2::geom_hline, c(list(
+        yintercept = params$yintercept, alpha = params$alpha, linewidth = params$linewidth
+      ), constant)),
+      vline = do.call(ggplot2::geom_vline, c(list(
+        xintercept = params$xintercept, alpha = params$alpha, linewidth = params$linewidth
+      ), constant)),
       stop("Unsupported figure geom")
     )
     plot <- plot + new_layer
@@ -964,18 +1569,45 @@ agent_build_figure_plot <- function(data, spec) {
   plot <- plot + add_scale("x", spec$x_transform)
   plot <- plot + add_scale("y", spec$y_transform)
 
+  mapped_fields <- function(channel) {
+    fields <- unique(unlist(lapply(spec$layers, function(x) x$mappings[[channel]])))
+    fields[!is.na(fields) & nzchar(fields)]
+  }
   color_field <- unique(unlist(lapply(spec$layers, function(x) {
     c(x$mappings$color, x$mappings$fill)
   })))
   color_field <- color_field[!is.na(color_field) & nzchar(color_field)]
-  if (length(color_field) && !identical(spec$palette, "default")) {
-    primary <- color_field[1]
+  gradient_colors <- switch(
+    spec$palette,
+    colorblind = c("#2166ac", "#B2182B"),
+    sequential = c("#F7FBFF", "#08519C"),
+    diverging = c("#B2182B", "#2166ac"),
+    c("#132b43", "#56b1f7")
+  )
+
+  for (channel in c("color", "fill")) {
+    fields <- mapped_fields(channel)
+    override <- if (is.null(spec$scale)) NULL else spec$scale[[channel]]
+    if (!is.null(override)) {
+      # widened grammar: an explicit scale override beats the palette
+      # preset for this channel
+      if (!length(fields))
+        stop("Figure scale ", channel,
+             " override requires a layer that maps ", channel, ".")
+      plot <- plot + .agent_scale_override(
+        override, channel, data[[fields[1]]], fields[1], gradient_colors
+      )
+      next
+    }
+    if (!length(fields) || identical(spec$palette, "default") ||
+        !identical(fields[1], color_field[1]))
+      next
+    primary <- fields[1]
     categorical <- !is.numeric(data[[primary]])
     if (identical(spec$palette, "grey")) {
-      if (any(vapply(spec$layers, function(x) identical(x$mappings$color, primary), logical(1))))
-        plot <- plot + ggplot2::scale_color_grey()
-      if (any(vapply(spec$layers, function(x) identical(x$mappings$fill, primary), logical(1))))
-        plot <- plot + ggplot2::scale_fill_grey()
+      if (any(vapply(spec$layers, function(x) identical(x$mappings[[channel]], primary), logical(1))))
+        plot <- plot + if (identical(channel, "color"))
+          ggplot2::scale_color_grey() else ggplot2::scale_fill_grey()
     } else if (categorical) {
       brewer <- switch(
         spec$palette,
@@ -983,21 +1615,15 @@ agent_build_figure_plot <- function(data, spec) {
         sequential = "Blues",
         diverging = "RdBu"
       )
-      if (any(vapply(spec$layers, function(x) identical(x$mappings$color, primary), logical(1))))
-        plot <- plot + ggplot2::scale_color_brewer(palette = brewer)
-      if (any(vapply(spec$layers, function(x) identical(x$mappings$fill, primary), logical(1))))
-        plot <- plot + ggplot2::scale_fill_brewer(palette = brewer)
+      if (any(vapply(spec$layers, function(x) identical(x$mappings[[channel]], primary), logical(1))))
+        plot <- plot + if (identical(channel, "color"))
+          ggplot2::scale_color_brewer(palette = brewer) else
+          ggplot2::scale_fill_brewer(palette = brewer)
     } else {
-      colors <- switch(
-        spec$palette,
-        colorblind = c("#2166ac", "#B2182B"),
-        sequential = c("#F7FBFF", "#08519C"),
-        diverging = c("#B2182B", "#2166ac")
-      )
-      if (any(vapply(spec$layers, function(x) identical(x$mappings$color, primary), logical(1))))
-        plot <- plot + ggplot2::scale_color_gradient(low = colors[1], high = colors[2])
-      if (any(vapply(spec$layers, function(x) identical(x$mappings$fill, primary), logical(1))))
-        plot <- plot + ggplot2::scale_fill_gradient(low = colors[1], high = colors[2])
+      if (any(vapply(spec$layers, function(x) identical(x$mappings[[channel]], primary), logical(1))))
+        plot <- plot + if (identical(channel, "color"))
+          ggplot2::scale_color_gradient(low = gradient_colors[1], high = gradient_colors[2]) else
+          ggplot2::scale_fill_gradient(low = gradient_colors[1], high = gradient_colors[2])
     }
   }
 
@@ -1011,14 +1637,93 @@ agent_build_figure_plot <- function(data, spec) {
   if (length(label_args))
     plot <- plot + do.call(ggplot2::labs, label_args)
 
-  plot + switch(
+  theme_opts <- spec$theme_options
+  base_size <- if (is.null(theme_opts) || is.null(theme_opts$base_size)) 11 else theme_opts$base_size
+  plot <- plot + switch(
     spec$theme,
-    minimal = ggplot2::theme_minimal(base_size = 11),
-    classic = ggplot2::theme_classic(base_size = 11),
-    light = ggplot2::theme_light(base_size = 11),
-    grey = ggplot2::theme_grey(base_size = 11),
-    bw = ggplot2::theme_bw(base_size = 11)
+    minimal = ggplot2::theme_minimal(base_size = base_size),
+    classic = ggplot2::theme_classic(base_size = base_size),
+    light = ggplot2::theme_light(base_size = base_size),
+    grey = ggplot2::theme_grey(base_size = base_size),
+    bw = ggplot2::theme_bw(base_size = base_size)
   )
+  tweaks <- list()
+  if (!is.null(theme_opts)) {
+    if (!is.null(theme_opts$legend_position))
+      tweaks$legend.position <- theme_opts$legend_position
+    if (identical(theme_opts$show_grid, FALSE)) {
+      tweaks$panel.grid.major <- ggplot2::element_blank()
+      tweaks$panel.grid.minor <- ggplot2::element_blank()
+    }
+    if (!is.null(theme_opts$rotate_x_labels) && theme_opts$rotate_x_labels > 0)
+      tweaks$axis.text.x <- ggplot2::element_text(
+        angle = theme_opts$rotate_x_labels, hjust = 1
+      )
+  }
+  if (length(tweaks))
+    plot <- plot + do.call(ggplot2::theme, tweaks)
+  plot
+}
+
+# Apply one explicit scale override channel. Discrete mappings take
+# per-category hex values (unmatched names warn; missing levels render
+# grey) and optional legend limits; numeric mappings take a limits pair
+# or a diverging midpoint. warnings() raised here are collected by the
+# tool-level handler and surfaced in the figure result.
+.agent_scale_override <- function(override, channel, values, field, gradient_colors) {
+  if (is.numeric(values)) {
+    if (!is.null(override$values))
+      stop("Figure scale ", channel, " values require a discrete mapping; '",
+           field, "' is numeric. Use limits or midpoint instead.")
+    if (!is.null(override$midpoint)) {
+      gradient2 <- if (identical(channel, "color"))
+        ggplot2::scale_color_gradient2 else ggplot2::scale_fill_gradient2
+      return(gradient2(
+        low = gradient_colors[2], mid = "#f7f7f7", high = gradient_colors[1],
+        midpoint = override$midpoint
+      ))
+    }
+    limits <- suppressWarnings(as.numeric(override$limits))
+    if (is.null(override$limits) || length(limits) != 2L || anyNA(limits))
+      stop("Figure scale ", channel, " override on numeric '", field,
+           "' requires limits as two numbers or a midpoint.")
+    gradient <- if (identical(channel, "color"))
+      ggplot2::scale_color_gradient else ggplot2::scale_fill_gradient
+    return(gradient(low = gradient_colors[1], high = gradient_colors[2], limits = limits))
+  }
+  if (!is.null(override$midpoint))
+    stop("Figure scale ", channel, " midpoint requires a numeric mapping; '",
+         field, "' is discrete.")
+  levels_ <- if (is.factor(values)) levels(values) else
+    unique(as.character(values[!is.na(values)]))
+  if (!is.null(override$limits)) {
+    bad <- setdiff(override$limits, levels_)
+    if (length(bad))
+      stop("Unknown figure scale ", channel, " limits: ",
+           paste(utils::head(bad, 3L), collapse = ", "), ".",
+           .agent_suggest_text(bad[1], levels_))
+  }
+  if (is.null(override$values)) {
+    # limits-only discrete override: reorder/filter the legend, keep the
+    # default colors
+    discrete <- if (identical(channel, "color"))
+      ggplot2::scale_color_discrete else ggplot2::scale_fill_discrete
+    return(discrete(limits = override$limits))
+  }
+  unmatched <- setdiff(names(override$values), levels_)
+  if (length(unmatched))
+    warning("Figure scale ", channel, " values name levels not present in '",
+            field, "': ", paste(utils::head(unmatched, 3L), collapse = ", "), ".")
+  missing_levels <- setdiff(levels_, names(override$values))
+  if (length(missing_levels))
+    warning("Figure scale ", channel, " has no explicit color for: ",
+            paste(utils::head(missing_levels, 3L), collapse = ", "),
+            "; those levels render grey.")
+  manual <- if (identical(channel, "color"))
+    ggplot2::scale_color_manual else ggplot2::scale_fill_manual
+  args <- list(values = override$values)
+  if (!is.null(override$limits)) args$limits <- override$limits
+  do.call(manual, args)
 }
 
 #' Render low-resolution and full-resolution PNG figures

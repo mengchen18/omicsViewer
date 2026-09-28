@@ -926,7 +926,9 @@ agent_history_redact <- function(text) {
 #' Slim one turn for snapshot persistence
 #'
 #' Drops display-only payloads (embedded base64 figure previews inflate
-#' every tool result by 100+ KB) from tool results; keeps values and errors
+#' every tool result by 100+ KB) from tool results; keeps values, errors,
+#' and the paired tool request (tool-call id + name - small, and WP13's
+#' context stubber needs it to identify snapshot tools after a restore)
 #' as inert context. Returns a NEW turn (the live session object is never
 #' mutated).
 #'
@@ -937,7 +939,11 @@ agent_history_redact <- function(text) {
 .agent_slim_turn <- function(turn) {
   contents <- lapply(turn@contents, function(x) {
     if (inherits(x, "ellmer::ContentToolResult"))
-      return(ellmer::ContentToolResult(value = x@value, error = x@error))
+      return(ellmer::ContentToolResult(
+        value = x@value,
+        request = x@request,
+        error = x@error
+      ))
     x
   })
   if (inherits(turn, "ellmer::AssistantTurn")) {

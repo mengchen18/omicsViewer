@@ -801,3 +801,522 @@ ok(
     is.null(scatter_sample_space$spec$features),
   "WP6b: feature ids do not attach to sample-space figures"
 )
+
+# ---- widened grammar: structured layer filters ---------------------------
+# Layer `filter` predicates: canonicalization, x/y shorthand, caps, sentinel
+# tolerance, and the closed-operator eval interpreter.
+agent_where_normalize <- omicsViewer:::agent_where_normalize
+agent_where_eval <- omicsViewer:::agent_where_eval
+
+wnum <- agent_where_normalize(list(column = "score", op = ">", value = 5))
+ok(
+  ut_cmp_identical(wnum, list(column = "score", op = ">", value = 5)),
+  "where leaf numeric op canonicalizes"
+)
+# numeric strings (provider artifacts) coerce like numbers
+ok(
+  ut_cmp_identical(
+    agent_where_normalize(list(column = "score", op = "<=", value = "2.5")),
+    list(column = "score", op = "<=", value = 2.5)
+  ),
+  "where leaf coerces numeric-string values"
+)
+# 'x'/'y' resolve to the layer's own mapping at normalize time
+wxy <- agent_where_normalize(
+  list(column = "x", op = "between", min = 1, max = 3),
+  mappings = list(x = "score", y = "category")
+)
+ok(
+  ut_cmp_identical(wxy$column, "score"),
+  "where x/y shorthand resolves to the layer mapping"
+)
+ut_fails <- function(expr, pattern) {
+  tryCatch({ force(expr); FALSE },
+           error = function(e) grepl(pattern, conditionMessage(e), fixed = TRUE))
+}
+ok(
+  ut_fails(
+    agent_where_normalize(list(column = "y", op = ">", value = 1), mappings = list(x = "score")),
+    "does not map"
+  ),
+  "where x/y shorthand without that mapping errors clearly"
+)
+ok(
+  ut_fails(
+    agent_where_normalize(list(column = "score", op = "between", min = 5, max = 1)),
+    "min <= max"
+  ) &&
+    ut_fails(
+      agent_where_normalize(list(column = "score", op = ">", value = 1, text = "a")),
+      "does not accept"
+    ) &&
+    ut_fails(
+      agent_where_normalize(list(column = "score", op = "==")),
+      "exactly one of value (number) or text (string)"
+    ) &&
+    ut_fails(
+      agent_where_normalize(list(column = "score", op = "is_na", value = 1)),
+      "takes no comparison value"
+    ),
+  "where operator field contracts are enforced"
+)
+ok(
+  ut_fails(
+    agent_where_normalize(list(column = "score", op = "much_greater", value = 1)),
+    "Unsupported figure filter operator"
+  ),
+  "unknown where operator is rejected with a suggestion"
+)
+wall <- agent_where_normalize(list(all = list(
+  list(column = "score", op = "abs>=", value = 2),
+  list(any = list(
+    list(column = "category", op = "==", text = "kinase"),
+    list(column = "__feature_id__", op = "starts_with", text = "F1")
+  ))
+)))
+ok(
+  ut_cmp_identical(names(wall), "all") &&
+    ut_cmp_identical(wall$all[[2]]$any[[1]]$text, "kinase"),
+  "where combinators canonicalize recursively"
+)
+ok(
+  ut_fails(
+    agent_where_normalize(list(all = list(list(column = "score", op = ">", value = 1)),
+                               any = list(list(column = "score", op = "<", value = 9)))),
+    "either 'all' or 'any'"
+  ) &&
+    is.null(agent_where_normalize(list(all = list(list())))) &&
+    ut_fails(
+      agent_where_normalize(list(all = 5)),
+      "non-empty array"
+    ),
+  "where combinator misuse errors clearly"
+)
+# caps: depth <= 3, leaves <= 8
+deep <- list(column = "score", op = ">", value = 1)
+for (i in 1:5) deep <- list(all = list(deep))
+ok(
+  ut_fails(
+    omicsViewer:::.agent_where_validate_caps(deep),
+    "nests at most 3 levels"
+  ),
+  "where depth cap is enforced"
+)
+many <- list(all = rep(list(list(column = "score", op = ">", value = 1)), 9))
+ok(
+  ut_fails(
+    omicsViewer:::.agent_where_validate_caps(many),
+    "at most 8 conditions"
+  ),
+  "where leaf cap is enforced"
+)
+# sentinels behave like omitted values everywhere
+ok(
+  is.null(agent_where_normalize("null")) &&
+    is.null(agent_where_normalize(list())) &&
+    is.null(agent_where_normalize(NA)),
+  "where sentinels are treated as omitted"
+)
+ok(
+  ut_cmp_identical(
+    agent_where_normalize(list(column = "category", op = "in",
+                               values = list("kinase", "null", "", NA)))[[ "values" ]],
+    "kinase"
+  ),
+  "where in-values drop NA/empty/sentinel entries"
+)
+# idempotency: canonical filters re-normalize identically
+ok(
+  ut_cmp_identical(agent_where_normalize(wnum), wnum) &&
+    ut_cmp_identical(agent_where_normalize(wall), wall),
+  "where normalization is idempotent"
+)
+
+# ---- where eval against built plotting data ------------------------------
+edata <- agent_build_figure_data(
+  agent_normalize_figure_spec(
+    list(data_source = "feature_annotation",
+         layers = list(list(geom = "point", x = "score", y = "score"))),
+    fd, pd, mat, character(), character()
+  ),
+  fd, pd, mat
+)
+ok(
+  ut_cmp_identical(
+    as.integer(agent_where_eval(list(column = "score", op = ">", value = 7), edata)),
+    c(rep(0L, 7), rep(1L, 3L))
+  ),
+  "where eval applies numeric comparisons rowwise"
+)
+ok(
+  ut_cmp_identical(
+    as.integer(agent_where_eval(
+      list(column = "score", op = "between", min = 2, max = 4), edata)),
+    c(0L, 1L, 1L, 1L, rep(0L, 6L))
+  ) &&
+    ut_cmp_identical(
+      as.integer(agent_where_eval(
+        list(column = "category", op = "==", text = "kinase"), edata)),
+      rep(c(1L, 0L), 5L)
+    ),
+  "where eval handles between and text equality"
+)
+ok(
+  ut_cmp_identical(
+    as.integer(agent_where_eval(
+      list(column = "score", op = "in", values = c("1", "10")), edata)),
+    c(1L, rep(0L, 8L), 1L)
+  ),
+  "where eval coerces number-strings on numeric columns"
+)
+ok(
+  ut_cmp_identical(
+    as.integer(agent_where_eval(
+      list(column = "category", op = "not_in", values = "kinase"), edata)),
+    rep(c(0L, 1L), 5L)
+  ),
+  "where eval applies not_in on text columns"
+)
+ok(
+  ut_cmp_identical(
+    as.integer(agent_where_eval(
+      list(column = "score", op = "<", value = 5, not = TRUE), edata)),
+    c(rep(0L, 4L), rep(1L, 6L))
+  ),
+  "where eval honors the not flag"
+)
+ok(
+  ut_cmp_identical(
+    agent_where_eval(list(column = "score", op = ">", value = 0), edata),
+    rep(TRUE, 10L)
+  ) &&
+    isTRUE(all(
+      agent_where_eval(
+        list(all = list(
+          list(column = "score", op = ">", value = 100),
+          list(column = "score", op = "<", value = 0)
+        )),
+        edata
+      ) == FALSE
+    )),
+  "where eval returns settled logicals for impossible matches"
+)
+# NA semantics: comparisons never match NA; is_na/not_na are explicit
+fd_na <- fd
+fd_na$score[c(2, 5)] <- NA
+edata_na <- agent_build_figure_data(
+  agent_normalize_figure_spec(
+    list(data_source = "feature_annotation",
+         layers = list(list(geom = "point", x = "score", y = "score"))),
+    fd_na, pd, mat, character(), character()
+  ),
+  fd_na, pd, mat
+)
+ok(
+  ut_cmp_identical(
+    as.integer(agent_where_eval(list(column = "score", op = ">", value = -1), edata_na)),
+    c(1L, 0L, 1L, 1L, 0L, rep(1L, 5L))
+  ) &&
+    ut_cmp_identical(
+      as.integer(agent_where_eval(list(column = "score", op = "is_na"), edata_na)),
+      c(0L, 1L, 0L, 0L, 1L, rep(0L, 5L))
+    ) &&
+    ut_cmp_identical(
+      as.integer(agent_where_eval(
+        list(column = "score", op = ">", value = -1, not = TRUE), edata_na)),
+      rep(0L, 10L)
+    ),
+  "where NA rows never match comparisons, is_na and not are explicit"
+)
+ok(
+  ut_fails(
+    agent_where_eval(list(column = "scor", op = ">", value = 1), edata),
+    "Closest matches"
+  ) &&
+    ut_fails(
+      agent_where_eval(list(column = "category", op = ">", value = 1), edata),
+      "requires a numeric column"
+    ) &&
+    ut_fails(
+      agent_where_eval(list(column = "score", op = "starts_with", text = "F"), edata),
+      "requires a text column"
+    ),
+  "where eval errors carry suggestions and type diagnostics"
+)
+
+# ---- widened spec: filters, constant colors, scale, theme options --------
+wide_spec <- list(
+  data_source = "feature_annotation",
+  layers = list(
+    list(geom = "point", x = "score", y = "score", fill = "category",
+         params = list(color = "#B0B0B0")),
+    list(geom = "point", x = "score", y = "score",
+         filter = list(column = "x", op = ">", value = 7),
+         params = list(color = "#B2182B", size = 2.6)),
+    list(geom = "label", x = "score", y = "score", label = "__feature_id__",
+         filter = list(column = "score", op = ">", value = 7),
+         params = list(color = "#b2182b", size = 3, max_labels = 2))
+  ),
+  scale = list(fill = list(values = list(
+    list(category = "kinase", color = "#2166ac"),
+    list(category = "phosphatase", color = "#B2182B")
+  ))),
+  theme_options = list(legend_position = "bottom", rotate_x_labels = 30,
+                       base_size = 12L, show_grid = FALSE)
+)
+wide_norm <- agent_normalize_figure_spec(
+  wide_spec, fd, pd, mat, character(), character()
+)
+ok(
+  ut_cmp_identical(wide_norm$layers[[1]]$params$color, "#b0b0b0") &&
+    ut_cmp_identical(wide_norm$layers[[2]]$params$color, "#b2182b") &&
+    ut_cmp_identical(wide_norm$layers[[2]]$filter$column, "score") &&
+    is.null(wide_norm$layers[[1]]$filter),
+  "constant colors lowercase and x-shorthand resolves inside normalize"
+)
+ok(
+  ut_cmp_identical(
+    wide_norm$scale$fill$values,
+    c(kinase = "#2166ac", phosphatase = "#b2182b")
+  ) &&
+    ut_cmp_identical(wide_norm$theme_options$legend_position, "bottom") &&
+    ut_cmp_identical(wide_norm$theme_options$rotate_x_labels, 30) &&
+    ut_cmp_identical(wide_norm$theme_options$show_grid, FALSE),
+  "scale values pairs and theme options canonicalize"
+)
+ok(
+  ut_fails(
+    agent_normalize_figure_spec(
+      list(data_source = "feature_annotation",
+           layers = list(list(geom = "point", x = "score", y = "score",
+                              color = "score", params = list(color = "#ff0000")))),
+      fd, pd, mat, character(), character()),
+    "remove one of the two"
+  ),
+  "constant color conflicts with a mapped aesthetic loudly"
+)
+ok(
+  ut_fails(
+    agent_normalize_figure_spec(
+      list(data_source = "feature_annotation",
+           layers = list(list(geom = "point", x = "score", y = "score",
+                              params = list(fill = "not-a-color")))),
+      fd, pd, mat, character(), character()),
+    "must be a hex color"
+  ),
+  "invalid hex colors are rejected with guidance"
+)
+ok(
+  ut_fails(
+    agent_normalize_figure_spec(
+      list(data_source = "feature_annotation",
+           layers = list(list(geom = "point", x = "score", y = "score")),
+           scale = list(color = list(values = list(
+             list(category = "kinase", color = "#000000"),
+             list(category = "kinase", color = "#ffffff"))))),
+      fd, pd, mat, character(), character()),
+    "duplicate categories"
+  ),
+  "duplicate scale categories are rejected"
+)
+# sentinel sweep on the new spec fields
+sentinel_wide <- agent_normalize_figure_spec(
+  list(data_source = "feature_annotation",
+       layers = list(list(geom = "point", x = "score", y = "score",
+                          filter = "null")),
+       scale = "{}", theme_options = "null"),
+  fd, pd, mat, character(), character()
+)
+ok(
+  is.null(sentinel_wide$layers[[1]]$filter) &&
+    is.null(sentinel_wide$scale) &&
+    is.null(sentinel_wide$theme_options),
+  "sentinel filter/scale/theme_options behave like omitted values"
+)
+# ellmer tibble artifact: filter itself arrives as a 1-row data.frame and
+# its all-children as tibbles with list-columns (array-of-object conversion)
+tbl_inner <- data.frame(column = "category", op = "in", stringsAsFactors = FALSE)
+tbl_inner$values <- list(c("kinase"))
+tbl_filter <- data.frame(column = NA_character_, op = NA_character_,
+                         stringsAsFactors = FALSE)
+tbl_filter$value <- NA_real_
+tbl_filter$all <- list(tbl_inner)
+tbl_norm <- agent_normalize_figure_spec(
+  list(data_source = "feature_annotation",
+       layers = list(list(geom = "point", x = "score", y = "score",
+                          filter = tbl_filter))),
+  fd, pd, mat, character(), character()
+)
+ok(
+  ut_cmp_identical(tbl_norm$layers[[1]]$filter$all[[1]][["values"]], "kinase") &&
+    ut_cmp_identical(tbl_norm$layers[[1]]$filter$all[[1]]$column, "category"),
+  "tibble-shaped filters normalize through row coercion"
+)
+# round-trip: the echo shape re-normalizes identically (WP3 contract)
+wide_echo <- agent_figure_spec_echo(wide_norm)
+wide_again <- agent_normalize_figure_spec(
+  wide_echo, fd, pd, mat, character(), character()
+)
+ok(
+  ut_cmp_identical(wide_again$layers[[2]]$filter, wide_norm$layers[[2]]$filter) &&
+    ut_cmp_identical(wide_again$scale, wide_norm$scale) &&
+    ut_cmp_identical(wide_again$theme_options, wide_norm$theme_options) &&
+    ut_cmp_identical(wide_again$layers[[1]]$params, wide_norm$layers[[1]]$params),
+  "widened spec survives the echo round-trip"
+)
+
+# ---- widened plots render ------------------------------------------------
+wide_plot <- agent_build_figure_plot(
+  agent_build_figure_data(wide_norm, fd, pd, mat), wide_norm
+)
+ok(
+  inherits(wide_plot, "ggplot") && length(wide_plot$layers) == 3L,
+  "filtered multi-layer highlight spec builds a ggplot"
+)
+# label layer composite: filter (score > 7 -> F8..F10) then max_labels 2
+label_layer <- wide_plot$layers[[3]]
+label_rows <- label_layer$data
+ok(
+  nrow(label_rows) == 2L &&
+    all(label_rows[["__feature_id__"]] %in% c("F8", "F9", "F10")),
+  "filter composites before the max_labels cap"
+)
+# filtered NON-text layers draw their subset explicitly (regression: the
+# highlight point layer initially dropped the filter silently)
+highlight_layer <- wide_plot$layers[[2]]
+ok(
+  nrow(highlight_layer$data) == 3L &&
+    identical(highlight_layer$data[["__feature_id__"]], c("F8", "F9", "F10")),
+  "filtered point layers draw only the matching rows"
+)
+ok(
+  !is.data.frame(wide_plot$layers[[1]]$data),
+  "unfiltered layers keep inheriting the plot data"
+)
+# scale fill override waits for a layer that maps fill
+fill_spec <- agent_normalize_figure_spec(
+  list(data_source = "feature_annotation",
+       layers = list(list(geom = "point", x = "score", y = "score",
+                          fill = "category")),
+       scale = list(fill = list(values = list(
+         list(category = "kinase", color = "#2166ac"),
+         list(category = "phosphatase", color = "#B2182B")
+       )))),
+  fd, pd, mat, character(), character()
+)
+fill_plot <- agent_build_figure_plot(
+  agent_build_figure_data(fill_spec, fd, pd, mat), fill_spec
+)
+manual_hit <- vapply(fill_plot$scales$scales, function(s) {
+  is.function(s$palette) &&
+    identical(sort(unique(s$palette(2))), sort(c("#2166ac", "#b2182b")))
+}, logical(1))
+ok(
+  any(manual_hit),
+  "discrete scale override installs a manual scale"
+)
+ok(
+  ut_fails(
+    agent_build_figure_plot(
+      agent_build_figure_data(
+        agent_normalize_figure_spec(
+          list(data_source = "feature_annotation",
+               layers = list(list(geom = "point", x = "score", y = "score",
+                                  fill = "category")),
+               scale = list(fill = list(limits = "nope"))),
+          fd, pd, mat, character(), character()),
+        fd, pd, mat),
+      agent_normalize_figure_spec(
+        list(data_source = "feature_annotation",
+             layers = list(list(geom = "point", x = "score", y = "score",
+                                fill = "category")),
+             scale = list(fill = list(limits = "nope"))),
+        fd, pd, mat, character(), character())
+    ),
+    "Unknown figure scale fill limits"
+  ),
+  "unknown discrete scale limits error at build time"
+)
+# continuous overrides: limits pair and diverging midpoint
+cont_limits <- agent_normalize_figure_spec(
+  list(data_source = "feature_annotation",
+       layers = list(list(geom = "point", x = "score", y = "score", color = "score")),
+       scale = list(color = list(limits = c("2", "8")))),
+  fd, pd, mat, character(), character()
+)
+cont_plot <- agent_build_figure_plot(
+  agent_build_figure_data(cont_limits, fd, pd, mat), cont_limits
+)
+cont_classes <- vapply(cont_plot$scales$scales, function(s) class(s)[[1]], character(1))
+ok(
+  any(grepl("ScaleContinuous", cont_classes, fixed = TRUE)),
+  "continuous limits override installs a gradient scale"
+)
+mid_spec <- agent_normalize_figure_spec(
+  list(data_source = "feature_annotation",
+       layers = list(list(geom = "point", x = "score", y = "score", color = "score")),
+       scale = list(color = list(midpoint = 5))),
+  fd, pd, mat, character(), character()
+)
+mid_plot <- agent_build_figure_plot(
+  agent_build_figure_data(mid_spec, fd, pd, mat), mid_spec
+)
+mid_classes <- vapply(mid_plot$scales$scales, function(s) class(s)[[1]], character(1))
+ok(
+  any(grepl("ScaleContinuous", mid_classes, fixed = TRUE)),
+  "midpoint override installs a diverging gradient"
+)
+# unmatched scale levels warn (collected by the tool handler), empty filter
+# warns but still renders
+warn_msgs <- character()
+withCallingHandlers(
+  {
+    warn_spec <- agent_normalize_figure_spec(
+      list(data_source = "feature_annotation",
+           layers = list(
+             list(geom = "point", x = "score", y = "score", fill = "category"),
+             list(geom = "point", x = "score", y = "score",
+                  filter = list(column = "score", op = ">", value = 99))
+           ),
+           scale = list(fill = list(values = list(
+             list(category = "kinase", color = "#2166ac"),
+             list(category = "ghost-level", color = "#000000")
+           )))),
+      fd, pd, mat, character(), character()
+    )
+    agent_build_figure_plot(
+      agent_build_figure_data(warn_spec, fd, pd, mat), warn_spec
+    )
+  },
+  warning = function(w) {
+    warn_msgs <<- c(warn_msgs, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  }
+)
+ok(
+  any(grepl("levels not present", warn_msgs, fixed = TRUE)) &&
+    any(grepl("no explicit color for", warn_msgs, fixed = TRUE)) &&
+    any(grepl("filter matches no rows", warn_msgs, fixed = TRUE)),
+  "unmatched scale levels and empty filters surface as warnings"
+)
+# theme options land on the plot
+themed <- agent_build_figure_plot(
+  agent_build_figure_data(wide_norm, fd, pd, mat), wide_norm
+)
+ok(
+  identical(themed$theme$legend.position, "bottom") &&
+    !is.null(themed$theme$axis.text.x$angle) &&
+    identical(themed$theme$axis.text.x$angle, 30) &&
+    inherits(themed$theme$panel.grid.major, "element_blank"),
+  "theme options apply legend, rotation, and grid tweaks"
+)
+# grammar advertises the new surface
+grammar_wide <- agent_figure_grammar()
+ok(
+  ut_cmp_identical(grammar_wide$limits$max_filter_leaves, 8L) &&
+    identical(sort(names(grammar_wide$layer_filters$ops)),
+              sort(omicsViewer:::.agent_figure_where_ops)) &&
+    identical(grammar_wide$scale_overrides$channels, c("color", "fill")) &&
+    !is.null(grammar_wide$theme_options$fields$legend_position),
+  "figure grammar documents filters, scale overrides, and theme options"
+)
