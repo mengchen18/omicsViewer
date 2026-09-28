@@ -1698,6 +1698,21 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         if (identical(isolate(chat_object$status()), "running"))
           return(invisible(FALSE))
 
+        # Canonicalize turns at the maintenance boundary: strip the
+        # runtime-only ToolDef references ellmer attaches to tool requests
+        # during a stream (agent_strip_runtime_refs). Without this every
+        # tool-call turn serializes the entire application object graph
+        # through the handler closure - minutes of event-loop stall per
+        # compaction digest observed 2026-09-28 (see the function's docs).
+        stripped <- tryCatch(
+          agent_strip_runtime_refs(turns),
+          error = function(e) NULL
+        )
+        if (!is.null(stripped) && isTRUE(stripped$changed)) {
+          tryCatch(client$set_turns(stripped$turns), error = function(e) NULL)
+          turns <- stripped$turns
+        }
+
         # WP13b diagnostics: step timings (ms) logged with the compaction
         # "start" event. All steps are pure R and measure in milliseconds
         # (verified 2026-09-28 on a 1.8 MB turn list) - the 5-6 minute
@@ -1774,7 +1789,17 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             timings_ms = round(c(
               stub = stub_ms, estimate = est_ms,
               cut = cut_ms, digest = dig_ms
-            ) * 1000)
+            ) * 1000),
+            # Diagnostics 2026-09-28: per-turn serialized sizes (top 8,
+            # turn index order preserved) so a multi-GB digest can be
+            # attributed to specific turns.
+            turn_sizes_top = {
+              sx <- sort.int(digest_parts_before$sizes, decreasing = TRUE,
+                             index.return = TRUE)
+              head(round(digest_parts_before$sizes[sx$ix]), 8L)
+            },
+            turn_sizes_top_index = head(sx$ix, 8L),
+            turn_sizes_total = round(sum(digest_parts_before$sizes))
           )
         )
 

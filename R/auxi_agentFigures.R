@@ -857,10 +857,27 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     params$yintercept <- .agent_figure_numeric_param(params$yintercept, "yintercept", -1e9, 1e9, NULL)
     params$max_labels <- .agent_figure_integer_param(params$max_labels, "max_labels", 0L, 50L, 20L)
     if (geom %in% c("hline", "vline")) {
-      if (geom == "hline" && is.null(params$yintercept))
-        stop("Figure layer hline requires numeric yintercept.")
-      if (geom == "vline" && is.null(params$xintercept))
-        stop("Figure layer vline requires numeric xintercept.")
+      # Decorative reference lines arrive without an intercept surprisingly
+      # often (the intent is the conventional no-change line). Deriving the
+      # conventional default beats rejecting the whole figure: a hard stop
+      # costs a full provider round trip to drop one decorative layer
+      # (observed 2026-09-28 beeswarm session). The warning is surfaced to
+      # the model through the figure metadata, so a misplaced line is
+      # self-correcting on the next revision.
+      if (geom == "hline" && is.null(params$yintercept)) {
+        params$yintercept <- 0
+        warning(
+          "Figure layer hline has no yintercept: drawing the conventional ",
+          "reference at y = 0. Set params.yintercept to place it elsewhere."
+        )
+      }
+      if (geom == "vline" && is.null(params$xintercept)) {
+        params$xintercept <- 0
+        warning(
+          "Figure layer vline has no xintercept: drawing the conventional ",
+          "reference at x = 0. Set params.xintercept to place it elsewhere."
+        )
+      }
     }
 
     # widened grammar: constant per-layer colors (hex-validated) and a

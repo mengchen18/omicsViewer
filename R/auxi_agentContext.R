@@ -598,12 +598,95 @@ agent_context_archive_merge <- function(turns, archive) {
   new_turns
 }
 
+#' Drop runtime-only references from stored turns
+#'
+#' Canonical form at the turn-maintenance boundary: turns at rest must be
+#' pure data. During a live stream ellmer attaches the registered
+#' \code{ToolDef} to every \code{ContentToolRequest} (the \code{tool}
+#' property); the ToolDef carries the handler closure, which chains back to
+#' the module server environment - i.e. to the whole application object
+#' graph (dataset, widget store, reactives, Shiny session, the chat client
+#' with every turn again). Any \code{serialize()} over such a turn then
+#' walks the entire graph: observed live (2026-09-28 post-mortem) at
+#' 430 MB and 32 s PER tool-call turn, which made the compaction digest
+#' (and the snapshot byte accounting) take minutes and froze the
+#' single-threaded event loop under an in-flight provider request. This
+#' mirrors ellmer's own wire projection (\code{contents_record} excludes
+#' \code{tool}): the provider contract needs only id, name and arguments,
+#' and tool execution happens during the stream, never from history.
+#'
+#' @param turns List of ellmer Turn objects.
+#' @return List: \code{turns} (new list, unchanged entries shared) and
+#'   \code{changed} (logical) - TRUE when any reference was dropped.
+#' @keywords internal
+#' @rdname agentContextHelpers
+agent_strip_runtime_refs <- function(turns) {
+  changed <- FALSE
+  strip_request <- function(x) {
+    if (inherits(x, "ellmer::ContentToolRequest") && !is.null(x@tool)) {
+      changed <<- TRUE
+      return(ellmer::ContentToolRequest(
+        id = x@id, name = x@name,
+        arguments = x@arguments, extra = x@extra
+      ))
+    }
+    x
+  }
+  out <- lapply(turns, function(t) {
+    if (!.agent_is_turn(t))
+      return(t)
+    hit <- FALSE
+    contents <- lapply(t@contents, function(x) {
+      if (inherits(x, "ellmer::ContentToolRequest")) {
+        if (!is.null(x@tool))
+          hit <<- TRUE
+        return(strip_request(x))
+      }
+      # A tool result carries its paired request; that nested request can
+      # hold the same ToolDef reference (observed live: the results turn
+      # of an exchange serialized the app graph through it). The display
+      # payload (@extra) is preserved.
+      if (inherits(x, "ellmer::ContentToolResult") &&
+          !is.null(x@request) &&
+          inherits(x@request, "ellmer::ContentToolRequest") &&
+          !is.null(x@request@tool)) {
+        hit <<- TRUE
+        return(ellmer::ContentToolResult(
+          value = x@value,
+          error = x@error,
+          extra = x@extra,
+          request = strip_request(x@request)
+        ))
+      }
+      x
+    })
+    if (!hit)
+      return(t)
+    changed <<- TRUE
+    if (inherits(t, "ellmer::AssistantTurn")) {
+      ellmer::AssistantTurn(
+        contents = contents, json = t@json, tokens = t@tokens,
+        cost = t@cost, duration = t@duration,
+        finish_reason = t@finish_reason
+      )
+    } else if (inherits(t, "ellmer::UserTurn")) {
+      ellmer::UserTurn(contents = contents)
+    } else {
+      t
+    }
+  })
+  list(turns = out, changed = changed)
+}
+
 #' Per-turn serialization sizes (conflict-guard diagnostics)
 #'
 #' The components behind \code{\link{agent_context_digest}}: turn count and
 #' per-turn serialized sizes. Logged alongside a discard so a changed digest
 #' can be attributed to a specific turn (count drift vs a mutated turn) when
-#' diagnosing phantom conflicts.
+#' diagnosing phantom conflicts. Sizes are measured on the canonical
+#' (runtime-reference-free) projection: live turns can carry ToolDef
+#' closures whose serialization chases the whole application graph, which
+#' would make this function O(app state) instead of O(conversation).
 #'
 #' @param turns List of ellmer Turn objects.
 #' @return List with \code{count} (integer) and \code{sizes} (numeric).
@@ -613,6 +696,7 @@ agent_context_digest_parts <- function(turns) {
   turns <- Filter(.agent_is_turn, turns)
   if (!length(turns))
     return(list(count = 0L, sizes = numeric(0)))
+  turns <- agent_strip_runtime_refs(turns)$turns
   list(
     count = length(turns),
     sizes = vapply(turns, function(t)

@@ -928,7 +928,11 @@ agent_history_redact <- function(text) {
 #' and the paired tool request (tool-call id + name - small, and WP13's
 #' context stubber needs it to identify snapshot tools after a restore)
 #' as inert context. Returns a NEW turn (the live session object is never
-#' mutated).
+#' mutated). Runtime-only ToolDef references on tool requests are dropped
+#' (\code{\link{agent_strip_runtime_refs}}): the byte budget below is
+#' measured by serializing these turns, and a ToolDef closure would pull
+#' the whole application graph into that measurement - and into the
+#' persisted payload.
 #'
 #' @param turn An ellmer Turn object.
 #' @return A new Turn of the same class with slimmed contents.
@@ -941,6 +945,11 @@ agent_history_redact <- function(text) {
         value = x@value,
         request = x@request,
         error = x@error
+      ))
+    if (inherits(x, "ellmer::ContentToolRequest") && !is.null(x@tool))
+      return(ellmer::ContentToolRequest(
+        id = x@id, name = x@name,
+        arguments = x@arguments, extra = x@extra
       ))
     x
   })
@@ -1053,7 +1062,12 @@ agent_history_restore_payload <- function(payload, max_bytes = 512L * 1024L) {
       !all(vapply(figures, function(f) is.list(f) && nzchar(f$id %||% ""),
                   logical(1))))
     stop("Assistant payload figure registry is malformed.")
-  size <- length(serialize(turns, connection = NULL)) +
+  # Untrusted input: strip runtime-only references (ToolDef closures)
+  # before measuring - a crafted snapshot could otherwise embed a closure
+  # whose serialization chases an arbitrary object graph (and would also
+  # distort the size check). Mirrors the canonical form the slim path saves.
+  payload$turns <- agent_strip_runtime_refs(turns)$turns
+  size <- length(serialize(payload$turns, connection = NULL)) +
     sum(nchar(vapply(transcript, function(r) r$text, character(1)),
                    type = "bytes"))
   if (size > max_bytes)

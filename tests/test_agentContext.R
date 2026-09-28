@@ -537,3 +537,111 @@ ok(
     ut_cmp_identical(conditionMessage(res$error), "boom"),
   "race: first rejection propagates (promises wraps string rejections as errors)"
 )
+
+## -- runtime-reference stripping (2026-09-28 post-mortem) ----------------
+## Live streams attach the registered ToolDef to every ContentToolRequest.
+## The ToolDef carries the handler closure; registered inside the module
+## server that closure chains to the whole application graph, and any
+## serialize() over the turn walks it (430 MB / 32 s per tool-call turn
+## observed live). Turn maintenance must therefore operate on the
+## canonical, reference-free projection.
+agent_strip_runtime_refs <- omicsViewer:::agent_strip_runtime_refs
+agent_context_digest_parts <- omicsViewer:::agent_context_digest_parts
+
+big_env <- new.env(parent = emptyenv())
+big_env$payload <- rnorm(250e3)
+heavy_handler <- function(`_intent`) list(ok = TRUE)
+environment(heavy_handler) <- big_env
+heavy_tool <- ellmer::tool(
+  heavy_handler, name = "heavy_tool", description = "closure-heavy",
+  arguments = list(`_intent` = ellmer::type_string("intent"))
+)
+mk_request <- function(id = "call_1", name = "heavy_tool")
+  ellmer::ContentToolRequest(
+    id = id, name = name,
+    arguments = list(`_intent` = "unit test"), tool = heavy_tool
+  )
+
+raw_request <- mk_request()
+turns_with_ref <- list(
+  mk_user("please call heavy_tool"),
+  mk_assistant(request = raw_request),
+  mk_tool_turn(raw_request, list(ok = TRUE)),
+  mk_assistant("done")
+)
+
+## the fixture itself demonstrates the hazard: the request with the tool
+## reference serializes to the environment graph, not to its own content
+ref_bytes <- length(serialize(raw_request, connection = NULL))
+stripped_probe <- agent_strip_runtime_refs(list(turns_with_ref[[2]]))
+result_with_ref <- ellmer::ContentToolResult(
+  value = list(ok = TRUE), request = raw_request
+)
+ok(
+  ref_bytes > 1.5e6 &&
+    length(serialize(stripped_probe$turns[[1]], connection = NULL)) < 1e5,
+  "fixture: a ToolDef-bearing request serializes its closure graph; stripping collapses it"
+)
+ok(
+  length(serialize(result_with_ref, connection = NULL)) > 1.5e6,
+  "fixture: the nested request inside a tool result carries the same reference"
+)
+ok(
+  isTRUE(stripped_probe$changed),
+  "strip reports changed when a reference was dropped"
+)
+
+stripped <- agent_strip_runtime_refs(turns_with_ref)
+restripped <- agent_strip_runtime_refs(stripped$turns)
+ok(
+  identical(restripped$changed, FALSE) &&
+    identical(agent_context_digest(turns_with_ref),
+              agent_context_digest(stripped$turns)),
+  "strip is idempotent and preserves the conversation identity (digest)"
+)
+stripped_req <- Filter(
+  function(x) inherits(x, "ellmer::ContentToolRequest"),
+  stripped$turns[[2]]@contents
+)[[1]]
+ok(
+  is.null(stripped_req@tool) &&
+    identical(stripped_req@id, "call_1") &&
+    identical(stripped_req@name, "heavy_tool") &&
+    identical(stripped_req@arguments$`_intent`, "unit test"),
+  "strip keeps the provider contract (id, name, arguments) intact"
+)
+ok(
+  identical(
+    omicsViewer:::agent_transcript_records(turns_with_ref),
+    omicsViewer:::agent_transcript_records(stripped$turns)
+  ),
+  "strip leaves the model-facing transcript unchanged"
+)
+
+## the digest itself must be reference-proof regardless of the caller
+t0 <- proc.time()[["elapsed"]]
+parts <- agent_context_digest_parts(turns_with_ref)
+digest_secs <- proc.time()[["elapsed"]] - t0
+ok(
+  digest_secs < 2 && sum(parts$sizes) < 1e6,
+  sprintf(
+    "digest over closure-heavy turns is fast and small (%.2fs, %.0f KB)",
+    digest_secs, sum(parts$sizes) / 1024
+  )
+)
+
+## the snapshot path measures slimmed turns by serialization: it must not
+## carry the reference either
+payload <- agent_history_payload(turns_with_ref)
+ok(
+  !is.null(payload) && length(serialize(payload$turns, connection = NULL)) < 1e6,
+  "snapshot payload turns are reference-free and small"
+)
+slim_req <- Filter(
+  function(x) inherits(x, "ellmer::ContentToolRequest"),
+  payload$turns[[2]]@contents
+)[[1]]
+ok(
+  is.null(slim_req@tool),
+  "slimmed snapshot turns drop the ToolDef reference"
+)

@@ -292,6 +292,35 @@ ok(
   "explicit JSON null params fall back to their default"
 )
 
+# 2026-09-28 post-mortem: a decorative hline without yintercept is the
+# conventional no-change reference line; deriving the default (with a
+# surfaced warning) beats rejecting the figure - a hard stop cost a full
+# provider round trip just to drop one decorative layer.
+no_intercept <- agent_normalize_figure_spec(list(
+  layers = list(
+    list(geom = "hline", params = list(color = "#555555")),
+    list(geom = "vline", params = list())
+  )
+), fd, pd, mat, character(), character())
+ok(
+  ut_cmp_identical(no_intercept$layers[[1]]$params$yintercept, 0) &&
+    ut_cmp_identical(no_intercept$layers[[2]]$params$xintercept, 0),
+  "hline/vline without intercept default to the conventional 0 reference"
+)
+warned <- character()
+withCallingHandlers(
+  normalized_warn <- agent_normalize_figure_spec(list(
+    layers = list(list(geom = "hline", params = list()))
+  ), fd, pd, mat, character(), character()),
+  warning = function(w) {
+    warned <<- c(warned, conditionMessage(w)); invokeRestart("muffleWarning")
+  }
+)
+ok(
+  length(warned) == 1L && grepl("yintercept", warned),
+  "the derived default surfaces a warning the model can correct on revision"
+)
+
 # WP3 live-path replication: the echo spec is serialized to JSON (tool
 # result), re-parsed as the provider payload (tool arguments), sanitized
 # at the seam, then normalized - and must reproduce the original.
