@@ -429,3 +429,111 @@ if (requireNamespace("shiny", quietly = TRUE) &&
   )
 }
 
+
+## -- WP13b: summary timeout policy + digest parts + promise race ------------
+
+agent_context_digest_parts <- omicsViewer:::agent_context_digest_parts
+agent_promise_race <- omicsViewer:::agent_promise_race
+
+ok(
+  ut_cmp_identical(agent_context_policy()$summary_timeout, 120),
+  "default summary timeout is 120 s"
+)
+ok(
+  withr_local_env(list(OMICSVIEWER_LLM_SUMMARY_TIMEOUT = "9999"),
+    ut_cmp_identical(agent_context_policy()$summary_timeout, 120)),
+  "summary timeout is hard-capped at 120 s"
+)
+ok(
+  withr_local_env(list(OMICSVIEWER_LLM_SUMMARY_TIMEOUT = "30"),
+    ut_cmp_identical(agent_context_policy()$summary_timeout, 30)),
+  "summary timeout env override inside the cap"
+)
+ok(
+  withr_local_env(list(OMICSVIEWER_LLM_SUMMARY_TIMEOUT = "2"),
+    ut_cmp_identical(agent_context_policy()$summary_timeout, 120)),
+  "sub-floor summary timeout falls back to the default"
+)
+ok(
+  ut_cmp_identical(agent_context_policy()$compaction_backoff, 300L),
+  "default compaction backoff is 300 s"
+)
+ok(
+  withr_local_env(list(OMICSVIEWER_LLM_COMPACTION_BACKOFF = "0"),
+    ut_cmp_identical(agent_context_policy()$compaction_backoff, 0L)),
+  "compaction backoff can be disabled with 0"
+)
+
+parts_convo <- list(mk_user("hi"), mk_assistant("hello"))
+p1 <- agent_context_digest_parts(parts_convo)
+ok(ut_cmp_identical(p1$count, 2L), "digest parts count")
+ok(length(p1$sizes) == 2 && all(is.finite(p1$sizes)), "digest parts sizes")
+ok(
+  ut_cmp_identical(agent_context_digest(parts_convo), paste(p1$count, sum(p1$sizes))),
+  "digest string stays consistent with its parts"
+)
+p2 <- agent_context_digest_parts(list(parts_convo[[1]], mk_assistant("hello world")))
+ok(
+  p2$count == p1$count && p2$sizes[2] != p1$sizes[2],
+  "digest parts localise a mutated turn"
+)
+ok(
+  ut_cmp_identical(agent_context_digest_parts(list())$count, 0L),
+  "digest parts of an empty list"
+)
+
+ok(ut_cmp_identical(agent_context_digest(list()), "empty"),
+   "empty digest unchanged after the parts refactor")
+
+## -- promise race --------------------------------------------------------
+
+wait_promise <- function(p, seconds = 2) {
+  out <- list(value = NULL, error = NULL, done = FALSE)
+  promises::then(
+    p,
+    function(v) { out$value <<- v; out$done <<- TRUE },
+    function(e) { out$error <<- e; out$done <<- TRUE }
+  )
+  # A single later::run_now() returns as soon as the queue momentarily
+  # drains, cutting promise chains mid-hop; poll instead (Sys.sleep
+  # advances wall time so future-due callbacks mature).
+  deadline <- Sys.time() + seconds
+  while (!isTRUE(out$done) && Sys.time() < deadline) {
+    later::run_now(0.02)
+    if (!isTRUE(out$done)) Sys.sleep(0.01)
+  }
+  out
+}
+
+delayed <- function(value, seconds)
+  promises::promise(function(resolve, reject)
+    later::later(function() resolve(value), seconds))
+
+res <- wait_promise(agent_promise_race(list(
+  promises::promise_resolve(list(method = "llm")),
+  delayed(list(method = "timeout"), 0.05)
+)))
+ok(
+  res$done && ut_cmp_identical(res$value$method, "llm"),
+  "race: already-resolved promise wins immediately"
+)
+
+res <- wait_promise(agent_promise_race(list(
+  delayed(list(method = "llm"), 0.2),
+  delayed(list(method = "timeout"), 0.02)
+)))
+ok(
+  res$done && ut_cmp_identical(res$value$method, "timeout"),
+  "race: earlier-settling timer beats the slow LLM promise"
+)
+
+res <- wait_promise(agent_promise_race(list(
+  promises::promise(function(resolve, reject)
+    later::later(function() reject("boom"), 0.01)),
+  delayed(list(method = "timeout"), 0.2)
+)))
+ok(
+  res$done && inherits(res$error, "error") &&
+    ut_cmp_identical(conditionMessage(res$error), "boom"),
+  "race: first rejection propagates (promises wraps string rejections as errors)"
+)

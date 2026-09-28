@@ -13,7 +13,9 @@
 \alias{agent_fallback_summary}
 \alias{agent_compaction_prompt}
 \alias{agent_context_archive_merge}
+\alias{agent_context_digest_parts}
 \alias{agent_context_digest}
+\alias{agent_promise_race}
 \title{Internal AI-assistant context-management helpers}
 \usage{
 agent_context_policy()
@@ -42,10 +44,14 @@ agent_compaction_prompt(turns)
 
 agent_context_archive_merge(turns, archive)
 
+agent_context_digest_parts(turns)
+
 agent_context_digest(turns)
+
+agent_promise_race(promise_list)
 }
 \arguments{
-\item{turns}{List of ellmer Turn objects (stubbed values inside).}
+\item{turns}{List of ellmer Turn objects.}
 
 \item{policy}{From \code{\link{agent_context_policy}}.}
 
@@ -56,6 +62,8 @@ agent_context_digest(turns)
 \item{keep_exchanges}{Minimum number of trailing exchanges to keep.}
 
 \item{max_chars}{Overall character budget.}
+
+\item{promise_list}{List of promise objects.}
 }
 \value{
 Context-policy list, maintained turn lists, token estimates, or
@@ -74,6 +82,10 @@ Integer index into \code{turns} (keep \code{turns[i..end]}), or
 Single character string.
 
 New list of turns with archived values restored.
+
+List with \code{count} (integer) and \code{sizes} (numeric).
+
+A promise settled by the first input promise to settle.
 }
 \description{
 WP13: bounded assistant context. The conversation replayed to the provider
@@ -90,7 +102,14 @@ stays proportional to recent work instead of to everything ever said:
   \item \code{OMICSVIEWER_LLM_COMPACT_TO} - post-compaction target as a
     fraction of the trigger (default 0.5);
   \item \code{OMICSVIEWER_LLM_BUDGET_WARN} - fraction of the WP12 token /
-    cost ceilings at which a one-time soft warning fires (default 0.8).
+    cost ceilings at which a one-time soft warning fires (default 0.8);
+  \item \code{OMICSVIEWER_LLM_SUMMARY_TIMEOUT} - seconds the compaction
+    summariser may run before falling back to the deterministic summary
+    (default 120; values outside [5, 120] fall back to 120 - a hard cap,
+    so a stalled provider can never wedge compaction);
+  \item \code{OMICSVIEWER_LLM_COMPACTION_BACKOFF} - seconds compaction
+    stays deferred after a discarded or failed install (default 300;
+    0 disables the backoff).
 }
 Invalid values fall back to the defaults.
 
@@ -143,8 +162,22 @@ WP11 snapshot fidelity: \code{snapshot_payload()} runs the live (stubbed)
 turns through this before \code{agent_history_payload()}, so persistence
 keeps full-fidelity values even though the model context was slimmed.
 
+The components behind \code{\link{agent_context_digest}}: turn count and
+per-turn serialized sizes. Logged alongside a discard so a changed digest
+can be attributed to a specific turn (count drift vs a mutated turn) when
+diagnosing phantom conflicts.
+
 Cheap identity check used before installing an async compaction result:
 the conversation must be unchanged since the summary was requested.
+
+Resolves (or rejects) with the value (error) of the first promise in
+\code{promise_list} to settle; later settlements are dropped. Used to
+bound the WP13 compaction summariser: the LLM summary races a
+\code{later::later()} timer, so a stalled provider connection falls back
+to the deterministic summary instead of blocking compaction forever
+(observed 2026-09-28: two ~6-minute summary calls, both discarded).
+Input promises must be settled via the event loop (\code{later}), never
+by blocking R.
 }
 \details{
 \itemize{

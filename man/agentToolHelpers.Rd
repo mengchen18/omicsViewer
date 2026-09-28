@@ -60,7 +60,9 @@ arrays, and \code{NULL} for absent values. Provider sentinel strings
 (\code{AGENT_SENTINEL_STRINGS} -- some models serialize omitted
 optionals as literal \code{"null"}/\code{"{}"}/\code{"[]"} strings)
 become \code{NULL} at any depth. Empty arrays and arrays whose every
-element is absent become \code{NULL}.
+element is absent stay explicit empty lists -- an empty array is a
+real value (\dQuote{clear the selection}, \dQuote{reject via the
+min rule}), distinct from an omitted optional.
 
 Real argument documents nest at most a handful of levels (figure
 specs: layers -> filter -> combinators -> leaves). The cap turns a

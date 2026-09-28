@@ -182,6 +182,14 @@ agent_cost_limits <- function() {
 #'   fields.
 #' @keywords internal
 #' @rdname agentAssistantHelpers
+# Token-slot convention (verified 2026-09-28 on glm/zai OpenAI-compatible
+# usage reporting): turn@tokens = c(input_excluding_cached, output,
+# cached_input). sum() is therefore the TOTAL tokens processed by the
+# request, which is the correct accumulator for the WP12 budget AND the
+# correct anchor for the WP13 context estimate (full input + output of the
+# last request; e.g. [5438, 276, 25856] -> 31,570 with a ~31.3k real
+# context). Do NOT drop the cached slot: providers reporting input exclusive
+# of cache hits would then undercount real context growth.
 agent_turn_usage <- function(turn) {
   tokens <- 0
   cost <- 0

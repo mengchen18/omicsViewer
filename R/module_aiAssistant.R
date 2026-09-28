@@ -1593,13 +1593,25 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # ------------------------------------------------------------------
       .context_keep <- list()
       compaction_in_flight <- FALSE
+      # WP13b: after a discarded/failed compaction install, defer relaunch
+      # until this timestamp (Sys.time numeric; 0 = no backoff active). A
+      # slow provider otherwise relaunches a doomed summary every idle flip
+      # (observed 2026-09-28: two ~6-minute summaries, both discarded).
+      compaction_backoff_until <- 0
 
       .context_install_compaction <- function(summary, method, kept,
                                               turns_compacted,
-                                              digest_before, estimate,
-                                              usage) {
+                                              digest_before,
+                                              digest_parts_before = list(
+                                                count = 0L, sizes = numeric(0)
+                                              ),
+                                              estimate, usage) {
+        current_status <- tryCatch(
+          isolate(chat_object$status()),
+          error = function(e) "running"
+        )
         current_ok <- tryCatch(
-          !identical(isolate(chat_object$status()), "running") &&
+          !identical(current_status, "running") &&
             identical(
               agent_context_digest(chat_object$client$get_turns()),
               digest_before
@@ -1607,14 +1619,31 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           error = function(e) FALSE
         )
         if (!current_ok) {
+          now_parts <- tryCatch(
+            agent_context_digest_parts(chat_object$client$get_turns()),
+            error = function(e) NULL
+          )
+          size_diff <- if (!is.null(now_parts) && length(now_parts$sizes) &&
+                           identical(length(now_parts$sizes),
+                                     length(digest_parts_before$sizes)))
+            which(now_parts$sizes != digest_parts_before$sizes) else integer()
           agent_logger_event(
             logger, "history_compacted",
             list(
               method = paste0(method, "_conflict_discarded"),
               estimated_tokens = estimate,
-              turns_compacted = turns_compacted
+              turns_compacted = turns_compacted,
+              reason = if (identical(current_status, "running"))
+                "stream_running" else "digest_changed",
+              digest_before_turns = digest_parts_before$count,
+              digest_now_turns = if (!is.null(now_parts)) now_parts$count else NA_integer_,
+              digest_before_bytes = round(sum(digest_parts_before$sizes)),
+              digest_now_bytes = if (!is.null(now_parts)) round(sum(now_parts$sizes)) else NA_real_,
+              turns_size_diff = head(size_diff, 10L)
             )
           )
+          compaction_backoff_until <<-
+            Sys.time() + context_policy$compaction_backoff
           return(invisible(FALSE))
         }
         client <- chat_object$client
@@ -1632,6 +1661,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               client$set_system_prompt(old_prompt)
               client$set_turns(old_turns)
             }, error = function(e2) NULL)
+            compaction_backoff_until <<-
+              Sys.time() + context_policy$compaction_backoff
             agent_logger_event(
               logger, "history_compacted",
               list(
@@ -1667,6 +1698,13 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         if (identical(isolate(chat_object$status()), "running"))
           return(invisible(FALSE))
 
+        # WP13b diagnostics: step timings (ms) logged with the compaction
+        # "start" event. All steps are pure R and measure in milliseconds
+        # (verified 2026-09-28 on a 1.8 MB turn list) - the 5-6 minute
+        # stub->start gaps seen in the wild are process stalls, not compute,
+        # and these timings make that visible per-event.
+        .step_now <- function() proc.time()[["elapsed"]]
+        stub_t0 <- .step_now()
         stubbed <- tryCatch(
           agent_stub_history(turns, context_policy, context_archive),
           error = function(e) {
@@ -1677,6 +1715,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             NULL
           }
         )
+        stub_ms <- .step_now() - stub_t0
         if (!is.null(stubbed) && isTRUE(stubbed$changed)) {
           tryCatch(client$set_turns(stubbed$turns), error = function(e) NULL)
           turns <- stubbed$turns
@@ -1692,18 +1731,38 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
 
         if (isTRUE(context_policy$tokens <= 0L) || isTRUE(compaction_in_flight))
           return(invisible(FALSE))
+        est_t0 <- .step_now()
         estimate <- agent_estimate_context_tokens(turns)
+        est_ms <- .step_now() - est_t0
         if (estimate <= context_policy$tokens)
           return(invisible(FALSE))
+        if (Sys.time() < compaction_backoff_until) {
+          agent_logger_event(
+            logger, "history_compacted",
+            list(
+              method = "backoff_deferred",
+              estimated_tokens = estimate,
+              resumes_in_seconds = round(as.numeric(
+                compaction_backoff_until - Sys.time(), units = "secs"
+              ))
+            )
+          )
+          return(invisible(FALSE))
+        }
+        cut_t0 <- .step_now()
         cut <- agent_compaction_cut(
           turns,
           target_tokens = floor(context_policy$tokens * context_policy$compact_to)
         )
+        cut_ms <- .step_now() - cut_t0
         if (is.null(cut) || cut <= 1L)
           return(invisible(FALSE))
         compact <- turns[seq_len(cut - 1L)]
         kept <- turns[cut:length(turns)]
+        dig_t0 <- .step_now()
+        digest_parts_before <- agent_context_digest_parts(turns)
         digest_before <- agent_context_digest(turns)
+        dig_ms <- .step_now() - dig_t0
         compaction_in_flight <<- TRUE
         agent_logger_event(
           logger, "history_compacted",
@@ -1711,7 +1770,11 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             method = "start",
             estimated_tokens = estimate,
             turns_compacted = length(compact),
-            turns_kept = length(kept)
+            turns_kept = length(kept),
+            timings_ms = round(c(
+              stub = stub_ms, estimate = est_ms,
+              cut = cut_ms, digest = dig_ms
+            ) * 1000)
           )
         )
 
@@ -1723,6 +1786,33 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               "Produce compact, factually faithful conversation summaries.",
               "You have no tools; never attempt tool calls."
             ))
+            # WP13b diagnostics: the summary call is otherwise invisible
+            # between the compaction "start" and the tail events (the
+            # 2026-09-28 log showed only ~6-minute gaps with no request
+            # accounting of its own).
+            summary_clock <- new.env(parent = emptyenv())
+            summary_clock$t0 <- NULL
+            summary_client$on_request_start(function(turns) {
+              summary_clock$t0 <- Sys.time()
+              agent_logger_event(
+                logger, "summary_request_start",
+                list(timeout_seconds = context_policy$summary_timeout)
+              )
+            })
+            summary_client$on_request_end(function(turn) {
+              agent_logger_event(
+                logger, "summary_request_end",
+                list(
+                  duration_seconds = if (is.null(summary_clock$t0)) NA_real_ else
+                    round(as.numeric(difftime(
+                      Sys.time(), summary_clock$t0, units = "secs"
+                    )), 3),
+                  tokens = tryCatch(
+                    as.numeric(turn@tokens), error = function(e) NULL
+                  )
+                )
+              )
+            })
             prompt <- agent_compaction_prompt(compact)
             list(client = summary_client, prompt = prompt)
           },
@@ -1756,10 +1846,32 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           )
         }
 
+        # WP13b: bound the summary call - race it against a later::later()
+        # timer (hard cap 120 s via OMICSVIEWER_LLM_SUMMARY_TIMEOUT). A
+        # stalled provider connection then falls back to the deterministic
+        # summary instead of wedging compaction_in_flight forever; the
+        # losing LLM settlement is dropped silently by the race.
+        summary_timeout <- context_policy$summary_timeout
+        timeout_promise <- promises::promise(function(resolve, reject) {
+          later::later(
+            function() resolve(list(summary = NULL, method = "timeout")),
+            delay = summary_timeout
+          )
+        })
+
         .context_keep$summary_tail <- promises::then(
-          summary_promise,
+          agent_promise_race(list(summary_promise, timeout_promise)),
           function(out) {
             compaction_in_flight <<- FALSE
+            if (identical(out$method, "timeout"))
+              agent_logger_event(
+                logger, "history_compacted",
+                list(
+                  method = "summary_timeout",
+                  timeout_seconds = summary_timeout,
+                  estimated_tokens = estimate
+                )
+              )
             summary <- if (identical(out$method, "llm"))
               out$summary
             else
@@ -1777,6 +1889,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               kept = kept,
               turns_compacted = length(compact),
               digest_before = digest_before,
+              digest_parts_before = digest_parts_before,
               estimate = estimate,
               usage = usage
             )

@@ -70,7 +70,14 @@ NULL
 #'   \item \code{OMICSVIEWER_LLM_COMPACT_TO} - post-compaction target as a
 #'     fraction of the trigger (default 0.5);
 #'   \item \code{OMICSVIEWER_LLM_BUDGET_WARN} - fraction of the WP12 token /
-#'     cost ceilings at which a one-time soft warning fires (default 0.8).
+#'     cost ceilings at which a one-time soft warning fires (default 0.8);
+#'   \item \code{OMICSVIEWER_LLM_SUMMARY_TIMEOUT} - seconds the compaction
+#'     summariser may run before falling back to the deterministic summary
+#'     (default 120; values outside [5, 120] fall back to 120 - a hard cap,
+#'     so a stalled provider can never wedge compaction);
+#'   \item \code{OMICSVIEWER_LLM_COMPACTION_BACKOFF} - seconds compaction
+#'     stays deferred after a discarded or failed install (default 300;
+#'     0 disables the backoff).
 #' }
 #' Invalid values fall back to the defaults.
 #'
@@ -83,7 +90,13 @@ agent_context_policy <- function() {
       "OMICSVIEWER_LLM_TOOL_RESULT_BYTES", 16384L
     ),
     compact_to = .agent_context_env_num("OMICSVIEWER_LLM_COMPACT_TO", 0.5),
-    budget_warn = .agent_context_env_num("OMICSVIEWER_LLM_BUDGET_WARN", 0.8)
+    budget_warn = .agent_context_env_num("OMICSVIEWER_LLM_BUDGET_WARN", 0.8),
+    summary_timeout = .agent_context_env_num(
+      "OMICSVIEWER_LLM_SUMMARY_TIMEOUT", 120, minimum = 5, maximum = 120
+    ),
+    compaction_backoff = .agent_context_env_int(
+      "OMICSVIEWER_LLM_COMPACTION_BACKOFF", 300L
+    )
   )
 }
 
@@ -585,6 +598,29 @@ agent_context_archive_merge <- function(turns, archive) {
   new_turns
 }
 
+#' Per-turn serialization sizes (conflict-guard diagnostics)
+#'
+#' The components behind \code{\link{agent_context_digest}}: turn count and
+#' per-turn serialized sizes. Logged alongside a discard so a changed digest
+#' can be attributed to a specific turn (count drift vs a mutated turn) when
+#' diagnosing phantom conflicts.
+#'
+#' @param turns List of ellmer Turn objects.
+#' @return List with \code{count} (integer) and \code{sizes} (numeric).
+#' @keywords internal
+#' @rdname agentContextHelpers
+agent_context_digest_parts <- function(turns) {
+  turns <- Filter(.agent_is_turn, turns)
+  if (!length(turns))
+    return(list(count = 0L, sizes = numeric(0)))
+  list(
+    count = length(turns),
+    sizes = vapply(turns, function(t)
+      tryCatch(as.numeric(length(serialize(t, connection = NULL))),
+               error = function(e) 0), numeric(1))
+  )
+}
+
 #' Serialization digest of a turn list (compaction conflict guard)
 #'
 #' Cheap identity check used before installing an async compaction result:
@@ -593,13 +629,46 @@ agent_context_archive_merge <- function(turns, archive) {
 #' @keywords internal
 #' @rdname agentContextHelpers
 agent_context_digest <- function(turns) {
-  turns <- Filter(.agent_is_turn, turns)
-  if (!length(turns))
+  parts <- agent_context_digest_parts(turns)
+  if (!parts$count)
     return("empty")
-  paste(
-    length(turns),
-    sum(vapply(turns, function(t)
-      tryCatch(as.numeric(length(serialize(t, connection = NULL))),
-               error = function(e) 0), numeric(1)))
-  )
+  paste(parts$count, sum(parts$sizes))
+}
+
+#' Race promises: first settlement wins
+#'
+#' Resolves (or rejects) with the value (error) of the first promise in
+#' \code{promise_list} to settle; later settlements are dropped. Used to
+#' bound the WP13 compaction summariser: the LLM summary races a
+#' \code{later::later()} timer, so a stalled provider connection falls back
+#' to the deterministic summary instead of blocking compaction forever
+#' (observed 2026-09-28: two ~6-minute summary calls, both discarded).
+#' Input promises must be settled via the event loop (\code{later}), never
+#' by blocking R.
+#'
+#' @param promise_list List of promise objects.
+#' @return A promise settled by the first input promise to settle.
+#' @keywords internal
+#' @rdname agentContextHelpers
+agent_promise_race <- function(promise_list) {
+  promises::promise(function(resolve, reject) {
+    settled <- FALSE
+    for (p in promise_list) {
+      promises::then(
+        p,
+        function(value) {
+          if (!settled) {
+            settled <- TRUE
+            resolve(value)
+          }
+        },
+        function(error) {
+          if (!settled) {
+            settled <- TRUE
+            reject(error)
+          }
+        }
+      )
+    }
+  })
 }
