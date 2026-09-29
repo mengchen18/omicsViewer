@@ -1,65 +1,33 @@
 #!/bin/bash
 set -e
 
-SHINY_SERVER_VERSION=latest
-SHINY_SERVER_VERSION=${1:-${SHINY_SERVER_VERSION:-latest}}
+## System + R runtime setup for the omicsViewer application image.
+##
+## shiny-server is intentionally NOT installed: the Dockerfile runs the
+## app directly via `R -e shiny::runApp(...)` (see its CMD), so the
+## shiny-server .deb, its s6 service scripts and the rstudio example apps
+## were dead weight - and their download source retired: Posit purged the
+## download3.rstudio.org/ubuntu-14.04/x86_64 shiny-server binaries, so the
+## `wget .../shiny-server-${VERSION}-amd64.deb` started returning 404
+## (wget exit code 8) and broke the CI image build. Only the pieces the
+## image actually uses are installed here:
+##   - system libraries needed to build/run the app's R packages
+##     (libcurl for httr/curl, Cairo/X11 for plotly and base graphics);
+##   - shiny + rmarkdown (everything else comes from the
+##     BiocManager::install lines in the Dockerfile).
 
 ## build ARGs
 NCPUS=${NCPUS:--1}
 
-# Run dependency scripts
-/rocker_scripts/install_s6init.sh
-/rocker_scripts/install_pandoc.sh
-
-if [ "$SHINY_SERVER_VERSION" = "latest" ]; then
-    SHINY_SERVER_VERSION=$(wget -qO- https://download3.rstudio.org/ubuntu-14.04/x86_64/VERSION)
-fi
-
-# Get apt packages
+# System libraries required to build and run the app's R packages
 apt-get update
 apt-get install -y --no-install-recommends \
-    sudo \
-    gdebi-core \
     libcurl4-openssl-dev \
     libcairo2-dev \
-    libxt-dev \
-    xtail \
-    wget
+    libxt-dev
 
-# Install Shiny server
-wget --no-verbose "https://download3.rstudio.org/ubuntu-14.04/x86_64/shiny-server-${SHINY_SERVER_VERSION}-amd64.deb" -O ss-latest.deb
-gdebi -n ss-latest.deb
-rm ss-latest.deb
-
-# Get R packages
+# Core runtime packages
 install2.r --error --skipinstalled -n "$NCPUS" shiny rmarkdown
-
-# Set up directories and permissions
-if [ -x "$(command -v rstudio-server)" ]; then
-    DEFAULT_USER=${DEFAULT_USER:-rstudio}
-    adduser "${DEFAULT_USER}" shiny
-fi
-
-cp -R /usr/local/lib/R/site-library/shiny/examples/* /srv/shiny-server/
-chown shiny:shiny /var/lib/shiny-server
-mkdir -p /var/log/shiny-server
-chown shiny:shiny /var/log/shiny-server
-
-# create init scripts
-mkdir -p /etc/services.d/shiny-server
-cat <<"EOF" >/etc/services.d/shiny-server/run
-#!/usr/bin/with-contenv bash
-## load /etc/environment vars first:
-for line in $( cat /etc/environment ) ; do export $line > /dev/null; done
-if [ "$APPLICATION_LOGS_TO_STDOUT" != "false" ]; then
-    exec xtail /var/log/shiny-server/ &
-fi
-exec shiny-server 2>&1
-EOF
-chmod +x /etc/services.d/shiny-server/run
-
-# install init script
-cp /rocker_scripts/init_set_env.sh /etc/cont-init.d/01_set_env
 
 # Clean up
 rm -rf /var/lib/apt/lists/*
