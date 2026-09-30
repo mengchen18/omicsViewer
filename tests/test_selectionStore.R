@@ -86,3 +86,22 @@ res <- tryCatch(pf$apply(ids = "x", origin = "not-an-origin"),
                 error = function(e) e)
 ok(inherits(res, "error"), "an unknown origin is rejected")
 
+# --- forget: drop a stale report slot without touching the record -------------
+pf$apply(ids = character(0), origin = "clear", mirror = TRUE)
+ok(isTRUE(pf$report(origin = "figure", report = list(s = "a"), ids = "a")),
+   "a figure report lands")
+ok(isTRUE(pf$report(origin = "corner", report = list(r = 1), ids = c("b", "c"),
+                   mirror = c("b", "c"))),
+   "a corner report claims the record")
+ok(isFALSE(pf$report(origin = "figure", report = list(s = "a"), ids = "a")),
+   "a stale figure payload is deduped as an echo and cannot revert the corner")
+ok(identical(pf$read()$origin, "corner"),
+   "the echoed report did not change the record")
+ok(isTRUE(pf$forget("figure")), "forget drops the figure report slot")
+ok(isFALSE(pf$forget("figure")), "forgetting twice is a no-op")
+ok(isTRUE(pf$report(origin = "figure", report = list(s = "a"), ids = "a")),
+   "after a forget the same payload is a genuine re-selection, not an echo")
+ok(identical(pf$read()$origin, "figure"), "the re-selected report wins the record")
+res <- tryCatch(pf$forget(origin = "not-an-origin"), error = function(e) e)
+ok(inherits(res, "error"), "an unknown origin is rejected by forget")
+

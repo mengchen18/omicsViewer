@@ -243,9 +243,22 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   # R-M2 fallback epoch: a push that lands BEFORE the table has ever
   # rendered cannot go through the DT proxy (no table object yet, e.g.
   # the first paint after a tab switch); bumping the epoch re-renders
-  # with the selection in the widget payload instead. Gated on
-  # table_state (NULL only before the first draw), not on the selection
-  # input (which is legitimately NULL after a deselect).
+  # with the selection in the widget payload instead. Gated on the
+  # FIRST DRAW ONLY (.dtd_seen_table), not on the raw input: the browser
+  # also resets input$table_state to NULL in every re-initialization
+  # window while a re-rendered table comes up, and the observer re-fires
+  # in those windows too (it also depends on .dtd_sel_id) - the
+  # unconditional bump fed a SELF-SUSTAINING render loop in which one
+  # table-data change re-rendered the identical table over and over
+  # (measured live: one volcano view switch = one selection report, one
+  # ORA computation, but 12-20 ORA table re-renders - the flashing the
+  # users reported; the run length varied with browser round-trip
+  # timing). After the first draw a push landing in a re-init window
+  # needs no epoch bump: the next non-NULL input$table_state fire of
+  # this very observer applies it through the DT proxy, and any pending
+  # full re-render embeds the id via selectedRows() in the widget
+  # payload anyway.
+  .dtd_seen_table <- FALSE
   .dtd_render_epoch <- reactiveVal(0L)
   output$table <- DT::renderDataTable({
     .dtd_render_epoch()
@@ -345,9 +358,12 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     .dtd_keep(observe({
       .dtd_sel_id()
       if (is.null(input$table_state)) {
+        if (isTRUE(.dtd_seen_table))
+          return(NULL)
         .dtd_render_epoch(isolate(.dtd_render_epoch()) + 1L)
         return(NULL)
       }
+      .dtd_seen_table <<- TRUE
       rows <- isolate(selectedRows())
       # dataTableProxy applies session$ns() itself - pass the module-local
       # id (ns("table") double-prefixes and the message lands on a

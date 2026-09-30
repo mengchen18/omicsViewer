@@ -480,7 +480,13 @@ plotly_scatter_module <- function(
   #     paint and mixed-axis frames mid-switch),
   #   - a failing params read (req() aborts) is skipped, not propagated.
   # The observer is kept referenced (observer-GC rule).
+  # render_epoch counts the commits that actually CHANGED the figure: the
+  # owning module uses it to tell a plotly selection-event RESET (the event
+  # inputs are cleared whenever the graph is replaced, so an empty echo
+  # after an epoch bump is a re-render artifact, not a user action) from a
+  # genuine user deselect on the current figure.
   committed_params <- reactiveVal(NULL)
+  render_epoch <- reactiveVal(0L)
   .scatter_render_keep <- list()
   .scatter_render_keep[[length(.scatter_render_keep) + 1L]] <- observe({
     hidden <- session$clientData[[paste0("output_", ns("plotly.scatter.output"), "_hidden")]]
@@ -491,7 +497,10 @@ plotly_scatter_module <- function(
                   shiny.silent.error = function(e) NULL,
                   error = function(e) NULL)
     if (is.null(p)) return(NULL)
+    prev <- isolate(committed_params())
     committed_params(p)
+    if (!identical(prev, p))
+      render_epoch(isolate(render_epoch()) + 1L)
   })
 
   hm <- reactive({
@@ -621,7 +630,8 @@ plotly_scatter_module <- function(
       clicked = rr()$clicked,
       regline = input$showRegLine,
       htest_V1 = input$group1,
-      htest_V2 = input$group2
+      htest_V2 = input$group2,
+      render_epoch = render_epoch()
     )
   })
 

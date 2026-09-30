@@ -97,7 +97,7 @@ selection_store_new <- function(keys = c("feature", "sample")) {
 #'
 #' @param store Store from \code{\link{selection_store_new}}.
 #' @param key One of the store's keys.
-#' @return A list(apply =, report =, watch =, read =, key =, store =).
+#' @return A list(apply =, report =, forget =, watch =, read =, key =, store =).
 #' @keywords internal
 #' @rdname selectionBusHelpers
 selection_port <- function(store, key) {
@@ -114,6 +114,8 @@ selection_port <- function(store, key) {
                      anchor = NULL, mirror = NULL)
       selection_apply(store, key, ids = ids, clicked = clicked,
                       origin = origin, anchor = anchor, mirror = mirror),
+    forget = function(origin)
+      selection_forget_report(store, key, origin = origin),
     watch = function() selection_watch(store, key),
     read = function() selection_read(store, key)
   )
@@ -177,6 +179,31 @@ selection_report <- function(store, key, origin, report, ids,
   store$reports[[slot]] <- report
   selection_apply(store, key, ids = ids, clicked = clicked,
                   origin = origin, anchor = anchor, mirror = mirror)
+}
+
+#' Forget the last report of one origin
+#'
+#' Drops the per-(key, origin) report-dedupe slot WITHOUT touching the
+#' record. Writers call this when their interaction state was reset by
+#' something other than a user selection (the browser loses its plotly
+#' selection shape to a re-render; clear/restore replace the selection
+#''s source): the stale slot would otherwise dedupe a GENUINE re-selection
+#' whose payload equals the pre-reset report (select f1, clear, re-select
+#' f1 - the identical report never landed and the record stayed empty).
+#'
+#' @param store Store from \code{\link{selection_store_new}}.
+#' @param key Selection space key.
+#' @param origin Origin slot whose last report is no longer current.
+#' @return TRUE when a slot was dropped.
+#' @keywords internal
+#' @rdname selectionBusHelpers
+selection_forget_report <- function(store, key, origin) {
+  stopifnot(origin %in% .selection_store_origins, key %in% store$keys)
+  slot <- paste(key, origin, sep = "\r")
+  if (is.null(store$reports[[slot]]))
+    return(invisible(FALSE))
+  store$reports[[slot]] <- NULL
+  invisible(TRUE)
 }
 
 #' Apply a selection change directly (restore / system writers)
