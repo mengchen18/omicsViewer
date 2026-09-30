@@ -658,18 +658,15 @@ if (have_fixtures) {
     ok(ut_cmp_identical(
       store_vals(st9)$dataspace.expr_heatmap.heatmap_colors, "RdGy"),
        "fixtures: v2 widget values restore")
-    # KNOWN ISSUE (future test, see KNOWN_ISSUES.md): restoring a
-    # hand-built v2 fixture (no feature-fig panel status at all) still
-    # loses the selection records to a corner-echo clear that races the
-    # restore within one flush. Real saves (cases 2/2b/10) restore
-    # selections of every origin correctly; the widget-store part of the
-    # v2 fixture restores (asserted above). Re-enable once the rectval
-    # observer's restore-generation gate covers the hand-built shape.
-    # p <- probe_selection(session, d9, "v2probe", 1L)
-    # ok(ut_cmp_identical(sort(p$features), sort(feat12[4:8])),
-    #    "fixtures: v2 selection records restore")
-    # ok(ut_cmp_identical(p$records$feature$origin, "table"),
-    #    "fixtures: v2 record origin survives the round trip")
+    # todo 4.1 re-enabled: the phased restore controller applies the
+    # selection AFTER the axes converge, so the corner-echo clear that
+    # used to race the hand-built v2 fixture (no feature-fig panel
+    # status) within one flush no longer eats the records.
+    p <- probe_selection(session, d9, "v2probe", 1L)
+    ok(ut_cmp_identical(sort(p$features), sort(feat12[4:8])),
+       "fixtures: v2 selection records restore")
+    ok(ut_cmp_identical(p$records$feature$origin, "table"),
+       "fixtures: v2 record origin survives the round trip")
     alive(session, "golden v2")
     # v1 (row 2): panel axes migrate into the store on restore
     restore_row(2L, 2L)

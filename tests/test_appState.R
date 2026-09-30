@@ -316,9 +316,14 @@ shiny::testServer(app_rt, {
     `dataspace.expr_heatmap.heatmap_colors` = "RdGy",
     `dataspace.expr_heatmap.margin_bottom` = 7,
     `dataspace.tab_feature.multi_selection` = TRUE,
+    # todo 4.1 regression pin: an agent-set column SUBSET must survive a
+    # save/restore round trip - the saved table status lags the store by
+    # a view (it reports the status-assembly-time columns), and the
+    # restore used to re-apply that stale copy over the canonical value
+    `dataspace.tab_pheno.columns` = "General|All|Cell.line",
     `resultspace.feature_general.plot_type` = "Curve")))
-  ok(length(r1$applied) == 4L && !length(r1$rejected),
-     "round-trip setup: four widget writes apply")
+  ok(length(r1$applied) == 5L && !length(r1$rejected),
+     "round-trip setup: five widget writes apply")
   session$setInputs(`app-dataspace-eset` = "Heatmap")
   session$flushReact()
   s1 <- .rt_store_vals()
@@ -326,6 +331,7 @@ shiny::testServer(app_rt, {
     identical(s1$`dataspace.expr_heatmap.heatmap_colors`, "RdGy") &&
       identical(s1$`dataspace.expr_heatmap.margin_bottom`, 7L) &&
       isTRUE(s1$`dataspace.tab_feature.multi_selection`) &&
+      identical(s1$`dataspace.tab_pheno.columns`, "General|All|Cell.line") &&
       identical(s1$`resultspace.feature_general.plot_type`, "Curve") &&
       identical(s1$`dataspace.active_tab`, "Heatmap"),
     "pre-save store state holds the requested widget values"
@@ -344,8 +350,9 @@ shiny::testServer(app_rt, {
     `dataspace.expr_heatmap.heatmap_colors` = "PiYG",
     `dataspace.expr_heatmap.margin_bottom` = 3,
     `dataspace.tab_feature.multi_selection` = FALSE,
+    `dataspace.tab_pheno.columns` = c("General|All|Cell.line", "General|All|MDR"),
     `resultspace.feature_general.plot_type` = "Bees")))
-  ok(length(r2$applied) == 4L,
+  ok(length(r2$applied) == 5L,
      "post-save drift applies")
   smid <- .rt_store_vals()
   ok(!identical(smid$`dataspace.expr_heatmap.heatmap_colors`,
@@ -372,6 +379,23 @@ shiny::testServer(app_rt, {
             if (length(diffs)) paste0(" (differs: ",
                                       paste(head(diffs, 5), collapse = ", "),
                                       ")") else "")
+  )
+  # todo 4.1: agent selections write the selection bus (durable) instead
+  # of replaying a status snapshot (the old replay was transient - module
+  # echoes reverted it within a flush); tabs go through store_apply.
+  r3 <- .rt_hook(session, output, "state", list(
+    data_space_tab = "Sample",
+    features = head(rownames(.rt_dat), 3)))
+  ok(identical(r3$data_space_tab, "Sample") && identical(r3$feature_count, 3L),
+     "agent state update reports the applied tab and selection")
+  session$flushReact()
+  session$flushReact()
+  ov <- .rt_hook(session, output, "overview")
+  s4 <- .rt_store_vals()
+  ok(
+    identical(ov$selection$features$count, 3L) &&
+      identical(s4$`dataspace.active_tab`, "Sample"),
+    "agent selection is durable across later module echoes; the tab write lands in the canonical store (the mock session never applies the navbar push - the browser round trip is covered by Tier A)"
   )
   # WP11 wiring: opting in without a conversation saves no assistant field;
   # the history hooks expose the exact save/restore path headlessly.

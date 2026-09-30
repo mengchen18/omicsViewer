@@ -758,8 +758,11 @@ app_module <- function(
   }
 
   apply_agent_state <- function(update) {
-    full_state <- isolate(agent_full_state())
-    if (is.null(full_state))
+    # todo 4.1: the one write plane - tabs go through store_apply (the
+    # same validation/diffing/user-wins path every other agent write
+    # uses) and selections through the selection bus; the former
+    # full-snapshot esv_status replay is retired.
+    if (is.null(isolate(agent_state_available())))
       stop("No dataset is currently available.")
 
     validated <- agent_normalize_state_update(
@@ -770,54 +773,47 @@ app_module <- function(
       sample_ids = colnames(isolate(expr()))
     )
 
-    if (!is.null(validated$data_space_tab)) {
-      full_state$app$data_active_tab <- validated$data_space_tab
-      full_state$panels$data_space$eset_active_tab <- validated$data_space_tab
-    }
-    if (!is.null(validated$analysis_space_tab)) {
-      full_state$app$analysis_active_tab <- validated$analysis_space_tab
-      full_state$panels$result_space$analyst_active_tab <- validated$analysis_space_tab
-    }
-    if (!is.null(validated$features)) {
-      full_state$selection$features <- validated$features
-      # Patch EVERY mirror of the selection: the data-space module's
-      # restore observer reads panels$data_space$eset_selected_features,
-      # and the feature/expression tables re-assert their stale DT row
-      # selections through the same status object. Without these, the
-      # module restore pushes the OLD selection back and overwrites the
-      # app-level ri/rh within one flush (observed live: agent selects 5,
-      # app reverts to the initial 107 deterministically; benchmark tasks
-      # 6/8 could never pass).
-      full_state$panels$data_space$eset_selected_features <- validated$features
-      full_state$panels$data_space$eset_fdata_tab$rows_selected <- NULL
-      full_state$panels$data_space$eset_exprs_tab$rows_selected <- NULL
-    }
-    if (!is.null(validated$samples)) {
-      full_state$selection$samples <- validated$samples
-      full_state$panels$data_space$eset_selected_samples <- validated$samples
-      full_state$panels$data_space$eset_pdata_tab$rows_selected <- NULL
-    }
-    # Use the same transactional boundary as snapshot restoration. Child
-    # modules distinguish NULL from a state object and safely fill gaps.
-    esv_status(NULL)
-    esv_status(full_state)
-    ri(full_state$selection$features)
-    rh(full_state$selection$samples)
+    tab_patch <- list()
+    if (!is.null(validated$data_space_tab))
+      tab_patch[["dataspace.active_tab"]] <- validated$data_space_tab
+    if (!is.null(validated$analysis_space_tab))
+      tab_patch[["resultspace.analyst_tab"]] <- validated$analysis_space_tab
+    if (length(tab_patch))
+      store_apply(app_store, tab_patch, origin = "agent", strict = TRUE)
+
+    # Selections: the bus is the single canonical layer, so an agent
+    # selection is durable (the old status replay was transient - module
+    # echoes reverted it within a flush). Mirror semantics: the agent's
+    # action is a semantic selection, NOT a table interaction - figure and
+    # heatmap origins mirror their ids into the table ROW FILTER, but the
+    # historical agent contract (and the Tier A expectations) keep the
+    # tables unfiltered (mirror TRUE) so table paging/sorting views
+    # survive an agent selection.
+    ports <- tryCatch(isolate(v1())$selection,
+                      shiny.silent.error = function(e) NULL,
+                      error = function(e) NULL)
+    if (is.null(ports))
+      stop("Data-space panel is not ready; retry in a moment.")
+    if (!is.null(validated$features))
+      ports$feature$apply(ids = validated$features, origin = "system",
+                          mirror = TRUE)
+    if (!is.null(validated$samples))
+      ports$sample$apply(ids = validated$samples, origin = "system",
+                         mirror = TRUE)
 
     list(
-      data_space_tab = if (is.null(validated$data_space_tab)) NULL else full_state$app$data_active_tab,
-      analysis_space_tab = if (is.null(validated$analysis_space_tab)) NULL else full_state$app$analysis_active_tab,
-      feature_count = length(full_state$selection$features),
-      sample_count = length(full_state$selection$samples),
-      example_features = utils::head(full_state$selection$features, 20L),
-      example_samples = utils::head(full_state$selection$samples, 20L)
+      data_space_tab = validated$data_space_tab,
+      analysis_space_tab = validated$analysis_space_tab,
+      feature_count = length(validated$features %||% character()),
+      sample_count = length(validated$samples %||% character()),
+      example_features = utils::head(validated$features %||% character(), 20L),
+      example_samples = utils::head(validated$samples %||% character(), 20L)
     )
   }
 
   apply_agent_scatter_view <- function(space, quick_view_id = NULL,
                                        x_axis = NULL, y_axis = NULL) {
-    full_state <- isolate(agent_full_state())
-    if (is.null(full_state))
+    if (is.null(isolate(agent_state_available())))
       stop("No dataset is currently available.")
 
     view <- agent_normalize_scatter_view(
@@ -830,7 +826,6 @@ app_module <- function(
       sample_columns = colnames(isolate(pdata()))
     )
 
-    state_key <- if (view$space == "feature") "eset_fdata_fig" else "eset_pdata_fig"
     axis_data <- if (view$space == "feature") isolate(fdata()) else isolate(pdata())
     if (!any(vapply(
       c(view$x_axis, view$y_axis),
@@ -840,22 +835,26 @@ app_module <- function(
       stop("At least one scatter axis must contain numeric values.")
     }
 
+    # todo 4.1: axes are WRITTEN through the canonical store keys (the
+    # same keys get_omics_viewer_state READS its scatter_view anchors
+    # from), never through the legacy panel-status transport. The
+    # cascaded triple validates jointly; the display mode (quick badges
+    # vs custom triselectors) is deliberately left untouched.
+    prefix <- if (view$space == "feature") "dataspace.feature_space" else
+      "dataspace.sample_space"
     split_axis <- function(axis) {
       parts <- strsplit(axis, "|", fixed = TRUE)[[1]]
-      as.list(stats::setNames(parts, c("v1", "v2", "v3")))
+      parts
     }
-    # Deliberately do NOT write axisMode: a scatter-view change updates the
-    # axes only, and the display mode (quick badges vs custom triselectors)
-    # is left exactly as the user set it (plan section 6, diff-only writes).
-    full_state$panels$data_space[[state_key]]$xax <- split_axis(view$x_axis)
-    full_state$panels$data_space[[state_key]]$yax <- split_axis(view$y_axis)
-    full_state$app$data_active_tab <- if (view$space == "feature") "Feature" else "Sample"
-    full_state$panels$data_space$eset_active_tab <- full_state$app$data_active_tab
-
-    esv_status(NULL)
-    esv_status(full_state)
-    ri(full_state$selection$features)
-    rh(full_state$selection$samples)
+    patch <- stats::setNames(
+      c(as.list(split_axis(view$x_axis)), as.list(split_axis(view$y_axis))),
+      c(paste(prefix, c("x_analysis", "x_subset", "x_variable"), sep = "."),
+        paste(prefix, c("y_analysis", "y_subset", "y_variable"), sep = ".")))
+    store_apply(app_store, patch, origin = "agent", strict = TRUE)
+    store_apply(
+      app_store,
+      list("dataspace.active_tab" = if (view$space == "feature") "Feature" else "Sample"),
+      origin = "agent", strict = TRUE)
 
     view
   }
@@ -1254,10 +1253,11 @@ app_module <- function(
   })
 
   .snapshot_strip_store_owned <- function(state) {
-    # The canonical widget store is the single write plane for the scatter
-    # axes/mode (todo 2.1): when the snapshot carries a widget_store
-    # section, the panel copies must not re-apply (they are legacy
-    # transport and may disagree with the store after a quick-view change)
+    # The canonical widget store is the single write plane (todo 2.1/4.1):
+    # when the snapshot carries a widget_store section, the panel copies
+    # must not re-apply (they are legacy transport and may disagree with
+    # the store after an agent write - the saved table status reports the
+    # status-assembly-time column set, which can lag the store by a view)
     if (is.null(state$widget_store) || !is.list(state$widget_store$values))
       return(state)
     for (k in c("eset_fdata_fig", "eset_pdata_fig")) {
@@ -1269,7 +1269,107 @@ app_module <- function(
         state$panels$data_space[[k]] <- fig
       }
     }
+    # Table columns/multi-selection are registered store keys
+    # (dataspace.tab_*.columns / .multi_selection): the status copies
+    # (showColumns/multiSelection) race the canonical store_restore and
+    # the ack of the stale legacy push re-enters the store as a user
+    # edit (observed live: a restored multi-column selection overwrote
+    # the agent-set single column). DT one-shot state (page, filters,
+    # ordering, rows) is NOT store-owned and keeps riding the status.
+    for (k in c("eset_pdata_tab", "eset_fdata_tab", "eset_exprs_tab")) {
+      tab <- state$panels$data_space[[k]]
+      if (is.list(tab)) {
+        tab$showColumns <- NULL
+        tab$multiSelection <- NULL
+        state$panels$data_space[[k]] <- tab
+      }
+    }
     state
+  }
+
+  # =====================================================================
+  # Single restore controller (todo 2.8 deferred into 4.1): the restore
+  # runs in phases so the selection lands exactly once, AFTER the axes it
+  # belongs to. Phase 1 (confirm click): validate -> canonical
+  # store_restore(replace) -> legacy panel-status delivery -> arm phase 2.
+  # Phase 2 (observer): wait until BOTH scatter axes have converged onto
+  # the restored store values, then apply the selection-bus records once
+  # and show the receipt. The former code applied the selection from the
+  # L1 status observer in the same flush as the axes cascade.
+  # =====================================================================
+  .restore_pending <- reactiveVal(NULL)
+
+  .restore_valid_origin <- function(o)
+    if (is.character(o) && length(o) == 1L && !is.na(o) &&
+        o %in% c("figure", "corner", "clear", "table", "heatmap",
+                 "cor_heatmap", "dyn_heatmap", "gslist", "restore", "system"))
+      o else "restore"
+
+  .restore_clean_ids <- function(x) {
+    if (is.null(x) || length(x) == 0L) return(character(0))
+    x <- as.character(x)
+    x <- trimws(x[!is.na(x)])
+    x[nzchar(x)]
+  }
+
+  .restore_selection_records <- function(ss) {
+    # v2 snapshots carry the full bus record per space; v1/legacy fall
+    # back to the plain id fields and the saved table mirrors.
+    rec_f <- if (is.list(ss$selection$records)) ss$selection$records$feature else NULL
+    rec_s <- if (is.list(ss$selection$records)) ss$selection$records$sample else NULL
+    list(
+      feature = if (is.list(rec_f) && !is.null(rec_f$ids)) list(
+        ids = .restore_clean_ids(rec_f$ids),
+        clicked = as.character(rec_f$clicked %||% character(0)),
+        origin = .restore_valid_origin(rec_f$origin),
+        anchor = if (is.null(rec_f$anchor)) NULL else as.character(rec_f$anchor),
+        mirror = rec_f$mirror
+      ) else list(
+        ids = .restore_clean_ids(
+          ss$selection$features %||%
+            ss$panels$data_space$eset_selected_features),
+        clicked = character(0),
+        origin = "restore",
+        anchor = NULL,
+        mirror = ss$panels$data_space$eset_fdata_tabrows
+      ),
+      sample = if (is.list(rec_s) && !is.null(rec_s$ids)) list(
+        ids = .restore_clean_ids(rec_s$ids),
+        clicked = as.character(rec_s$clicked %||% character(0)),
+        origin = .restore_valid_origin(rec_s$origin),
+        anchor = if (is.null(rec_s$anchor)) NULL else as.character(rec_s$anchor),
+        mirror = rec_s$mirror
+      ) else list(
+        ids = .restore_clean_ids(
+          ss$selection$samples %||%
+            ss$panels$data_space$eset_selected_samples),
+        clicked = character(0),
+        origin = "restore",
+        anchor = NULL,
+        mirror = ss$panels$data_space$eset_pdata_tabrows
+      )
+    )
+  }
+
+  .restore_receipt_notification <- function(name, receipt, n_warn) {
+    n_applied <- if (is.null(receipt)) 0L else length(receipt$applied)
+    n_reset <- if (is.null(receipt)) 0L else length(receipt$reset %||% character())
+    n_rejected <- if (is.null(receipt)) 0L else length(receipt$rejected %||% list())
+    n_unknown <- if (is.null(receipt)) 0L else length(receipt$unknown_ids %||% character())
+    n_adj <- n_applied + n_reset + n_rejected + n_unknown + n_warn
+    detail <- character()
+    if (n_applied) detail <- c(detail, sprintf("%d widget%s restored", n_applied, if (n_applied == 1L) "" else "s"))
+    if (n_reset) detail <- c(detail, sprintf("%d reset to default", n_reset))
+    if (n_rejected) detail <- c(detail, sprintf("%d skipped (no longer valid)", n_rejected))
+    if (n_unknown) detail <- c(detail, sprintf("%d unknown", n_unknown))
+    if (n_warn) detail <- c(detail, sprintf("%d warning%s", n_warn, if (n_warn == 1L) "" else "s"))
+    showNotification(
+      sprintf("Snapshot %s restored%s%s", name,
+              if (n_adj) sprintf(" (%d adjustment%s)", n_adj, if (n_adj == 1L) "" else "s") else "",
+              if (length(detail)) paste0(": ", paste(detail, collapse = ", ")) else ""),
+      type = if (n_warn || n_rejected) "warning" else "message",
+      duration = 10
+    )
   }
 
   observeEvent(input$snapshot_restore_confirm, {
@@ -1289,37 +1389,23 @@ app_module <- function(
 
       ss <- .snapshot_strip_store_owned(pend$state)
 
-      # Selection transport (todo 2.6): hand-built and migrated snapshots
-      # carry the selection in the top-level section only; the data-space
-      # restore observer reads the panel copy (the transport real saves
-      # write from their live status). Fill the panel copy when absent so
-      # every snapshot generation restores its selection through the same
-      # single-writer path.
-      if (!is.null(ss$selection)) {
-        if (is.null(ss$panels$data_space$eset_selected_features) &&
-            length(ss$selection$features %||% character(0)))
-          ss$panels$data_space$eset_selected_features <- ss$selection$features
-        if (is.null(ss$panels$data_space$eset_selected_samples) &&
-            length(ss$selection$samples %||% character(0)))
-          ss$panels$data_space$eset_selected_samples <- ss$selection$samples
-        if (is.null(ss$panels$data_space$eset_selection_records) &&
-            is.list(ss$selection$records))
-          ss$panels$data_space$eset_selection_records <- ss$selection$records
-      }
-
-      # Reset before restore. Child modules distinguish this boundary and can
-      # safely restore defaults for fields absent from an older snapshot.
+      # Phase 1a: legacy panel-status delivery FIRST (DT state, heatmap
+      # zoom, scatter local display state) - the transactional
+      # NULL-then-state boundary child modules distinguish. Ordering
+      # matters: the tables' one-shot status consumers must eat the legacy
+      # transport BEFORE the canonical store values land, or the two
+      # writers race the same selectize and the ack of the stale legacy
+      # push re-enters the store as a user edit (observed live: restored
+      # multi-column table selections reverted to the seeded single
+      # column; store-owned axes/mode are stripped from the status below
+      # and never race).
       esv_status(NULL)
       esv_status(ss)
 
-      selection <- normalize_selection(ss$selection)
-      ri(selection$features)
-      rh(selection$samples)
-
-      # Canonical widget-store restore (schema 2): replace semantics - keys
-      # the snapshot does not carry reset to their seeded defaults. Per-key
-      # resilient: values invalidated by a revised dataset are rejected and
-      # reported, not vetoed. Older snapshots without widget_store skip this.
+      # Phase 1b: canonical widget-store restore (schema 2, replace
+      # semantics). Per-key resilient: values invalidated by a revised
+      # dataset are rejected and reported, not vetoed. Older snapshots
+      # without widget_store skip this.
       receipt <- NULL
       if (!is.null(ss$widget_store) && is.list(ss$widget_store$values)) {
         receipt <- tryCatch(
@@ -1346,38 +1432,78 @@ app_module <- function(
         )
       }
 
-      # Receipt notification (todo 2.6/2.7): every adjustment in one place
-      # instead of silently dropped keys
-      n_applied <- if (is.null(receipt)) 0L else length(receipt$applied)
-      n_reset <- if (is.null(receipt)) 0L else length(receipt$reset %||% character())
-      n_rejected <- if (is.null(receipt)) 0L else length(receipt$rejected %||% list())
-      n_unknown <- if (is.null(receipt)) 0L else length(receipt$unknown_ids %||% character())
-      n_warn <- length(pend$warnings)
-      n_adj <- n_applied + n_reset + n_rejected + n_unknown + n_warn
-      detail <- character()
-      if (n_applied) detail <- c(detail, sprintf("%d widget%s restored", n_applied, if (n_applied == 1L) "" else "s"))
-      if (n_reset) detail <- c(detail, sprintf("%d reset to default", n_reset))
-      if (n_rejected) detail <- c(detail, sprintf("%d skipped (no longer valid)", n_rejected))
-      if (n_unknown) detail <- c(detail, sprintf("%d unknown", n_unknown))
-      if (n_warn) detail <- c(detail, sprintf("%d warning%s", n_warn, if (n_warn == 1L) "" else "s"))
-      showNotification(
-        sprintf("Snapshot %s restored%s%s", pend$name,
-                if (n_adj) sprintf(" (%d adjustment%s)", n_adj, if (n_adj == 1L) "" else "s") else "",
-                if (length(detail)) paste0(": ", paste(detail, collapse = ", ")) else ""),
-        type = if (n_warn || n_rejected) "warning" else "message",
-        duration = 10
-      )
-      if (n_warn)
-        showNotification(paste(pend$warnings, collapse = "\n"), type = "warning", duration = 15)
+      # Phase 2 marker: selection applies once the restored axes converge.
+      .restore_pending(list(
+        records = .restore_selection_records(ss),
+        receipt = receipt,
+        name = pend$name,
+        warnings = pend$warnings
+      ))
     },
     shiny.silent.error = function(e) NULL,
     error = function(e) {
       removeModal()
       restoreSS(NULL)
       selectedSS(NULL)
+      .restore_pending(NULL)
       showNotification(
         sprintf("Could not restore snapshot %s: %s", pend$name, conditionMessage(e)),
         type = "error", duration = 15
+      )
+    })
+  })
+
+  observe({
+    pend <- .restore_pending()
+    if (is.null(pend))
+      return(NULL)
+    handles <- tryCatch(isolate(v1())$axes_converged,
+                        shiny.silent.error = function(e) NULL,
+                        error = function(e) NULL)
+    # Reactively wait for BOTH scatter axes to catch up with the restored
+    # store values (calling the closures takes the dependencies; a
+    # corner-origin selection then re-engages against the correct axes).
+    # Handles unavailable (panel not yet warm) -> treat as converged so a
+    # restore can never deadlock.
+    converged <- if (is.null(handles)) TRUE else
+      isTRUE(tryCatch(handles$feature(), error = function(e) FALSE)) &&
+      isTRUE(tryCatch(handles$sample(), error = function(e) FALSE))
+    if (!converged)
+      return(NULL)
+    .restore_pending(NULL)
+
+    # Phase 2: the single selection apply, through the bus ports.
+    tryCatch({
+      ports <- tryCatch(isolate(v1())$selection,
+                        shiny.silent.error = function(e) NULL,
+                        error = function(e) NULL)
+      if (is.null(ports))
+        stop("Data-space panel unavailable for selection restore.")
+      ports$feature$apply(
+        ids = pend$records$feature$ids,
+        clicked = pend$records$feature$clicked,
+        origin = pend$records$feature$origin,
+        anchor = pend$records$feature$anchor,
+        mirror = pend$records$feature$mirror)
+      ports$sample$apply(
+        ids = pend$records$sample$ids,
+        clicked = pend$records$sample$clicked,
+        origin = pend$records$sample$origin,
+        anchor = pend$records$sample$anchor,
+        mirror = pend$records$sample$mirror)
+      ri(pend$records$feature$ids)
+      rh(pend$records$sample$ids)
+
+      # Receipt (todo 2.6/2.7): every adjustment in one place
+      .restore_receipt_notification(pend$name, pend$receipt,
+                                    length(pend$warnings))
+      if (length(pend$warnings))
+        showNotification(paste(pend$warnings, collapse = "\n"),
+                         type = "warning", duration = 15)
+    }, error = function(e) {
+      showNotification(
+        paste("Selection could not be restored:", conditionMessage(e)),
+        type = "warning", duration = 10
       )
     })
   })
