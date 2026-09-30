@@ -169,9 +169,20 @@ enrichment_analysis_module <- function(
     req(reactive_i())
     req(reactive_featureData())
     req(rp <- reactive_pathway())
-    req(v1()$variable)
 
-    if (v1()$variable %in% c("", "--select--")) {
+    # Historical contract: an UNSET collapse triple means "no collapse" -
+    # run ORA on the raw feature ids. The unified triselector returns NULL
+    # while the cascade has never settled a variable (cold start: only the
+    # analysis defaults; the variable sits at "--select--" and never
+    # commits without allow_unset), so a req(v1()$variable) here suspended
+    # this observer permanently until a manual pick - rii() was never
+    # written and the whole tab rendered blank with zero diagnostics
+    # (regression vs the pre-unification triselector, which preselected
+    # "--select--" as a real value and drove the no-collapse branch on
+    # every selection change). v1() is in the trigger list, so a later
+    # manual pick re-fires this observer into the collapse branch.
+    v <- v1()
+    if (is.null(v) || v$variable %in% c("", "--select--")) {
       size_bg( nrow(reactive_featureData()) )
       reactive_pathway_collapsed(NULL)
       rii(reactive_i())
@@ -181,8 +192,8 @@ enrichment_analysis_module <- function(
           rii("notest")
       return()
     }
-    
-    cs <- do.call(paste, list(v1(), collapse = "|"))
+
+    cs <- do.call(paste, list(v, collapse = "|"))
     if (!cs %in% colnames(reactive_featureData()))
       return(NULL)
     val <- reactive_featureData()[, cs]

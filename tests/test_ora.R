@@ -190,3 +190,56 @@ pv <- t(apply(xq, 2, function(x1) {
 ok(ut_cmp_equal(r1$p.value, pv[, "p.value"]), "vectORA.core - conditional OR")
 ok(ut_cmp_equal(r2$OR, pv[, "odds ratio"]), "vectORA - unconditional OR")
 
+
+# ================= module-level regression ======================
+# ORA must run on the raw feature ids when the collapse triple is unset.
+# Cold start: the unified triselector never commits a variable (analysis
+# defaults, variable sits at "--select--", no allow_unset) and returns
+# NULL - the old req(v1()$variable) suspended the entry observer
+# permanently, so rii() was never written and the whole tab rendered
+# blank on every gene selection (regression vs the pre-unification
+# triselector, which preselected "--select--" and drove the no-collapse
+# branch). The fix treats NULL like the historical "--select--".
+#
+# Observable: the results DT ("stab-table") renders only when OT()
+# produced a data.frame, which requires rii() to have been written. On
+# the broken build the render suspends (req) and reading the output
+# errors. The cold start guarantees the no-collapse branch (v1() NULL).
+omv_reg_fd <- local({
+  dat <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+  fd <- Biobase::fData(dat)
+  attr(fd, "GS") <- data.frame(
+    featureId = factor(rownames(fd)[1:40]),
+    gsId = factor(rep(paste0("gs", 1:4), each = 10)),
+    weight = 1)
+  fd
+})
+omv_reg_ids <- head(rownames(omv_reg_fd), 5)
+
+omv_ora_host <- function(sel_ids) function(input, output, session) {
+  omicsViewer:::enrichment_analysis_module(
+    "ora",
+    reactive_featureData = shiny::reactive(omv_reg_fd),
+    reactive_i = shiny::reactive(sel_ids))
+  shiny::outputOptions(output, "ora-stab-table", suspendWhenHidden = FALSE)
+}
+omv_reg_res <- NULL
+shiny::testServer(omv_ora_host(omv_reg_ids), {
+  for (i in 1:10) session$flushReact()
+  omv_reg_res <<- tryCatch(
+    output[["ora-stab-table"]],
+    error = function(e) conditionMessage(e))
+})
+ok(inherits(omv_reg_res, "json") &&
+     grepl("size_backgroung", omv_reg_res, fixed = TRUE),
+   "ORA: results table renders without a manual collapse pick (no-collapse branch)")
+
+omv_reg_neg <- NULL
+shiny::testServer(omv_ora_host(character(0)), {
+  for (i in 1:10) session$flushReact()
+  omv_reg_neg <<- tryCatch(
+    output[["ora-stab-table"]],
+    error = function(e) conditionMessage(e))
+})
+ok(!inherits(omv_reg_neg, "htmlwidget"),
+   "ORA: no selection -> no results table (control)")
