@@ -234,10 +234,12 @@ attr4selector_module <- function(
         reactive_selector1 = store_watch(store4, paste0(key, "_analysis")),
         reactive_selector2 = store_watch(store4, paste0(key, "_subset")),
         reactive_selector3 = store_watch(store4, paste0(key, "_variable")),
-        reactive_axis_request = store_epoch(store4))
+        reactive_axis_request = store_epoch(store4),
+        allow_unset = TRUE)
     else
       triselector_module(ui_id, reactive_x = reactive_triset, label = label,
-        reactive_selector1 = s1, reactive_selector2 = s2, reactive_selector3 = s3)
+        reactive_selector1 = s1, reactive_selector2 = s2, reactive_selector3 = s3,
+        allow_unset = TRUE)
   }
 
   selectColor <- .a4_make_selector("selectColorUI", "color", "Color", selectColor_s1, selectColor_s2, selectColor_s3)
@@ -534,6 +536,12 @@ attr4selector_module <- function(
     .a4_keep(observe({
       if (is.null(s <- reactive_status()))
         return(NULL)
+      # a saved attr4 status carries ALL five groups (params$status writes
+      # each, NULL when unset at save time): a group that is NULL must be
+      # restored as an EXPLICIT unset ("--select--" push through the store)
+      # - skipping it left the drifted live mapping in place after a
+      # restore (todo 2.3)
+      has_attr4_status <- any(vapply(.a4_status_names, function(nm) nm %in% names(s), logical(1)))
       patch <- list()
       for (g in names(.a4_status_names)) {
         tr <- s[[.a4_status_names[[g]]]]
@@ -542,6 +550,14 @@ attr4selector_module <- function(
           patch <- c(patch, stats::setNames(
             list(tr$analysis, tr$subset, tr$variable),
             paste0(g, c("_analysis", "_subset", "_variable"))))
+        } else if (has_attr4_status && is.null(tr)) {
+          # push the explicit unset ONLY when a value is currently held -
+          # an unset-at-save group whose store key is still NULL needs no
+          # push (the widget already shows the placeholder), and planting
+          # the sentinel there broke exact snapshot round-trips
+          cur <- store_read(store4, paste0(g, "_variable"))[[1]]
+          if (!is.null(cur))
+            patch[[paste0(g, "_variable")]] <- "--select--"
         }
       }
       if (!is.null(s$xcut)) patch$xcut <- s$xcut

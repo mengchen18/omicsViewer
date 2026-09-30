@@ -388,8 +388,24 @@ dataTable_module <- function(
     st
   })
 
-  selectedRows <- reactive({
-    st <- tabStatus()
+  # One-shot restore slot (todo 2.8): a status change arms the saved DT
+  # state; the FIRST render consumes it (filters, order, page, pre-selected
+  # rows). Later re-renders - selection changes, column edits, tab switches,
+  # a Clear that lands after a restore - must NOT re-apply the snapshot's
+  # rows at their new positions. Re-arming on every status change keeps
+  # consecutive restores (or agent state replays) working.
+  restore_slot <- reactiveVal(NULL)
+  observeEvent(tabStatus(), {
+    if (!is.null(tabStatus()))
+      restore_slot(tabStatus())
+  })
+  .dt_consume_restore <- function() {
+    st <- restore_slot()  # reactive read: a restore re-renders the table
+    if (!is.null(st)) isolate(restore_slot(NULL))
+    st
+  }
+
+  selectedRows <- function(st = NULL) {
     if (is.null(st))
       return(NULL)
     if (is.null(st$selected_rows) || length(st$selected_rows) == 0)
@@ -398,9 +414,9 @@ dataTable_module <- function(
     if (is.null(rn))
       return(st$rows_selected)
     match(as.character(st$selected_rows), rn)
-  })
+  }
 
-  formatTab <- function(tab, sel) {    
+  formatTab <- function(tab, sel, st = NULL) {    
     ci <- unname(which(vapply(tab, inherits, c('factor', "character"), FUN.VALUE = logical(1))))
     if (length(ci) > 0)
     tab[ci] <- lapply(tab[ci], function(x) {
@@ -409,7 +425,7 @@ dataTable_module <- function(
     })
     dt <- DT::datatable(
       tab,
-      selection = list(mode = c("single", "multiple")[as.integer(sel)+1], selected = selectedRows(), target = "row"),
+      selection = list(mode = c("single", "multiple")[as.integer(sel)+1], selected = selectedRows(st), target = "row"),
       rownames = FALSE,
       filter = "top",
       class="table-bordered compact nowrap",
@@ -429,9 +445,9 @@ dataTable_module <- function(
             "}")
         )),
         # Server snapshots are authoritative; do not restore browser-local state.
-        searchCols = getSearchCols(tabStatus()), order = getOrderCols(tabStatus()),
-        displayStart = tabStatus()$start,
-        pageLength = restore_table_page_length(tabStatus()$length, pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE)
+        searchCols = getSearchCols(st), order = getOrderCols(st),
+        displayStart = st$start,
+        pageLength = restore_table_page_length(st$length, pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE)
         )
     )
     DT::formatStyle(dt, columns = seq_len(ncol(tab)), fontSize = '90%')
@@ -464,7 +480,7 @@ dataTable_module <- function(
     i <- which(vapply(tab, function(x) is.numeric(x) && !is.integer(x), logical(1)))
     if (any(i))
       tab[i] <- lapply(tab[i], round, digits = 4)
-    formatTab(tab, sel = input$multisel)
+    formatTab(tab, sel = input$multisel, st = .dt_consume_restore())
   })
 
   # outputOptions(output, "table", suspendWhenHidden = FALSE)

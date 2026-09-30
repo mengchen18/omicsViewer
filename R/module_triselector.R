@@ -83,6 +83,15 @@ triselector_ui <- function(id, right_margin = "20") {
 #' @param reactive_selector3 default value for selector 3
 #' @param reactive_axis_request version bump that forces re-derivation of the
 #'   cascade (e.g. a widget-store epoch); unchanged values are never re-sent
+#' @param allow_unset logical; when TRUE the user may unset the variable by
+#'   picking the "--select--" placeholder. The module then commits an
+#'   explicit unset marker (a settled triple whose variable is
+#'   "--select--") instead of repairing the variable back to the first
+#'   valid choice. Downstream consumers already treat a "--select--"
+#'   variable as "no mapping" (varSelector, the panel fallbacks), and
+#'   \code{\link{store_bind_triselector}} clears the store key. Repair
+#'   logic still applies to the upstream analysis/subset components.
+#'   Default FALSE (e.g. scatter axes must always name a variable).
 #' @param label of the triselector
 #' @export
 #' @examples
@@ -125,6 +134,7 @@ triselector_module <- function(id,
                                reactive_selector2 = reactive(NULL),
                                reactive_selector3 = reactive(NULL),
                                reactive_axis_request = reactive(NULL),
+                               allow_unset = FALSE,
                                label = "Group Label:") {
 
   moduleServer(id, function(input, output, session) {
@@ -317,12 +327,26 @@ triselector_module <- function(id,
     # ---- variable ----
     cc3 <- if (is.null(w2)) character() else
       vx[, 3][vx[, 1] == w1 & vx[, 2] == w2]
+    # allow_unset: an explicit "--select--" pick is a legitimate user
+    # intent (clear the mapping), not a broken cascade to repair. Only a
+    # fresh canonical (store-side) intent or an in-flight push may
+    # displace it - neither the live value nor the last stored variable
+    # may be re-asserted over the placeholder (the re-assert used to
+    # "repair" the user's unset right back; todo 2.4)
+    live_unset <- isTRUE(allow_unset) && identical(live$variable, "--select--")
     w3 <- .first_valid(c(
       if (fresh$variable) sel$variable,
       pd$variable,
-      live$variable,
-      sel$variable), cc3)
-    if (is.null(w3) && (ever_settled || !is.null(sel$variable)))
+      if (!live_unset) live$variable,
+      if (!live_unset) sel$variable), cc3)
+    # a CANONICAL explicit unset (a store-driven "--select--") wins over
+    # the live-repair path: without this, .first_valid would fall through
+    # to the live value and "repair" the unset away (todo 2.3/2.4)
+    if (isTRUE(allow_unset) && fresh$variable &&
+        identical(sel$variable, "--select--"))
+      w3 <- NULL
+    if (is.null(w3) && !live_unset &&
+        (ever_settled || !is.null(sel$variable)))
       w3 <- cc3[1]
 
     .update_widget("analysis", cc1, w1)
@@ -331,7 +355,10 @@ triselector_module <- function(id,
   }))
 
 
-  # emit only coherent, settled triples; hold the last committed otherwise
+  # emit only coherent, settled triples; hold the last committed otherwise.
+  # allow_unset selectors additionally commit an explicit UNSET marker
+  # (analysis/subset valid, variable "--select--") once a real triple has
+  # settled - the cold-start placeholder never commits (todo 2.4).
   .tri_keep_obs(observe({
     if (!is.null(pend$analysis()) || !is.null(pend$subset()) ||
         !is.null(pend$variable()))
@@ -344,7 +371,15 @@ triselector_module <- function(id,
     tr <- list(analysis = input$analysis, subset = input$subset,
                variable = input$variable)
     ok3 <- function(v) !is.null(v) && nzchar(v) && !identical(v, "--select--")
-    if (!ok3(tr$analysis) || !ok3(tr$subset) || !ok3(tr$variable))
+    if (!ok3(tr$analysis) || !ok3(tr$subset))
+      return(NULL)
+    if (identical(tr$variable, "--select--")) {
+      if (isTRUE(allow_unset) && !is.null(isolate(committed())))
+        committed(list(analysis = tr$analysis, subset = tr$subset,
+                       variable = "--select--"))
+      return(NULL)
+    }
+    if (!ok3(tr$variable))
       return(NULL)
     if (!paste(tr$analysis, tr$subset, tr$variable, sep = "|") %in%
         paste(vx[, 1], vx[, 2], vx[, 3], sep = "|"))

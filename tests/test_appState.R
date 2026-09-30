@@ -80,8 +80,8 @@ ok(
   "legacy snapshots are migrated to the versioned format"
 )
 ok(
-  ut_cmp_identical(state$schema_version, 1L),
-  "migrated snapshot has schema version 1"
+  ut_cmp_identical(state$schema_version, omicsViewer:::APP_STATE_SCHEMA_VERSION),
+  "migrated snapshot has the current schema version"
 )
 ok(
   ut_cmp_identical(state$panels$data_space$eset_active_tab, "Sample"),
@@ -215,12 +215,35 @@ ok(
   "compatible state validates without changing selections"
 )
 ok(
-  ut_cmp_warning(
-    validate_app_state(state2, dataset = es_changed, dataset_id = "changed.RDS"),
-    c("fingerprint mismatch", "saved for dataset"),
-    expected_count = 2L
+  ut_cmp_identical(length(attr(validated, "warnings")), 0L),
+  "compatible state collects no warnings"
+)
+ok(
+  ut_cmp_identical(
+    attr(validate_app_state(state2, dataset = es_changed, dataset_id = "changed.RDS"), "warnings"),
+    c(
+      "This snapshot was saved from a different version of the dataset (features, samples or annotation columns changed). Content that no longer exists will be ignored.",
+      "Snapshot was saved for dataset 'demo.RDS' and is being restored into 'changed.RDS'."
+    )
   ),
-  "dataset incompatibility warns instead of blocking"
+  "dataset incompatibility collects ALL warnings instead of blocking"
+)
+# unknown ids are intersected with the current dataset, not dropped silently
+es_sm_changed <- es
+sampleNames(es_sm_changed) <- c("s1", "s2", "b1", "b2")
+v2 <- validate_app_state(state2, dataset = es_sm_changed, dataset_id = "demo.RDS")
+ok(
+  ut_cmp_identical(v2$selection$samples, "s1"),
+  "unknown selection ids are intersected away after being reported"
+)
+ok(
+  any(grepl("1 of 2 selected samples", attr(v2, "warnings"))),
+  "unknown selection ids are reported with counts"
+)
+res <- tryCatch(migrate_app_state(list(foo = 1, bar = 2)), error = function(e) e)
+ok(
+  inherits(res, "error") && grepl("not an omicsViewer snapshot", res$message),
+  "a stray list .ESS is rejected as not a snapshot"
 )
 
 ok(
@@ -328,8 +351,17 @@ shiny::testServer(app_rt, {
   ok(!identical(smid$`dataspace.expr_heatmap.heatmap_colors`,
                 s1$`dataspace.expr_heatmap.heatmap_colors`),
      "drift actually changed the store state")
-  # restore by selecting the saved row in the snapshot table
+  # restore by selecting the saved row in the snapshot table; the confirm
+  # dialog (todo 2.7) must be accepted before the restore runs
   session$setInputs(`app-tab_saveSS_cells_selected` = c(1, 1))
+  session$flushReact()
+  smid <- .rt_store_vals()
+  ok(
+    !identical(smid$`dataspace.expr_heatmap.heatmap_colors`,
+               s1$`dataspace.expr_heatmap.heatmap_colors`),
+    "row click alone does not restore (confirm dialog gates it)"
+  )
+  session$setInputs(`app-snapshot_restore_confirm` = 1L)
   session$flushReact()
   session$flushReact()
   s2 <- .rt_store_vals()

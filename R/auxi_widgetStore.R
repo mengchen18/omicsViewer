@@ -57,8 +57,11 @@ widget_store_new <- function() {
   store$epochs <- list()        # canonical id -> integer epoch
   store$pending <- list()       # canonical id -> list(value, epoch)
   store$origins <- list()       # canonical id -> last write origin
+  store$defaults <- list()      # canonical id -> seeded widget default
   store$global_epoch <- 0L
   store$epoch_rv <- shiny::reactiveVal(0L)  # reactive transaction counter
+  store$reset_generation <- 0L
+  store$reset_rv <- shiny::reactiveVal(0L)  # bumped by store_reset
   store$prefix_epochs <- list() # namespace prefix -> list(n, rv) scoped epoch
   store$override_log <- list()  # user-overridden in-flight agent writes
   store
@@ -323,6 +326,13 @@ store_register <- function(store, ...) {
   if (kind %in% c("string", "select", "select_cascaded", "tabset", "navbar")) {
     if (!is.character(value) || length(value) != 1L || !nzchar(value))
       return(list(error = paste(binding$id, "requires a single non-empty string.")))
+    # the literal "--select--" is the canonical UNSET sentinel for cascaded
+    # variables (allow_unset selectors): accepted like any allowed value so
+    # restores and agent applies can push the placeholder to the widget;
+    # the owning triselector then commits the unset marker and the
+    # UI->store sync clears the key again
+    if (kind == "select_cascaded" && identical(value, "--select--"))
+      return(list(value = value))
     if (kind %in% c("select", "select_cascaded", "tabset", "navbar")) {
       allowed <- .widget_store_allowed_values(binding, effective)
       if (!is.null(allowed) && !value %in% allowed) {
@@ -700,10 +710,79 @@ store_seed <- function(store, patch) {
   if (!length(seed))
     return(invisible(list(applied = character(),
                           skipped = all_keys, rejected = list())))
+  # record the widget default per key (first seed wins): store_restore's
+  # replace mode and dataset-switch resets fall back to these values
+  for (k in names(seed)) {
+    key <- if (is.null(prefix)) k else paste(prefix, k, sep = ".")
+    if (is.null(store$defaults[[key]]))
+      store$defaults[[key]] <- seed[[k]]
+  }
   receipt <- store_apply(store, seed, origin = "system", strict = FALSE,
                          mark_pending = FALSE)
   receipt$skipped <- union(receipt$skipped, setdiff(all_keys, receipt$applied))
   invisible(receipt)
+}
+
+#' Reset keys to their unset state
+#'
+#' Clears the stored values (back to NULL, i.e. "unset"), drops any
+#' in-flight pending writes and bumps the epochs so every watcher
+#' re-derives. Used on dataset switches (todo 2.5): dataset-scoped keys
+#' must not leak from dataset A into dataset B; the natural repair paths
+#' (dataset-default seeding, data-derived sync observers) refill the keys
+#' that have a dataset-derived value, leaving user choices legitimately
+#' unset until the user makes them again.
+#'
+#' The FIRST dataset load must not reset: widget-default seeds may already
+#' have fired by the time the dataset reactive settles, and the one-shot
+#' seed gates are consumed - callers guard on a previous signature.
+#'
+#' @param store Store (or child view).
+#' @param prefixes Optional character vector; when given, only ids equal to
+#'   a prefix or below it ("prefix.") are reset.
+#' @return Invisible list with \code{reset} (the cleared ids).
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_reset <- function(store, prefixes = NULL) {
+  if (!is.null(store$parent)) store <- store$parent
+  ids <- names(store$bindings)
+  if (!is.null(prefixes)) {
+    ids <- Filter(function(id) any(vapply(prefixes, function(p)
+      identical(id, p) || startsWith(id, paste0(p, ".")), logical(1))), ids)
+  }
+  reset <- character()
+  for (id in ids) {
+    if (is.null(store$values[[id]]$val) && is.null(store$pending[[id]]))
+      next
+    store$values[[id]]$val <- NULL
+    store$values[[id]]$rv(NULL)
+    store$pending[[id]] <- NULL
+    store$epochs[[id]] <- (store$epochs[[id]] %||% 0L) + 1L
+    store$origins[[id]] <- "system"
+    reset <- c(reset, id)
+  }
+  if (length(reset)) {
+    store$global_epoch <- store$global_epoch + 1L
+    store$epoch_rv(store$global_epoch)
+    for (p in unique(unlist(lapply(reset, .widget_store_ancestor_prefixes),
+                            use.names = FALSE))) {
+      holder <- .widget_store_prefix_epoch(store, p)
+      holder$n <- holder$n + 1L
+      holder$rv(holder$n)
+    }
+  }
+  # Reset generation: always bumped (even for an empty reset), so sync
+  # observers (store_bind_triselector) can recognise that any settled
+  # triple they still hold predates the reset and must not be re-synced
+  # over the post-reset seeds. Without the generation, those observers
+  # re-ran on the reset's own invalidations (their validators' choices
+  # providers read dataset reactives) with the CACHED pre-reset triple and
+  # clobbered the new dataset's freshly seeded values (observed: dataset
+  # switch A -> B re-seeded B's PCA axes, then A's drifted volcano triple
+  # synced back over them).
+  store$reset_generation <- (store$reset_generation %||% 0L) + 1L
+  store$reset_rv(store$reset_generation)
+  invisible(list(reset = reset))
 }
 
 ############################################################################
@@ -828,14 +907,34 @@ store_bind_triselector <- function(store, keys, sel,
     setequal(names(keys), c("analysis", "subset", "variable")),
     is.function(sel), is.function(keep)
   )
+  root <- if (is.null(store$parent)) store else store$parent
+  # Last-seen reset generation: the observer must NOT sync a settled
+  # triple that predates a store_reset (dataset switch). The validator's
+  # choices providers read dataset reactives, so this observer re-runs on
+  # dataset changes even while sel() is cached at its pre-reset value -
+  # without the generation guard that stale triple clobbered the new
+  # dataset's seeds (todo 2.5).
+  .gen <- new.env(parent = emptyenv())
+  .gen$last <- shiny::isolate(root$reset_rv())
   keep(observe({
+    gen <- root$reset_rv()
+    if (!identical(gen, .gen$last)) {
+      # first run after a reset: the held triple predates it; the
+      # post-reset seed owns the store until a fresh triple settles
+      .gen$last <- gen
+      return(NULL)
+    }
     tv <- tryCatch(sel(), shiny.silent.error = function(e) NULL,
                    error = function(e) NULL)
     if (is.null(tv))
       return(NULL)
     store_sync_from_ui(store, keys[["analysis"]], tv$analysis)
     store_sync_from_ui(store, keys[["subset"]], tv$subset)
-    store_sync_from_ui(store, keys[["variable"]], tv$variable)
+    # allow_unset selectors commit an explicit "--select--" variable as
+    # the unset marker; the store key must be CLEARED (NULL), not synced
+    # with the placeholder string (todo 2.4)
+    store_sync_from_ui(store, keys[["variable"]],
+      if (identical(tv$variable, "--select--")) NULL else tv$variable)
   }))
   invisible(NULL)
 }
@@ -913,13 +1012,22 @@ store_snapshot <- function(store) {
 #' reported in \code{receipt$rejected} while the valid remainder still
 #' applies. Unknown ids in the snapshot are reported, not applied.
 #'
+#' \code{replace = TRUE} (default) makes the restore REPLACE the state
+#' instead of merging over it (todo 2.3): keys the snapshot does not carry,
+#' carries as NULL, or lists in \code{snapshot$unset} are reset to their
+#' seeded widget defaults (or cleared to NULL when no default exists).
+#' Without it, unset keys keep whatever value they currently hold.
+#'
 #' @param store Store (or child view).
 #' @param snapshot List from \code{\link{store_snapshot}}.
+#' @param replace Logical; reset keys not carried by the snapshot to their
+#'   defaults (default TRUE).
 #' @return Invisible receipt from \code{\link{store_apply}} plus
-#'   \code{unknown_ids} and (per-key) \code{rejected}.
+#'   \code{unknown_ids}, (per-key) \code{rejected}, and \code{reset}
+#'   (ids reset to defaults / cleared by replace mode).
 #' @keywords internal
 #' @rdname widgetStoreHelpers
-store_restore <- function(store, snapshot) {
+store_restore <- function(store, snapshot, replace = TRUE) {
   if (!is.null(store$parent)) store <- store$parent
   if (is.null(snapshot) || !is.list(snapshot$values))
     stop("Snapshot must come from store_snapshot().")
@@ -928,6 +1036,50 @@ store_restore <- function(store, snapshot) {
   patch <- snapshot$values[intersect(names(snapshot$values), known)]
   receipt <- store_apply(store, patch, origin = "restore", strict = FALSE)
   receipt$unknown_ids <- unknown
+  receipt$reset <- character()
+  if (isTRUE(replace)) {
+    carried <- names(patch)
+    unset_explicit <- intersect(
+      as.character(snapshot$unset %||% character()), known)
+    dropped <- carried[vapply(carried, function(k) is.null(patch[[k]]),
+                              logical(1))]
+    reset_keys <- union(setdiff(known, carried), union(unset_explicit, dropped))
+    if (length(reset_keys)) {
+      defaults <- lapply(reset_keys, function(k) store$defaults[[k]])
+      names(defaults) <- reset_keys
+      has_default <- reset_keys[!vapply(defaults, is.null, logical(1))]
+      no_default <- setdiff(reset_keys, has_default)
+      if (length(has_default)) {
+        r2 <- store_apply(store, defaults[has_default], origin = "restore",
+                          strict = FALSE)
+        receipt$applied <- c(receipt$applied, r2$applied)
+        receipt$diff <- c(receipt$diff, r2$diff)
+        receipt$epochs <- c(receipt$epochs, r2$epochs)
+        receipt$reset <- c(receipt$reset, r2$applied)
+      }
+      cleared <- character()
+      for (k in no_default) {
+        if (is.null(store$values[[k]]$val)) next
+        store$values[[k]]$val <- NULL
+        store$values[[k]]$rv(NULL)
+        store$pending[[k]] <- NULL
+        store$epochs[[k]] <- (store$epochs[[k]] %||% 0L) + 1L
+        store$origins[[k]] <- "restore"
+        cleared <- c(cleared, k)
+      }
+      if (length(cleared)) {
+        store$global_epoch <- store$global_epoch + 1L
+        store$epoch_rv(store$global_epoch)
+        for (p in unique(unlist(lapply(cleared, .widget_store_ancestor_prefixes),
+                                use.names = FALSE))) {
+          holder <- .widget_store_prefix_epoch(store, p)
+          holder$n <- holder$n + 1L
+          holder$rv(holder$n)
+        }
+        receipt$reset <- c(receipt$reset, cleared)
+      }
+    }
+  }
   invisible(receipt)
 }
 

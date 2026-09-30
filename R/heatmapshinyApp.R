@@ -691,15 +691,34 @@ iheatmapModule <- function(
   })
   
   ######## update range - heatmap ########
+  # The snapshot zoom applies exactly ONCE per restore (todo 2.8): the
+  # historic observer re-applied status()$ranges_* on EVERY matrix change,
+  # so after a restore each selection change (the dynamic heatmap's matrix
+  # is subset by the selection) snapped the view back to the saved zoom.
+  # A fresh status arms a pending zoom; the first observer run that sees it
+  # applies it once, and every LATER matrix change falls through to the
+  # full-extent reset (the ordinary behaviour without a snapshot).
   ranges <- reactiveValues(x = NULL, y = NULL)
+  .ranges_pending <- reactiveVal(NULL)
+  observeEvent(status(), {
+    st <- status()
+    if (is.null(st)) return(NULL)
+    if (is.null(st$ranges_x) && is.null(st$ranges_y)) return(NULL)
+    .ranges_pending(list(x = st$ranges_x, y = st$ranges_y))
+  })
   observe({
     req(hm()$mat)
-    if (!is.null(status()$ranges_x))
-      ranges$x <- status()$ranges_x else 
-        ranges$x <- c(0, nrow(hm()$mat))+0.5
-    if (!is.null(status()$ranges_y))
-      ranges$y <- status()$ranges_y else 
-        ranges$y <- c(0, ncol(hm()$mat))+0.5
+    p <- .ranges_pending()
+    if (!is.null(p) && !isTRUE(p$applied)) {
+      if (!is.null(p$x)) ranges$x <- p$x else
+        ranges$x <- c(0, nrow(hm()$mat)) + 0.5
+      if (!is.null(p$y)) ranges$y <- p$y else
+        ranges$y <- c(0, ncol(hm()$mat)) + 0.5
+      .ranges_pending(list(x = p$x, y = p$y, applied = TRUE))
+      return(NULL)
+    }
+    ranges$x <- c(0, nrow(hm()$mat))+0.5
+    ranges$y <- c(0, ncol(hm()$mat))+0.5
   })
   
   .rg <- function(x, tx) {

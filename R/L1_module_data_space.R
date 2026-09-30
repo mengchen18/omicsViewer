@@ -601,22 +601,51 @@ L1_data_space_module <- function(
       x
     }
     # Snapshot-status restore: write only fields the status actually
-    # carries, through the selection bus (the single restore writer for
-    # the semantic selections and the table-row mirrors). A NULL status
-    # (fresh load, no snapshot) writes nothing.
+    # carries, through the selection bus. This observer is the SINGLE
+    # writer of a restored selection (todo 2.2): the scatter modules
+    # restore only their local display state, and the bus record - ids,
+    # origin, anchor and the table-row mirror - is applied here exactly
+    # once per restore. v2 snapshots carry the full record per space
+    # (eset_selection_records); v1 snapshots fall back to the plain id
+    # fields. A NULL status (fresh load, no snapshot) writes nothing.
+    .valid_sel_origin <- function(o)
+      if (is.character(o) && length(o) == 1L && !is.na(o) &&
+          o %in% c("figure", "corner", "clear", "table", "heatmap",
+                   "cor_heatmap", "dyn_heatmap", "gslist", "restore", "system"))
+        o else "restore"
     observe({
       .st <- status()
       if (is.null(.st)) return(NULL)
-      sel_feature$apply(
-        ids = as.character(.st$eset_selected_features %||% character(0)),
-        origin = "restore",
-        mirror = if (is.null(.st$eset_fdata_tabrows)) NULL
-                 else .st$eset_fdata_tabrows)
-      sel_sample$apply(
-        ids = as.character(na2null(.st$eset_selected_samples) %||% character(0)),
-        origin = "restore",
-        mirror = if (is.null(.st$eset_pdata_tabrows)) NULL
-                 else .st$eset_pdata_tabrows)
+      rec_f <- .st$eset_selection_records$feature
+      rec_s <- .st$eset_selection_records$sample
+      if (is.list(rec_f) && !is.null(rec_f$ids)) {
+        sel_feature$apply(
+          ids = as.character(rec_f$ids),
+          clicked = as.character(rec_f$clicked %||% character(0)),
+          origin = .valid_sel_origin(rec_f$origin),
+          anchor = if (is.null(rec_f$anchor)) NULL else as.character(rec_f$anchor),
+          mirror = rec_f$mirror)
+      } else {
+        sel_feature$apply(
+          ids = as.character(.st$eset_selected_features %||% character(0)),
+          origin = "restore",
+          mirror = if (is.null(.st$eset_fdata_tabrows)) NULL
+                   else .st$eset_fdata_tabrows)
+      }
+      if (is.list(rec_s) && !is.null(rec_s$ids)) {
+        sel_sample$apply(
+          ids = as.character(rec_s$ids),
+          clicked = as.character(rec_s$clicked %||% character(0)),
+          origin = .valid_sel_origin(rec_s$origin),
+          anchor = if (is.null(rec_s$anchor)) NULL else as.character(rec_s$anchor),
+          mirror = rec_s$mirror)
+      } else {
+        sel_sample$apply(
+          ids = as.character(na2null(.st$eset_selected_samples) %||% character(0)),
+          origin = "restore",
+          mirror = if (is.null(.st$eset_pdata_tabrows)) NULL
+                   else .st$eset_pdata_tabrows)
+      }
     })
 
     ############## dynamic heatmap function start ##################
@@ -708,12 +737,21 @@ L1_data_space_module <- function(
         eset_fdata_tabrows = tab_rows_fdata(),
         eset_pdata_tabrows = tab_rows_pdata(),
         eset_selected_samples = c(selectedSamples()),
-        eset_selected_features = c(selectedFeatures())
+        eset_selected_features = c(selectedFeatures()),
+        # selection-bus records per space (todo 2.2): the origin decides
+        # corner re-engagement on restore; ids/clicked/anchor/mirror ride
+        # along so a restore reproduces the record exactly through ONE
+        # writer instead of per-module re-claims
+        eset_selection_records = selection_state(selbus)
       )
-      if (sta$eset_active_tab != "Feature table") { # fig tab
+      # isTRUE(): input$eset is NULL before the navbar reports (headless
+      # sessions, early flushes) - a zero-length condition would error and
+      # take the whole status assembly down (todo 4.6/L2); in that case the
+      # saved rows_selected is also dropped (the fig-tab special case)
+      if (isTRUE(sta$eset_active_tab != "Feature table")) { # fig tab
         sta$eset_fdata_tab$rows_selected <- NULL
       }
-      if (sta$eset_active_tab != "Sample table") {
+      if (isTRUE(sta$eset_active_tab != "Sample table")) {
         sta$eset_pdata_tab$rows_selected <- NULL
       }
       attr(l, "status") <- sta

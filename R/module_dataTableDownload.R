@@ -79,6 +79,23 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     if (is.function(tab_status)) tab_status() else tab_status
   })
 
+  # One-shot restore slot (todo 2.8): the saved DT state (filters, order,
+  # page, pre-selected rows) applies on the FIRST render after a status
+  # change only; later re-renders (new ranking, selection changes, page
+  # flips) must not re-apply it - a restore used to keep pre-selecting the
+  # snapshot's rows at their new positions on every re-render.
+  .dtd_restore_slot <- reactiveVal(NULL)
+  observeEvent(tabStatus(), {
+    st <- tabStatus()
+    if (is.list(st))
+      .dtd_restore_slot(st)
+  })
+  .dtd_consume_restore <- function() {
+    st <- .dtd_restore_slot()  # reactive read: a restore re-renders the table
+    if (!is.null(st)) isolate(.dtd_restore_slot(NULL))
+    st
+  }
+
   rowIds <- reactive({
     if (is.null(reactive_row_ids()))
       return(NULL)
@@ -120,7 +137,7 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   # desired row id (store pushes and user clicks converge here)
   .dtd_sel_id <- reactiveVal(NULL)
 
-  selectedRows <- reactive({
+  selectedRows <- function(st = NULL) {
     if (!is.null(storeTab)) {
       # store-backed tables: the desired row id is canonical (survives
       # re-renders; cleared when the id is gone from the current table)
@@ -137,7 +154,6 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
       }
       return(NULL)
     }
-    st <- tabStatus()
     if (is.null(st))
       return(NULL)
     if (is.null(st$selected_rows) || length(st$selected_rows) == 0)
@@ -147,7 +163,7 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
       return(st$rows_selected)
     # tabsort()$index maps displayed rows back to rows in reactive_table().
     match(as.character(st$selected_rows), ids[tabsort()$index])
-  })
+  }
   
   output$downloadData <- downloadHandler(
     filename = function() {
@@ -170,12 +186,12 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     downloadLink(ns("downloadData"), "Save table")
   })
   
-  formatTab <- function(tab, sel = 0, pageLength = pageLength) {
+  formatTab <- function(tab, sel = 0, pageLength = pageLength, st = NULL) {
     dt <- DT::datatable(
       tab,
       selection = list(
         mode = c("single", "multiple")[as.integer(sel) + 1],
-        selected = selectedRows(),
+        selected = selectedRows(st),
         target = "row"
       ),
       rownames = FALSE,
@@ -184,9 +200,9 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
       # Server snapshots are authoritative; DataTable browser-local state is
       # deliberately not enabled because it is machine-specific.
       options = list(scrollX = TRUE, dom = 'tip',
-        searchCols = getSearchCols(tabStatus()), order = getOrderCols(tabStatus()),
-        displayStart = tabStatus()$start,
-        pageLength = restore_table_page_length(tabStatus()$length, pageLength = pageLength)
+        searchCols = getSearchCols(st), order = getOrderCols(st),
+        displayStart = st$start,
+        pageLength = restore_table_page_length(st$length, pageLength = pageLength)
         )
     )
     DT::formatStyle(dt, columns = seq_len(ncol(tab)), fontSize = '90%')
@@ -212,7 +228,7 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   })    
 
   output$table <- DT::renderDataTable(    
-    formatTab(tabsort()$tab, pageLength = pageLength)
+    formatTab(tabsort()$tab, pageLength = pageLength, st = .dtd_consume_restore())
   )
 
   # ------------------------------------------------------------------

@@ -181,13 +181,13 @@ feature_general_module <- function(id,
       reactive_selector1 = store_watch(store, "xax_analysis"),
       reactive_selector2 = store_watch(store, "xax_subset"),
       reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store))
+      reactive_axis_request = store_epoch(store), allow_unset = TRUE)
   } else {
     v1 <- triselector_module(
       "tris_feature_general", reactive_x = triset, label = "Link to variable",
       reactive_selector1 = reactive(xax()$v1),
       reactive_selector2 = reactive(xax()$v2),
-      reactive_selector3 = reactive(xax()$v3))
+      reactive_selector3 = reactive(xax()$v3), allow_unset = TRUE)
   }
 
   attr4select_status <- reactiveVal()
@@ -433,7 +433,10 @@ feature_general_module <- function(id,
     if (is.null(s <- reactive_status()))
       return()
     if (!is.null(store)) {
-      # single transactional path (per-key resilient, meta_scatter style)
+      # single transactional path (per-key resilient, meta_scatter style);
+      # a saved triple with an unset variable (NULL / "--select--") pushes
+      # the canonical unset so a restore REMOVES a link variable set after
+      # the snapshot was taken (todo 2.3)
       if (identical(length(s$xax), 3L)) {
         tr <- lapply(s$xax, function(x)
           if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
@@ -441,6 +444,8 @@ feature_general_module <- function(id,
         if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
         if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
         if (!is.null(tr[[3]])) patch$xax_variable <- tr[[3]]
+        if (is.null(tr[[3]]))
+          patch$xax_variable <- "--select--"
         if (length(patch))
           tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
                    error = function(e) NULL)

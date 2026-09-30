@@ -43,11 +43,20 @@
 #' made or restored. This prevents an opacity vector from being carried into a
 #' different quick/custom figure.
 #'
+#' Accepts both key conventions: live triselector triples name their
+#' components analysis/subset/variable, while SAVED snapshot axes use the
+#' historic v1/v2/v3 names (the restore path used to feed the saved form
+#' into a reader that only understood the live one, so every restored
+#' signature came back empty and restored figure selections never
+#' re-emphasized).
+#'
 #' @keywords internal
 .scatter_axis_signature <- function(x, y) {
   axis <- function(z) {
     if (is.null(z)) return(rep("", 3L))
     value <- unlist(z[c("analysis", "subset", "variable")], use.names = FALSE)
+    if (length(value) != 3L)
+      value <- unlist(z[c("v1", "v2", "v3")], use.names = FALSE)
     if (length(value) != 3L) return(rep("", 3L))
     as.character(value)
   }
@@ -243,7 +252,10 @@ meta_scatter_module <- function(
 
     # Reactive axis watchers: the canonical, atomic view of the current
     # axes (used by the volcano detection below). Created once; each call
-    # inside a reactive registers the per-key dependency.
+    # inside a reactive registers the per-key dependency. NB: this list
+    # must contain exactly the SIX axis keys - .scatter_axes_converged()
+    # below NULL-checks every member, so the (legitimately unset until the
+    # first mode interaction) axis_mode key gets its own watcher.
     store_watchers <- list(
       x_analysis = store_watch(store, "x_analysis"),
       x_subset = store_watch(store, "x_subset"),
@@ -252,6 +264,12 @@ meta_scatter_module <- function(
       y_subset = store_watch(store, "y_subset"),
       y_variable = store_watch(store, "y_variable")
     )
+    axis_mode_watcher <- store_watch(store, "axis_mode")
+    # Selection-bus record view, created ONCE at module level (the port's
+    # watch() builds a fresh reactive per call; an ephemeral one consumed
+    # inside scatter_status would be weakly held and garbage collected -
+    # the observer-GC rule applies to reactive dependencies too)
+    sel_record <- selection$watch()
 
     # Seed the store with the dataset's default axes whenever the defaults
     # change (initial load, dataset reload). A snapshot/agent restore that
@@ -271,9 +289,21 @@ meta_scatter_module <- function(
       invisible(obs)
     }
     last_seeded <- character()
+    # Re-arm on store resets (dataset switch): the reset and this seed
+    # observer race in either order within a flush; reading the reset
+    # generation makes both orders converge - after a reset the stamp
+    # guard is cleared and the CURRENT dataset defaults re-seed (the
+    # cleared store keys are unset, so store_seed always fills them)
+    .seed_gen <- new.env(parent = emptyenv())
+    .seed_gen$last <- NULL
     .scatter_keep(observe({
       dx <- reactive_x()
       dy <- reactive_y()
+      gen <- axisModeRoot$reset_rv()
+      if (!identical(gen, .seed_gen$last)) {
+        .seed_gen$last <- gen
+        last_seeded <<- character()
+      }
       req(nrow(ts <- triset()) > 0)
       stamp <- c(dx %||% "", dy %||% "")
       if (identical(stamp, last_seeded))
@@ -706,7 +736,13 @@ meta_scatter_module <- function(
     # dead for the rest of the session. Value-guarded: cutoff_effective
     # recomputes on every axis write (corner_valid_on_axes reads the
     # displayed axes) without the cutoff VALUE changing.
+    # A restore of a non-corner selection suppresses the FIRST re-arm:
+    # the restored attr4 status legitimately re-writes the cutoff
+    # widgets, but that is the snapshot speaking, not the user - without
+    # the suppression the restored corner CONFIGURATION re-claimed the
+    # corner over the restored table/lasso selection (todo 2.2).
     .cutoff_key <- reactiveVal(NULL)
+    .corner_rearm_suppress <- reactiveVal(FALSE)
     .scatter_keep(observe({
       cutoff <- attr4select$cutoff_reactive
       l <- if (is.function(cutoff)) cutoff() else attr4select$cutoff
@@ -716,6 +752,10 @@ meta_scatter_module <- function(
       if (identical(key, .cutoff_key()))
         return(NULL)
       .cutoff_key(key)
+      if (isTRUE(.corner_rearm_suppress())) {
+        .corner_rearm_suppress(FALSE)
+        return(NULL)
+      }
       cornerEngaged(TRUE)
     }))
 
@@ -748,9 +788,25 @@ meta_scatter_module <- function(
     # result space kept the stale ids. The convergence reactive provides
     # the second trigger; the value dedupe below absorbs the extra runs.
     .rectval_last <- reactiveVal(NULL)
+    # restore generation: bumps on every status restore; the rectval
+    # observer skips its FIRST evaluation after a bump - mid-restore, the
+    # cornerEngaged flag and the axes race within one flush (the restore
+    # observer may run after the rectval observer), and a racing clear
+    # report wiped the freshly restored selection (observed: the golden
+    # v2 fixture's 5-id table selection was cleared by a corner echo)
+    .scatter_restore_gen <- reactiveVal(0L)
+    .rectval_gen_last <- 0L
     .scatter_keep(observe({
       conv <- tryCatch(.scatter_axes_converged(), error = function(e) FALSE)
       rec <- rectval()
+      gen <- .scatter_restore_gen()
+      if (!identical(gen, .rectval_gen_last)) {
+        # one evaluation after a restore is a transient: the corner
+        # engagement is being re-configured; the convergence flip (or any
+        # later axis/cutoff change) re-runs with settled state
+        .rectval_gen_last <<- gen
+        return(NULL)
+      }
       if (!isTRUE(cornerEngaged())) {
         return(NULL)
       }
@@ -803,25 +859,40 @@ meta_scatter_module <- function(
     # Derive snapshot state when it is read. Besides avoiding the historical
     # circular reactiveVal update, this ensures a Save click evaluates the
     # current axis/selector controls rather than an observer's last write.
+    # Every axis field reads through the REACTIVE store watchers (a plain
+    # store_read is not a reactive dependency, so axis changes via quick
+    # views - which write the store without touching input$axisMode - left
+    # the cached status one view behind and snapshots restored the WRONG
+    # figure; todo 2.1). The corner flag reads the selection-bus origin:
+    # the scatter-local cornerAuthority records who owns the DISPLAY, not
+    # who owns the selection - a table pick on top of a corner view saved
+    # selectByCorner = TRUE and the restore re-claimed the corner over the
+    # saved selection (todo 2.2).
     scatter_status <- reactive({
       safe_state_value <- function(value) {
         tryCatch(value, shiny.silent.error = function(e) NULL,
                  error = function(e) NULL)
       }
-      current <- isolate(selVal())
-      vals <- store_read(store, c("x_analysis", "x_subset", "x_variable",
-                                   "y_analysis", "y_subset", "y_variable"))
+      vals <- lapply(store_watchers[
+        c("x_analysis", "x_subset", "x_variable",
+          "y_analysis", "y_subset", "y_variable")], function(w) w())
+      current <- selVal()
+      rec <- sel_record()
       list(
-        axisMode = input$axisMode,
-        xax = list(v1 = vals[[kx1]], v2 = vals[[kx2]], v3 = vals[[kx3]]),
-        yax = list(v1 = vals[[ky1]], v2 = vals[[ky2]], v3 = vals[[ky3]]),
+        axisMode = axis_mode_watcher() %||% input$axisMode,
+        xax = list(v1 = vals[["x_analysis"]], v2 = vals[["x_subset"]],
+                   v3 = vals[["x_variable"]]),
+        yax = list(v1 = vals[["y_analysis"]], v2 = vals[["y_subset"]],
+                   v3 = vals[["y_variable"]]),
         showRegLine = showRegLine(),
         attr4 = safe_state_value(attr4select$status),
         selection_clicked = current$clicked,
         selection_selected = current$selected,
-        # the authority flag is "the corner made the current selection"
-        # (the historic sbc): restored as the corner engagement below
-        selectByCorner = isTRUE(isolate(cornerAuthority()))
+        # v2: the selection-bus origin decides whether a restore may
+        # re-engage the corner ("the corner made the current selection"),
+        # replacing the historic display-authority flag
+        selectByCorner = identical(rec$origin, "corner"),
+        selectionOrigin = rec$origin
       )
     })
 
@@ -830,7 +901,21 @@ meta_scatter_module <- function(
     # state goes through the canonical store (transactional, diff-only),
     # which replaces the former direct radio updates and xax/yax writes:
     # keys absent from the status are never touched, so restores have no
-    # side effects beyond what the snapshot recorded.
+    # side effects beyond what the snapshot recorded. When the snapshot
+    # carries a widget_store section the L0 restore strips the panel
+    # xax/yax/axisMode copies entirely (the store is the single write
+    # plane; todo 2.1) - in that case the restored display anchor derives
+    # from the store values, which store_restore has already installed.
+    #
+    # The restored SELECTION is deliberately NOT reported into the
+    # selection bus here: the owning data-space module applies the
+    # selection-bus record once, through a single writer (todo 2.2). This
+    # observer restores only the scatter's LOCAL display state (selVal for
+    # emphasis, the display-axes anchor) and the corner engagement gate,
+    # which a v2 snapshot derives from the selection-bus origin instead of
+    # the historic display-authority flag - a table pick saved on top of a
+    # corner view must not let the corner re-claim the selection after the
+    # axes converge.
     .scatter_keep(observeEvent(reactive_status(), {
       s <- reactive_status()
       if (is.null(s)) {
@@ -838,6 +923,17 @@ meta_scatter_module <- function(
       }
 
       restored_axes <- .scatter_axis_signature(s$xax, s$yax)
+      if (!nzchar(gsub("\r", "", restored_axes, fixed = TRUE))) {
+        # axes not carried by the panel status (store-owned restore):
+        # read them from the canonical store
+        vals <- store_read(store, c("x_analysis", "x_subset", "x_variable",
+                                    "y_analysis", "y_subset", "y_variable"))
+        restored_axes <- .scatter_axis_signature(
+          list(analysis = vals[[kx1]], subset = vals[[kx2]],
+               variable = vals[[kx3]]),
+          list(analysis = vals[[ky1]], subset = vals[[ky2]],
+               variable = vals[[ky3]]))
+      }
       # v1()/v2() are req(input$variable)-guarded; while a triselector cascade
       # is still in flight they abort. current_axes only feeds a redraw-trigger
       # comparison, so NULL on failure is harmless.
@@ -872,27 +968,20 @@ meta_scatter_module <- function(
       # Computed hypothesis-test output is intentionally not restored; it is
       # recalculated from the restored widget and selection state.
       #
-      # Corner engagement: a corner-made snapshot re-engages the corner
-      # (the rectval observer re-derives and re-claims it once the restored
-      # axes settle); a manual-selection snapshot disengages it (the corner
-      # must not override the restored selection) until the user edits a
-      # cutoff (re-engagement observer above).
+      # Corner engagement: a snapshot whose selection-bus origin was the
+      # corner re-engages it (the rectval observer re-derives and re-claims
+      # the same ids once the restored axes settle); any other origin
+      # (figure lasso, table pick, heatmap brush) disengages it until the
+      # user edits a cutoff (re-engagement observer above).
       cornerEngaged(isTRUE(s$selectByCorner))
+      if (!isTRUE(s$selectByCorner))
+        .corner_rearm_suppress(TRUE)
+      .scatter_restore_gen(isolate(.scatter_restore_gen()) + 1L)
       cornerAuthority(FALSE)
       selVal(list(
         clicked = s$selection_clicked %||% character(0),
         selected = s$selection_selected %||% character(0)
       ))
-      # unified propagation: the restored selection is the bus record for
-      # this space (ids only; the table-row mirror is restored separately
-      # by the owning data-space module from its own status fields)
-      selection$report(
-        origin = "restore",
-        report = list(clicked = s$selection_clicked %||% character(0),
-                      selected = s$selection_selected %||% character(0)),
-        ids = s$selection_selected %||% character(0),
-        clicked = s$selection_clicked %||% character(0),
-        anchor = restored_axes)
     }))
     #############################################
 

@@ -164,7 +164,7 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
       reactive_selector1 = store_watch(store, "xax_analysis"),
       reactive_selector2 = store_watch(store, "xax_subset"),
       reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store))
+      reactive_axis_request = store_epoch(store), allow_unset = TRUE)
   } else {
     .sg_apply_triple <- function(p1, p2, p3, origin = "system") {
       xax(NULL)
@@ -174,7 +174,7 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
       "tris_sample_general", reactive_x = triset, label = "Link selection to",
       reactive_selector1 = reactive(xax()$v1),
       reactive_selector2 = reactive(xax()$v2),
-      reactive_selector3 = reactive(xax()$v3))
+      reactive_selector3 = reactive(xax()$v3), allow_unset = TRUE)
   }
 
   attr4select_status <- reactiveVal()
@@ -368,8 +368,22 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     if (identical(length(s$xax), 3L)) {
       tr <- lapply(s$xax, function(x)
         if (is.null(x) || !nzchar(x) || identical(x, "--select--")) NULL else x)
-      if (!any(vapply(tr, is.null, logical(1))))
+      if (!any(vapply(tr, is.null, logical(1)))) {
         .sg_apply_triple(tr[[1]], tr[[2]], tr[[3]], origin = "restore")
+      } else if (is.null(tr[[3]])) {
+        # saved unset: remove a link variable set after the snapshot
+        # (todo 2.3); the store path pushes the canonical unset
+        if (!is.null(store)) {
+          patch <- list()
+          if (!is.null(tr[[1]])) patch$xax_analysis <- tr[[1]]
+          if (!is.null(tr[[2]])) patch$xax_subset <- tr[[2]]
+          patch$xax_variable <- "--select--"
+          tryCatch(store_apply(store, patch, origin = "restore", strict = FALSE),
+                   error = function(e) NULL)
+        } else {
+          xax(NULL)
+        }
+      }
     }
     })
 

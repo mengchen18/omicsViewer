@@ -554,6 +554,55 @@ app_module <- function(
     }
   })
 
+  # =====================================================================
+  # Semantic, versioned snapshot state
+  #
+  # Defined BEFORE the L1 modules on purpose (todo 2.5): the dataset-switch
+  # reset observer below must run BEFORE the module seed observers in the
+  # same flush, so clearing the dataset-scoped store keys lands first and
+  # the seeds (which skip held keys) refill with the NEW dataset's
+  # defaults. Registered after the modules, the reset ran last and the
+  # already-seeded keys were cleared with their one-shot gates consumed.
+  # =====================================================================
+  esv_status <- reactiveVal(NULL)
+
+  current_dataset_id <- reactive({
+    if (!is.null(ESVObj()))
+      return("ESVObj.RDS")
+    if (is.null(input$selectFile) || !nzchar(input$selectFile))
+      return("ESVObj.RDS")
+    input$selectFile
+  })
+
+  # Dataset changes invalidate all previous panel state. Child modules receive
+  # NULL first and the restored object second, making restoration transactional
+  # at the top-level state boundary.
+  dataset_signature <- reactive({
+    req(reactive_eset())
+    paste(current_dataset_id(), dataset_fingerprint(reactive_eset(), id = current_dataset_id()))
+  })
+  .dsig_last <- reactiveVal(NULL)
+  observeEvent(dataset_signature(), {
+    sig <- dataset_signature()
+    prev <- isolate(.dsig_last())
+    if (identical(sig, prev)) return(NULL)
+    .dsig_last(sig)
+    esv_status(NULL)
+    ri(NULL)
+    rh(NULL)
+    # Dataset switch (todo 2.5): reset the dataset-scoped widget-store keys
+    # so dataset A's axes/params cannot leak into dataset B. The FIRST load
+    # must not reset - the widget-default seeds may already have fired with
+    # their one-shot gates consumed, and there is nothing to clear anyway.
+    # After the reset the natural repair paths refill what has a
+    # dataset-derived value (scatter axes re-seed from the new dataset's
+    # configured defaults, table columns re-derive from the data); user
+    # choices become legitimately unset until made again.
+    if (!is.null(prev))
+      tryCatch(store_reset(app_store, c("dataspace", "resultspace")),
+               error = function(e) NULL)
+  })
+
   v1 <- L1_data_space_module(
     "dataspace", expr = expr, pdata = pdata, fdata = fdata,
     reactive_x_s = d_s_x, reactive_y_s = d_s_y, reactive_x_f = d_f_x, reactive_y_f = d_f_y,
@@ -613,36 +662,6 @@ app_module <- function(
       dd <- .dir()
     dir(dd)
     })
-
-  # =====================================================================
-  # Semantic, versioned snapshot state
-  # =====================================================================
-  esv_status <- reactiveVal(NULL)
-
-  current_dataset_id <- reactive({
-    if (!is.null(ESVObj()))
-      return("ESVObj.RDS")
-    if (is.null(input$selectFile) || !nzchar(input$selectFile))
-      return("ESVObj.RDS")
-    input$selectFile
-  })
-
-  # Dataset changes invalidate all previous panel state. Child modules receive
-  # NULL first and the restored object second, making restoration transactional
-  # at the top-level state boundary.
-  dataset_signature <- reactive({
-    req(reactive_eset())
-    paste(current_dataset_id(), dataset_fingerprint(reactive_eset(), id = current_dataset_id()))
-  })
-  .dsig_last <- reactiveVal(NULL)
-  observeEvent(dataset_signature(), {
-    sig <- dataset_signature()
-    if (identical(sig, isolate(.dsig_last()))) return(NULL)
-    .dsig_last(sig)
-    esv_status(NULL)
-    ri(NULL)
-    rh(NULL)
-  })
 
   # =====================================================================
   # Optional session-local AI assistant
@@ -920,10 +939,33 @@ app_module <- function(
   observe({
     req(.dir())
     snapshot_refresh()
-    dsid <- sanitize_snapshot_name(current_dataset_id(), fallback = "ESVObj.RDS")
+    dsid_raw <- current_dataset_id()
+    dsid <- sanitize_snapshot_name(dsid_raw, fallback = "ESVObj.RDS")
     prefix <- paste0("ESVSnapshot_", dsid, "_")
     ff <- list.files(.dir(), pattern = "\\.ESS$", ignore.case = TRUE)
     ff <- ff[startsWith(ff, prefix)]
+
+    # Read compact metadata only; large panel payloads stay on disk. The
+    # dataset id stored INSIDE the file decides membership (todo 2.7): a
+    # filename prefix alone leaks across datasets whose sanitized ids
+    # share a prefix ("demo.RDS" also listed "demo.RDS_v2.RDS"
+    # snapshots). Files without a readable id (legacy) keep the prefix
+    # match as a fallback.
+    meta <- lapply(ff, function(f) tryCatch({
+      x <- readRDS(file.path(.dir(), f))
+      list(
+        id = if (is.null(x$dataset$id)) NA_character_ else as.character(x$dataset$id),
+        schema = if (is.null(x$schema_version)) NA_integer_ else as.integer(x$schema_version),
+        created_at = x$created_at %.or_default% NA_character_,
+        package_version = x$package_version %.or_default% NA_character_
+      )
+    }, error = function(e) list(id = NA_character_, schema = NA_integer_,
+                                created_at = NA_character_,
+                                package_version = NA_character_)))
+    keep <- vapply(meta, function(m)
+      is.na(m$id) || identical(m$id, dsid_raw), logical(1))
+    ff <- ff[keep]
+    meta <- meta[keep]
 
     if (length(ff) == 0) {
       savedSS(data.frame(name = character(), link = character(), schema = integer(),
@@ -931,17 +973,6 @@ app_module <- function(
                          stringsAsFactors = FALSE))
       return(NULL)
     }
-
-    # Read compact metadata only; large panel payloads stay on disk.
-    meta <- lapply(ff, function(f) tryCatch({
-      x <- readRDS(file.path(.dir(), f))
-      list(
-        schema = if (is.null(x$schema_version)) NA_integer_ else as.integer(x$schema_version),
-        created_at = x$created_at %.or_default% NA_character_,
-        package_version = x$package_version %.or_default% NA_character_
-      )
-    }, error = function(e) list(schema = NA_integer_, created_at = NA_character_,
-                                package_version = NA_character_)))
 
     savedSS(data.frame(
       name = sub("\\.ESS$", "", sub(prefix, "", ff)),
@@ -965,7 +996,7 @@ app_module <- function(
     req(nrow(dt <- savedSS()) > 0)
     dt$delete <- shinyInput(
       actionButton, dt$name, "deletess_", label = "Delete",
-      onclick = sprintf('Shiny.setInputValue("%s", this.id)', ns("deletess_button"))
+      onclick = sprintf('Shiny.setInputValue("%s", this.id, {priority: "event"})', ns("deletess_button"))
     )
     dt$info <- ifelse(
       is.na(dt$schema),
@@ -1050,10 +1081,26 @@ app_module <- function(
     )
   })
 
+  # shared experimental-feature disclaimer for the snapshot popups
+  .snapshot_experimental_note <- tags$div(
+    style = paste("padding: 8px 12px; margin-bottom: 10px;",
+                  "border-left: 4px solid #f0ad4e; background: #fcf8e3;",
+                  "color: #8a6d3b; font-size: 90%;"),
+    tags$strong("The snapshot function is experimental."),
+    "Saved states may not restore exactly across package versions or",
+    "revised datasets. Plotly-internal events (lasso/box shapes) are not",
+    "restored - only the semantic selection of features/samples is.",
+    "Do not rely on snapshots as the only record of an analysis."
+  )
+
   observeEvent(input$snapshot, {
+    # refresh the listing on modal open (todo 2.7): files changed outside
+    # this session (another user, another tab) must be visible immediately
+    snapshot_refresh(snapshot_refresh() + 1L)
     showModal(
       modalDialog(
         title = NULL,
+        .snapshot_experimental_note,
         fluidRow(
           column(9, textInput(ns("snapshot_name"), label = "Save new snapshot", placeholder = "snapshot name", width = "100%")),
           column(3, style = "padding-top:25px", actionButton(ns("snapshot_save"), label = "Save"))
@@ -1116,11 +1163,12 @@ app_module <- function(
           result_status = result_status,
           selected_features = ri(),
           selected_samples = rh(),
+          # Canonical widget-store state rides along (schema 2): keeps every
+          # registered widget's desired value in one authoritative snapshot,
+          # with an explicit unset list so restores REPLACE instead of merge
+          widget_store = store_snapshot(app_store),
           label = name
         )
-        # Canonical widget-store state rides along (S4 start): keeps every
-        # registered widget's desired value in one authoritative snapshot.
-        obj$widget_store <- store_snapshot(app_store)
         # WP11: the conversation rides along only when the user opted in and
         # there is a conversation to save (assistant unconfigured -> NULL).
         if (isTRUE(input$snapshot_include_chat)) {
@@ -1149,6 +1197,13 @@ app_module <- function(
     showNotification(sprintf("Snapshot %s saved.", name), type = "message", duration = 3)
   })
 
+  # Restore flow (todo 2.6/2.7): selecting a row opens a CONFIRM dialog
+  # (a stray click must not silently reconfigure the session); confirming
+  # runs the restore, surfaces a receipt notification (restored/rejected/
+  # unknown keys, collected validation warnings) and resets the selection
+  # state so re-clicking the same row works.
+  restoreSS <- reactiveVal(NULL)
+
   observeEvent(selectedSS(), {
     req(vEset())
     req(nrow(df <- savedSS()) > 0)
@@ -1167,46 +1222,159 @@ app_module <- function(
       error = function(e) {
         showNotification(paste("Invalid snapshot:", conditionMessage(e)), type = "error")
         NULL
-      },
-      warning = function(w) {
-        showNotification(paste("Snapshot restored with warnings:", conditionMessage(w)), type = "warning", duration = 10)
-        suppressWarnings(validate_app_state(ss, dataset = reactive_eset(), dataset_id = current_dataset_id()))
       }
     )
     req(ss)
 
-    # Reset before restore. Child modules distinguish this boundary and can
-    # safely restore defaults for fields absent from an older snapshot.
-    esv_status(NULL)
-    esv_status(ss)
+    restoreSS(list(state = ss, name = df$name[i],
+                   warnings = attr(ss, "warnings") %||% character()))
+    showModal(modalDialog(
+      title = "Restore snapshot",
+      .snapshot_experimental_note,
+      sprintf("Restore snapshot \"%s\"? The current view state will be replaced.", df$name[i]),
+      if (length(restoreSS()$warnings))
+        tags$ul(tags$li(paste(restoreSS()$warnings, collapse = " "))) else NULL,
+      footer = tagList(
+        actionButton(ns("snapshot_restore_cancel"), "Cancel"),
+        actionButton(ns("snapshot_restore_confirm"), "Restore", class = "btn-primary")
+      ),
+      easyClose = TRUE
+    ))
+  })
 
-    selection <- normalize_selection(ss$selection)
-    ri(selection$features)
-    rh(selection$samples)
+  observeEvent(input$snapshot_restore_cancel, {
+    removeModal()
+    restoreSS(NULL)
+    selectedSS(NULL)
+  })
 
-    # Canonical widget-store restore (S4 start): applies per-key-resilient
-    # through the same transactional protocol the agent uses. Panel-status
-    # restoration above stays authoritative for not-yet-migrated modules;
-    # diff-only writes make the overlap idempotent. Older snapshots without
-    # widget_store skip this.
-    if (!is.null(ss$widget_store) && is.list(ss$widget_store$values)) {
-      tryCatch(
-        store_restore(app_store, ss$widget_store),
-        error = function(e)
-          warning("Widget-store snapshot restore failed: ", conditionMessage(e))
-      )
+  .snapshot_strip_store_owned <- function(state) {
+    # The canonical widget store is the single write plane for the scatter
+    # axes/mode (todo 2.1): when the snapshot carries a widget_store
+    # section, the panel copies must not re-apply (they are legacy
+    # transport and may disagree with the store after a quick-view change)
+    if (is.null(state$widget_store) || !is.list(state$widget_store$values))
+      return(state)
+    for (k in c("eset_fdata_fig", "eset_pdata_fig")) {
+      fig <- state$panels$data_space[[k]]
+      if (is.list(fig)) {
+        fig$xax <- NULL
+        fig$yax <- NULL
+        fig$axisMode <- NULL
+        state$panels$data_space[[k]] <- fig
+      }
     }
+    state
+  }
 
-    # WP11: revive the conversation + figure registry when the snapshot
-    # carries one (opt-in at save time). Restored turns are inert context;
-    # figure specs re-validate against the current dataset when reused.
-    if (!is.null(ss$assistant)) {
-      tryCatch(
-        assistant_api$restore_history(ss$assistant),
-        error = function(e)
-          warning("Assistant snapshot restore failed: ", conditionMessage(e))
+  observeEvent(input$snapshot_restore_confirm, {
+    req(vEset())
+    pend <- restoreSS()
+    if (is.null(pend))
+      return(NULL)
+    # Graceful exit (todo 1.5 discipline extended to the restore path):
+    # ANY failure in the restore pipeline (widget-store transaction,
+    # assistant history revival, receipt assembly) surfaces as an error
+    # notification with the session kept alive and the modal flow usable -
+    # an escaping error would close the session via unhandledError.
+    tryCatch({
+      removeModal()
+      restoreSS(NULL)
+      selectedSS(NULL)
+
+      ss <- .snapshot_strip_store_owned(pend$state)
+
+      # Selection transport (todo 2.6): hand-built and migrated snapshots
+      # carry the selection in the top-level section only; the data-space
+      # restore observer reads the panel copy (the transport real saves
+      # write from their live status). Fill the panel copy when absent so
+      # every snapshot generation restores its selection through the same
+      # single-writer path.
+      if (!is.null(ss$selection)) {
+        if (is.null(ss$panels$data_space$eset_selected_features) &&
+            length(ss$selection$features %||% character(0)))
+          ss$panels$data_space$eset_selected_features <- ss$selection$features
+        if (is.null(ss$panels$data_space$eset_selected_samples) &&
+            length(ss$selection$samples %||% character(0)))
+          ss$panels$data_space$eset_selected_samples <- ss$selection$samples
+        if (is.null(ss$panels$data_space$eset_selection_records) &&
+            is.list(ss$selection$records))
+          ss$panels$data_space$eset_selection_records <- ss$selection$records
+      }
+
+      # Reset before restore. Child modules distinguish this boundary and can
+      # safely restore defaults for fields absent from an older snapshot.
+      esv_status(NULL)
+      esv_status(ss)
+
+      selection <- normalize_selection(ss$selection)
+      ri(selection$features)
+      rh(selection$samples)
+
+      # Canonical widget-store restore (schema 2): replace semantics - keys
+      # the snapshot does not carry reset to their seeded defaults. Per-key
+      # resilient: values invalidated by a revised dataset are rejected and
+      # reported, not vetoed. Older snapshots without widget_store skip this.
+      receipt <- NULL
+      if (!is.null(ss$widget_store) && is.list(ss$widget_store$values)) {
+        receipt <- tryCatch(
+          store_restore(app_store, ss$widget_store, replace = TRUE),
+          error = function(e) {
+            # degrade gracefully: the widget-store transaction failing must
+            # not abort the panel-status restoration above
+            showNotification(
+              paste("Some widget settings could not be restored:", conditionMessage(e)),
+              type = "warning", duration = 10)
+            NULL
+          }
+        )
+      }
+
+      # WP11: revive the conversation + figure registry when the snapshot
+      # carries one (opt-in at save time). Restored turns are inert context;
+      # figure specs re-validate against the current dataset when reused.
+      if (!is.null(ss$assistant)) {
+        tryCatch(
+          assistant_api$restore_history(ss$assistant),
+          error = function(e)
+            warning("Assistant snapshot restore failed: ", conditionMessage(e))
+        )
+      }
+
+      # Receipt notification (todo 2.6/2.7): every adjustment in one place
+      # instead of silently dropped keys
+      n_applied <- if (is.null(receipt)) 0L else length(receipt$applied)
+      n_reset <- if (is.null(receipt)) 0L else length(receipt$reset %||% character())
+      n_rejected <- if (is.null(receipt)) 0L else length(receipt$rejected %||% list())
+      n_unknown <- if (is.null(receipt)) 0L else length(receipt$unknown_ids %||% character())
+      n_warn <- length(pend$warnings)
+      n_adj <- n_applied + n_reset + n_rejected + n_unknown + n_warn
+      detail <- character()
+      if (n_applied) detail <- c(detail, sprintf("%d widget%s restored", n_applied, if (n_applied == 1L) "" else "s"))
+      if (n_reset) detail <- c(detail, sprintf("%d reset to default", n_reset))
+      if (n_rejected) detail <- c(detail, sprintf("%d skipped (no longer valid)", n_rejected))
+      if (n_unknown) detail <- c(detail, sprintf("%d unknown", n_unknown))
+      if (n_warn) detail <- c(detail, sprintf("%d warning%s", n_warn, if (n_warn == 1L) "" else "s"))
+      showNotification(
+        sprintf("Snapshot %s restored%s%s", pend$name,
+                if (n_adj) sprintf(" (%d adjustment%s)", n_adj, if (n_adj == 1L) "" else "s") else "",
+                if (length(detail)) paste0(": ", paste(detail, collapse = ", ")) else ""),
+        type = if (n_warn || n_rejected) "warning" else "message",
+        duration = 10
       )
-    }
+      if (n_warn)
+        showNotification(paste(pend$warnings, collapse = "\n"), type = "warning", duration = 15)
+    },
+    shiny.silent.error = function(e) NULL,
+    error = function(e) {
+      removeModal()
+      restoreSS(NULL)
+      selectedSS(NULL)
+      showNotification(
+        sprintf("Could not restore snapshot %s: %s", pend$name, conditionMessage(e)),
+        type = "error", duration = 15
+      )
+    })
   })
 
 
