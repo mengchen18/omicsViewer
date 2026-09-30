@@ -1000,189 +1000,11 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      # Widened grammar (2026-09-26): the filter predicate is declared
-      # recursively (depth <= 3) so echoed specs survive ellmer's
-      # schema-driven argument conversion. Field types are deliberately
-      # non-polymorphic (value = number, text = string, min/max = numbers,
-      # values = string array): ellmer NA-converts type-mismatched scalars
-      # inside arrays of objects, so a union value field would arrive as NA.
-      .ai_figure_where_type <- function(depth = 1L) {
-        args <- list(
-          column = ellmer::type_string(
-            "Exact data column, or 'x'/'y' for this layer's own axis mapping.",
-            required = FALSE
-          ),
-          op = ellmer::type_enum(
-            .agent_figure_where_ops, "Comparison operator.", required = FALSE
-          ),
-          value = ellmer::type_number(
-            "Numeric comparison value, for > >= < <= abs> abs>= == !=.",
-            required = FALSE
-          ),
-          text = ellmer::type_string(
-            "Text comparison value, for == != starts_with ends_with.",
-            required = FALSE
-          ),
-          min = ellmer::type_number("between lower bound.", required = FALSE),
-          max = ellmer::type_number("between upper bound.", required = FALSE),
-          values = ellmer::type_array(
-            ellmer::type_string("One value; numbers as strings on numeric columns."),
-            "1-50 values, for in/not_in.",
-            required = FALSE
-          ),
-          not = ellmer::type_boolean("Negate this condition.", required = FALSE)
-        )
-        if (depth < .agent_figure_where_max_depth) {
-          args$all <- ellmer::type_array(
-            .ai_figure_where_type(depth + 1L),
-            "ALL conditions must match.",
-            required = FALSE
-          )
-          args$any <- ellmer::type_array(
-            .ai_figure_where_type(depth + 1L),
-            "ANY condition matches.",
-            required = FALSE
-          )
-        }
-        do.call(ellmer::type_object, c(list(
-          "Row filter: one leaf condition or one all/any combinator.",
-          .required = FALSE
-        ), args))
-      }
-
-      .ai_figure_scale_type <- function() {
-        ellmer::type_object(
-          "Explicit scale overrides; beat the palette preset per channel.",
-          color = .ai_figure_scale_channel_type("color"),
-          fill = .ai_figure_scale_channel_type("fill"),
-          .required = FALSE
-        )
-      }
-
-      .ai_figure_scale_channel_type <- function(channel) {
-        ellmer::type_object(
-          paste0("Explicit ", channel, " scale override."),
-          values = ellmer::type_array(
-            ellmer::type_object(
-              "One category-to-color pair.",
-              category = ellmer::type_string("Exact category level."),
-              color = ellmer::type_string("Hex color like '#b2182b'.")
-            ),
-            "Discrete per-category colors (at most 26).",
-            required = FALSE
-          ),
-          limits = ellmer::type_array(
-            ellmer::type_string("Level name, or a number as a string."),
-            "Discrete legend order, or exactly two numbers bounding a continuous range.",
-            required = FALSE
-          ),
-          midpoint = ellmer::type_number(
-            "Continuous diverging-gradient midpoint.",
-            required = FALSE
-          ),
-          .required = FALSE
-        )
-      }
-
-      .ai_figure_spec_type <- function(required = TRUE, layers_required = TRUE) {
-        ellmer::type_object(
-          "Declarative allowlisted ggplot2 figure specification. Fields map to validated omicsViewer rendering code, never arbitrary R.",
-          data_source = ellmer::type_enum(
-            .agent_figure_sources,
-            "Plot data source.",
-            required = FALSE
-          ),
-          features = ellmer::type_array(
-            ellmer::type_string("Exact feature ID."),
-            "Feature IDs to plot; expression figures default to the current semantic selection.",
-            required = FALSE
-          ),
-          samples = ellmer::type_array(
-            ellmer::type_string("Exact sample ID."),
-            "Sample IDs to plot; expression figures default to all samples.",
-            required = FALSE
-          ),
-          layers = ellmer::type_array(
-            ellmer::type_object(
-              "One allowlisted ggplot2 layer.",
-              geom = ellmer::type_enum(.agent_figure_geoms, "Allowlisted geom."),
-              x = ellmer::type_string("Exact data column for x.", required = FALSE),
-              y = ellmer::type_string("Exact data column for y.", required = FALSE),
-              color = ellmer::type_string("Exact data column for color.", required = FALSE),
-              fill = ellmer::type_string("Exact data column for fill.", required = FALSE),
-              group = ellmer::type_string("Exact data column for group.", required = FALSE),
-              size = ellmer::type_string("Exact data column for size.", required = FALSE),
-              alpha = ellmer::type_string("Exact data column for alpha.", required = FALSE),
-              shape = ellmer::type_string("Exact data column for shape.", required = FALSE),
-              linetype = ellmer::type_string("Exact data column for line type.", required = FALSE),
-              label = ellmer::type_string("Exact data column for text labels.", required = FALSE),
-              ymin = ellmer::type_string("Exact data column for minimum y.", required = FALSE),
-              ymax = ellmer::type_string("Exact data column for maximum y.", required = FALSE),
-              params = ellmer::type_object(
-                "Validated numeric/display parameters.",
-                alpha = ellmer::type_number("Transparency from 0 through 1.", required = FALSE),
-                size = ellmer::type_number("Point/text size from 0.05 through 12.", required = FALSE),
-                linewidth = ellmer::type_number("Line width from 0.05 through 6.", required = FALSE),
-                bins = ellmer::type_integer("Histogram bins from 5 through 100.", required = FALSE),
-                method = ellmer::type_enum(c("auto", "lm", "loess"), "Smooth method.", required = FALSE),
-                se = ellmer::type_boolean("Show confidence interval for smooth.", required = FALSE),
-                position = ellmer::type_enum(c("stack", "dodge", "fill", "jitter"), "Position adjustment.", required = FALSE),
-                xintercept = ellmer::type_number("Numeric vertical-line intercept.", required = FALSE),
-                yintercept = ellmer::type_number("Numeric horizontal-line intercept.", required = FALSE),
-                max_labels = ellmer::type_integer("Maximum text/label rows from 0 through 50.", required = FALSE),
-                order_by = ellmer::type_object(
-                  "Render-time row ordering for text/label layers, applied before max_labels.",
-                  column = ellmer::type_string(
-                    "Exact data column, or 'x'/'y' for this layer's own axis mapping.",
-                    required = FALSE
-                  ),
-                  decreasing = ellmer::type_boolean(
-                    "Sort descending (default true).", required = FALSE
-                  ),
-                  .required = FALSE
-                ),
-                color = ellmer::type_string("Constant hex color for every row of this layer, e.g. '#b2182b'.", required = FALSE),
-                fill = ellmer::type_string("Constant hex fill color for every row of this layer.", required = FALSE),
-                .required = FALSE
-              ),
-              filter = .ai_figure_where_type()
-            ),
-            "One to twelve validated figure layers.",
-            required = layers_required
-          ),
-          facet_by = ellmer::type_string("Exact facet column.", required = FALSE),
-          facet_ncol = ellmer::type_integer("Facet columns from 1 through 6.", required = FALSE),
-          x_transform = ellmer::type_enum(.agent_figure_transforms, "Allowlisted x-axis transform.", required = FALSE),
-          y_transform = ellmer::type_enum(.agent_figure_transforms, "Allowlisted y-axis transform.", required = FALSE),
-          theme = ellmer::type_enum(.agent_figure_themes, "Allowlisted ggplot2 theme.", required = FALSE),
-          palette = ellmer::type_enum(.agent_figure_palettes, "Allowlisted color palette.", required = FALSE),
-          scale = .ai_figure_scale_type(),
-          theme_options = ellmer::type_object(
-            "Bounded tweaks applied on top of the chosen theme.",
-            base_size = ellmer::type_integer("Base font size from 8 through 24.", required = FALSE),
-            legend_position = ellmer::type_enum(
-              .agent_figure_legend_positions, "Legend placement.", required = FALSE
-            ),
-            rotate_x_labels = ellmer::type_number(
-              "Degrees to rotate x-axis labels, 0 through 90.", required = FALSE
-            ),
-            show_grid = ellmer::type_boolean(
-              "Show panel grid lines; false hides them.", required = FALSE
-            ),
-            .required = FALSE
-          ),
-          labels = ellmer::type_object(
-            "Escaped plot labels.",
-            title = ellmer::type_string("Title (at most 200 characters).", required = FALSE),
-            subtitle = ellmer::type_string("Subtitle (at most 200 characters).", required = FALSE),
-            x = ellmer::type_string("X-axis label (at most 200 characters).", required = FALSE),
-            y = ellmer::type_string("Y-axis label (at most 200 characters).", required = FALSE),
-            caption = ellmer::type_string("Caption (at most 200 characters).", required = FALSE),
-            .required = FALSE
-          ),
-          .required = required
-        )
-      }
+      # todo 4.2: the figure spec schema is generated from the single
+      # grammar table (R/auxi_agentFigureGrammar.R) shared with the
+      # validator and the prose grammar; filter nesting stops at depth 2
+      # in the schema while the validator keeps accepting depth-3 trees
+      # for old transcripts/snapshot replays.
 
       render_assistant_figure <- function(spec, parent_figure_id = NULL,
                                        template = NULL) {
@@ -1449,7 +1271,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             "Optional: restrict the plotted samples of expression figures.",
             required = FALSE
           ),
-          spec = .ai_figure_spec_type(required = FALSE),
+          spec = agent_figure_spec_schema(required = FALSE),
           `_intent` = ellmer::type_string("Short user-facing description of the requested figure.")
         ),
         annotations = ellmer::tool_annotations(
@@ -1573,22 +1395,29 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         name = "update_figure",
         description = paste(
           "Revise an existing figure into a new revision.",
-          "PREFERRED: send changes - a partial spec of only the fields to change",
+          "Send changes - a partial spec of only the fields to change",
           "(e.g. {\"labels\":{\"title\":\"New\"},\"theme\":\"classic\"}) - merged onto the",
           "stored spec; unmentioned fields keep their current values.",
           "Scalars and arrays (layers, features, samples) replace wholesale;",
           "labels/theme_options/scale merge per key (explicit null removes a key);",
           "null/empty features or samples clears back to the default set.",
-          "Alternative: send spec - a complete specification (e.g. echoed from",
-          "the previous result or get_figure); when both are sent the spec wins",
-          "and the changes are ignored.",
-          "The new result keeps figure_id as its parent. Use create_figure for an unrelated figure.",
+          "Call get_figure(figure_id) first when you need the current spec.",
+          "The new result keeps figure_id as its parent. Use create_figure for a new, unrelated figure.",
           "For expression data, use feature__ and sample__ prefixed metadata columns described by the figure grammar."
         ),
         arguments = list(
           figure_id = ellmer::type_string("Exact figure ID returned by create_figure."),
-          changes = .ai_figure_spec_type(required = FALSE, layers_required = FALSE),
-          spec = .ai_figure_spec_type(required = FALSE),
+          changes = agent_figure_spec_schema(required = FALSE, layers_required = FALSE),
+          # todo 4.2: the FULL spec schema lives only on create_figure's
+          # advanced path; this legacy argument stays dispatch-compatible
+          # (formals must match the schema exactly) as an opaque object so
+          # pre-narrowing transcripts and echoed complete specs still
+          # revise — the documented path is `changes`.
+          spec = ellmer::type_object(
+            paste("Complete specification (legacy; prefer changes).",
+                  "Same fields as create_figure's spec argument."),
+            .required = FALSE
+          ),
           `_intent` = ellmer::type_string("Short user-facing description of the requested change.")
         ),
         annotations = ellmer::tool_annotations(

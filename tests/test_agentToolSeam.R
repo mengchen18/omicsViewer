@@ -536,7 +536,7 @@ shiny::testServer(
         layer3 = res@extra$data$spec$layers[[3]]$filter
       ) else NULL
       replay_warnings[[fx]] <<- if (is.null(res@error))
-        (res@extra$data$warnings %||% character()) else character("failed")
+        (res@extra$data$warnings %||% character()) else "failed"
     }
   })
 

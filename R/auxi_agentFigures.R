@@ -38,6 +38,9 @@ NULL
   ">", ">=", "<", "<=", "abs>", "abs>=", "==", "!=", "between",
   "in", "not_in", "is_na", "not_na", "starts_with", "ends_with"
 )
+# Validator-side acceptance cap. The MODEL-FACING contract (schema +
+# prose) is .agent_figure_where_schema_depth (2, auxi_agentFigureGrammar.R);
+# this stays 3 so pre-narrowing transcripts and golden replays still parse.
 .agent_figure_where_max_depth <- 3L
 .agent_figure_where_max_leaves <- 8L
 .agent_figure_where_max_values <- 50L
@@ -66,7 +69,9 @@ agent_figure_grammar <- function() {
     reserved_columns = .agent_figure_reserved,
     expression_metadata_prefixes = c(feature = "feature__", sample = "sample__"),
     geoms = .agent_figure_geoms,
+    geom_requirements = .agent_figure_geom_required(),
     aesthetics = .agent_figure_aesthetics,
+    layer_params = .agent_figure_param_descriptions(),
     transforms = .agent_figure_transforms,
     themes = .agent_figure_themes,
     palettes = .agent_figure_palettes,
@@ -81,7 +86,7 @@ agent_figure_grammar <- function() {
       form = paste(
         "One leaf condition {column, op, ...} or one combinator",
         "{all: [leaf, ...]} / {any: [leaf, ...]}; at most",
-        .agent_figure_where_max_depth, "nesting levels and",
+        .agent_figure_where_schema_depth, "nesting levels and",
         .agent_figure_where_max_leaves, "leaves per filter."
       ),
       ops = list(
@@ -178,7 +183,7 @@ agent_figure_grammar <- function() {
       max_expression_features = 50L,
       max_expression_samples = 200L,
       max_text_labels = 50L,
-      max_filter_depth = .agent_figure_where_max_depth,
+      max_filter_depth = .agent_figure_where_schema_depth,
       max_filter_leaves = .agent_figure_where_max_leaves,
       max_in_values = .agent_figure_where_max_values,
       max_scale_values = .agent_figure_scale_max_values,
@@ -619,6 +624,19 @@ agent_where_eval <- function(where, data) {
 
 # ---- constant colors, scale overrides, theme tweaks --------------------
 
+.agent_figure_param_boolean <- function(value, name, default) {
+  # Boolean layer parameter: absent (NULL/empty/NA) takes the default;
+  # anything not interpretable as true/false is a self-correctable error
+  # (message shape pinned by test_agentFigures). Values that compare
+  # equal to TRUE/FALSE (including the string "TRUE", mirroring the
+  # historical behaviour) pass through unchanged.
+  if (is.null(value) || length(value) == 0L || is.na(value[1]))
+    return(default)
+  if (!isTRUE(value %in% c(TRUE, FALSE)))
+    stop("Figure layer parameter ", name, " must be true or false.")
+  value
+}
+
 .agent_figure_color_scalar <- function(value, what) {
   out <- .agent_figure_scalar(value, max_chars = 9L, arg = what)
   if (is.null(out)) return(NULL)
@@ -724,24 +742,31 @@ agent_where_eval <- function(where, data) {
   if (.agent_param_absent(options)) return(NULL)
   if (!is.list(options))
     stop("Figure theme options must be an object.")
-  unknown <- setdiff(names(options),
-                     c("base_size", "legend_position", "rotate_x_labels", "show_grid"))
+  unknown <- setdiff(names(options), names(.agent_figure_theme_option_specs()))
   if (length(unknown))
     stop("Unknown figure theme option(s): ", paste(unknown, collapse = ", "))
   out <- list()
+  # todo 4.2: ranges/enums come from the grammar table shared with the
+  # schema (auxi_agentFigureGrammar.R); coercions stay bespoke.
+  theme_specs <- .agent_figure_theme_option_specs()
   base_size <- .agent_figure_integer_param(
-    options$base_size, "theme base_size", 8L, 24L, NULL)
+    options$base_size, "theme base_size",
+    theme_specs$base_size$min, theme_specs$base_size$max,
+    theme_specs$base_size$default)
   if (!is.null(base_size)) out$base_size <- base_size
   legend_position <- .agent_figure_choice(
-    options$legend_position, .agent_figure_legend_positions,
+    options$legend_position, theme_specs$legend_position$values,
     "theme legend_position")
   if (!is.null(legend_position)) out$legend_position <- legend_position
   if (!.agent_param_absent(options$rotate_x_labels)) {
     rot <- options$rotate_x_labels
     if (is.logical(rot)) rot <- if (isTRUE(rot[1])) 45 else 0
     rot <- suppressWarnings(as.numeric(rot)[1])
-    if (is.na(rot) || rot < 0 || rot > 90)
-      stop("Figure theme option rotate_x_labels must be between 0 and 90 degrees.")
+    if (is.na(rot) || rot < theme_specs$rotate_x_labels$min ||
+        rot > theme_specs$rotate_x_labels$max)
+      stop("Figure theme option rotate_x_labels must be between ",
+           theme_specs$rotate_x_labels$min, " and ",
+           theme_specs$rotate_x_labels$max, " degrees.")
     out$rotate_x_labels <- rot
   }
   if (!.agent_param_absent(options$show_grid)) {
@@ -1052,17 +1077,10 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     names(mappings) <- .agent_figure_aesthetics
     mappings <- mappings[!vapply(mappings, is.null, logical(1))]
 
-    required <- switch(
-      geom,
-      point = , line = , path = , smooth = c("x", "y"),
-      boxplot = , violin = c("x", "y"),
-      bar = c("x"),
-      histogram = , density = c("x"),
-      text = , label = c("x", "y", "label"),
-      errorbar = , ribbon = c("x", "ymin", "ymax"),
-      hline = character(),
-      vline = character()
-    )
+    # todo 4.2: geom requirements come from the grammar table
+    # (auxi_agentFigureGrammar.R) shared with the schema/prose.
+    required <- .agent_figure_geom_required()[[geom]]
+    if (is.null(required)) required <- character()
     missing <- setdiff(required, names(mappings))
     if (length(missing))
       stop("Figure layer ", geom, " requires mapping(s): ", paste(missing, collapse = ", "))
@@ -1071,29 +1089,34 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       params <- list()
     else
       params <- layer$params
-    allowed_params <- c(
-      "alpha", "size", "linewidth", "bins", "method", "se", "position",
-      "xintercept", "yintercept", "max_labels", "color", "fill", "order_by"
-    )
+    # todo 4.2: layer parameters normalize from the grammar table in
+    # table order, so the schema and this validator always agree on
+    # kinds, ranges, and defaults (the first-error precedence is the
+    # table order on both sides).
+    param_specs <- .agent_figure_param_specs()
+    allowed_params <- names(param_specs)
     unknown_params <- setdiff(names(params), allowed_params)
     if (length(unknown_params))
       stop("Unknown figure layer parameter(s): ", paste(unknown_params, collapse = ", "))
 
-    params$alpha <- .agent_figure_numeric_param(params$alpha, "alpha", 0, 1, 0.85)
-    params$size <- .agent_figure_numeric_param(params$size, "size", 0.05, 12, 1.8)
-    params$linewidth <- .agent_figure_numeric_param(params$linewidth, "linewidth", 0.05, 6, 0.8)
-    params$bins <- .agent_figure_integer_param(params$bins, "bins", 5L, 100L, 30L)
-    params$method <- .agent_figure_choice(params$method, c("auto", "lm", "loess"), "method", "auto")
-    if (is.null(params$se) || length(params$se) == 0L || is.na(params$se[1])) params$se <- TRUE
-    if (!isTRUE(params$se %in% c(TRUE, FALSE)))
-      stop("Figure layer parameter se must be true or false.")
-    params$position <- .agent_figure_choice(
-      params$position, c("stack", "dodge", "fill", "jitter"), "position", "stack"
-    )
-    params$xintercept <- .agent_figure_numeric_param(params$xintercept, "xintercept", -1e9, 1e9, NULL)
-    params$yintercept <- .agent_figure_numeric_param(params$yintercept, "yintercept", -1e9, 1e9, NULL)
-    params$max_labels <- .agent_figure_integer_param(params$max_labels, "max_labels", 0L, 50L, 20L)
-    params$order_by <- .agent_figure_order_by_normalize(params$order_by, mappings)
+    for (nm in names(param_specs)) {
+      spec <- param_specs[[nm]]
+      params[[nm]] <- switch(
+        spec$kind,
+        number = .agent_figure_numeric_param(
+          params[[nm]], nm, spec$min, spec$max, spec$default),
+        integer = .agent_figure_integer_param(
+          params[[nm]], nm, spec$min, spec$max, spec$default),
+        enum = .agent_figure_choice(
+          params[[nm]], spec$values, nm, spec$default),
+        boolean = .agent_figure_param_boolean(
+          params[[nm]], nm, spec$default),
+        hex = .agent_figure_color_scalar(
+          params[[nm]], paste0("layer params.", nm)),
+        order_by = .agent_figure_order_by_normalize(params[[nm]], mappings),
+        stop("Unknown figure param kind: ", spec$kind)
+      )
+    }
     if (geom %in% c("hline", "vline")) {
       # Decorative reference lines arrive without an intercept surprisingly
       # often (the intent is the conventional no-change line). Deriving the
@@ -1118,12 +1141,11 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       }
     }
 
-    # widened grammar: constant per-layer colors (hex-validated) and a
-    # structured row filter. A constant color is mutually exclusive with
-    # mapping the same aesthetic — otherwise the constant silently wins
-    # and the model cannot tell why its mapped legend disappeared.
-    params$color <- .agent_figure_color_scalar(params$color, "layer params.color")
-    params$fill <- .agent_figure_color_scalar(params$fill, "layer params.fill")
+    # widened grammar: constant per-layer colors (hex-validated, from
+    # the grammar table above) and a structured row filter. A constant
+    # color is mutually exclusive with mapping the same aesthetic —
+    # otherwise the constant silently wins and the model cannot tell why
+    # its mapped legend disappeared.
     if (!is.null(params$color) && !is.null(mappings$color))
       stop("Figure layer maps color to '", mappings$color,
            "' and also sets constant params.color; remove one of the two.")
