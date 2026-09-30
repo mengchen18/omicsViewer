@@ -42,10 +42,13 @@
 #'   NULL = STRING network analysis disabled.
 #' @param surv Survival data in one of three formats:
 #'   \itemize{
-#'     \item Vector of length \code{ncol(expr)}: single survival time with censoring indicated
-#'           by "+" suffix (e.g., "120+", "45").
+#'     \item Vector of length \code{ncol(expr)}: single survival time per sample. A trailing
+#'           "+" marks an EVENT at that time (e.g., "120+" = event at 120); a plain number
+#'           means no event was observed and the sample is censored at that time (e.g., "45").
+#'           Note: this differs from the common clinical notation in which "+" marks censoring.
 #'     \item Matrix/data.frame: multiple survival endpoints with samples in rows. Column names
-#'           will be prefixed with "Surv|all|". Values must be numeric with optional "+" suffix.
+#'           will be prefixed with "Surv|all|". Values must be numeric with an optional
+#'           trailing "+" marking an event.
 #'   }
 #'   NULL = no survival analysis.
 #' @param SummarizedExperiment Logical. If TRUE, returns a \code{SummarizedExperiment} object;
@@ -265,11 +268,18 @@ prepOmicsViewer <- function(
       colnames(surv) <- paste0("Surv|all|", trimws(colnames(surv)))
     } else
       stop("incompatible 'surv'")
+    # Values must be numeric times with an optional trailing '+' marking an
+    # event (see @param surv). The historic check referenced `surv` instead
+    # of `x` and used regexes that matched everything / stripped nothing in
+    # TRE ("\\D|+" matches any string; sub("+$", "") is a no-op), so it
+    # never rejected anything.
     sv <- vapply(surv, function(x) {
-      all(grepl("\\D|+", sub("+$", "", surv)))
+      v <- trimws(as.character(x))
+      all(is.na(v) | !is.na(suppressWarnings(as.numeric(sub("\\+$", "", v)))))
     }, logical(1))
     if (any(!sv))
-      stop("only numbers and + are allowed in surv")
+      stop("surv values must be numeric times with an optional trailing '+' ",
+           "(marking an event)")
     
     pData <- cbind(pData, surv)
   }

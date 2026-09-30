@@ -13,6 +13,7 @@
 \alias{agent_fallback_summary}
 \alias{agent_compaction_prompt}
 \alias{agent_context_archive_merge}
+\alias{agent_strip_runtime_refs}
 \alias{agent_context_digest_parts}
 \alias{agent_context_digest}
 \alias{agent_promise_race}
@@ -43,6 +44,8 @@ agent_fallback_summary(turns, max_chars = 4000L)
 agent_compaction_prompt(turns)
 
 agent_context_archive_merge(turns, archive)
+
+agent_strip_runtime_refs(turns)
 
 agent_context_digest_parts(turns)
 
@@ -82,6 +85,9 @@ Integer index into \code{turns} (keep \code{turns[i..end]}), or
 Single character string.
 
 New list of turns with archived values restored.
+
+List: \code{turns} (new list, unchanged entries shared) and
+  \code{changed} (logical) - TRUE when any reference was dropped.
 
 List with \code{count} (integer) and \code{sizes} (numeric).
 
@@ -162,10 +168,28 @@ WP11 snapshot fidelity: \code{snapshot_payload()} runs the live (stubbed)
 turns through this before \code{agent_history_payload()}, so persistence
 keeps full-fidelity values even though the model context was slimmed.
 
+Canonical form at the turn-maintenance boundary: turns at rest must be
+pure data. During a live stream ellmer attaches the registered
+\code{ToolDef} to every \code{ContentToolRequest} (the \code{tool}
+property); the ToolDef carries the handler closure, which chains back to
+the module server environment - i.e. to the whole application object
+graph (dataset, widget store, reactives, Shiny session, the chat client
+with every turn again). Any \code{serialize()} over such a turn then
+walks the entire graph: observed live (2026-09-28 post-mortem) at
+430 MB and 32 s PER tool-call turn, which made the compaction digest
+(and the snapshot byte accounting) take minutes and froze the
+single-threaded event loop under an in-flight provider request. This
+mirrors ellmer's own wire projection (\code{contents_record} excludes
+\code{tool}): the provider contract needs only id, name and arguments,
+and tool execution happens during the stream, never from history.
+
 The components behind \code{\link{agent_context_digest}}: turn count and
 per-turn serialized sizes. Logged alongside a discard so a changed digest
 can be attributed to a specific turn (count drift vs a mutated turn) when
-diagnosing phantom conflicts.
+diagnosing phantom conflicts. Sizes are measured on the canonical
+(runtime-reference-free) projection: live turns can carry ToolDef
+closures whose serialization chases the whole application graph, which
+would make this function O(app state) instead of O(conversation).
 
 Cheap identity check used before installing an async compaction result:
 the conversation must be unchanged since the summary was requested.

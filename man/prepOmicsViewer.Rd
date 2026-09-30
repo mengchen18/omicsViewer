@@ -72,10 +72,13 @@ NULL = STRING network analysis disabled.}
 
 \item{surv}{Survival data in one of three formats:
 \itemize{
-  \item Vector of length \code{ncol(expr)}: single survival time with censoring indicated
-        by "+" suffix (e.g., "120+", "45").
+  \item Vector of length \code{ncol(expr)}: single survival time per sample. A trailing
+        "+" marks an EVENT at that time (e.g., "120+" = event at 120); a plain number
+        means no event was observed and the sample is censored at that time (e.g., "45").
+        Note: this differs from the common clinical notation in which "+" marks censoring.
   \item Matrix/data.frame: multiple survival endpoints with samples in rows. Column names
-        will be prefixed with "Surv|all|". Values must be numeric with optional "+" suffix.
+        will be prefixed with "Surv|all|". Values must be numeric with an optional
+        trailing "+" marking an event.
 }
 NULL = no survival analysis.}
 

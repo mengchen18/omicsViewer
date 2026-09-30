@@ -1,3 +1,42 @@
+#' Split a stored default-axis string ("Analysis|Subset|Variable") into a
+#' length-3 character vector, or NULL when malformed.
+#'
+#' @keywords internal
+.scatter_axis_triple <- function(axis_string) {
+  if (is.null(axis_string)) return(NULL)
+  l <- strsplit(axis_string, "\\|", fixed = FALSE)[[1]]
+  if (length(l) != 3L || any(!nzchar(l))) return(NULL)
+  l
+}
+
+#' Resolve a stored default-axis string against the live triset matrix
+#'
+#' Stored defaults go stale when a derived label changes: PCA axes carry the
+#' explained-variance share in their name ("PC1(10.5%)"), so recomputing the
+#' PCA renames every axis, and datasets saved with old labels - or, as
+#' demo.RDS shipped for years, a truncated "PCA|All|PC1(" - match no column.
+#' Exact match wins; otherwise the first variable of the same
+#' analysis/subset whose name starts with the stale stem ("PC1" still finds
+#' "PC1(10.5%)"). NULL when nothing matches, in which case the triselector
+#' keeps its own default.
+#'
+#' @param axis_string Default axis string, e.g. from \code{getAx(eset, "sx")}.
+#' @param ts triset matrix (columns: analysis, subset, variable).
+#' @keywords internal
+.scatter_resolve_axis <- function(axis_string, ts) {
+  l <- .scatter_axis_triple(axis_string)
+  if (is.null(l) || is.null(ts) || !nrow(ts)) return(NULL)
+  hit <- ts[, 1] == l[1] & ts[, 2] == l[2] & ts[, 3] == l[3]
+  if (any(hit)) return(l)
+  cand <- ts[, 1] == l[1] & ts[, 2] == l[2]
+  if (!any(cand)) return(NULL)
+  stem <- sub("\\(.*$", "", l[3])
+  vars <- unique(ts[cand, 3])
+  v <- vars[startsWith(vars, stem)]
+  if (!length(v)) return(NULL)
+  c(l[1], l[2], v[1])
+}
+
 #' Create a stable signature for a pair of scatter axes
 #'
 #' Selection emphasis is tied to the exact axes on which that selection was
@@ -217,12 +256,10 @@ meta_scatter_module <- function(
     # Seed the store with the dataset's default axes whenever the defaults
     # change (initial load, dataset reload). A snapshot/agent restore that
     # lands first wins: seeding skips keys the store already holds.
-    .scatter_axis_triple <- function(axis_string) {
-      if (is.null(axis_string)) return(NULL)
-      l <- strsplit(axis_string, "\\|")[[1]]
-      if (length(l) != 3L || any(!nzchar(l))) return(NULL)
-      l
-    }
+    # Stale/truncated defaults resolve against the live triset
+    # (.scatter_resolve_axis) so e.g. a "PCA|All|PC1(" stored before a PCA
+    # recomputation still lands on the live PC1 axis instead of seeding a
+    # variable that matches no column.
     # Store-glue observers are kept referenced: observers whose dependencies
     # are only weakly held by the reactive graph are garbage collected
     # between flushes, silently killing later sync/seed/restore/push work
@@ -242,8 +279,8 @@ meta_scatter_module <- function(
       if (identical(stamp, last_seeded))
         return(NULL)
       last_seeded <<- stamp
-      tx <- .scatter_axis_triple(dx)
-      ty <- .scatter_axis_triple(dy)
+      tx <- .scatter_resolve_axis(dx, ts)
+      ty <- .scatter_resolve_axis(dy, ts)
       vals <- list()
       if (!is.null(tx))
         vals <- c(vals, stats::setNames(as.list(tx),

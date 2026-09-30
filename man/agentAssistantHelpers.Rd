@@ -314,7 +314,11 @@ every tool result by 100+ KB) from tool results; keeps values, errors,
 and the paired tool request (tool-call id + name - small, and WP13's
 context stubber needs it to identify snapshot tools after a restore)
 as inert context. Returns a NEW turn (the live session object is never
-mutated).
+mutated). Runtime-only ToolDef references on tool requests are dropped
+(\code{\link{agent_strip_runtime_refs}}): the byte budget below is
+measured by serializing these turns, and a ToolDef closure would pull
+the whole application graph into that measurement - and into the
+persisted payload.
 
 Byte-capped (default 256 KB, measured by actual serialization size):
 oldest turns drop first, at least the last two turns always survive.
