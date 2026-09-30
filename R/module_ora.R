@@ -165,6 +165,12 @@ enrichment_analysis_module <- function(
     reactive_pathway(),
     v1()
     ), {
+    # R-H3: skip the collapse work while the ORA tab is hidden; the
+    # visibility flip re-runs this observer (clientData dependency) and
+    # the computation catches up before the table renders. Headless
+    # sessions report no flag and stay visible (output_visible).
+    if (!output_visible(session, ns("stab-table")))
+      return(NULL)
 
     req(reactive_i())
     req(reactive_featureData())
@@ -241,17 +247,26 @@ enrichment_analysis_module <- function(
     tab[, ic] <- lapply(tab[, ic], signif, digits = 3)  
     tab <- tab[which(tab$p.adjusted < 0.1 | tab$p.value < 0.05 | tab$OR >= 3), ]    
   
-    if (nrow(tab) > 3) {    
-      hcl <- hclust(jaccardList(tab$overlap_ids))
+    if (nrow(tab) > 3) {
+      # R-H3: stable order + cap the clustered rows (jaccard/hclust on
+      # 1000+ enriched sets was the second hot spot)
+      tab <- tab[order(tab$p.value), , drop = FALSE]
+      ncl <- min(nrow(tab), ORA_CLUSTER_MAX_ROWS)
+      hcl <- hclust(jaccardList(tab$overlap_ids[seq_len(ncl)]))
       cls <- cutree(hcl, h = 0.5)
-      tab$desc <- paste("cluster", cls, tab$desc, sep = "_")    
-    }    
+      tab$desc <- paste("cluster",
+                        c(cls, rep(0L, nrow(tab) - ncl)), tab$desc, sep = "_")
+    }
   
     tab
   })
   
   oraTab <- reactiveVal( NULL )
   observe({
+    # R-H3: no ORA while the tab is hidden (vectORATall + jaccard
+    # clustering on every selection change was ~20 s at 1000 sets)
+    if (!output_visible(session, ns("stab-table")))
+      return(NULL)
     if (is.null(rii())) {
       # R-M6: the selection shrinking below the testable minimum must not
       # leave the previous results table on screen - show an explicit

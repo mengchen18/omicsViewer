@@ -200,11 +200,30 @@ vectORA.core <- function(n.overlap, n.de, n.gs, n.bkg, unconditional.or = TRUE, 
 #' @param x a list
 #' @return an dist object 
 jaccardList <- function(x) {
+  # R-H3: sparse crossprod implementation. The dense original ran
+  # `apply(m, 2, function(x) colSums(x + m > 0))` - O(k^2 * n) with full
+  # dense allocations (~20.5 s at 1000 sets x 3000 genes, re-run on every
+  # selection change). Union sizes come from |a| + |b| - |a AND b|.
   ax <- unique(unlist(x))
-  m <- sapply(x, function(x1) as.integer(ax %in% x1))
-  ist <- crossprod(m)
-  uni <- apply(m, 2, function(x) colSums(x + m > 0))
-  as.dist(1-ist/uni)
+  ax <- ax[!is.na(ax)]
+  sets <- lapply(x, function(x1) {
+    v <- match(x1, ax)
+    v[!is.na(v)]
+  })
+  lens <- lengths(sets)
+  k <- length(sets)
+  if (k < 2 || all(lens == 0))
+    return(as.dist(matrix(0, nrow = 0, ncol = 0)))
+  i <- unlist(sets, use.names = FALSE)
+  j <- rep(seq_len(k), lens)
+  sm <- Matrix::sparseMatrix(i = i, j = j, x = 1,
+                            dims = c(length(ax), k), giveCsparse = TRUE)
+  # duplicated entries within a set sum to >1 - normalize back to binary
+  sm@x <- rep(1, length(sm@x))
+  cnt <- Matrix::colSums(sm)
+  ist <- as.matrix(Matrix::crossprod(sm))
+  uni <- cnt + t(matrix(cnt, nrow = k, ncol = k)) - ist
+  as.dist(1 - ist / uni)
 }
 
 

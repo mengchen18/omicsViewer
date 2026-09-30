@@ -480,6 +480,12 @@ batch_comparison_module <- function(
     # Reactive: Phenotype comparison results
     phenotype_results <- reactive({
       req(input$show_phenotype)
+      # R-H4: no fisher/wilcox sweep over every phenotype variable while
+      # the panel is hidden; the chain is eagerly pulled by the row-
+      # selection observers, so output suspension alone does not gate it.
+      # The visibility flip re-runs this reactive before the table paints.
+      if (!output_visible(session, ns("phenotype_table-table")))
+        return(NULL)
       req(sample_groups())
       req(reactive_phenoData())
 
@@ -493,6 +499,10 @@ batch_comparison_module <- function(
     # Reactive: Feature comparison results
     features_results <- reactive({
       req(input$show_features)
+      # R-H4: same visibility gate - ~50k per-feature t-tests used to run
+      # on every sample-selection change while the panel was hidden
+      if (!output_visible(session, ns("features_table-table")))
+        return(NULL)
       req(sample_groups())
       req(reactive_expr())
 

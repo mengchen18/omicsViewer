@@ -108,3 +108,26 @@ nColors <- function(k, stop = FALSE) {
   )
   l[[k]]
 }
+#' Is a shiny output currently visible in the browser?
+#' @description Render-barrier helper (todo 4.3): one canonical wrapper
+#'   around the \code{output_<id>_hidden} clientData flag. Headless
+#'   sessions (testServer) never report the flag; the helper then treats
+#'   the panel as VISIBLE so headless regressions keep exercising the
+#'   computation paths (the same contract the WP1 render barrier uses).
+#' @param session session object (defaults to the active reactive domain)
+#' @param output_id full output id (already namespaced by the caller)
+#' @return TRUE when the output is visible (or unknown/headless), FALSE
+#'   when the browser reported it hidden
+#' @keywords internal
+output_visible <- function(session = shiny::getDefaultReactiveDomain(),
+                           output_id) {
+  if (is.null(session))
+    return(TRUE)
+  flag <- tryCatch(
+    session$clientData[[paste0("output_", output_id, "_hidden")]],
+    error = function(e) NULL
+  )
+  if (is.null(flag))
+    return(TRUE)  # headless / not yet reported: do not suspend
+  !isTRUE(flag)
+}

@@ -197,28 +197,22 @@ feature_general_module <- function(id,
     store = store
   )
   
-  reactive_input <- reactive({
-    req(reactive_expr())
-    req(reactive_phenoData())
-    e <- t(reactive_expr())
-    colnames(e) <- paste0("Feature|Auto|", colnames(e))
-    cbind(reactive_phenoData(), e)
-    })
-
   # what to do
   pheno <- reactive({
     # v1() reports only SETTLED triples; NULL means no link variable has
     # been picked yet - the same situation the "--select--" placeholder
     # used to represent. Both must fall through to NULL so the boxplot
     # fallback ("relative abundance" view) renders while unset.
+    # M7 (todo 4.3): resolve through varSelector like the sibling modules.
+    # The old reactive_input built cbind(pData, t(expr)) - one column PER
+    # FEATURE - on every selection change just to extract one column.
     tv <- tryCatch(v1(), shiny.silent.error = function(e) NULL,
                    error = function(e) NULL)
     if (is.null(tv))
       return(NULL)
-    cs <- do.call(paste, list(tv, collapse = "|"))    
-    if (!cs %in% colnames(reactive_input()))
-      return(NULL)
-    reactive_input()[, cs]
+    tryCatch(
+      varSelector(tv, expr = reactive_expr(), meta = reactive_phenoData()),
+      error = function(e) NULL)
   })
   pheno_cat <- reactive({ is.factor(pheno()) || is.character(pheno()) })
   pheno_num <- reactive({ is.numeric(pheno()) })

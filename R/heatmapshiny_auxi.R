@@ -135,8 +135,19 @@ adist <- function(x, method="pearson") {
   arg.dist <- c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")
   arg.cor <- c("spearman", "pearson")
   method <- match.arg(method, choices = c(arg.dist, arg.cor))
-  
-  if (method %in% arg.dist) 
+
+  # R-H6 (todo 4.3): size guard. The dense n x n matrix below costs
+  # ~n^2 * 8 bytes plus copies; at 20-50k rows that is tens of GB and
+  # kills every session on the server. Refuse with an actionable message
+  # instead (the callers fall back to identity ordering).
+  if (nrow(x) > ADIST_MAX_ROWS)
+    stop(sprintf(
+      paste("Distance-based clustering is limited to %d rows (got %d).",
+            "Subsample the features or sort by an annotation column",
+            "instead - a %d-row dendrogram is not informative anyway."),
+      ADIST_MAX_ROWS, nrow(x), nrow(x)))
+
+  if (method %in% arg.dist)
     dd <- as.matrix(dist(x, method = method)) else
       dd <- 1-cor(t(x), use = "pairwise")
   med <- median(dd, na.rm = TRUE)

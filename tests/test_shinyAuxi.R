@@ -16,7 +16,11 @@ getOrderCols <- omicsViewer:::getOrderCols
 ok(ut_cmp_identical(getOrderCols(NULL), NULL), "getOrderCols - return NULL when NULL given")
 
 exprsImpute <- omicsViewer:::getExprsImpute
-ok(ut_cmp_identical(exprsImpute("5"), NULL), "exprsImpute - return NULL when error")
+# M4 (todo 4.6): unsupported classes raise an explicit error naming the
+# supported ones (the old silent NULL masked mis-wired loaders)
+ei_err <- tryCatch(exprsImpute("5"), error = conditionMessage)
+ok(grepl("unsupported class", ei_err, fixed = TRUE),
+   "exprsImpute - explicit error on unsupported class (M4)")
 
 
 value2color <- omicsViewer:::value2color

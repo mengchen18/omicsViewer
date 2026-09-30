@@ -181,3 +181,13 @@ agent_sentinel_string <- function(x) {
 #' available tabs, selection counts with bounded example IDs, quick-view
 #' id+label lists, the widget-store scatter view, and this menu.
 AGENT_STATE_SECTIONS <- c("annotations", "quick_views", "panels", "figure_grammar")
+
+# R-H3 (todo 4.3): ORA result rows fed into the jaccard/hclust
+# description clustering - the pairwise pass is quadratic in row count
+ORA_CLUSTER_MAX_ROWS <- 200
+
+# R-H6 (todo 4.3): hard row cap for adist()-based clustering - the dense
+# n x n distance matrix costs ~n^2 * 8 bytes (10-60 GB at 20-50k features,
+# which kills every session on a shared server). Above the cap adist
+# refuses with an actionable message.
+ADIST_MAX_ROWS <- 5000

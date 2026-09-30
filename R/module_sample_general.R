@@ -178,27 +178,27 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   }
 
   attr4select_status <- reactiveVal()
-  reactive_input <- reactive({
-    req(reactive_phenoData())
-    req(reactive_expr())
-    ee <- t(reactive_expr())
-    colnames(ee) <- paste0("Feature|Auto|", colnames(ee))
-    cbind(reactive_phenoData(), ee)
-  })
+  # R-M11 (todo 4.3): the attr4 panel and the link variable resolve
+  # through varSelector (Feature|Auto via the expression matrix); the old
+  # reactive_input built cbind(pData, t(expr)) - one column PER FEATURE -
+  # on every selection change to extract single columns.
   attr4select <- attr4selector_module(
-    "a4_gp", reactive_meta = reactive_input,
+    "a4_gp", reactive_meta = reactive_phenoData,
+    reactive_expr = reactive_expr,
     reactive_triset = triset, reactive_status = attr4select_status,
     store = store
   )
-  
+
   pheno <- reactive({
-    req(v1()$variable)
-    req(!v1()$variable %in% c("", "--select--"))
-    req(reactive_input())
-    cs <- do.call(paste, list(v1(), collapse = "|"))
-    if (!cs %in% colnames(reactive_input()))
+    tv <- tryCatch(v1(), shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    if (is.null(tv) || tv$variable %in% c("", "--select--"))
       return(NULL)
-    val <- reactive_input()[, cs]
+    val <- tryCatch(
+      varSelector(tv, expr = reactive_expr(), meta = reactive_phenoData()),
+      error = function(e) NULL)
+    if (is.null(val))
+      return(NULL)
     
     if (v1()$analysis == "Surv") {
       type <- "surv"

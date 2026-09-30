@@ -29,7 +29,8 @@
 #' # 
 #' # plotly_boxplot(x, i = c(4, 20, 80), extvar = 1:30)
 
-plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar = NULL, ylab.extvar = "ylab.extvar") {
+plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar = NULL, ylab.extvar = "ylab.extvar",
+  bg_quantiles = NULL) {
   
   o.name <- colnames(x)
   colnames(x) <- paste0("B", str_pad(seq_len(ncol(x)), pad = "0", nchar(ncol(x))))
@@ -40,8 +41,11 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
   if (length(i) == 0)
     i <- NULL
   
-  convertDF <- function(m, c, maxr = 200) {
-    if (nrow(m) > maxr)
+  convertDF <- function(m, c, maxr = 200, preq = FALSE) {
+    # R-M11: `preq` marks an already-quantiled background (module-level
+    # cache) - the 51-quantile-per-sample pass used to rerun on EVERY
+    # selection change
+    if (!preq && nrow(m) > maxr)
       m <- apply(m, 2, quantile, probs = seq(0, 1, by = 0.02), na.rm = TRUE)
     df <- melt(m)
     hp <- colnames(m)[c]
@@ -49,7 +53,13 @@ plotly_boxplot <- function(x, i = NULL, highlight = NULL, ylab = "ylab", extvar 
     na.omit(df)
   }
   
-  df <- convertDF(x, c = highlight)
+  df <- if (!is.null(bg_quantiles)) {
+    # the cache arrives with the ORIGINAL column names; align to the
+    # renamed scheme so background and highlight layers share categories
+    colnames(bg_quantiles) <- colnames(x)
+    convertDF(bg_quantiles, c = highlight, preq = TRUE)
+  } else
+    convertDF(x, c = highlight)
   
   fig <- plot_ly(showlegend = FALSE)
   fig <- add_boxplot(
@@ -201,9 +211,32 @@ plotly_boxplot_module <- function(id, reactive_param_plotly_boxplot, reactive_ch
 
   moduleServer(id, function(input, output, session) {
 
+  # R-M11 (todo 4.3): background distribution cache. The background
+  # boxplot layer needs 51 quantiles per sample over the WHOLE matrix;
+  # recomputing them on every selection change (the params list is
+  # rebuilt per selection) dominated the re-render. Keyed by a cheap
+  # content signature; a matrix change recomputes.
+  .bp_cache <- list(sig = NULL, q = NULL)
+  .bp_bg_quantiles <- function(x) {
+    if (is.null(x) || nrow(x) <= 200)
+      return(x)
+    sig <- paste(nrow(x), ncol(x),
+                 sum(x[1, ], na.rm = TRUE), sum(x[nrow(x), ], na.rm = TRUE),
+                 sum(x[, 1], na.rm = TRUE), sum(x[, ncol(x)], na.rm = TRUE),
+                 sep = "|")
+    if (identical(.bp_cache$sig, sig))
+      return(.bp_cache$q)
+    q <- apply(x, 2, quantile, probs = seq(0, 1, by = 0.02), na.rm = TRUE)
+    .bp_cache$sig <- sig
+    .bp_cache$q <- q
+    q
+  }
+
   output$boxplotly <- renderPlotly({
     req(reactive_checkpoint())
-    do.call(plotly_boxplot, args = reactive_param_plotly_boxplot())
+    p <- reactive_param_plotly_boxplot()
+    p$bg_quantiles <- .bp_bg_quantiles(isolate(p$x))
+    do.call(plotly_boxplot, args = p)
   })
 
   }) # end moduleServer

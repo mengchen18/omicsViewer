@@ -558,9 +558,15 @@ iheatmapModule <- function(
       annot_row = null2empty(s$annotRow),
       tooltip_info = null2empty(s$tooltipInfo))
     # drop absent scalar keys; multi_select keys may legitimately be empty
-    # (cleared selections restore as character(0))
+    # (cleared selections restore as character(0)). A NULL input at save
+    # time serializes as "" - that is the "not recorded" marker and must
+    # NOT be applied: the multi_select validator coerces it to
+    # character(0), rewriting the value the canonical store_restore has
+    # already installed (surfaced by the M5 status fix: the panel status
+    # used to error to NULL headless before it ever reached the file)
     keep <- vapply(names(patch), function(k) {
-      if (k %in% c("annot_col", "annot_row", "tooltip_info")) TRUE
+      if (k %in% c("annot_col", "annot_row", "tooltip_info"))
+        !identical(patch[[k]], "")
       else !is.null(patch[[k]]) && length(patch[[k]]) > 0L
     }, logical(1))
     patch[keep]
@@ -615,8 +621,17 @@ iheatmapModule <- function(
       ord_r <- order(fd()[, input$rowSortBy])
     } else if (input$rowSortBy == "hierarchical cluster" && nrow(mm()$mat) > 2) { #clusterRow
       dd <- tolower(strsplit(input$clusterRowDist, " ")[[1]][1])
-      hcl_r <- hclust(adist(mm()$mat, method = dd), method = input$clusterRowLink)
-      ord_r <- hcl_r$order 
+      # R-H6: adist refuses above ADIST_MAX_ROWS - fall back to identity
+      # ordering with a surfaced warning instead of erroring the render
+      hcl_r <- tryCatch(
+        hclust(adist(mm()$mat, method = dd), method = input$clusterRowLink),
+        error = function(e) {
+          showNotification(conditionMessage(e), type = "warning", duration = 10)
+          NULL
+        })
+      if (is.null(hcl_r))
+        return(list(ord = ord_r, hcl = NULL))
+      ord_r <- hcl_r$order
       hcl_r <- as.dendrogram(hcl_r)
     }
     list(ord = ord_r, hcl = hcl_r)
@@ -640,7 +655,15 @@ iheatmapModule <- function(
       ord_c <- order(pd()[, input$colSortBy])
     } else if (input$colSortBy == "hierarchical cluster" && ncol(mm()$mat) > 2) {
       dd <- tolower(strsplit(input$clusterColDist, " ")[[1]][1])
-      hcl_c <- hclust(adist(t(mm()$mat), method = dd), method = input$clusterColLink)
+      # R-H6: same size guard / identity fallback as rowSB
+      hcl_c <- tryCatch(
+        hclust(adist(t(mm()$mat), method = dd), method = input$clusterColLink),
+        error = function(e) {
+          showNotification(conditionMessage(e), type = "warning", duration = 10)
+          NULL
+        })
+      if (is.null(hcl_c))
+        return(list(ord = ord_c, hcl = NULL))
       ord_c <- hcl_c$order
       hcl_c <- as.dendrogram(hcl_c)
     }
@@ -1132,7 +1155,14 @@ iheatmapModule <- function(
     r <- list(
       clicked = selVal$clicked, #clickedName(),
       brushed = selVal$selected) # brushedValues())
-    attr(r, "status") <- list(
+    # M5 (todo 4.3): status reports WIDGET INPUTS only. Reading
+    # rowSB()/colSB() here forced the full ordering/dendrogram chain -
+    # including the cor-heatmap's pairwise cor() + cor(t(cc)) - on every
+    # status pull (snapshot saves, agent state) even when the panel was
+    # never opened. Derived orderings stay in the status only for the
+    # store-less standalone app, whose status path still round-trips
+    # them; store-backed instances restore through the widget store.
+    sta <- list(
       annotCol = input$annotCol,
       annotRow = input$annotRow,
       colSortBy = input$colSortBy,
@@ -1145,14 +1175,16 @@ iheatmapModule <- function(
       clusterColDist = input$clusterColDist,
       clusterColLink = input$clusterColLink,
       clusterRowDist = input$clusterRowDist,
-      clusterRowLink = input$clusterRowLink,
-      rowDendrogram = rowSB()$hcl,
-      rowOrder = rowSB()$ord,
-      colDendrogram = colSB()$hcl,
-      colOrder =  colSB()$ord,
-      ranges_x = ranges$x,
-      ranges_y = ranges$y
-      )
+      clusterRowLink = input$clusterRowLink)
+    if (is.null(store)) {
+      sta$rowDendrogram <- rowSB()$hcl
+      sta$rowOrder <- rowSB()$ord
+      sta$colDendrogram <- colSB()$hcl
+      sta$colOrder <- colSB()$ord
+    }
+    sta$ranges_x <- ranges$x
+    sta$ranges_y <- ranges$y
+    attr(r, "status") <- sta
     r
   })
 

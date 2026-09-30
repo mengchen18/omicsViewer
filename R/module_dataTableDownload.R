@@ -240,9 +240,17 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     list(tab = tab, index = index)
   })    
 
-  output$table <- DT::renderDataTable(    
+  # R-M2 fallback epoch: a push that lands BEFORE the table has ever
+  # rendered cannot go through the DT proxy (no table object yet, e.g.
+  # the first paint after a tab switch); bumping the epoch re-renders
+  # with the selection in the widget payload instead. Gated on
+  # table_state (NULL only before the first draw), not on the selection
+  # input (which is legitimately NULL after a deselect).
+  .dtd_render_epoch <- reactiveVal(0L)
+  output$table <- DT::renderDataTable({
+    .dtd_render_epoch()
     formatTab(tabsort()$tab, pageLength = pageLength, st = .dtd_consume_restore())
-  )
+  })
 
   # ------------------------------------------------------------------
   # Store glue for the row-selection binding (acknowledgement-aware:
@@ -332,13 +340,21 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     }))
     # live selection updates via the DT proxy (R-M2): pushes and user
     # clicks converge on .dtd_sel_id; applying them through the proxy
-    # preserves page/sort/filter where a re-render reset them
+    # preserves page/sort/filter where a re-render reset them. A table
+    # that has never rendered falls back to the re-render path
     .dtd_keep(observe({
       .dtd_sel_id()
+      if (is.null(input$table_state)) {
+        .dtd_render_epoch(isolate(.dtd_render_epoch()) + 1L)
+        return(NULL)
+      }
       rows <- isolate(selectedRows())
+      # dataTableProxy applies session$ns() itself - pass the module-local
+      # id (ns("table") double-prefixes and the message lands on a
+      # non-existent table)
       DT::selectRows(
-        DT::dataTableProxy(ns("table"), session = session,
-                           deferUntilFlush = TRUE),
+        DT::dataTableProxy("table", session = session,
+                           deferUntilFlush = FALSE),
         if (notNullAndPositiveLength(rows)) rows else NULL)
     }))
   }

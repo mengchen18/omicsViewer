@@ -319,3 +319,27 @@ ok(!is.null(omv_m6_pre) && !grepl("Too few", omv_m6_pre, fixed = TRUE),
    "ORA: no spurious no-test message before the selection shrinks (R-M6 control)")
 ok(grepl("Too few feature IDs", omv_m6_post, fixed = TRUE),
    "ORA: shrunk selection shows explicit no-test message (R-M6)")
+
+# ---------------- R-H3: jaccardList sparse reimplementation ----------------
+jaccard_ref <- function(x) {
+  ax <- unique(unlist(x))
+  m <- sapply(x, function(x1) as.integer(ax %in% x1))
+  ist <- crossprod(m)
+  uni <- apply(m, 2, function(x) colSums(x + m > 0))
+  as.dist(1 - ist / uni)
+}
+jl_sets <- replicate(60, sample(paste0("g", 1:300), sample(20:80, 1)),
+                     simplify = FALSE)
+ok(ut_cmp_equal(
+  as.matrix(omicsViewer:::jaccardList(jl_sets)),
+  as.matrix(jaccard_ref(jl_sets))),
+  "jaccardList: sparse version equals the dense reference (R-H3)")
+jl_sets2 <- replicate(40, sample(paste0("g", 1:50), sample(5:50, 1)),
+                      simplify = FALSE)
+jl_sets2[[3]] <- c(jl_sets2[[3]], jl_sets2[[3]][1])  # duplicate entry in a set
+ok(ut_cmp_equal(
+  as.matrix(omicsViewer:::jaccardList(jl_sets2)),
+  as.matrix(jaccard_ref(jl_sets2))),
+  "jaccardList: duplicate entries within a set are neutralized (R-H3)")
+ok(inherits(omicsViewer:::jaccardList(list(a = character(0))), "dist"),
+  "jaccardList: degenerate input returns a dist object (R-H3)")

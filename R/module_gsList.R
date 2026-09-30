@@ -79,7 +79,13 @@ gslist_module <- function(
 
   ns <- session$ns
   
-  reactive_pathway <- reactive({    
+  reactive_pathway <- reactive({
+    # R-M9: the gene-set long table (up to ~1M rows) must only be built
+    # when the panel is actually visible; the visibility flip re-runs this
+    # reactive (clientData dependency) before the table paints. Headless
+    # sessions report no flag and stay visible.
+    if (!output_visible(session, ns("stab-table")))
+      return(NULL)
     req(f1 <- reactive_featureData())
     gss <- attr(f1, "GS")
     req(gss)
