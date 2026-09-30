@@ -612,7 +612,17 @@ meta_scatter_module <- function(
       } else {
         character(0)
       }
-      if (isTRUE(isolate(cornerAuthority())) && is.null(rr0))
+      # While the corner owns the display authority the LIVE rectangles are
+      # strictly fresher than the anchor: during a corner edit (a cutoff or
+      # Area change) the corner observer's report - which refreshes selVal -
+      # lands one queue position AFTER this render, so the anchor still
+      # holds the PREVIOUS corner selection and would win the comparison
+      # below (the anchor beats the corner whenever the two differ). The
+      # Area topleft -> volcano switch painted the topleft emphasis while
+      # the bus already carried both corners. The anchor path is for the
+      # browser/restore authority only; with the rects vanished the corner
+      # path yields nothing anyway (the historic is.null(rr0) case).
+      if (isTRUE(isolate(cornerAuthority())))
         anchor_ids <- character(0)
       corner_ids <- if (isTRUE(isolate(cornerEngaged())) && notNullAndPositiveLength(rr0)) {
         get_names()[.scatter_ids_in_rects(l, rr0)]
@@ -694,6 +704,14 @@ meta_scatter_module <- function(
       pendingSelectionDisplayAxes(NULL)
       cornerEngaged(FALSE)
       cornerAuthority(FALSE)
+      # the figure-origin report slot is no longer current: without the
+      # forget, a GENUINE re-selection of the same ids after the clear
+      # would be deduped as an echo and never land. clientSideSelection is
+      # deliberately NOT reset - it is the browser-interaction truth, and
+      # the (simulated or real) browser keeps reporting the stale shape
+      # until the repaint resets the event inputs; that echo stays blocked
+      # by the payload guard and the epoch guard suppresses the reset.
+      selection$forget("figure")
       selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
       selection$report(
         origin = "clear",
@@ -706,6 +724,18 @@ meta_scatter_module <- function(
     # causing unnecessary reactive chain invalidations. We store the previous
     # selection and only update selVal when it truly changes.
     clientSideSelection <- reactiveVal(character(0))
+    # Render epoch of the figure the current browser selection was made
+    # on. The plotly event inputs RESET whenever the graph is replaced (an
+    # axis switch, a cutoff edit, any params commit), and the module return
+    # additionally re-fires mid-switch with the OUTGOING event mapped
+    # against the incoming coordinates. An empty echo that arrives after a
+    # re-render is therefore a reset artifact, not a user action: reporting
+    # it cleared the selection the corner had just re-derived on the new
+    # volcano view (observed live: manual square selection, switch Volcano
+    # RE vs ME -> Volcano RE vs LE, right panel ended with no selection).
+    # A genuine deselect (double-click) arrives with no re-render in
+    # between and keeps the historic clearing behaviour.
+    selRenderEpoch <- reactiveVal(0L)
     .scatter_keep(observeEvent(v_scatter(), {
       l <- get_names()
       u_c <- l[v_scatter()$clicked]
@@ -713,6 +743,22 @@ meta_scatter_module <- function(
 
       # Only update if selection actually changed
       req(!identical(tmp <- c(u_c, u_s), clientSideSelection()))
+      if (notNullAndPositiveLength(tmp)) {
+        selRenderEpoch(v_scatter()$render_epoch %||% 0L)
+      } else if (!identical(v_scatter()$render_epoch %||% 0L,
+                           isolate(selRenderEpoch()))) {
+        # empty echo after the figure was re-rendered since the selection
+        # was made: the browser lost its selection shape to the repaint.
+        # Consume the echo (so later ones dedupe) but keep the selection -
+        # the bus record, the emphasis anchor and the corner authority all
+        # stay with the selection the user actually made. The figure-origin
+        # report slot is dropped as well: the pre-render report is no
+        # longer current, and keeping it would dedupe a genuine
+        # re-selection with the same payload as an echo.
+        clientSideSelection(character(0))
+        selection$forget("figure")
+        return(NULL)
+      }
       clientSideSelection(tmp)
       axes <- if (notNullAndPositiveLength(tmp))
         .scatter_axis_signature(v1(), v2()) else NULL
@@ -845,17 +891,36 @@ meta_scatter_module <- function(
 
       i <- .scatter_ids_in_rects(cc, rec)
       axes <- .scatter_axis_signature(v1(), v2())
+      # Display-convergence bookkeeping, captured BEFORE the claim writes:
+      # when the corner CLAIMS the display from a non-corner authority (a
+      # manual lasso or a restored selection held it before), the params
+      # change that triggered this claim may already have painted in the
+      # render-before-observer order - with the STALE anchor emphasis, the
+      # only case the anchor can still win now that corner authority
+      # suppresses it. A repaint is needed exactly when a live anchor on
+      # THESE axes differs from the claimed ids (an axes change empties
+      # the anchor by itself); the seed bump forces that one paint, which
+      # also erases the browser-owned selection shape the corner replaces.
+      .claim_had_authority <- isTRUE(isolate(cornerAuthority()))
+      .claim_prev_anchor <- if (.claim_had_authority) character(0) else
+        as.character(isolate(selVal()$selected))
+      .claim_prev_axes <- isolate(selectionDisplayAxes())
       selVal(list(
         clicked = character(0),
         selected = l[i]
       ))
       selectionDisplayAxes(axes)
-      # the corner claims the display. No repaint seed is needed: every
-      # state change that alters the emphasis (axis switch, cutoff edit)
-      # already recomputes the params, and the emphasis is resolved
-      # IN-RENDER from the live rects - the value-identical recompute a
-      # flip would cause is absorbed by the render barrier's identical().
+      # the corner claims the display. No repaint seed is needed for the
+      # common transitions: every state change that alters the emphasis
+      # (axis switch, cutoff edit) already recomputes the params, and the
+      # emphasis is resolved IN-RENDER from the live rects - the
+      # value-identical recompute a flip would cause is absorbed by the
+      # render barrier's identical().
       cornerAuthority(TRUE)
+      if (notNullAndPositiveLength(.claim_prev_anchor) &&
+          !identical(.claim_prev_anchor, l[i]) &&
+          identical(.claim_prev_axes, axes))
+        selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
       selection$report(
         origin = "corner",
         report = list(rects = rec),
@@ -997,6 +1062,12 @@ meta_scatter_module <- function(
         clicked = s$selection_clicked %||% character(0),
         selected = s$selection_selected %||% character(0)
       ))
+      # the restored selection was not a browser interaction: drop the
+      # figure-origin report slot so a genuine re-selection of the same
+      # ids lands (same payload-reselect rule as the clear path). The
+      # client-side guard is deliberately left alone - it keeps blocking
+      # stale browser shapes re-reported by module-return echoes.
+      selection$forget("figure")
     }))
     #############################################
 
