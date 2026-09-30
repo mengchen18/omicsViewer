@@ -10,6 +10,7 @@
 \alias{store_read}
 \alias{store_apply}
 \alias{store_seed}
+\alias{store_reset}
 \alias{store_ack}
 \alias{store_sync_from_ui}
 \alias{store_bind_triselector}
@@ -59,6 +60,8 @@ store_apply(
 
 store_seed(store, patch)
 
+store_reset(store, prefixes = NULL)
+
 store_ack(store, id, widget_value)
 
 store_sync_from_ui(store, id, value)
@@ -71,7 +74,7 @@ store_epoch(store)
 
 store_snapshot(store)
 
-store_restore(store, snapshot)
+store_restore(store, snapshot, replace = TRUE)
 
 store_registry_view(store, prefix = NULL)
 
@@ -153,6 +156,9 @@ is expected - arming pending there can never be acknowledged (an
 input whose value does not change fires no event) and a stale
 re-assert later clobbers unrelated direct updates on the same widget.}
 
+\item{prefixes}{Optional character vector; when given, only ids equal to
+a prefix or below it ("prefix.") are reset.}
+
 \item{widget_value}{The value the widget actually reports.}
 
 \item{value}{The value the user chose.}
@@ -169,6 +175,9 @@ or NULL while the first selection has not settled).}
 hold their observers elsewhere.}
 
 \item{snapshot}{List from \code{\link{store_snapshot}}.}
+
+\item{replace}{Logical; reset keys not carried by the snapshot to their
+defaults (default TRUE).}
 }
 \value{
 An environment-based store holding bindings, values (each key
@@ -194,6 +203,8 @@ Invisible receipt: \code{applied} (ordered ids), \code{diff},
 Invisible receipt: \code{applied}, \code{skipped} (held,
   dropped or unknown keys), and \code{rejected} (invalid values).
 
+Invisible list with \code{reset} (the cleared ids).
+
 TRUE when a re-assert (re-send) is needed, otherwise FALSE.
 
 Invisible TRUE when an agent write was overridden.
@@ -208,7 +219,8 @@ A plain list with \code{values} and \code{epochs} for every
   registered id (including internal state).
 
 Invisible receipt from \code{\link{store_apply}} plus
-  \code{unknown_ids} and (per-key) \code{rejected}.
+  \code{unknown_ids}, (per-key) \code{rejected}, and \code{reset}
+  (ids reset to defaults / cleared by replace mode).
 
 A list of records: id, kind, label, help, depends_on, and the
   current allowed values when cheap to compute.
@@ -247,6 +259,14 @@ in the widgets, so arming the bounded re-assert loop would arm pushes
 that can never be acknowledged (an input whose value does not change
 fires no event) and a stale re-assert could later clobber unrelated
 direct updates on the same widget.
+
+Clears the stored values (back to NULL, i.e. "unset"), drops any
+in-flight pending writes and bumps the epochs so every watcher
+re-derives. Used on dataset switches (todo 2.5): dataset-scoped keys
+must not leak from dataset A into dataset B; the natural repair paths
+(dataset-default seeding, data-derived sync observers) refill the keys
+that have a dataset-derived value, leaving user choices legitimately
+unset until the user makes them again.
 
 Called by S2 session glue when a widget confirms (or reports) its current
 value. Clears matching pending entries; a mismatch returns a re-assert
@@ -310,5 +330,15 @@ real inputs, invoking setters, ack subscriptions) lands with S2.
 Governing principle: agent-controllability mirrors user-controllability
 exactly. Only user-editable widgets are agent-visible; everything else is
 at most internal snapshot state and never enters model-facing context.
+
+The FIRST dataset load must not reset: widget-default seeds may already
+have fired by the time the dataset reactive settles, and the one-shot
+seed gates are consumed - callers guard on a previous signature.
+
+\code{replace = TRUE} (default) makes the restore REPLACE the state
+instead of merging over it (todo 2.3): keys the snapshot does not carry,
+carries as NULL, or lists in \code{snapshot$unset} are reset to their
+seeded widget defaults (or cleared to NULL when no default exists).
+Without it, unset keys keep whatever value they currently hold.
 }
 \keyword{internal}

@@ -65,6 +65,78 @@ ok(
   "local HTTP provider endpoints are accepted when explicitly allowed"
 )
 
+## ---------------- Stage 2 (3.7): the openai_compatible provider --------
+ok(
+  ut_cmp_error(
+    agent_validate_provider_config("openai_compatible"),
+    "requires a custom API base URL"
+  ),
+  "openai_compatible without a base URL is rejected"
+)
+ok(
+  ut_cmp_identical(
+    agent_validate_provider_config(
+      "openai_compatible", api_key = "k",
+      base_url = "https://vllm.internal:8000/v1"
+    )$provider,
+    "openai_compatible"
+  ),
+  "openai_compatible validates with an HTTPS endpoint"
+)
+ok(
+  ut_cmp_error(
+    agent_validate_provider_config("bogus"),
+    "LLM provider must be 'openai', 'openai_compatible', or 'anthropic'."
+  ),
+  "unknown providers are still rejected"
+)
+
+# client routing: custom endpoints go to chat_openai_compatible (the
+# chat/completions API); chat_openai (responses API) only for api.openai.com
+if (requireNamespace("ellmer", quietly = TRUE)) {
+  make_client <- omicsViewer:::.ai_make_client
+  creds <- list(provider = "openai_compatible", model = "m", api_key = "k",
+                base_url = "https://vllm.internal:8000/v1", configured = TRUE)
+  cc <- make_client(creds)
+  ok(
+    inherits(cc$get_provider(), "ellmer::ProviderOpenAICompatible") &&
+      !inherits(cc$get_provider(), "ellmer::ProviderOpenAI") &&
+      identical(cc$get_provider()@base_url, "https://vllm.internal:8000/v1"),
+    "openai_compatible routes to the chat/completions client"
+  )
+  legacy <- make_client(list(provider = "openai", model = "m", api_key = "k",
+                             base_url = "https://gateway.example/v1",
+                             configured = TRUE))
+  ok(
+    inherits(legacy$get_provider(), "ellmer::ProviderOpenAI"),
+    "openai with a custom base URL keeps the responses client (provider-explicit routing; bigmodel glm-5.3-flash is responses-only)"
+  )
+  real_openai <- make_client(list(provider = "openai", model = "m", api_key = "k",
+                                  base_url = "", configured = TRUE))
+  ok(
+    inherits(real_openai$get_provider(), "ellmer::ProviderOpenAI"),
+    "openai without a base URL keeps the api.openai.com responses client"
+  )
+  openai_url <- make_client(list(provider = "openai", model = "m", api_key = "k",
+                                 base_url = "https://api.openai.com/v1",
+                                 configured = TRUE))
+  ok(
+    inherits(openai_url$get_provider(), "ellmer::ProviderOpenAI"),
+    "an explicit api.openai.com base URL keeps the responses client"
+  )
+  rm(cc, legacy, real_openai, openai_url)
+}
+
+# environment config accepts the new provider name
+old_env_provider2 <- Sys.getenv("OMICSVIEWER_LLM_PROVIDER")
+Sys.setenv(OMICSVIEWER_LLM_PROVIDER = "openai_compatible")
+ok(
+  ut_cmp_identical(omicsViewer:::agent_environment_config()$provider,
+                   "openai_compatible"),
+  "environment config accepts OMICSVIEWER_LLM_PROVIDER=openai_compatible"
+)
+Sys.setenv(OMICSVIEWER_LLM_PROVIDER = old_env_provider2)
+
 ## -------------------------- 1.2 environment-key endpoint lock ----
 agent_allow_user_endpoint <- omicsViewer:::agent_allow_user_endpoint
 old_endpoint_flag <- Sys.getenv("OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT")

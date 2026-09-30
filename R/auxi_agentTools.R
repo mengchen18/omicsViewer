@@ -50,10 +50,14 @@ NULL
 #' arrays, and \code{NULL} for absent values. Provider sentinel strings
 #' (\code{AGENT_SENTINEL_STRINGS} -- some models serialize omitted
 #' optionals as literal \code{"null"}/\code{"{}"}/\code{"[]"} strings)
-#' become \code{NULL} at any depth. Empty arrays and arrays whose every
-#' element is absent stay explicit empty lists -- an empty array is a
-#' real value (\dQuote{clear the selection}, \dQuote{reject via the
-#' min rule}), distinct from an omitted optional.
+#' become \code{NULL} -- but only in \emph{object field} positions,
+#' never inside data arrays: a feature list like
+#' \code{["TP53", "NULL"]} is data whose entries may legitimately equal
+#' those strings, and silently dropping them corrupts the selection
+#' (todo 3.3). Empty arrays and arrays whose every element is absent
+#' stay explicit empty lists -- an empty array is a real value
+#' (\dQuote{clear the selection}, \dQuote{reject via the min rule}),
+#' distinct from an omitted optional.
 #'
 #' The function is idempotent: a canonical document is returned
 #' unchanged, so unit tests and programmatic callers can feed documents
@@ -62,16 +66,19 @@ NULL
 #' @param x A parsed JSON value, a named list of tool arguments, or any
 #'   already-canonical R value.
 #' @param depth Recursion guard (internal).
+#' @param field_position Whether \code{x} sits in an object-field
+#'   position (sentinel strings map to \code{NULL}); array elements and
+#'   the top-level document keep literal strings (internal).
 #' @return The canonical representation of \code{x}.
 #' @keywords internal
 #' @rdname agentToolHelpers
-agent_args_sanitize <- function(x, depth = 0L) {
+agent_args_sanitize <- function(x, depth = 0L, field_position = TRUE) {
   if (depth > .agent_args_max_depth)
     stop("Tool arguments nest at most ", .agent_args_max_depth, " levels deep.")
   if (is.null(x))
     return(NULL)
   if (!is.list(x))
-    return(if (agent_sentinel_string(x)) NULL else x)
+    return(if (field_position && agent_sentinel_string(x)) NULL else x)
 
   nms <- names(x)
   if (is.null(nms) || any(!nzchar(nms))) {
@@ -80,8 +87,15 @@ agent_args_sanitize <- function(x, depth = 0L) {
     # already expects), anything else stays a list of elements. An
     # empty (or all-absent) array stays an explicit empty list -- it is
     # a real value (e.g. "clear the selection" / "reject via the min
-    # rule"), distinct from an omitted optional.
-    items <- lapply(x, agent_args_sanitize, depth = depth + 1L)
+    # rule"), distinct from an omitted optional. Array ELEMENTS are
+    # data (ids, values): the sentinel-string rule never applies to
+    # them, only to the fields of objects nested inside the array.
+    items <- lapply(x, function(el) {
+      if (is.list(el) && !is.null(names(el)) && all(nzchar(names(el))))
+        agent_args_sanitize(el, depth + 1L, field_position = TRUE)
+      else
+        agent_args_sanitize(el, depth + 1L, field_position = FALSE)
+    })
     items <- items[!vapply(items, is.null, logical(1))]
     if (!length(items))
       return(list())
@@ -93,7 +107,7 @@ agent_args_sanitize <- function(x, depth = 0L) {
   } else {
     # JSON object: recurse per property, keeping explicit nulls as
     # named NULL entries (consumers test absence with is.null()).
-    lapply(x, agent_args_sanitize, depth = depth + 1L)
+    lapply(x, agent_args_sanitize, depth = depth + 1L, field_position = TRUE)
   }
 }
 
@@ -106,6 +120,125 @@ agent_args_sanitize <- function(x, depth = 0L) {
 #' @keywords internal
 #' @rdname agentToolHelpers
 .agent_args_max_depth <- 64L
+
+############################################################################
+### [Stage 2 / todo 3.2] output codec at the same seam
+###
+### WP15 fixed the INPUT seam; this is the OUTPUT seam. Tool values were
+### handed to ellmer as raw R objects, and the provider body serializer
+### (jsonlite::toJSON(auto_unbox = TRUE)) mangled them in flight:
+###   * named vectors lost their names ("dimensions":[2702,60]);
+###   * NULL fields serialized as {} (a main source of the literal-"{}"
+###     sentinel strings the input seam then has to strip);
+###   * nothing bounded the size -- one oversized tool result inflates
+###     the context (volcano echoes grew with the dataset, todo 3.1).
+### The codec converts every non-string, non-error tool value to a
+### jsonlite `json` string ONCE, at the seam, so what the model receives
+### is exactly what we serialized: names kept, nulls null, size capped.
+### `tool_string()` returns a json-class value verbatim and the request
+### body embeds it as the tool-output string -- ellmer's own documented
+### "return toJSON(...) from a tool" path. Internal consumers (context
+### stubber, compaction summariser, logging) read the structured copy
+### kept in `extra$data` (todo 3.4), which also survives the snapshot
+### slim path.
+
+#' Tool-result output byte cap
+#'
+#' Env knob \code{OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES} (default 8192,
+#' clamped to [1024, 65536]): every model-facing tool result value is at
+#' most this many bytes; oversized results are replaced by a truncation
+#' marker that tells the model how to narrow the request.
+#' @keywords internal
+#' @rdname agentToolHelpers
+.agent_tool_output_max_bytes <- function() {
+  raw <- suppressWarnings(as.integer(Sys.getenv(
+    "OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES", "")))
+  if (length(raw) != 1L || is.na(raw))
+    return(8192L)
+  max(1024L, min(65536L, raw))
+}
+
+#' Prepare an R value for faithful JSON serialization
+#'
+#' jsonlite's \code{auto_unbox} drops the names of atomic vectors
+#' (\code{c(a = 1)} becomes the scalar \code{1}); converting named
+#' vectors to named lists restores the object shape the value intended.
+#' Everything else passes through recursively (explicit \code{NULL}s are
+#' kept and serialize as \code{null} with \code{null = "null"}).
+#'
+#' @param x An R value from a tool handler.
+#' @return A JSON-faithful R representation.
+#' @keywords internal
+#' @rdname agentToolHelpers
+agent_json_prep <- function(x) {
+  if (is.list(x)) {
+    out <- lapply(x, agent_json_prep)
+    if (!is.null(names(x)))
+      names(out) <- names(x)
+    return(out)
+  }
+  if (is.atomic(x) && length(x) >= 1L && !is.null(names(x)))
+    return(as.list(x))
+  x
+}
+
+#' Apply the output codec to one tool result
+#'
+#' Runs inside the \code{\link{agent_tool}} wrapper on every handler
+#' return value: non-string, non-error \code{ContentToolResult} values
+#' become \code{json}-class strings (names preserved, \code{NULL} as
+#' \code{null}), bounded by \code{max_bytes} (default from
+#' \code{OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES}); the structured original is
+#' kept in \code{extra$data} for internal consumers. Errored results,
+#' plain strings, and values that are already \code{json} pass through
+#' unchanged. Results that are not \code{ContentToolResult} objects are
+#' returned untouched (ellmer wraps plain strings itself).
+#'
+#' @param result Handler return value.
+#' @param max_bytes Model-facing byte cap for the serialized value.
+#' @return The codec-processed result.
+#' @keywords internal
+#' @rdname agentToolHelpers
+agent_result_codec <- function(result, max_bytes = .agent_tool_output_max_bytes()) {
+  if (!inherits(result, "ellmer::ContentToolResult"))
+    return(result)
+  if (!is.null(result@error))
+    return(result)
+  value <- result@value
+  if (is.character(value) && length(value) == 1L && !inherits(value, "json"))
+    return(result)  # plain string output: already the wire shape
+
+  extra <- result@extra
+  if (is.null(extra)) extra <- list()
+  if (is.null(extra$data) && !is.null(value))
+    extra$data <- value
+
+  encoded <- tryCatch(
+    jsonlite::toJSON(
+      agent_json_prep(value), auto_unbox = TRUE, null = "null", na = "null"),
+    error = function(e) NULL)
+  if (is.null(encoded))
+    return(result)  # unserializable value: let ellmer's own path handle it
+
+  if (nchar(encoded, type = "bytes") <= max_bytes) {
+    out_value <- encoded
+  } else {
+    head_chars <- max(200L, floor(max_bytes / 4L))
+    out_value <- paste0(
+      "Tool result truncated: ", nchar(encoded, type = "bytes"),
+      " bytes exceeded the ", max_bytes,
+      "-byte tool-output limit. Narrow the request (fewer ids, sections,",
+      " rows, or columns) and call the tool again. First ", head_chars,
+      " characters:\n", substr(encoded, 1L, head_chars)
+    )
+  }
+  ellmer::ContentToolResult(
+    value = out_value,
+    error = result@error,
+    extra = extra,
+    request = result@request
+  )
+}
 
 #' Register one agent tool on the canonical argument transport
 #'
@@ -137,12 +270,16 @@ agent_tool <- function(fun, description, arguments = list(), name = NULL,
   # Embed the handler and the sanitizer by value so the wrapper needs no
   # name resolution beyond base R at call time.
   sanitize <- agent_args_sanitize
+  codec <- agent_result_codec
   handler <- eval(bquote(function() {
     args <- .(sanitize)(as.list(environment()))
     # Drop absent top-level arguments before dispatch, exactly as
     # ellmer's convert = TRUE path did: a handler's own formal default
     # (e.g. max_results = 20L) then applies instead of an explicit NULL.
-    do.call(.(fun), args[!vapply(args, is.null, logical(1))])
+    out <- do.call(.(fun), args[!vapply(args, is.null, logical(1))])
+    # Output seam (todo 3.2): one canonical serialization of the value
+    # the model receives -- names preserved, nulls null, size capped.
+    .(codec)(out)
   }))
   # ellmer::tool() requires the formals to match the declared argument
   # names exactly; every formal defaults to NULL so omitted optionals and

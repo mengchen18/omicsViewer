@@ -19,13 +19,21 @@ agent_history_payload <- omicsViewer:::agent_history_payload
 agent_history_restore_payload <- omicsViewer:::agent_history_restore_payload
 
 mk_turns <- function() {
+  # ellmer places tool RESULTS in UserTurns (the tool loop appends the
+  # result payload to the user side); the assistant turn carries the
+  # requests. Fixtures mirror the real placement so downstream consumers
+  # (stubber, transcript, snapshot) are exercised on realistic shapes.
   list(
     UserTurn(contents = list(ContentText("Please analyze sk-abcdef0123456789abcdef"))),
     AssistantTurn(contents = list(
       ContentText("Calling a tool"),
-      ContentToolRequest("call1", "get_omics_viewer_state", list(`_intent` = "x")),
+      ContentToolRequest("call1", "get_omics_viewer_state", list(`_intent` = "x"))
+    )),
+    UserTurn(contents = list(
       ContentToolResult(
         value = list(dataset = list(id = "demo")),
+        request = ellmer::ContentToolRequest(
+          "call1", "get_omics_viewer_state", list(`_intent` = "x")),
         extra = list(display = list(html = "BASE64PREVIEWPLACEHOLDER"))
       )
     )),
@@ -58,7 +66,7 @@ turns <- mk_turns()
 records <- agent_transcript_records(turns)
 ok(
   identical(vapply(records, function(r) r$role, character(1)),
-            c("user", "assistant", "assistant")),
+            c("user", "assistant", "user", "assistant")),
   "transcript records carry user/assistant roles in order"
 )
 ok(
@@ -71,26 +79,52 @@ ok(
 )
 
 ## ------------------------------------------------------------- payload ----
+turns <- mk_turns()
+# S7 turns serialize at 27-130 KB each; give the full-payload probe a
+# generous budget so it asserts STRUCTURE, not the truncation policy
 payload <- agent_history_payload(turns, figures = list(
   list(id = "fig_1", spec = list(data_source = "feature"))
-))
+), max_bytes = 4L * 1024L * 1024L)
+expected_roles <- vapply(turns, function(t) t@role, character(1))
 ok(
   identical(payload$version, 1L) &&
-    identical(length(payload$turns), 3L) &&
-    identical(length(payload$transcript), 3L) &&
+    identical(length(payload$turns), length(turns)) &&
+    identical(length(payload$transcript), length(turns)) &&
+    identical(vapply(payload$transcript, function(r) r$role, character(1)),
+              ifelse(expected_roles == "user", "user", "assistant")) &&
     identical(payload$figures[[1]]$id, "fig_1") &&
     identical(payload$truncated, FALSE),
   "payload carries slim turns, transcript, and the figure registry"
 )
+tool_result_turn <- Filter(
+  function(t) any(vapply(t@contents, function(x)
+    inherits(x, "ellmer::ContentToolResult"), logical(1))),
+  payload$turns)[[1]]
+result_content <- Filter(
+  function(x) inherits(x, "ellmer::ContentToolResult"),
+  tool_result_turn@contents)[[1]]
 ok(
   !any(grepl("BASE64PREVIEWPLACEHOLDER",
-             vapply(payload$turns[[2]]@contents, function(x)
-               paste(utils::capture.output(str(x)), collapse = ""), character(1)))),
+             paste(utils::capture.output(str(result_content)), collapse = ""))),
   "display-only payloads (base64 previews) are stripped from saved turns"
 )
 ok(
-  identical(payload$turns[[2]]@contents[[3]]@value, list(dataset = list(id = "demo"))),
+  identical(result_content@value, list(dataset = list(id = "demo"))),
   "tool result VALUES survive as inert context"
+)
+# the structured output-seam copy (extra$data) rides the slim turn when present
+structured <- mk_turns()
+structured[[3]]@contents[[1]] <- ellmer::ContentToolResult(
+  value = structure("{\"figure_id\":\"fig_9\"}", class = "json"),
+  request = ellmer::ContentToolRequest("call1", "create_figure", list()),
+  extra = list(display = list(html = "x"), data = list(figure_id = "fig_9")))
+payload2 <- agent_history_payload(structured, max_bytes = 4L * 1024L * 1024L)
+coded <- Filter(function(x) inherits(x, "ellmer::ContentToolResult"),
+                payload2$turns[[3]]@contents)[[1]]
+ok(
+  inherits(coded@value, "json") &&
+    identical(coded@extra$data, list(figure_id = "fig_9")),
+  "json-string tool values keep their structured extra$data through the slim path"
 )
 ok(
   identical(agent_history_payload(list(), figures = list()), NULL) &&
@@ -98,20 +132,36 @@ ok(
   "no turns means no payload"
 )
 
-# byte cap: oldest turns drop first, the last two always survive
+# byte cap (todo 3.6): NEWEST turns survive, oldest drop - with DISTINCT
+# texts so the assertions cannot pass vacuously (the pre-Stage-2 code kept
+# turns 1..k, i.e. the OLDEST, and identical-text tests masked it)
 big <- lapply(seq_len(8), function(i)
-  UserTurn(contents = list(ContentText(paste(rep("analysis ", 600), collapse = "")))))
-capped <- agent_history_payload(big, figures = list(), max_bytes = 6000L)
+  UserTurn(contents = list(ContentText(paste(
+    "analysis turn", i, paste(rep("x", 600), collapse = ""))))))
+all_records <- agent_transcript_records(big)
+# S7 turns serialize at ~28 KB each (class metadata per instance), so a
+# 150 KB budget keeps a ~5-turn trailing suffix of the 222 KB total
+capped <- agent_history_payload(big, figures = list(), max_bytes = 150000L)
+kept_from <- length(big) - length(capped$transcript) + 1L
 ok(
-  capped$truncated && length(capped$turns) < 8L &&
-    length(capped$turns) >= 2L &&
+  capped$truncated && length(capped$transcript) > 1L &&
+    kept_from > 1L && kept_from < length(big) &&
+    identical(capped$transcript[[1]]$text, all_records[[kept_from]]$text) &&
     identical(capped$transcript[[length(capped$transcript)]]$text,
-              agent_transcript_records(big)[[8]]$text),
-  "byte cap drops oldest turns and keeps the newest"
+              all_records[[8]]$text),
+  "byte cap keeps the NEWEST turns (first kept is a later turn, last is turn 8)"
+)
+ok(
+  identical(capped$turns[[length(capped$turns)]]@contents[[1]]@text,
+            big[[8]]@contents[[1]]@text) &&
+    !identical(capped$turns[[1]]@contents[[1]]@text,
+               big[[1]]@contents[[1]]@text),
+  "kept turns are the trailing suffix, not the leading prefix"
 )
 tiny_cap <- agent_history_payload(big, figures = list(), max_bytes = 100L)
 ok(
-  length(tiny_cap$turns) == 2L,
+  length(tiny_cap$turns) == 2L &&
+    identical(tiny_cap$transcript[[2]]$text, all_records[[8]]$text),
   "at least two turns survive even under an absurdly small cap"
 )
 ok(
@@ -242,7 +292,8 @@ result <- NULL
 testServer(chatMod, {})
 result <- .result
 ok(
-  is.null(result$err) && identical(result$n_turns, 3L) &&
+  is.null(result$err) &&
+    identical(result$n_turns, length(payload$turns)) &&
     setequal(result$roles, c("user", "assistant")),
   "chat restore installs the full turns as model context"
 )

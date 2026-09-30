@@ -968,6 +968,14 @@ try {
   record('round-trip widget writes apply', !w24.hook_error,
     w24.hook_error || '');
   const rtSaved = await storeSnapshot();
+  // Defensive cleanup (AGENTS.md carry-forward: probe snapshots must
+  // unlink themselves): a stale rt1.ESS from a previously crashed run
+  // would make the save below fail with "name already in use" - the
+  // modal then stays open and blocks every later probe.
+  try {
+    for (const f of readdirSync(EXTDATA))
+      if (/rt1\.ESS$/i.test(f)) unlinkSync(path.join(EXTDATA, f));
+  } catch {}
   // save through the real modal
   await p1.click('[data-testid="app-snapshot-button"]');
   await p1.fill('#app-snapshot_name', 'rt1');
@@ -988,9 +996,16 @@ try {
   const rtMid = await storeSnapshot();
   record('drift changed the live store state',
     rtMid['dataspace.expr_heatmap.heatmap_colors'] === 'PiYG');
-  // restore by clicking the saved row in the modal's snapshot table
+  // restore by clicking the saved row in the modal's snapshot table.
+  // Stage 1 (2.7) gates the restore behind a CONFIRM dialog - click
+  // through it, or the palette never reverts and this probe times out.
   await p1.click('[data-testid="app-snapshot-button"]');
   await p1.locator('#app-tab_saveSS tbody tr').first().click();
+  try {
+    await p1.locator('.modal-footer .btn-primary, .modal-footer .btn-danger').first().click({
+      timeout: 8000
+    });
+  } catch { /* no confirm dialog on this build */ }
   await p1.waitForFunction((want) =>
     Shiny.shinyapp.$inputValues['app-dataspace-heatmapViewer-heatmapColors'] === want,
     'RdGy', { timeout: 45000 });

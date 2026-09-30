@@ -123,6 +123,37 @@ agent_figure_grammar <- function() {
       color = "Hex color (e.g. #b2182b) for every row of the layer; mutually exclusive with mapping the color aesthetic.",
       fill = "Hex color for every row of the layer; mutually exclusive with mapping the fill aesthetic."
     ),
+    label_layers = list(
+      description = paste(
+        "text/label layers draw at most params.max_labels rows (0-50).",
+        "The optional params.order_by = {column, decreasing} ranks the",
+        "rows at render time BEFORE the cap, so a capped label layer can",
+        "mark e.g. the most significant features without reordering the",
+        "plotted data; 'x'/'y' refer to the layer's own axis mapping."
+      ),
+      example = list(
+        geom = "label", x = "logFC", y = "logFdr", label = "__feature_id__",
+        params = list(
+          max_labels = 10, order_by = list(column = "y", decreasing = TRUE)
+        )
+      )
+    ),
+    revision = list(
+      description = paste(
+        "update_figure(figure_id, changes) revises a stored figure by",
+        "merging a PARTIAL spec - only the fields that change - onto the",
+        "registry copy; unmentioned fields keep their current values.",
+        "Scalar fields and arrays (layers, features, samples) replace",
+        "wholesale; labels/theme_options/scale merge per key (an explicit",
+        "null removes that key); an explicit null or empty array on",
+        "features/samples clears back to the default set.",
+        "get_figure(figure_id) returns a figure's current compact spec."
+      ),
+      note = paste(
+        "Tool results carry a compact spec whose id arrays are elided when",
+        "large; revise through changes, not by reconstructing the full spec."
+      )
+    ),
     scale_overrides = list(
       description = paste(
         "Explicit per-channel scale control; beats the palette preset for",
@@ -203,6 +234,44 @@ agent_figure_grammar <- function() {
   if (is.list(value))
     return(all(vapply(value, function(v) .agent_param_absent(v), logical(1))))
   isTRUE(is.na(value[1]))
+}
+
+# Normalize one text/label layer's render-time row ordering (todo 3.1:
+# volcano label_top_n ranks rows at render time instead of resolving the
+# complete reordered feature vector into spec$features). 'x'/'y'
+# shorthand resolves to the layer's own axis mapping, exactly like the
+# filter grammar.
+.agent_figure_order_by_normalize <- function(value, mappings) {
+  if (.agent_param_absent(value))
+    return(NULL)
+  if (!is.list(value))
+    stop("Figure layer order_by must be an object with column and decreasing.")
+  unknown <- setdiff(names(value), c("column", "decreasing"))
+  if (length(unknown))
+    stop("Unknown figure layer order_by field(s): ",
+         paste(unknown, collapse = ", "))
+  column <- .agent_figure_scalar(
+    value$column, max_chars = 500L, arg = "params.order_by.column")
+  if (is.null(column))
+    stop("Figure layer order_by requires a column.")
+  if (column %in% c("x", "y")) {
+    mapped <- .agent_figure_scalar(mappings[[column]], max_chars = 500L)
+    if (is.null(mapped))
+      stop("Figure layer order_by column '", column,
+           "' refers to this layer's ", column,
+           " aesthetic, which the layer does not map.")
+    column <- mapped
+  }
+  decreasing <- TRUE
+  if (!.agent_param_absent(value$decreasing)) {
+    raw <- value$decreasing
+    parsed <- if (is.logical(raw)) raw[1] else
+      tolower(as.character(raw)[1]) %in% c("true", "t", "yes", "y", "1")
+    if (is.na(parsed))
+      stop("Figure layer order_by decreasing must be true or false.")
+    decreasing <- isTRUE(parsed)
+  }
+  list(column = column, decreasing = decreasing)
 }
 
 .agent_figure_ids_param <- function(value, name) {
@@ -694,15 +763,30 @@ agent_where_eval <- function(where, data) {
 #' schema-driven argument conversion drop properties that are not in the
 #' declared schema, so a model echoing the result verbatim would otherwise
 #' lose the axis mappings. The session registry keeps the normalized shape
-#' (the canonical base for a future patch-mode update_figure).
+#' (the canonical base for patch-mode \code{update_figure}).
+#'
+#' The echo is bounded independent of dataset size (todo 3.1): resolved
+#' id arrays never ride along wholesale. A \code{features}/\code{samples}
+#' array is included only when it is an explicit subset of at most
+#' \code{max_inline_ids} ids (expression-figure selections, hand-picked
+#' genes); the default (full-dataset) set is omitted - re-normalization
+#' re-derives it - and larger subsets are omitted in favour of the
+#' \code{feature_count}/\code{sample_count} metadata the tool result
+#' already carries. Use \code{get_figure(figure_id)} + patch-mode
+#' \code{update_figure} to revise figures whose id sets were elided.
 #'
 #' @param spec Normalized specification from
 #'   \code{\link{agent_normalize_figure_spec}}.
+#' @param all_features Complete feature id set of the dataset (rownames);
+#'   used to detect default (full-set) resolution.
+#' @param all_samples Complete sample id set of the dataset.
+#' @param max_inline_ids Largest id array echoed verbatim.
 #' @return A JSON-like spec in the documented input shape; normalizing it
-#'   again reproduces \code{spec} exactly.
+#'   again reproduces \code{spec} whenever no id array was elided.
 #' @keywords internal
 #' @rdname agentFigureHelpers
-agent_figure_spec_echo <- function(spec) {
+agent_figure_spec_echo <- function(spec, all_features = NULL, all_samples = NULL,
+                                   max_inline_ids = 50L) {
   layers <- lapply(spec$layers, function(layer) {
     out <- c(list(geom = layer$geom), layer$mappings)
     if (!is.null(layer$filter)) out$filter <- layer$filter
@@ -711,7 +795,146 @@ agent_figure_spec_echo <- function(spec) {
   })
   out <- spec
   out$layers <- layers
+  out$features <- .agent_figure_echo_ids(
+    spec$features, all_features, max_inline_ids)
+  out$samples <- .agent_figure_echo_ids(
+    spec$samples, all_samples, max_inline_ids)
   out
+}
+
+# One id array's echo: NULL when absent, verbatim when it is a small
+# explicit subset, NULL (elided - re-normalization re-derives it) when it
+# is the dataset default or too large to echo.
+.agent_figure_echo_ids <- function(ids, all_ids, max_inline_ids) {
+  if (is.null(ids) || !length(ids))
+    return(NULL)
+  if (!is.null(all_ids) && length(all_ids) &&
+      identical(as.character(ids), as.character(all_ids)))
+    return(NULL)
+  if (length(ids) > max_inline_ids)
+    return(NULL)
+  as.character(ids)
+}
+
+#' Merge a partial figure specification onto a stored one
+#'
+#' Patch mode for \code{update_figure} (todo 3.1): the session registry's
+#' normalized spec is the revision base, and the model sends only the
+#' fields that change. Semantics: scalar fields and arrays (layers,
+#' features, samples) replace wholesale when present; object fields
+#' (labels, theme_options, scale) merge per key, where an explicitly null
+#' key removes that key from the base; omitted fields keep the base value.
+#' Re-normalization (against the CURRENT dataset) happens in the caller.
+#'
+#' @param base Normalized specification stored in the figure registry.
+#' @param changes Canonical partial specification document.
+#' @return The merged specification (not yet re-normalized).
+#' @keywords internal
+#' @rdname agentFigureHelpers
+agent_figure_spec_patch <- function(base, changes) {
+  if (!is.list(changes))
+    stop("Figure changes must be an object of spec fields to modify.")
+  allowed <- c(
+    "data_source", "features", "samples", "layers", "facet_by", "facet_ncol",
+    "x_transform", "y_transform", "theme", "palette", "labels",
+    "scale", "theme_options"
+  )
+  unknown <- setdiff(names(changes), allowed)
+  if (length(unknown))
+    stop("Unknown figure changes field(s): ", paste(unknown, collapse = ", "))
+
+  out <- base
+  scalar_fields <- c(
+    "data_source", "facet_by", "facet_ncol", "x_transform", "y_transform",
+    "theme", "palette"
+  )
+  for (field in scalar_fields) {
+    if (!field %in% names(changes))
+      next
+    value <- changes[[field]]
+    out[[field]] <- if (.agent_param_absent(value)) NULL else value
+  }
+  for (field in c("features", "samples", "layers")) {
+    if (!field %in% names(changes))
+      next
+    value <- changes[[field]]
+    if (.agent_param_absent(value))
+      out[[field]] <- NULL   # cleared: re-normalization re-derives the default
+    else
+      out[[field]] <- value  # arrays replace wholesale
+  }
+  for (field in c("labels", "theme_options", "scale")) {
+    if (!field %in% names(changes))
+      next
+    value <- changes[[field]]
+    if (.agent_param_absent(value)) {
+      out[[field]] <- NULL
+      next
+    }
+    if (!is.list(value))
+      stop("Figure changes ", field, " must be an object.")
+    merged <- out[[field]]
+    if (is.null(merged)) merged <- list()
+    for (key in names(value)) {
+      key_value <- value[[key]]
+      if (.agent_param_absent(key_value))
+        merged[[key]] <- NULL   # explicit null clears this key
+      else
+        merged[[key]] <- key_value
+    }
+    merged <- merged[!vapply(merged, function(v)
+      is.null(v) || .agent_param_absent(v), logical(1))]
+    out[[field]] <- if (length(merged)) merged else NULL
+  }
+  out
+}
+
+#' Make room in the session figure registry (LRU, lineage-aware)
+#'
+#' The registry holds at most \code{capacity} entries (todo 3.8 - the
+#' pre-Stage-2 form hard-failed every create/update once 20 figures
+#' existed, with no remedy short of a browser reload). Eviction order:
+#' superseded revisions first (entries that are the parent of a later
+#' revision - their spec has been merged forward), oldest last-use first;
+#' then lineage heads, oldest last-use first. \code{exclude} (the figure
+#' being revised right now) is never evicted.
+#'
+#' @param registry Named list of figure entries.
+#' @param capacity Maximum registry size.
+#' @param exclude Figure ids that must survive this call.
+#' @return List: \code{registry} (possibly unchanged) and \code{evicted}
+#'   (character ids removed).
+#' @keywords internal
+#' @rdname agentFigureHelpers
+agent_figure_registry_evict <- function(registry, capacity = 20L,
+                                       exclude = character()) {
+  evicted <- character()
+  if (length(registry) < capacity)
+    return(list(registry = registry, evicted = evicted))
+  parents <- unique(Filter(
+    function(x) !is.na(x) && nzchar(x),
+    vapply(registry, function(f) as.character(f$parent_id %||% ""), character(1))
+  ))
+  # ISO-8601 UTC strings sort chronologically as plain strings
+  stamp <- function(f)
+    as.character(f$last_used_at %||% f$created_at %||% "")
+  eligible <- setdiff(names(registry), exclude)
+  # prefer superseded revisions (non-heads); their specs were merged forward
+  superseded <- eligible[eligible %in% parents]
+  heads <- setdiff(eligible, superseded)
+  order_by_age <- function(ids) {
+    if (!length(ids)) return(character())
+    ids[order(vapply(registry[ids], stamp, character(1)), decreasing = FALSE)]
+  }
+  candidates <- c(order_by_age(superseded), order_by_age(heads))
+  i <- 1L
+  while (length(registry) >= capacity && i <= length(candidates)) {
+    id <- candidates[[i]]
+    registry[[id]] <- NULL
+    evicted <- c(evicted, id)
+    i <- i + 1L
+  }
+  list(registry = registry, evicted = evicted)
 }
 
 #' Normalize and validate a model-proposed figure specification
@@ -850,7 +1073,7 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       params <- layer$params
     allowed_params <- c(
       "alpha", "size", "linewidth", "bins", "method", "se", "position",
-      "xintercept", "yintercept", "max_labels", "color", "fill"
+      "xintercept", "yintercept", "max_labels", "color", "fill", "order_by"
     )
     unknown_params <- setdiff(names(params), allowed_params)
     if (length(unknown_params))
@@ -870,6 +1093,7 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     params$xintercept <- .agent_figure_numeric_param(params$xintercept, "xintercept", -1e9, 1e9, NULL)
     params$yintercept <- .agent_figure_numeric_param(params$yintercept, "yintercept", -1e9, 1e9, NULL)
     params$max_labels <- .agent_figure_integer_param(params$max_labels, "max_labels", 0L, 50L, 20L)
+    params$order_by <- .agent_figure_order_by_normalize(params$order_by, mappings)
     if (geom %in% c("hline", "vline")) {
       # Decorative reference lines arrive without an intercept surprisingly
       # often (the intent is the conventional no-change line). Deriving the
@@ -978,7 +1202,8 @@ agent_figure_templates <- function() {
         x = "Required numeric feature column: fold change (e.g. a ttest mean.diff column).",
         y = "Required numeric feature column: log-scale significance where higher = more significant (e.g. a log.fdr or log.pvalue column).",
         color = "Optional feature column mapped to point color.",
-        label_top_n = "Optional integer 0-50: label the n features ranked by y, highest first. Default 0 (no labels).",
+        label_top_n = paste("Optional integer 0-50: label the n features ranked by y (log-scale significance),",
+                            "highest first - the label layer orders rows at render time. Default 0 (no labels)."),
         title = "Optional title; defaults to 'Volcano: <x> vs <y>'."
       )
     ),
@@ -1096,22 +1321,23 @@ agent_figure_templates <- function() {
     )
   )
   if (label_top_n > 0L) {
-    # reorder the plotted rows so the capped label layer marks exactly the
-    # most significant features: higher y = more significant (the app's
-    # log.pvalue/log.fdr convention; see module_meta_scatter volcano detection).
-    # An explicit features subset is ranked within itself.
-    significance <- feature_data[[y_col$column]]
-    ids <- if (!is.null(features)) features else rownames(feature_data)
-    spec$features <- ids[order(
-      significance[match(ids, rownames(feature_data))],
-      decreasing = TRUE, na.last = TRUE
-    )]
+    # Label the n most significant features: the label layer orders its
+    # rows at render time (params$order_by, higher y = more significant
+    # per the app's log.pvalue/log.fdr convention) BEFORE the max_labels
+    # cap, so spec$features stays NULL and the echoed/registry spec stays
+    # O(1) in the dataset size (todo 3.1 - the pre-Stage-2 form resolved
+    # the complete reordered feature vector into the spec and every tool
+    # result echoed it). An explicit features subset is ranked within
+    # itself.
     spec$layers <- c(spec$layers, list(list(
       geom = "label",
       x = x_col$column,
       y = y_col$column,
       label = "__feature_id__",
-      params = list(max_labels = label_top_n, size = 3)
+      params = list(
+        max_labels = label_top_n, size = 3,
+        order_by = list(column = y_col$column, decreasing = TRUE)
+      )
     )))
   }
   spec
@@ -1305,9 +1531,11 @@ agent_figure_template_spec <- function(template = NULL, x = NULL, y = NULL,
   # WP6b: attach the optional explicit ID subsets (e.g. "the first 20
   # selected genes" — previously inexpressible on the template path, which
   # forced models into the template+spec collision). The volcano template
-  # already set spec$features when ranking for label_top_n; IDs are
-  # validated downstream by agent_normalize_figure_spec against the live
-  # rownames, and each subset only lands on data sources that plot it.
+  # ranks label candidates at render time (params$order_by on the label
+  # layer), so spec$features stays NULL unless the model restricted the
+  # plotted rows; IDs are validated downstream by
+  # agent_normalize_figure_spec against the live rownames, and each subset
+  # only lands on data sources that plot it.
   if (!is.null(features_value) &&
       spec$data_source %in% c("feature_annotation", "expression") &&
       is.null(spec$features))
@@ -1436,7 +1664,11 @@ agent_build_figure_plot <- function(data, spec) {
     mapping <- make_mapping(mappings)
 
     # widened grammar: the structured row filter composites before the
-    # max_labels cap (filter first, then cap the surviving rows)
+    # max_labels cap (filter first, then cap the surviving rows); the
+    # optional order_by ranks the surviving rows at render time so the
+    # capped label layer marks the intended rows (e.g. the most
+    # significant features) without the spec resolving a reordered id
+    # vector (todo 3.1)
     layer_data <- NULL
     if (!is.null(layer$filter)) {
       hit <- agent_where_eval(layer$filter, data)
@@ -1445,9 +1677,19 @@ agent_build_figure_plot <- function(data, spec) {
       layer_data <- data[hit, , drop = FALSE]
     }
     if (geom %in% c("text", "label") && params$max_labels > 0L) {
-      layer_data <- utils::head(
-        if (is.null(layer_data)) data else layer_data, params$max_labels
-      )
+      df <- if (is.null(layer_data)) data else layer_data
+      if (!is.null(params$order_by)) {
+        order_column <- params$order_by$column
+        if (!order_column %in% colnames(data))
+          stop("Figure layer order_by column is unavailable: ", order_column, ".",
+               .agent_suggest_text(order_column, colnames(data)))
+        key <- df[[order_column]]
+        df <- df[order(
+          key, decreasing = isTRUE(params$order_by$decreasing),
+          na.last = TRUE
+        ), , drop = FALSE]
+      }
+      layer_data <- utils::head(df, params$max_labels)
     }
 
     # constant per-layer colors (hex-validated at normalization time)

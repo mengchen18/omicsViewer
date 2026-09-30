@@ -12,6 +12,8 @@
 \alias{agent_system_prompt_add_block}
 \alias{agent_fallback_summary}
 \alias{agent_compaction_prompt}
+\alias{.agent_context_tool_digests}
+\alias{agent_compaction_summary_turns}
 \alias{agent_context_archive_merge}
 \alias{agent_strip_runtime_refs}
 \alias{agent_context_digest_parts}
@@ -48,6 +50,10 @@ agent_fallback_summary(turns, max_chars = 4000L)
 
 agent_compaction_prompt(turns)
 
+.agent_context_tool_digests(turns, max_lines = 60L)
+
+agent_compaction_summary_turns(summary)
+
 agent_context_archive_merge(turns, archive)
 
 agent_strip_runtime_refs(turns)
@@ -72,7 +78,11 @@ agent_promise_race(promise_list)
 
 \item{keep_exchanges}{Minimum number of trailing exchanges to keep.}
 
+\item{summary}{Summary text (LLM or deterministic fallback).}
+
 \item{max_chars}{Overall character budget.}
+
+\item{max_lines}{Overall line budget.}
 
 \item{promise_list}{List of promise objects.}
 }
@@ -91,6 +101,10 @@ Integer index into \code{turns} (keep \code{turns[i..end]}), or
   NULL when there is nothing that can safely be dropped.
 
 Single character string.
+
+Single string of digest lines (possibly empty).
+
+List of two ellmer turns (UserTurn, AssistantTurn).
 
 New list of turns with archived values restored.
 
@@ -173,6 +187,20 @@ maximal safe cut keeps just the minimum exchanges (deputy's fallback).
 Fallback compaction summary (mini007 posture): a one-line record per turn
 from the existing transcript recorder, byte-bounded. Used when the LLM
 summary fails or is cancelled - degraded-but-working beats fail-closed.
+
+Tool outputs never reach the summariser through
+\code{ellmer::contents_text()} (it returns NULL for tool results), so
+the prompt folds in one bounded digest line per tool result (tool
+name, figure ids, id counts - read from the structured output-seam
+copy in \code{extra$data}) alongside the text transcript. Without the
+digests a compaction summary could not keep the exact identifiers its
+own instructions ask for (todo 3.4).
+
+The summary is installed as the FIRST exchange of the kept history -
+never in the system prompt (todo 3.4): text derived from untrusted
+dataset content must not gain system authority. The framing labels
+the block as recorded data, not instructions, and the assistant ack
+turn keeps the turn alternation valid for every provider.
 
 WP11 snapshot fidelity: \code{snapshot_payload()} runs the live (stubbed)
 turns through this before \code{agent_history_payload()}, so persistence

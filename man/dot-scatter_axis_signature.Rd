@@ -11,4 +11,12 @@ Selection emphasis is tied to the exact axes on which that selection was
 made or restored. This prevents an opacity vector from being carried into a
 different quick/custom figure.
 }
+\details{
+Accepts both key conventions: live triselector triples name their
+components analysis/subset/variable, while SAVED snapshot axes use the
+historic v1/v2/v3 names (the restore path used to feed the saved form
+into a reader that only understood the live one, so every restored
+signature came back empty and restored figure selections never
+re-emphasized).
+}
 \keyword{internal}

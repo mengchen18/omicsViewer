@@ -5,15 +5,24 @@
 \alias{agentToolHelpers}
 \alias{agent_args_sanitize}
 \alias{.agent_args_max_depth}
+\alias{.agent_tool_output_max_bytes}
+\alias{agent_json_prep}
+\alias{agent_result_codec}
 \alias{agent_tool}
 \title{Canonical agent tool-argument transport (the boundary seam)}
 \format{
 An object of class \code{integer} of length 1.
 }
 \usage{
-agent_args_sanitize(x, depth = 0L)
+agent_args_sanitize(x, depth = 0L, field_position = TRUE)
 
 .agent_args_max_depth
+
+.agent_tool_output_max_bytes()
+
+agent_json_prep(x)
+
+agent_result_codec(result, max_bytes = .agent_tool_output_max_bytes())
 
 agent_tool(
   fun,
@@ -24,10 +33,17 @@ agent_tool(
 )
 }
 \arguments{
-\item{x}{A parsed JSON value, a named list of tool arguments, or any
-already-canonical R value.}
+\item{x}{An R value from a tool handler.}
 
 \item{depth}{Recursion guard (internal).}
+
+\item{field_position}{Whether \code{x} sits in an object-field
+position (sentinel strings map to \code{NULL}); array elements and
+the top-level document keep literal strings (internal).}
+
+\item{result}{Handler return value.}
+
+\item{max_bytes}{Model-facing byte cap for the serialized value.}
 
 \item{fun}{Tool handler; formals must match \code{names(arguments)}
 exactly (ellmer enforces this).}
@@ -42,6 +58,10 @@ exactly (ellmer enforces this).}
 }
 \value{
 The canonical representation of \code{x}.
+
+A JSON-faithful R representation.
+
+The codec-processed result.
 
 An \code{ellmer::ToolDef} with \code{convert = FALSE}.
 }
@@ -59,15 +79,40 @@ named lists for objects, atomic vectors for homogeneous scalar
 arrays, and \code{NULL} for absent values. Provider sentinel strings
 (\code{AGENT_SENTINEL_STRINGS} -- some models serialize omitted
 optionals as literal \code{"null"}/\code{"{}"}/\code{"[]"} strings)
-become \code{NULL} at any depth. Empty arrays and arrays whose every
-element is absent stay explicit empty lists -- an empty array is a
-real value (\dQuote{clear the selection}, \dQuote{reject via the
-min rule}), distinct from an omitted optional.
+become \code{NULL} -- but only in \emph{object field} positions,
+never inside data arrays: a feature list like
+\code{["TP53", "NULL"]} is data whose entries may legitimately equal
+those strings, and silently dropping them corrupts the selection
+(todo 3.3). Empty arrays and arrays whose every element is absent
+stay explicit empty lists -- an empty array is a real value
+(\dQuote{clear the selection}, \dQuote{reject via the min rule}),
+distinct from an omitted optional.
 
 Real argument documents nest at most a handful of levels (figure
 specs: layers -> filter -> combinators -> leaves). The cap turns a
 pathological payload into a self-correctable tool error instead of
 unbounded recursion.
+
+Env knob \code{OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES} (default 8192,
+clamped to [1024, 65536]): every model-facing tool result value is at
+most this many bytes; oversized results are replaced by a truncation
+marker that tells the model how to narrow the request.
+
+jsonlite's \code{auto_unbox} drops the names of atomic vectors
+(\code{c(a = 1)} becomes the scalar \code{1}); converting named
+vectors to named lists restores the object shape the value intended.
+Everything else passes through recursively (explicit \code{NULL}s are
+kept and serialize as \code{null} with \code{null = "null"}).
+
+Runs inside the \code{\link{agent_tool}} wrapper on every handler
+return value: non-string, non-error \code{ContentToolResult} values
+become \code{json}-class strings (names preserved, \code{NULL} as
+\code{null}), bounded by \code{max_bytes} (default from
+\code{OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES}); the structured original is
+kept in \code{extra$data} for internal consumers. Errored results,
+plain strings, and values that are already \code{json} pass through
+unchanged. Results that are not \code{ContentToolResult} objects are
+returned untouched (ellmer wraps plain strings itself).
 
 Drop-in replacement for \code{ellmer::tool()} for every assistant
 tool. The handler is wrapped so that exactly one

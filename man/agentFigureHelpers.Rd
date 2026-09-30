@@ -4,6 +4,8 @@
 \alias{agentFigureHelpers}
 \alias{agent_figure_grammar}
 \alias{agent_figure_spec_echo}
+\alias{agent_figure_spec_patch}
+\alias{agent_figure_registry_evict}
 \alias{agent_normalize_figure_spec}
 \alias{agent_figure_templates}
 \alias{agent_figure_template_spec}
@@ -15,7 +17,16 @@
 \usage{
 agent_figure_grammar()
 
-agent_figure_spec_echo(spec)
+agent_figure_spec_echo(
+  spec,
+  all_features = NULL,
+  all_samples = NULL,
+  max_inline_ids = 50L
+)
+
+agent_figure_spec_patch(base, changes)
+
+agent_figure_registry_evict(registry, capacity = 20L, exclude = character())
 
 agent_normalize_figure_spec(
   spec,
@@ -55,6 +66,23 @@ agent_figure_html(figure, spec, figure_id)
 }
 \arguments{
 \item{spec}{Normalized figure specification.}
+
+\item{all_features}{Complete feature id set of the dataset (rownames);
+used to detect default (full-set) resolution.}
+
+\item{all_samples}{Complete sample id set of the dataset.}
+
+\item{max_inline_ids}{Largest id array echoed verbatim.}
+
+\item{base}{Normalized specification stored in the figure registry.}
+
+\item{changes}{Canonical partial specification document.}
+
+\item{registry}{Named list of figure entries.}
+
+\item{capacity}{Maximum registry size.}
+
+\item{exclude}{Figure ids that must survive this call.}
 
 \item{feature_data}{Feature metadata.}
 
@@ -110,7 +138,12 @@ A JSON-like description of supported data sources, geoms, aesthetic
   limits.
 
 A JSON-like spec in the documented input shape; normalizing it
-  again reproduces \code{spec} exactly.
+  again reproduces \code{spec} whenever no id array was elided.
+
+The merged specification (not yet re-normalized).
+
+List: \code{registry} (possibly unchanged) and \code{evicted}
+  (character ids removed).
 
 A normalized specification with only allowlisted keys and values.
 
@@ -144,7 +177,23 @@ documents (aesthetics as direct layer fields): providers and ellmer's
 schema-driven argument conversion drop properties that are not in the
 declared schema, so a model echoing the result verbatim would otherwise
 lose the axis mappings. The session registry keeps the normalized shape
-(the canonical base for a future patch-mode update_figure).
+(the canonical base for patch-mode \code{update_figure}).
+
+Patch mode for \code{update_figure} (todo 3.1): the session registry's
+normalized spec is the revision base, and the model sends only the
+fields that change. Semantics: scalar fields and arrays (layers,
+features, samples) replace wholesale when present; object fields
+(labels, theme_options, scale) merge per key, where an explicitly null
+key removes that key from the base; omitted fields keep the base value.
+Re-normalization (against the CURRENT dataset) happens in the caller.
+
+The registry holds at most \code{capacity} entries (todo 3.8 - the
+pre-Stage-2 form hard-failed every create/update once 20 figures
+existed, with no remedy short of a browser reload). Eviction order:
+superseded revisions first (entries that are the parent of a later
+revision - their spec has been merged forward), oldest last-use first;
+then lineage heads, oldest last-use first. \code{exclude} (the figure
+being revised right now) is never evicted.
 
 Templates (WP6) are the concise path through \code{create_figure}: a few
 well-named columns expand server-side into a full validated specification.
@@ -156,5 +205,16 @@ columns (\code{x}, \code{y}, \code{color}, \code{label_top_n}, \code{title},
 normalized and validated by \code{\link{agent_normalize_figure_spec}}, so
 template figures carry the full WP3 round-trip spec and remain revisable
 through \code{update_figure}. The generic grammar stays the advanced path.
+}
+\details{
+The echo is bounded independent of dataset size (todo 3.1): resolved
+id arrays never ride along wholesale. A \code{features}/\code{samples}
+array is included only when it is an explicit subset of at most
+\code{max_inline_ids} ids (expression-figure selections, hand-picked
+genes); the default (full-dataset) set is omitted - re-normalization
+re-derives it - and larger subsets are omitted in favour of the
+\code{feature_count}/\code{sample_count} metadata the tool result
+already carries. Use \code{get_figure(figure_id)} + patch-mode
+\code{update_figure} to revise figures whose id sets were elided.
 }
 \keyword{internal}

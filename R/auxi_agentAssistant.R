@@ -242,9 +242,12 @@ agent_budget_violation <- function(used_tokens, used_cost_usd, limits) {
 
 #' Read server-side assistant provider configuration
 #'
-#' Environment variables are intentionally limited to provider selection, model
-#' selection, an optional OpenAI-compatible base URL, and credentials. The API
-#' key is never placed in Shiny UI state, snapshots, tool results, or logs.
+#' Environment variables are intentionally limited to provider selection
+#' (\code{openai}, \code{openai_compatible} for chat/completions
+#' endpoints such as vLLM/Ollama/LiteLLM, \code{anthropic}), model
+#' selection, an optional OpenAI-compatible base URL, and credentials.
+#' The API key is never placed in Shiny UI state, snapshots, tool results,
+#' or logs.
 #'
 #' @return A list with provider, model, base URL, API key, configuration
 #'   status, and credential source. An empty API key means that the user must
@@ -253,7 +256,7 @@ agent_budget_violation <- function(used_tokens, used_cost_usd, limits) {
 #' @rdname agentAssistantHelpers
 agent_environment_config <- function() {
   provider <- tolower(.agent_trim_scalar(Sys.getenv("OMICSVIEWER_LLM_PROVIDER")))
-  if (!provider %in% c("openai", "anthropic")) {
+  if (!provider %in% c("openai", "openai_compatible", "anthropic")) {
     provider <- if (nzchar(Sys.getenv("ANTHROPIC_API_KEY"))) "anthropic" else "openai"
   }
 
@@ -319,7 +322,15 @@ agent_allow_user_endpoint <- function() {
 
 #' Validate user-supplied assistant provider settings
 #'
-#' @param provider Single provider name: openai or anthropic.
+#' @param provider Single provider name: openai, openai_compatible, or
+#'   anthropic. \code{openai_compatible} targets any endpoint speaking
+#'   the OpenAI \emph{chat/completions} API (vLLM, Ollama, LiteLLM, most
+#'   gateways) via \code{ellmer::chat_openai_compatible} and requires a
+#'   base URL; \code{openai} keeps \code{ellmer::chat_openai()} - the
+#'   OpenAI \emph{responses} API - for api.openai.com and for gateways
+#'   that expose their models through it (todo 3.7; provider-explicit
+#'   routing, verified 2026-09-30: bigmodel serves glm-5.3-flash on
+#'   /api/v1/responses but denies it on /chat/completions).
 #' @param model Optional model name. An empty value uses the provider default.
 #' @param api_key Optional session API key.
 #' @param base_url Optional HTTPS or local HTTP API endpoint.
@@ -336,8 +347,8 @@ agent_allow_user_endpoint <- function() {
 agent_validate_provider_config <- function(provider, model = "", api_key = "",
                                             base_url = "", allow_local_http = FALSE) {
   provider <- .agent_trim_scalar(provider)
-  if (!provider %in% c("openai", "anthropic"))
-    stop("LLM provider must be 'openai' or 'anthropic'.")
+  if (!provider %in% c("openai", "openai_compatible", "anthropic"))
+    stop("LLM provider must be 'openai', 'openai_compatible', or 'anthropic'.")
 
   model <- .agent_trim_scalar(model)
   api_key <- .agent_trim_scalar(api_key)
@@ -361,6 +372,11 @@ agent_validate_provider_config <- function(provider, model = "", api_key = "",
         "Local HTTP endpoints require an administrator to set",
         "OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT=TRUE."
       ))
+  } else if (identical(provider, "openai_compatible")) {
+    stop(paste(
+      "The openai_compatible provider requires a custom API base URL",
+      "(an endpoint that speaks the OpenAI chat/completions API)."
+    ))
   }
 
   list(
@@ -966,12 +982,15 @@ agent_history_redact <- function(text) {
 #' every tool result by 100+ KB) from tool results; keeps values, errors,
 #' and the paired tool request (tool-call id + name - small, and WP13's
 #' context stubber needs it to identify snapshot tools after a restore)
-#' as inert context. Returns a NEW turn (the live session object is never
-#' mutated). Runtime-only ToolDef references on tool requests are dropped
-#' (\code{\link{agent_strip_runtime_refs}}): the byte budget below is
-#' measured by serializing these turns, and a ToolDef closure would pull
-#' the whole application graph into that measurement - and into the
-#' persisted payload.
+#' as inert context. The structured output-seam copy (`extra$data`, todo
+#' 3.2) is kept when present so restored turns still let the stubber and
+#' summariser read figure ids and tool digests; it is bounded by the
+#' tool-output budget. Returns a NEW turn (the live session object is
+#' never mutated). Runtime-only ToolDef references on tool requests are
+#' dropped (\code{\link{agent_strip_runtime_refs}}): the byte budget
+#' below is measured by serializing these turns, and a ToolDef closure
+#' would pull the whole application graph into that measurement - and
+#' into the persisted payload.
 #'
 #' @param turn An ellmer Turn object.
 #' @return A new Turn of the same class with slimmed contents.
@@ -991,10 +1010,15 @@ agent_history_redact <- function(text) {
           id = req@id, name = req@name,
           arguments = req@arguments, extra = req@extra
         )
+      # keep the structured output-seam copy (small, bounded by the
+      # tool-output budget); drop display payloads only
+      extra <- if (!is.null(x@extra) && !is.null(x@extra$data))
+        list(data = x@extra$data) else list()
       return(ellmer::ContentToolResult(
         value = x@value,
         request = req,
-        error = x@error
+        error = x@error,
+        extra = extra
       ))
     }
     if (inherits(x, "ellmer::ContentToolRequest") && !is.null(x@tool))
@@ -1044,8 +1068,10 @@ agent_transcript_records <- function(turns) {
 #' Build the assistant snapshot payload
 #'
 #' Byte-capped (default 256 KB, measured by actual serialization size):
-#' oldest turns drop first, at least the last two turns always survive.
-#' Returns NULL when there is nothing to save.
+#' whole turns drop from the FRONT (oldest first) so the newest - the
+#' exchange a restored conversation continues from - always survive; at
+#' least the last two turns always survive. Returns NULL when there is
+#' nothing to save.
 #'
 #' @param turns Client turns (\code{client$get_turns()}).
 #' @param figures Figure registry (\code{figures()}); at most 20 entries.
@@ -1071,17 +1097,28 @@ agent_history_payload <- function(turns, figures = list(),
   turn_bytes <- vapply(slim, function(t)
     length(serialize(t, connection = NULL)), numeric(1))
   cum_bytes <- text_bytes[-1] + cumsum(turn_bytes)
-  keep <- length(slim)
-  while (keep > 2L && cum_bytes[[keep]] > max_bytes)
-    keep <- keep - 1L
+  n <- length(slim)
+  total_bytes <- cum_bytes[[n]]
+  # Keep the NEWEST whole turns (todo 3.6): the suffix starting at `keep`
+  # costs total_bytes - cum_bytes[[keep - 1]], and suffixes SHRINK as the
+  # start index grows - so walk the start index UP from 1 (drop oldest
+  # first) until the kept suffix fits; the last two turns always survive.
+  suffix_bytes <- function(k) {
+    if (k <= 1L) return(total_bytes)
+    total_bytes - cum_bytes[[k - 1L]]
+  }
+  keep <- 1L
+  while (keep < n && suffix_bytes(keep) > max_bytes)
+    keep <- keep + 1L
+  keep <- min(keep, max(1L, n - 1L))
   list(
     version = 1L,
     saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-    turns = if (keep == length(slim)) slim else slim[seq_len(keep)],
-    transcript = if (keep == length(slim)) records else records[seq_len(keep)],
+    turns = slim[keep:n],
+    transcript = records[keep:n],
     figures = if (length(figures)) figures[seq_len(min(length(figures), 20L))] else list(),
-    truncated = keep < length(slim),
-    bytes = round(cum_bytes[[keep]])
+    truncated = keep > 1L,
+    bytes = round(suffix_bytes(keep))
   )
 }
 

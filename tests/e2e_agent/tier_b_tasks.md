@@ -14,6 +14,13 @@ tasks 1, 4, 6, 8, 10 plus the S3 task; full set x3 at phase gates.
 Majority-of-3 + triage on flakiness (Q8): identical repeated failures are
 harness bugs, varying failures are model nondeterminism.
 
+Provider note (Stage 2 / todo 3.7): the assistant now has three providers
+- `openai` (OpenAI RESPONSES API; api.openai.com and gateways that expose
+their models through it, e.g. bigmodel glm-5.3-flash), `openai_compatible`
+(chat/completions via ellmer::chat_openai_compatible; vLLM/Ollama/LiteLLM;
+requires base URL + model name), and `anthropic`. `tests/e2e_agent/provider.env`
+pins provider/model for benchmark comparability - do not change it mid-baseline.
+
 ## Core tasks (WP5)
 
 Wording notes (settled at the 2026-09-24 WP7 gate run):

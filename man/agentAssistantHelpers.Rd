@@ -119,7 +119,15 @@ agent_history_restore_payload(payload, max_bytes = 512L * 1024L)
 
 \item{limits}{From \code{\link{agent_cost_limits}}.}
 
-\item{provider}{Single provider name: openai or anthropic.}
+\item{provider}{Single provider name: openai, openai_compatible, or
+anthropic. \code{openai_compatible} targets any endpoint speaking
+the OpenAI \emph{chat/completions} API (vLLM, Ollama, LiteLLM, most
+gateways) via \code{ellmer::chat_openai_compatible} and requires a
+base URL; \code{openai} keeps \code{ellmer::chat_openai()} - the
+OpenAI \emph{responses} API - for api.openai.com and for gateways
+that expose their models through it (todo 3.7; provider-explicit
+routing, verified 2026-09-30: bigmodel serves glm-5.3-flash on
+/api/v1/responses but denies it on /chat/completions).}
 
 \item{model}{Optional model name. An empty value uses the provider default.}
 
@@ -297,9 +305,12 @@ adopting the package.
 Pure helper evaluated before every provider request: the check must not
 depend on reactive state.
 
-Environment variables are intentionally limited to provider selection, model
-selection, an optional OpenAI-compatible base URL, and credentials. The API
-key is never placed in Shiny UI state, snapshots, tool results, or logs.
+Environment variables are intentionally limited to provider selection
+(\code{openai}, \code{openai_compatible} for chat/completions
+endpoints such as vLLM/Ollama/LiteLLM, \code{anthropic}), model
+selection, an optional OpenAI-compatible base URL, and credentials.
+The API key is never placed in Shiny UI state, snapshots, tool results,
+or logs.
 
 When a server environment key is in use, the provider and the API base
 URL are locked to the environment values so the administrator's key can
@@ -332,16 +343,21 @@ Drops display-only payloads (embedded base64 figure previews inflate
 every tool result by 100+ KB) from tool results; keeps values, errors,
 and the paired tool request (tool-call id + name - small, and WP13's
 context stubber needs it to identify snapshot tools after a restore)
-as inert context. Returns a NEW turn (the live session object is never
-mutated). Runtime-only ToolDef references on tool requests are dropped
-(\code{\link{agent_strip_runtime_refs}}): the byte budget below is
-measured by serializing these turns, and a ToolDef closure would pull
-the whole application graph into that measurement - and into the
-persisted payload.
+as inert context. The structured output-seam copy (`extra$data`, todo
+3.2) is kept when present so restored turns still let the stubber and
+summariser read figure ids and tool digests; it is bounded by the
+tool-output budget. Returns a NEW turn (the live session object is
+never mutated). Runtime-only ToolDef references on tool requests are
+dropped (\code{\link{agent_strip_runtime_refs}}): the byte budget
+below is measured by serializing these turns, and a ToolDef closure
+would pull the whole application graph into that measurement - and
+into the persisted payload.
 
 Byte-capped (default 256 KB, measured by actual serialization size):
-oldest turns drop first, at least the last two turns always survive.
-Returns NULL when there is nothing to save.
+whole turns drop from the FRONT (oldest first) so the newest - the
+exchange a restored conversation continues from - always survive; at
+least the last two turns always survive. Returns NULL when there is
+nothing to save.
 
 Structure, size, and class checks at the restore boundary - snapshots
 are untrusted files. Rebuilding is never attempted for malformed data.

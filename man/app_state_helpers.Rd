@@ -24,6 +24,7 @@ new_app_state(
   app = list(),
   data_space = list(),
   result_space = list(),
+  widget_store = NULL,
   label = NA_character_,
   package_version = as.character(utils::packageVersion("omicsViewer")),
   schema_version = APP_STATE_SCHEMA_VERSION,
@@ -55,6 +56,7 @@ build_app_state(
   result_status = list(),
   selected_features = character(),
   selected_samples = character(),
+  widget_store = NULL,
   label = NA_character_,
   package_version = as.character(utils::packageVersion("omicsViewer"))
 )
@@ -75,6 +77,9 @@ restore_table_page_length(length, pageLength)
 \item{data_space}{Data-space panel state.}
 
 \item{result_space}{Result-space panel state.}
+
+\item{widget_store}{Optional canonical widget-store snapshot (schema 2);
+augmented with the explicit `unset` key list when given.}
 
 \item{label}{Snapshot label/name.}
 
@@ -134,15 +139,27 @@ downstream plots and analyses are recalculated after restoration.
 
 Legacy snapshots are plain lists whose names start with `eset_` or
 `analyst_`, plus `active_feature`/`active_sample`. Migration only namespaces
-those fields; child-module field names are left untouched.
+those fields; child-module field names are left untouched. A plain list
+WITHOUT any of those names is rejected: a stray `.RDS` file that happens
+to be a list must not "restore" as an empty state and silently clear the
+selection (todo 2.7).
 
-Validation warns on incompatible metadata rather than blocking restoration.
-Individual modules remain responsible for validating their own choices.
+Validation warns on incompatible metadata rather than blocking
+restoration; individual modules remain responsible for validating their
+own choices. ALL warnings are collected and returned as the `warnings`
+attribute (one character vector), so callers can surface every
+adjustment instead of only the first (todo 2.7). The semantic selection
+and the table-row mirrors are INTERSECTED with the current dataset ids
+(reported, not dropped: the selection may legitimately name absent ids
+after a dataset revision, but the tables would otherwise index out of
+bounds on re-exported datasets).
 
 The returned name contains only portable filename characters and cannot
-represent a path or parent-directory reference. Names are capped at 80
-characters so the generated file name stays comfortably below the usual
-255-byte file system limit even with the dataset-id prefix (todo 1.5).
+represent a path or parent-directory reference. Unicode letters and
+numbers are preserved (Perl `\p{L}`/`\p{N}` classes; todo 2.7); names
+are capped at 80 characters so the generated file name stays comfortably
+below the usual 255-byte file system limit even with the dataset-id
+prefix (todo 1.5).
 
 This pure helper is separated from the Shiny server so schema construction
 can be tested without launching the full application.

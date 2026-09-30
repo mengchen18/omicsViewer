@@ -11,6 +11,7 @@ triselector_module(
   reactive_selector2 = reactive(NULL),
   reactive_selector3 = reactive(NULL),
   reactive_axis_request = reactive(NULL),
+  allow_unset = FALSE,
   label = "Group Label:"
 )
 }
@@ -27,6 +28,16 @@ triselector_module(
 
 \item{reactive_axis_request}{version bump that forces re-derivation of the
 cascade (e.g. a widget-store epoch); unchanged values are never re-sent}
+
+\item{allow_unset}{logical; when TRUE the user may unset the variable by
+picking the "--select--" placeholder. The module then commits an
+explicit unset marker (a settled triple whose variable is
+"--select--") instead of repairing the variable back to the first
+valid choice. Downstream consumers already treat a "--select--"
+variable as "no mapping" (varSelector, the panel fallbacks), and
+\code{\link{store_bind_triselector}} clears the store key. Repair
+logic still applies to the upstream analysis/subset components.
+Default FALSE (e.g. scatter axes must always name a variable).}
 
 \item{label}{of the triselector}
 }

@@ -67,7 +67,7 @@ NULL
     "Workflows - find and select genes: search_annotations(space='feature', query=...), then set_omics_viewer_state with the exact returned IDs (e.g. the first five).",
     "Workflows - common figures (boxplot, scatter, histogram): create_figure with template and exact column names; use the full spec only for advanced multi-layer figures.",
     "Workflows - enrichment: set_enrichment_parameters(method='ora'|'fgsea', collapse=<exact Category|Subcategory|Variable column>) runs the analysis on the current selection/ranking; optionally pass selected_pathway afterwards to highlight one gene set.",
-    "Workflows - revise the last figure: take the 'spec' from the previous create_figure/update_figure result, change only the requested fields, and send it through update_figure.",
+    "Workflows - revise the last figure: call update_figure with the figure_id and changes - a partial spec of only the fields to change (e.g. {\"labels\":{\"title\":\"...\"},\"theme\":\"classic\"}); unmentioned fields keep their current values. get_figure(figure_id) reads a figure's current compact spec.",
     "Exact-ID contract: never guess IDs, tab labels, column names, or widget values; use values returned by tools. When a call is rejected, retry with the suggested closest matches or confirm via search_annotations instead of fabricating success."
   )
 }
@@ -94,6 +94,14 @@ NULL
     NULL
   }
 
+  # todo 3.7: ellmer's chat_openai() targets the OpenAI *responses* API
+  # while chat_openai_compatible() targets *chat/completions* (the only
+  # API vLLM/Ollama/LiteLLM-style gateways implement). Routing is
+  # provider-EXPLICIT: `openai` (with or without a custom base_url) keeps
+  # chat_openai unchanged - some gateways expose models through responses
+  # only (bigmodel /api/v1 + glm-5.3-flash, verified 2026-09-30: the same
+  # model is denied on /chat/completions) - and endpoints speaking
+  # chat/completions select the explicit `openai_compatible` provider.
   if (identical(config$provider, "anthropic")) {
     client <- ellmer::chat_anthropic(
       system_prompt = .ai_system_prompt(),
@@ -101,19 +109,30 @@ NULL
       base_url = base_url,
       credentials = credentials
     )
-  } else if (is.null(base_url)) {
-    client <- ellmer::chat_openai(
+  } else if (identical(config$provider, "openai_compatible")) {
+    if (is.null(base_url))
+      stop("The openai_compatible provider requires a custom API base URL.")
+    client <- ellmer::chat_openai_compatible(
+      name = "OpenAI-compatible",
       system_prompt = .ai_system_prompt(),
-      model = model,
+      base_url = base_url,
+      # chat_openai_compatible has no default model; a missing name must
+      # not kill the session at client construction - the request-time
+      # "model not found" from the gateway is the clear, recoverable
+      # signal (configure OMICSVIEWER_LLM_MODEL / the settings modal).
+      model = model %||% "gpt-4o-mini",
       credentials = credentials
     )
   } else {
-    client <- ellmer::chat_openai(
+    openai_args <- list(
       system_prompt = .ai_system_prompt(),
       model = model,
-      base_url = base_url,
       credentials = credentials
     )
+    # chat_openai's base_url property rejects NULL - pass it only when set
+    if (!is.null(base_url))
+      openai_args$base_url <- base_url
+    client <- do.call(ellmer::chat_openai, openai_args)
   }
   client
 }
@@ -327,7 +346,11 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         selectInput(
           ns("provider"),
           "Provider",
-          choices = c("OpenAI" = "openai", "Anthropic" = "anthropic"),
+          choices = c(
+            "OpenAI" = "openai",
+            "OpenAI-compatible (custom endpoint, chat/completions)" = "openai_compatible",
+            "Anthropic" = "anthropic"
+          ),
           selected = current$provider
         ),
         textInput(
@@ -1061,7 +1084,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       }
 
-      .ai_figure_spec_type <- function(required = TRUE) {
+      .ai_figure_spec_type <- function(required = TRUE, layers_required = TRUE) {
         ellmer::type_object(
           "Declarative allowlisted ggplot2 figure specification. Fields map to validated omicsViewer rendering code, never arbitrary R.",
           data_source = ellmer::type_enum(
@@ -1107,6 +1130,17 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                 xintercept = ellmer::type_number("Numeric vertical-line intercept.", required = FALSE),
                 yintercept = ellmer::type_number("Numeric horizontal-line intercept.", required = FALSE),
                 max_labels = ellmer::type_integer("Maximum text/label rows from 0 through 50.", required = FALSE),
+                order_by = ellmer::type_object(
+                  "Render-time row ordering for text/label layers, applied before max_labels.",
+                  column = ellmer::type_string(
+                    "Exact data column, or 'x'/'y' for this layer's own axis mapping.",
+                    required = FALSE
+                  ),
+                  decreasing = ellmer::type_boolean(
+                    "Sort descending (default true).", required = FALSE
+                  ),
+                  .required = FALSE
+                ),
                 color = ellmer::type_string("Constant hex color for every row of this layer, e.g. '#b2182b'.", required = FALSE),
                 fill = ellmer::type_string("Constant hex fill color for every row of this layer.", required = FALSE),
                 .required = FALSE
@@ -1114,7 +1148,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               filter = .ai_figure_where_type()
             ),
             "One to twelve validated figure layers.",
-            required = TRUE
+            required = layers_required
           ),
           facet_by = ellmer::type_string("Exact facet column.", required = FALSE),
           facet_ncol = ellmer::type_integer("Facet columns from 1 through 6.", required = FALSE),
@@ -1194,16 +1228,48 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
 
         spec <- rendered$normalized
         figure_id <- rendered$figure_id
+        # todo 3.8: bounded registry - evict (LRU, superseded revisions
+        # first) instead of failing once 20 figures exist; the evicted
+        # PNGs are transient (agent_render_figure unlinks its files), so
+        # only the registry entry and its revision base are dropped.
         registry <- isolate(figures())
+        if (!is.null(parent_figure_id) && !is.null(registry[[parent_figure_id]])) {
+          touched <- registry[[parent_figure_id]]
+          touched$last_used_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+          registry[[parent_figure_id]] <- touched
+        }
+        room <- agent_figure_registry_evict(
+          registry, exclude = parent_figure_id %||% character())
+        if (length(room$evicted)) {
+          agent_logger_event(
+            logger, "figure_evicted",
+            list(
+              evicted = room$evicted,
+              reason = "registry_full",
+              registry_size_before = length(registry)
+            )
+          )
+          warning_messages <- c(
+            warning_messages,
+            paste0(
+              "Figure registry full: evicted ",
+              paste(room$evicted, collapse = ", "),
+              " (least recently used; superseded revisions first). ",
+              "Their specs are no longer revisable; all other figures are unchanged."
+            )
+          )
+        }
+        registry <- room$registry
         registry[[figure_id]] <- list(
           id = figure_id,
           parent_id = parent_figure_id,
           template = template,
           created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+          last_used_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
           row_count = nrow(rendered$data),
           geoms = vapply(spec$layers, function(x) x$geom, character(1)),
-          # WP3: the normalized spec is the canonical revision base; a
-          # future patch-mode update_figure (WP7) merges onto exactly this.
+          # WP3/WP7: the normalized spec is the canonical revision base;
+          # patch-mode update_figure merges onto exactly this copy.
           spec = spec
         )
         figures(registry)
@@ -1214,25 +1280,37 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           template = template,
           data_source = spec$data_source,
           row_count = nrow(rendered$data),
-          feature_count = if (is.null(spec$features)) NULL else length(spec$features),
-          sample_count = if (is.null(spec$samples)) NULL else length(spec$samples),
+          # resolved counts (what was actually plotted), independent of
+          # whether the id array is echoed (todo 3.1 elides defaults)
+          feature_count = if (!is.null(spec$features)) length(spec$features) else
+            if (identical(spec$data_source, "expression")) 0L else
+              nrow(isolate(feature_data())),
+          sample_count = if (!is.null(spec$samples)) length(spec$samples) else
+            if (identical(spec$data_source, "expression")) 0L else
+              nrow(isolate(sample_data())),
           layers = lapply(spec$layers, function(x)
             list(geom = x$geom, mappings = x$mappings, filter = x$filter)),
           facet_by = spec$facet_by,
           x_transform = spec$x_transform,
           y_transform = spec$y_transform,
-          theme = spec$theme,
+          theme = spec[["theme"]],
           palette = spec$palette,
           labels = spec$labels,
           preview_dimensions = rendered$files$preview_dimensions,
           full_dimensions = rendered$files$full_dimensions,
           full_png_bytes = rendered$files$full_bytes,
           download_filename = paste0("omicsviewer-", figure_id, "-2400x1800.png"),
-          # WP3 round-trip: the full spec rides along in the documented
-          # (flat-aesthetic) input shape so the model can revise the figure
-          # by echoing it back through update_figure; providers and ellmer
-          # drop schema-foreign keys like the normalized `mappings` form.
-          spec = agent_figure_spec_echo(spec),
+          # WP3 round-trip (todo 3.1: bounded): the compact echo carries
+          # the documented (flat-aesthetic) input shape but never a
+          # dataset-sized id array - small explicit subsets ride along,
+          # defaults/large sets are elided in favour of the counts above.
+          # Revise through update_figure(figure_id, changes) or read the
+          # compact spec back with get_figure(figure_id).
+          spec = agent_figure_spec_echo(
+            spec,
+            all_features = rownames(isolate(feature_data())),
+            all_samples = rownames(isolate(sample_data()))
+          ),
           warnings = utils::head(unique(warning_messages), 10L)
         )
 
@@ -1282,8 +1360,6 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         function(spec = NULL, template = NULL, x = NULL, y = NULL, color = NULL,
                  label_top_n = NULL, title = NULL, space = NULL, features = NULL,
                  samples = NULL, `_intent`) {
-          if (length(isolate(figures())) >= 20L)
-            stop("This session already has the maximum of 20 AI figures.")
           template_name <- NULL
           spec_absent <- is.null(spec) || length(spec) == 0L
           template_present <- !.agent_param_absent(template)
@@ -1330,9 +1406,9 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           "Templates: volcano = fold change vs log-scale significance (x, y required; label_top_n labels the most significant features); boxplot = numeric column by group, or without y the expression of the selected features (or an explicit features subset) by a sample column; scatter and histogram = two or one annotation columns.",
           "Never send a template AND a spec together: when both are present the spec is used and the template arguments are ignored.",
           "The chat displays a small preview and a high-resolution PNG download.",
-          "The result includes the full normalized spec under 'spec'; reuse it verbatim when revising this figure with update_figure.",
+          "The result carries figure_id and a compact spec (large id sets are elided - see feature_count/sample_count). Revise the figure with update_figure(figure_id, changes={partial spec}); read the current compact spec with get_figure(figure_id).",
           "For advanced multi-layer figures pass the full declarative spec instead; for expression data use feature__ and sample__ prefixed metadata columns described by the figure grammar.",
-          "Highlighting and labeling: any layer accepts a structured filter (column/operator/value; all/any combinators) and constant params.color/params.fill hex colors, so e.g. label only rows where a column exceeds a threshold in a custom color; scale sets explicit per-category colors and theme_options tunes legend/rotation/grid.",
+          "Highlighting and labeling: any layer accepts a structured filter (column/operator/value; all/any combinators) and constant params.color/params.fill hex colors, so e.g. label only rows where a column exceeds a threshold in a custom color; text/label layers take params.order_by to rank rows before the max_labels cap; scale sets explicit per-category colors and theme_options tunes legend/rotation/grid.",
           "Use exact columns returned by get_omics_viewer_state/search_annotations and never invent R code."
         ),
         arguments = list(
@@ -1385,17 +1461,110 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         )
       )
 
-      update_figure_tool <- agent_tool(
-        function(figure_id, spec, `_intent`) {
+      get_figure_tool <- agent_tool(
+        function(figure_id, `_intent`) {
           current <- isolate(figures())
-          if (!.agent_figure_scalar(figure_id) %in% names(current))
-            stop("Unknown figure ID: ", figure_id)
-          if (length(current) >= 20L)
-            stop("This session already has the maximum of 20 AI figures.")
+          fid <- .agent_figure_scalar(figure_id, arg = "figure_id")
+          entry <- current[[fid]]
+          if (is.null(entry)) {
+            stop("Unknown figure ID: ", fid, ".", .agent_suggest_text(
+              fid, names(current)),
+              " Current figures: ",
+              if (length(current)) paste(names(current), collapse = ", ")
+              else "(none)", ".")
+          }
+          touched <- entry
+          touched$last_used_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+          current[[fid]] <- touched
+          figures(current)
+          .ai_tool_result(
+            list(
+              figure_id = entry$id,
+              parent_figure_id = entry$parent_id,
+              template = entry$template,
+              created_at = entry$created_at,
+              row_count = entry$row_count,
+              geoms = entry$geoms,
+              spec = agent_figure_spec_echo(
+                entry$spec,
+                all_features = rownames(isolate(feature_data())),
+                all_samples = rownames(isolate(sample_data()))
+              ),
+              revision_note = paste(
+                "Revise with update_figure(figure_id, changes): a partial",
+                "spec of only the fields to change; unmentioned fields keep",
+                "their current values. Large id sets are elided from the",
+                "echo - pass an explicit features/samples array only when",
+                "changing it."
+              )
+            ),
+            title = "Read figure",
+            label = fid,
+            preview = paste(entry$geoms, collapse = "+")
+          )
+        },
+        name = "get_figure",
+        description = paste(
+          "Read one figure's current compact specification by exact figure_id:",
+          "data source, layers with mappings/filters, labels, theme, and id",
+          "counts. Large feature/sample id sets are elided from the echo",
+          "(see feature_count/sample_count in create_figure results).",
+          "Use it before update_figure when you need the current spec, and",
+          "revise through changes rather than reconstructing the full spec."
+        ),
+        arguments = list(
+          figure_id = ellmer::type_string("Exact figure ID returned by create_figure."),
+          `_intent` = ellmer::type_string("Short user-facing reason for reading this figure.")
+        ),
+        annotations = ellmer::tool_annotations(
+          title = "Reading figure",
+          read_only_hint = TRUE,
+          destructive_hint = FALSE,
+          idempotent_hint = TRUE,
+          open_world_hint = FALSE
+        )
+      )
+
+      update_figure_tool <- agent_tool(
+        function(figure_id, spec = NULL, changes = NULL, `_intent`) {
+          current <- isolate(figures())
+          fid <- .agent_figure_scalar(figure_id, arg = "figure_id")
+          entry <- current[[fid]]
+          if (is.null(entry)) {
+            stop("Unknown figure ID: ", fid, ".", .agent_suggest_text(
+              fid, names(current)),
+              " Current figures: ",
+              if (length(current)) paste(names(current), collapse = ", ")
+              else "(none)", ".")
+          }
+          spec_absent <- .agent_param_absent(spec)
+          changes_absent <- .agent_param_absent(changes)
+          if (spec_absent && changes_absent)
+            stop(paste(
+              "update_figure requires either changes (a partial spec of only",
+              "the fields to change; preferred) or spec (a complete",
+              "specification)."
+            ))
+          full_spec_ignored <- FALSE
+          if (!changes_absent && !spec_absent) {
+            # WP6b posture: never hard-reject an over-eager double fill;
+            # the complete spec is authoritative and the warning says so.
+            full_spec_ignored <- TRUE
+            merged <- spec
+          } else if (!spec_absent) {
+            merged <- spec
+          } else {
+            merged <- agent_figure_spec_patch(entry$spec, changes)
+          }
           result <- shiny::withReactiveDomain(
             session_domain,
-            render_assistant_figure(spec, parent_figure_id = .agent_figure_scalar(figure_id))
+            render_assistant_figure(merged, parent_figure_id = fid)
           )
+          if (full_spec_ignored)
+            result$metadata$warnings <- c(
+              result$metadata$warnings,
+              "changes ignored: a complete spec was also provided and takes precedence. To patch, resend WITHOUT the spec."
+            )
           ellmer::ContentToolResult(
             value = result$metadata,
             extra = list(display = result$display)
@@ -1403,15 +1572,23 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         },
         name = "update_figure",
         description = paste(
-          "Create a revised figure from a complete allowlisted specification.",
-          "Start from the 'spec' field of the previous create_figure/update_figure result and change only what is needed; do not reconstruct it from memory.",
-          "The new result retains figure_id as its parent. Do not send a patch; send the full revised spec.",
-          "For expression data, use feature__ and sample__ prefixed metadata columns described by the figure grammar.",
-          "Use create_figure for an unrelated figure."
+          "Revise an existing figure into a new revision.",
+          "PREFERRED: send changes - a partial spec of only the fields to change",
+          "(e.g. {\"labels\":{\"title\":\"New\"},\"theme\":\"classic\"}) - merged onto the",
+          "stored spec; unmentioned fields keep their current values.",
+          "Scalars and arrays (layers, features, samples) replace wholesale;",
+          "labels/theme_options/scale merge per key (explicit null removes a key);",
+          "null/empty features or samples clears back to the default set.",
+          "Alternative: send spec - a complete specification (e.g. echoed from",
+          "the previous result or get_figure); when both are sent the spec wins",
+          "and the changes are ignored.",
+          "The new result keeps figure_id as its parent. Use create_figure for an unrelated figure.",
+          "For expression data, use feature__ and sample__ prefixed metadata columns described by the figure grammar."
         ),
         arguments = list(
           figure_id = ellmer::type_string("Exact figure ID returned by create_figure."),
-          spec = .ai_figure_spec_type(),
+          changes = .ai_figure_spec_type(required = FALSE, layers_required = FALSE),
+          spec = .ai_figure_spec_type(required = FALSE),
           `_intent` = ellmer::type_string("Short user-facing description of the requested change.")
         ),
         annotations = ellmer::tool_annotations(
@@ -1442,6 +1619,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           client$register_tool(get_capability_tool)
         }
         client$register_tool(create_figure_tool)
+        client$register_tool(get_figure_tool)
         client$register_tool(update_figure_tool)
         client$on_request_start(function(turns) {
           request_count <<- request_count + 1L
@@ -1708,10 +1886,16 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         old_turns <- tryCatch(client$get_turns(), error = function(e) NULL)
         installed <- tryCatch(
           {
+            # todo 3.4: the summary is installed as the FIRST exchange of
+            # the kept history - a leading turn pair explicitly framed as
+            # recorded DATA, not instructions - and never in the system
+            # prompt (untrusted-derived text must not gain system
+            # authority). The system prompt is stripped of any legacy
+            # compaction block as a no-op safety net.
             client$set_system_prompt(
-              agent_system_prompt_add_block(old_prompt, summary)
+              agent_system_prompt_strip_block(old_prompt)
             )
-            client$set_turns(kept)
+            client$set_turns(c(agent_compaction_summary_turns(summary), kept))
             TRUE
           },
           error = function(e) {
@@ -1889,6 +2073,31 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                 logger, "summary_request_start",
                 list(timeout_seconds = context_policy$summary_timeout)
               )
+              # todo 3.5: the summariser runs under the same Governor as
+              # the main stream - request limit and budget ceilings. A
+              # governed stop rejects the summary promise, which falls
+              # back to the deterministic summary instead of spending.
+              request_count <<- request_count + 1L
+              governed <- tryCatch({
+                if (request_count > request_limit)
+                  stop("session request limit reached")
+                violation <- agent_budget_violation(
+                  session_usage$tokens, session_usage$cost_usd, cost_limits
+                )
+                if (!is.null(violation))
+                  stop("session budget ceiling reached")
+                FALSE
+              }, error = function(e) conditionMessage(e))
+              if (!identical(governed, FALSE)) {
+                agent_logger_event(
+                  logger, "summary_governed",
+                  list(reason = governed, request_index = request_count)
+                )
+                stop(paste(
+                  "Summary skipped:", governed,
+                  "; using the deterministic summary."
+                ))
+              }
             })
             summary_client$on_request_end(function(turn) {
               agent_logger_event(
@@ -1910,6 +2119,17 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           error = function(e) NULL
         )
 
+        # todo 3.5: bound the summary call by CANCELLING the stream via an
+        # ellmer StreamController when the timeout fires. The abandoned
+        # later()-race orphaned the provider stream (its cost never
+        # counted, the connection stayed open under the event loop, and a
+        # late settlement was dropped silently after the race had been
+        # won). A cancelled stream rejects its promise, the fallback
+        # summary installs, and whatever usage the provider did report is
+        # still read from the client's last turn.
+        summary_ctrl <- ellmer::stream_controller()
+        summary_settled <- new.env(parent = emptyenv())
+        summary_settled$done <- FALSE
         summary_promise <- if (is.null(summary_setup)) {
           promises::promise_resolve(list(summary = NULL, method = "text"))
         } else {
@@ -1917,7 +2137,9 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           prompt <- summary_setup$prompt
           promises::then(
             coro::async(function() {
-              stream <- summary_client$stream_async(prompt)
+              stream <- summary_client$stream_async(
+                prompt, controller = summary_ctrl
+              )
               repeat {
                 chunk <- coro::await(stream())
                 if (coro::is_exhausted(chunk))
@@ -1930,28 +2152,32 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                 stop("compaction summary was empty")
               txt
             })(),
-            onFulfilled = function(txt)
-              list(summary = txt, method = "llm", client = summary_client),
-            onRejected = function(e)
-              list(summary = NULL, method = "text", error = e)
+            onFulfilled = function(txt) {
+              summary_settled$done <- TRUE
+              list(summary = txt, method = "llm", client = summary_client)
+            },
+            onRejected = function(e) {
+              summary_settled$done <- TRUE
+              list(
+                summary = NULL,
+                method = if (isTRUE(summary_ctrl$cancelled)) "timeout" else "text",
+                error = e, client = summary_client
+              )
+            }
           )
         }
-
-        # WP13b: bound the summary call - race it against a later::later()
-        # timer (hard cap 120 s via OMICSVIEWER_LLM_SUMMARY_TIMEOUT). A
-        # stalled provider connection then falls back to the deterministic
-        # summary instead of wedging compaction_in_flight forever; the
-        # losing LLM settlement is dropped silently by the race.
         summary_timeout <- context_policy$summary_timeout
-        timeout_promise <- promises::promise(function(resolve, reject) {
-          later::later(
-            function() resolve(list(summary = NULL, method = "timeout")),
-            delay = summary_timeout
-          )
-        })
+        if (summary_timeout > 0) {
+          later::later(function() {
+            if (!isTRUE(summary_settled$done))
+              summary_ctrl$cancel(paste(
+                "summary timeout after", summary_timeout, "seconds"
+              ))
+          }, delay = summary_timeout)
+        }
 
         .context_keep$summary_tail <- promises::then(
-          agent_promise_race(list(summary_promise, timeout_promise)),
+          summary_promise,
           function(out) {
             compaction_in_flight <<- FALSE
             if (identical(out$method, "timeout"))
@@ -1967,6 +2193,9 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               out$summary
             else
               agent_fallback_summary(compact)
+            # usage accounting covers the governed/cancelled paths too:
+            # read whatever the provider reported from the client's last
+            # turn (zero when nothing completed)
             usage <- if (!is.null(out$client))
               tryCatch(
                 agent_turn_usage(out$client$last_turn()),

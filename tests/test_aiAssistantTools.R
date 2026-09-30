@@ -181,7 +181,7 @@ shiny::testServer(
     tools <- chat_object$client$get_tools()
     expected_tools <- c(
       "get_omics_viewer_state", "search_annotations", "summarize_annotation",
-      "set_omics_viewer_state", "set_scatter_view", "create_figure", "update_figure",
+      "set_omics_viewer_state", "set_scatter_view", "create_figure", "get_figure", "update_figure",
       "list_widgets", "get_widget", "set_widgets",
       "set_enrichment_parameters", "set_table_view",
       "search_ui_capabilities", "get_ui_capability"
@@ -193,16 +193,16 @@ shiny::testServer(
 
     state_result <- tools$get_omics_viewer_state(`_intent` = "unit test")
     ok(
-      ut_cmp_identical(state_result@value$dataset$id, "demo.RDS"),
+      ut_cmp_identical(state_result@extra$data$dataset$id, "demo.RDS"),
       "state tool returns the compact current state"
     )
     ok(
-      ut_cmp_identical(state_result@value$available_sections,
+      ut_cmp_identical(state_result@extra$data$available_sections,
                        c("annotations", "quick_views", "panels", "figure_grammar")),
       "state tool overview advertises the section menu"
     )
     ok(
-      is.null(state_result@value$annotations) && is.null(state_result@value$panels),
+      is.null(state_result@extra$data$annotations) && is.null(state_result@extra$data$panels),
       "state tool omits full-detail sections by default"
     )
     state_section <- tools$get_omics_viewer_state(
@@ -210,7 +210,7 @@ shiny::testServer(
     )
     ok(
       ut_cmp_identical(
-        state_section@value$annotations,
+        state_section@extra$data$annotations,
         list(feature = list(rows = 3L), sample = list(rows = 4L))
       ),
       "state tool returns requested sections in full"
@@ -220,7 +220,7 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(search_result@value$matching_ids, "Gene1"),
+      ut_cmp_identical(search_result@extra$data$matching_ids, "Gene1"),
       "search tool returns bounded matching IDs"
     )
     summary_result <- tools$summarize_annotation(
@@ -228,7 +228,7 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(summary_result@value$value_counts$WT, 2L),
+      ut_cmp_identical(summary_result@extra$data$value_counts$WT, 2L),
       "summary tool returns categorical counts"
     )
     update_result <- tools$set_omics_viewer_state(
@@ -238,7 +238,7 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(update_result@value$feature_count, 2L),
+      ut_cmp_identical(update_result@extra$data$feature_count, 2L),
       "state-update tool returns a bounded receipt"
     )
     scatter_result <- tools$set_scatter_view(
@@ -248,7 +248,7 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(scatter_result@value$x_axis, "score"),
+      ut_cmp_identical(scatter_result@extra$data$x_axis, "score"),
       "scatter tool returns the validated axis update"
     )
 
@@ -260,9 +260,9 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(enrichment_result@value$panel_tab, "ORA") &&
-        "resultspace.ora.xax_variable" %in% enrichment_result@value$applied &&
-        "resultspace.analyst_tab" %in% enrichment_result@value$applied,
+      ut_cmp_identical(enrichment_result@extra$data$panel_tab, "ORA") &&
+        "resultspace.ora.xax_variable" %in% enrichment_result@extra$data$applied &&
+        "resultspace.analyst_tab" %in% enrichment_result@extra$data$applied,
       "enrichment tool applies the ranking cascade and opens the panel"
     )
     ok(
@@ -276,8 +276,8 @@ shiny::testServer(
     )
     ok(
       "resultspace.ora.selected_row" %in%
-        vapply(enr_reject@value$rejected, function(r) r$id, character(1)) &&
-        grepl("gs1|gs2", enr_reject@value$rejected[[1]]$reason),
+        vapply(enr_reject@extra$data$rejected, function(r) r$id, character(1)) &&
+        grepl("gs1|gs2", enr_reject@extra$data$rejected[[1]]$reason),
       "unknown pathway rows are rejected per key with suggestions"
     )
     enr_error <- tryCatch(
@@ -302,7 +302,7 @@ shiny::testServer(
     )
     stored_after_table <- omicsViewer:::store_read(test_store)
     ok(
-      ut_cmp_identical(table_result@value$panel_tab, "Sample table") &&
+      ut_cmp_identical(table_result@extra$data$panel_tab, "Sample table") &&
         ut_cmp_identical(stored_after_table$dataspace.tab_pheno.column_filters,
                          c(group = "KO")) &&
         ut_cmp_identical(stored_after_table$dataspace.tab_pheno.page, 2L) &&
@@ -315,9 +315,9 @@ shiny::testServer(
     )
     ok(
       "dataspace.tab_pheno.columns" %in%
-        vapply(table_reject@value$rejected, function(r) r$id, character(1)) &&
+        vapply(table_reject@extra$data$rejected, function(r) r$id, character(1)) &&
         "dataspace.active_tab" %in%
-          c(table_reject@value$applied, table_reject@value$unchanged),
+          c(table_reject@extra$data$applied, table_reject@extra$data$unchanged),
       "invalid table columns are rejected per key while the tab still opens"
     )
     table_error <- tryCatch(
@@ -334,8 +334,8 @@ shiny::testServer(
       query = "filter", `_intent` = "unit test"
     )
     ok(
-      cap_search@value$match_count >= 2L &&
-        any(vapply(cap_search@value$capabilities,
+      cap_search@extra$data$match_count >= 2L &&
+        any(vapply(cap_search@extra$data$capabilities,
                    function(r) identical(r$id, "dataspace.tab_pheno.column_filters"),
                    logical(1))),
       "capability search matches widget capabilities by meaning"
@@ -344,8 +344,8 @@ shiny::testServer(
       id = "set_table_view", `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(cap_get@value$id, "tool:set_table_view") &&
-        ut_cmp_identical(cap_get@value$writable, TRUE),
+      ut_cmp_identical(cap_get@extra$data$id, "tool:set_table_view") &&
+        ut_cmp_identical(cap_get@extra$data$writable, TRUE),
       "capability get returns semantic tool records"
     )
     cap_error <- tryCatch(
@@ -375,11 +375,11 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(figure_result@value$data_source, "expression"),
+      ut_cmp_identical(figure_result@extra$data$data_source, "expression"),
       "figure tool renders expression data"
     )
     ok(
-      ut_cmp_identical(figure_result@value$row_count, 12L),
+      ut_cmp_identical(figure_result@extra$data$row_count, 12L),
       "figure tool reports bounded plotting rows"
     )
     ok(
@@ -394,58 +394,59 @@ shiny::testServer(
     updated_spec$labels$title <- "Expression by group, revised"
     updated_spec$theme <- "classic"
     updated_figure <- tools$update_figure(
-      figure_id = figure_result@value$figure_id,
+      figure_id = figure_result@extra$data$figure_id,
       spec = updated_spec,
       `_intent` = "unit test"
     )
     ok(
       ut_cmp_identical(
-        updated_figure@value$parent_figure_id,
-        figure_result@value$figure_id
+        updated_figure@extra$data$parent_figure_id,
+        figure_result@extra$data$figure_id
       ),
       "figure update records its parent figure"
     )
 
     # ---- WP3: spec round-trip ---------------------------------------
     ok(
-      !is.null(figure_result@value$spec) &&
-        ut_cmp_identical(figure_result@value$spec$data_source, "expression"),
+      !is.null(figure_result@extra$data$spec) &&
+        ut_cmp_identical(figure_result@extra$data$spec$data_source, "expression"),
       "figure result carries the full normalized spec"
     )
     ok(
-      ut_cmp_identical(figure_result@value$spec$layers[[1]]$y, "__expression__") &&
-        ut_cmp_identical("mappings" %in% names(figure_result@value$spec$layers[[1]]), FALSE) &&
-        ut_cmp_identical(figure_result@value$spec$layers[[1]]$params$alpha, 0.65) &&
-        ut_cmp_identical(figure_result@value$spec$samples, rownames(pd)),
-      "result spec is schema-shaped (flat aesthetics, defaulted params, resolved samples)"
+      ut_cmp_identical(figure_result@extra$data$spec$layers[[1]]$y, "__expression__") &&
+        ut_cmp_identical("mappings" %in% names(figure_result@extra$data$spec$layers[[1]]), FALSE) &&
+        ut_cmp_identical(figure_result@extra$data$spec$layers[[1]]$params$alpha, 0.65) &&
+        is.null(figure_result@extra$data$spec$samples) &&
+        ut_cmp_identical(figure_result@extra$data$sample_count, length(rownames(pd))),
+      "result spec is schema-shaped (flat aesthetics, defaulted params; the full-set samples array is elided, 3.1)"
     )
-    roundtrip_spec <- figure_result@value$spec
+    roundtrip_spec <- figure_result@extra$data$spec
     roundtrip_spec$labels$title <- "Expression by group, round-tripped"
     roundtrip_figure <- tools$update_figure(
-      figure_id = updated_figure@value$figure_id,
+      figure_id = updated_figure@extra$data$figure_id,
       spec = roundtrip_spec,
       `_intent` = "unit test"
     )
-    expected_roundtrip <- figure_result@value$spec
+    expected_roundtrip <- figure_result@extra$data$spec
     expected_roundtrip$labels$title <- "Expression by group, round-tripped"
     ok(
-      ut_cmp_identical(roundtrip_figure@value$spec, expected_roundtrip),
+      ut_cmp_identical(roundtrip_figure@extra$data$spec, expected_roundtrip),
       "echoed spec re-submitted through update normalizes identically"
     )
 
     # ---- S3 generic widget tier ---------------------------------------
     widgets_result <- tools$list_widgets(section = "dataspace", `_intent` = "unit test")
     ok(
-      ut_cmp_identical(widgets_result@value$widget_count, 7L) &&
-        ut_cmp_identical(widgets_result@value$widgets$dataspace.expr_heatmap.heatmap_colors$kind,
+      ut_cmp_identical(widgets_result@extra$data$widget_count, 7L) &&
+        ut_cmp_identical(widgets_result@extra$data$widgets$dataspace.expr_heatmap.heatmap_colors$kind,
                          "select"),
       "list_widgets returns section-filtered registry records"
     )
     widget_result <- tools$get_widget(
       id = "dataspace.expr_heatmap.heatmap_colors", `_intent` = "unit test")
     ok(
-      ut_cmp_identical(widget_result@value$id, "dataspace.expr_heatmap.heatmap_colors") &&
-        "RdGy" %in% widget_result@value$allowed_values,
+      ut_cmp_identical(widget_result@extra$data$id, "dataspace.expr_heatmap.heatmap_colors") &&
+        "RdGy" %in% widget_result@extra$data$allowed_values,
       "get_widget describes one widget with allowed values"
     )
     set_widgets_result <- tools$set_widgets(
@@ -453,11 +454,11 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      setequal(set_widgets_result@value$applied,
+      setequal(set_widgets_result@extra$data$applied,
                c("dataspace.expr_heatmap.heatmap_colors",
                  "dataspace.expr_heatmap.margin_bottom")) &&
         ut_cmp_identical(
-          set_widgets_result@value$applied_values$dataspace.expr_heatmap.margin_bottom,
+          set_widgets_result@extra$data$applied_values$dataspace.expr_heatmap.margin_bottom,
           9L),
       "set_widgets applies a JSON patch with typed coercion"
     )
@@ -466,9 +467,9 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      length(rejected_result@value$applied) == 0L &&
-        length(rejected_result@value$rejected) == 1L &&
-        grepl("RdGy|RdYlBu", rejected_result@value$rejected[[1]]$reason),
+      length(rejected_result@extra$data$applied) == 0L &&
+        length(rejected_result@extra$data$rejected) == 1L &&
+        grepl("RdGy|RdYlBu", rejected_result@extra$data$rejected[[1]]$reason),
       "set_widgets rejects invalid values per key with suggestions"
     )
 
@@ -479,8 +480,8 @@ shiny::testServer(
     swept_listing <- tools$list_widgets(
       section = "null", `_intent` = "sentinel sweep")
     ok(
-      ut_cmp_identical(swept_listing@value$widget_count, 12L) &&
-        is.null(swept_listing@value$section),
+      ut_cmp_identical(swept_listing@extra$data$widget_count, 12L) &&
+        is.null(swept_listing@extra$data$section),
       "list_widgets treats a sentinel section as omitted"
     )
     swept_id_error <- tryCatch(
@@ -504,9 +505,9 @@ shiny::testServer(
       `_intent` = "sentinel sweep"
     )
     ok(
-      ut_cmp_identical(swept_figures@value$theme, "minimal") &&
-        ut_cmp_identical(swept_figures@value$palette, "default") &&
-        is.null(swept_figures@value$labels$title),
+      ut_cmp_identical(swept_figures@extra$data$theme, "minimal") &&
+        ut_cmp_identical(swept_figures@extra$data$palette, "default") &&
+        is.null(swept_figures@extra$data$labels$title),
       "figure tool applies defaults for sentinel optionals"
     )
 
@@ -530,9 +531,9 @@ shiny::testServer(
     ok(
       grepl(
         "Template arguments ignored",
-        paste(conflict_result@value$warnings, collapse = " ")
+        paste(conflict_result@extra$data$warnings, collapse = " ")
       ) &&
-        ut_cmp_identical(conflict_result@value$spec$layers[[1]]$x, "score"),
+        ut_cmp_identical(conflict_result@extra$data$spec$layers[[1]]$x, "score"),
       "WP6b: spec takes precedence over template shorthand, with a warning"
     )
     missing_error <- tryCatch(
@@ -565,13 +566,17 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(volcano_result@value$template, "volcano") &&
-        ut_cmp_identical(volcano_result@value$data_source, "feature_annotation") &&
-        ut_cmp_identical(volcano_result@value$layers[[2]]$geom, "vline") &&
-        ut_cmp_identical(volcano_result@value$layers[[3]]$geom, "label") &&
-        ut_cmp_identical(volcano_result@value$spec$features[[1]], "Gene1") &&
-        ut_cmp_identical(volcano_result@value$labels$title, "RE vs ME"),
-      "volcano template renders through the tool with metadata and labels"
+      ut_cmp_identical(volcano_result@extra$data$template, "volcano") &&
+        ut_cmp_identical(volcano_result@extra$data$data_source, "feature_annotation") &&
+        ut_cmp_identical(volcano_result@extra$data$layers[[2]]$geom, "vline") &&
+        ut_cmp_identical(volcano_result@extra$data$layers[[3]]$geom, "label") &&
+        is.null(volcano_result@extra$data$spec$features) &&
+        ut_cmp_identical(
+          volcano_result@extra$data$spec$layers[[3]]$params$order_by,
+          list(column = "logFdr", decreasing = TRUE)) &&
+        ut_cmp_identical(volcano_result@extra$data$feature_count, 3L) &&
+        ut_cmp_identical(volcano_result@extra$data$labels$title, "RE vs ME"),
+      "volcano template renders through the tool with metadata and render-time labels"
     )
 
     boxplot_result <- tools$create_figure(
@@ -579,11 +584,14 @@ shiny::testServer(
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(boxplot_result@value$data_source, "expression") &&
-        ut_cmp_identical(boxplot_result@value$template, "boxplot") &&
-        ut_cmp_identical(boxplot_result@value$spec$layers[[1]]$x, "sample__group") &&
-        ut_cmp_identical(boxplot_result@value$spec$layers[[1]]$fill, "sample__group") &&
-        ut_cmp_identical(boxplot_result@value$spec$features, c("Gene1", "Gene2", "Gene3")),
+      ut_cmp_identical(boxplot_result@extra$data$data_source, "expression") &&
+        ut_cmp_identical(boxplot_result@extra$data$template, "boxplot") &&
+        ut_cmp_identical(boxplot_result@extra$data$spec$layers[[1]]$x, "sample__group") &&
+        ut_cmp_identical(boxplot_result@extra$data$spec$layers[[1]]$fill, "sample__group") &&
+        # the selection here equals the full feature set, so the id array
+        # is elided in favour of the count (todo 3.1)
+        is.null(boxplot_result@extra$data$spec$features) &&
+        ut_cmp_identical(boxplot_result@extra$data$feature_count, 3L),
       "boxplot expression mode uses the selected features and namespaced grouping"
     )
 
@@ -593,26 +601,85 @@ shiny::testServer(
       `_intent` = "sentinel sweep"
     )
     ok(
-      ut_cmp_identical(swept_template@value$data_source, "feature_annotation") &&
-        is.null(swept_template@value$spec$layers[[1]]$color) &&
-        length(swept_template@value$spec$layers) == 1L &&
-        grepl("score", swept_template@value$labels$title, fixed = TRUE),
+      ut_cmp_identical(swept_template@extra$data$data_source, "feature_annotation") &&
+        is.null(swept_template@extra$data$spec$layers[[1]]$color) &&
+        length(swept_template@extra$data$spec$layers) == 1L &&
+        grepl("score", swept_template@extra$data$labels$title, fixed = TRUE),
       "template tool treats sentinel optionals exactly like omitted values"
     )
 
-    template_revision <- volcano_result@value$spec
+    template_revision <- volcano_result@extra$data$spec
     template_revision$labels$title <- "Volcano, revised"
     template_revision$theme <- "classic"
     revised_template_figure <- tools$update_figure(
-      figure_id = volcano_result@value$figure_id,
+      figure_id = volcano_result@extra$data$figure_id,
       spec = template_revision,
       `_intent` = "unit test"
     )
     ok(
-      ut_cmp_identical(revised_template_figure@value$labels$title, "Volcano, revised") &&
-        ut_cmp_identical(revised_template_figure@value$theme, "classic") &&
-        is.null(revised_template_figure@value$template),
+      ut_cmp_identical(revised_template_figure@extra$data$labels$title, "Volcano, revised") &&
+        ut_cmp_identical(revised_template_figure@extra$data$theme, "classic") &&
+        is.null(revised_template_figure@extra$data$template),
       "template figures revise through the echoed spec (WP3 round-trip)"
+    )
+
+    # ---- Stage 2 (3.1/3.8): get_figure + patch-mode update + LRU -------
+    volcano_id <- volcano_result@extra$data$figure_id
+    got_figure <- tools$get_figure(figure_id = volcano_id, `_intent` = "unit test")
+    ok(
+      ut_cmp_identical(got_figure@extra$data$figure_id, volcano_id) &&
+        !is.null(got_figure@extra$data$spec) &&
+        ut_cmp_identical(got_figure@extra$data$spec$layers[[1]]$geom, "point") &&
+        grepl("update_figure", got_figure@extra$data$revision_note, fixed = TRUE),
+      "get_figure returns the compact spec with the revision contract"
+    )
+    unknown_figure <- tryCatch(
+      tools$get_figure(figure_id = "fig_999", `_intent` = "unit test"),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("Unknown figure ID: fig_999", unknown_figure) &&
+        grepl(volcano_id, unknown_figure),
+      "unknown figure ids list the current registry for self-correction"
+    )
+    patched_figure <- tools$update_figure(
+      figure_id = revised_template_figure@extra$data$figure_id,
+      changes = list(labels = list(title = "Volcano, patched"), palette = "grey"),
+      `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(patched_figure@extra$data$labels$title, "Volcano, patched") &&
+        ut_cmp_identical(patched_figure@extra$data$palette, "grey") &&
+        ut_cmp_identical(patched_figure@extra$data$theme, "classic") &&
+        ut_cmp_identical(length(patched_figure@extra$data$spec$layers), 3L) &&
+        ut_cmp_identical(
+          patched_figure@extra$data$parent_figure_id,
+          revised_template_figure@extra$data$figure_id),
+      "patch-mode update changes mentioned fields, keeps everything else"
+    )
+    no_args_error <- tryCatch(
+      tools$update_figure(figure_id = volcano_id, `_intent` = "unit test"),
+      error = function(e) conditionMessage(e)
+    )
+    ok(
+      grepl("requires either changes", no_args_error),
+      "update_figure without changes or spec is rejected honestly"
+    )
+    # bounded registry (3.8): 20 figures + 1 more no longer hard-fails;
+    # the LRU eviction surfaces as a warning and the figure renders
+    lru_ok <- TRUE
+    lru_warned <- FALSE
+    for (i in seq_len(21)) {
+      r <- tools$create_figure(
+        template = "histogram", x = "score", `_intent` = "registry pressure")
+      lru_ok <- lru_ok && is.null(r@error)
+      lru_warned <- lru_warned || any(grepl(
+        "registry full", r@extra$data$warnings %||% character(),
+        ignore.case = TRUE))
+    }
+    ok(
+      lru_ok && lru_warned,
+      "the 20-figure registry limit evicts LRU instead of failing (3.8)"
     )
   }
 )

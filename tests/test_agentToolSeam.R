@@ -7,6 +7,19 @@ library(unittest, quietly = TRUE)
 # upgrade that changes convert = FALSE semantics fails here instead of
 # in a user session.
 
+withr_local_env <- function(values, code) {
+  old <- Sys.getenv(names(values), names = TRUE, unset = NA_character_)
+  on.exit(
+    if (any(is.na(old)))
+      Sys.unsetenv(names(values)[is.na(old)])
+    else
+      do.call(Sys.setenv, as.list(old[!is.na(old)])),
+    add = TRUE
+  )
+  do.call(Sys.setenv, as.list(values))
+  force(code)
+}
+
 if (!requireNamespace("ellmer", quietly = TRUE) ||
     !requireNamespace("shinychat", quietly = TRUE)) {
   ok(TRUE, "agent tool seam tests skipped because optional packages are unavailable")
@@ -76,6 +89,40 @@ ok(
     list(columns = list(), theme = NULL)
   ),
   "empty arrays survive while sentinel strings become named NULLs"
+)
+
+# ---- 1b. sentinel strings never disappear inside DATA arrays (3.3) ------
+# The sentinel rule exists for omitted OBJECT FIELDS. Inside id/value
+# arrays the same strings are legitimate data (a feature literally named
+# "NULL" was silently dropped pre-Stage-2), so array elements keep them.
+ok(
+  ut_cmp_identical(
+    agent_args_sanitize(list(features = list("TP53", "NULL", "null"))),
+    list(features = c("TP53", "NULL", "null"))
+  ),
+  "sentinel-equal strings inside id arrays survive sanitization"
+)
+ok(
+  ut_cmp_identical(
+    agent_args_sanitize(list(values = list("[]", "a"), x = "[]")),
+    list(values = c("[]", "a"), x = NULL)
+  ),
+  "array elements keep sentinels while object fields still drop them"
+)
+ok(
+  ut_cmp_identical(
+    agent_args_sanitize(list(layers = list(list(geom = "point", filter = "null",
+                                               color = "null")))),
+    list(layers = list(list(geom = "point", filter = NULL, color = NULL)))
+  ),
+  "objects nested inside arrays still apply the sentinel rule per field"
+)
+ok(
+  ut_cmp_identical(
+    agent_args_sanitize(list(x = list(list(a = "null"), "null"))),
+    list(x = list(list(a = NULL), "null"))
+  ),
+  "mixed arrays keep sentinel strings as elements, objects drop per field"
 )
 ok(
   ut_cmp_identical(
@@ -302,7 +349,8 @@ shiny::testServer(
         res <- tryCatch(
           ellmer:::invoke_tool(req),
           error = function(e) e)
-        received <- if (inherits(res, "error")) res else res@value
+        received <- if (inherits(res, "error")) res else
+          (if (!is.null(res@extra$data)) res@extra$data else res@value)
         if (inherits(res, "error")) {
           roundtrip_failures <<- c(roundtrip_failures,
             paste(tool_name, variant, "ERROR:", conditionMessage(res)))
@@ -335,7 +383,104 @@ ok(
   "the property sweep covers the full registered tool surface"
 )
 
-# ---- 4. golden traffic replay: the live failing payloads ------------------
+# ---- 4b. output codec at the seam (3.2) ----------------------------------
+# Every non-string, non-error tool value is serialized ONCE at the seam:
+# names preserved (ellmer's toJSON(auto_unbox) drops named-vector
+# names), NULL as null (never the {} sentinel), size capped, and the
+# structured original kept in extra$data for internal consumers.
+codec_tool <- agent_tool(
+  function(payload = NULL, `_intent`) ellmer::ContentToolResult(
+    value = payload),
+  description = "codec probe",
+  name = "seam_codec",
+  arguments = list(
+    payload = ellmer::type_object(
+      "Arbitrary structured payload to echo back.",
+      dimensions = ellmer::type_array(
+        ellmer::type_number("n"), "numbers", required = FALSE),
+      note = ellmer::type_string("s", required = FALSE),
+      .required = FALSE
+    ),
+    `_intent` = ellmer::type_string("intent")
+  )
+)
+req <- ellmer::ContentToolRequest(
+  id = "c3", name = "seam_codec",
+  arguments = list(`_intent` = "x",
+                   payload = list(dimensions = c(features = 2702, samples = 60),
+                                  note = "demo")))
+req@tool <- codec_tool
+coded <- ellmer:::invoke_tool(req)
+ok(
+  inherits(coded@value, "json") &&
+    grepl('"dimensions":{"features":2702', coded@value, fixed = TRUE) &&
+    !grepl('"dimensions":[2702', coded@value, fixed = TRUE),
+  "named vectors keep their names through the seam (wire: object, not [2702,60])"
+)
+ok(
+  identical(as.character(coded@value),
+            as.character(jsonlite::toJSON(
+              list(dimensions = list(features = 2702, samples = 60), note = "demo"),
+              auto_unbox = TRUE, null = "null"))),
+  "the model-facing value is exactly our serialization"
+)
+ok(
+  ut_cmp_identical(coded@extra$data$dimensions, c(features = 2702, samples = 60)),
+  "extra$data keeps the structured original for internal consumers"
+)
+# tool_string (ellmer's wire projection) returns the json value verbatim
+ok(
+  identical(ellmer:::tool_string(coded), coded@value),
+  "tool_string passes json-class values through unchanged"
+)
+
+# NULL value serializes as literal json null, never {}
+req_null <- ellmer::ContentToolRequest(
+  id = "c4", name = "seam_codec",
+  arguments = list(`_intent` = "x", payload = NULL))
+req_null@tool <- codec_tool
+coded_null <- ellmer:::invoke_tool(req_null)
+ok(
+  identical(as.character(coded_null@value), "null") &&
+    is.null(coded_null@extra$data),
+  "NULL values become literal json null (no {} object sentinel)"
+)
+
+# oversized values hit the truncation marker; extra$data stays intact
+big_payload <- list(ids = paste0("gene", 1:4000))
+big_tool <- agent_tool(
+  function(`_intent`) ellmer::ContentToolResult(value = big_payload),
+  description = "oversized probe", name = "seam_big",
+  arguments = list(`_intent` = ellmer::type_string("intent"))
+)
+req_big <- ellmer::ContentToolRequest(
+  id = "c5", name = "seam_big", arguments = list(`_intent` = "x"))
+req_big@tool <- big_tool
+coded_big <- ellmer:::invoke_tool(req_big)
+ok(
+  grepl("Tool result truncated", coded_big@value, fixed = TRUE) &&
+    grepl("Narrow the request", coded_big@value, fixed = TRUE) &&
+    nchar(coded_big@value, type = "bytes") < 12000L,
+  "oversized results are replaced by a bounded truncation marker"
+)
+ok(
+  ut_cmp_identical(length(coded_big@extra$data$ids), 4000L),
+  "the structured original survives truncation in extra$data"
+)
+
+# env knob clamps
+ok(
+  ut_cmp_identical(omicsViewer:::.agent_tool_output_max_bytes(), 8192L) &&
+    ut_cmp_identical(
+      withr_local_env(list(OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES = "100000"),
+        omicsViewer:::.agent_tool_output_max_bytes()), 65536L) &&
+    ut_cmp_identical(
+      withr_local_env(list(OMICSVIEWER_LLM_TOOL_OUTPUT_BYTES = "10"),
+        omicsViewer:::.agent_tool_output_max_bytes()), 1024L),
+  "tool-output byte cap default and clamp bounds"
+)
+
+# ---- 5. golden traffic replay: the live failing payloads ------------------
 
 # tests/fixtures/agent/update_figure_seq{35,55}.json are the exact
 # payloads from live session 20260927-064108 (demo.RDS, glm via
@@ -387,11 +532,11 @@ shiny::testServer(
       replay_errors[[fx]] <<- if (is.null(res@error)) "ok" else
         conditionMessage(res@error)
       replay_filters[[fx]] <<- if (is.null(res@error)) list(
-        layer2 = res@value$spec$layers[[2]]$filter,
-        layer3 = res@value$spec$layers[[3]]$filter
+        layer2 = res@extra$data$spec$layers[[2]]$filter,
+        layer3 = res@extra$data$spec$layers[[3]]$filter
       ) else NULL
       replay_warnings[[fx]] <<- if (is.null(res@error))
-        (res@value$warnings %||% character()) else character("failed")
+        (res@extra$data$warnings %||% character()) else character("failed")
     }
   })
 

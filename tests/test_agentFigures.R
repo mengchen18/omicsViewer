@@ -443,6 +443,32 @@ ok(
     ),
   "full-set sample specs re-normalize identically (WP3 round-trip)"
 )
+# todo 3.1: the echo of a default (full-set) sample resolution is ELIDED
+# (bounded independent of dataset size); re-normalization re-derives it
+echo_default <- agent_figure_spec_echo(
+  big, all_features = rownames(fd), all_samples = rownames(pd_big))
+ok(
+  is.null(echo_default$samples) &&
+    nchar(jsonlite::toJSON(echo_default, auto_unbox = TRUE), type = "bytes") < 4000L,
+  "full-set id arrays are elided from the echo (bounded tool results)"
+)
+# a small explicit subset rides along verbatim and still round-trips
+small <- agent_normalize_figure_spec(
+  list(data_source = "expression", features = "F1",
+       samples = c("S3", "S1"),
+       layers = list(list(geom = "boxplot", x = "sample__group", y = "__expression__"))),
+  fd, pd_big, mat_big, character(), character())
+echo_small <- agent_figure_spec_echo(
+  small, all_features = rownames(fd), all_samples = rownames(pd_big))
+ok(
+  ut_cmp_identical(echo_small$samples, c("S3", "S1")) &&
+    ut_cmp_identical(
+      agent_normalize_figure_spec(echo_small, fd, pd_big, mat_big,
+                                  character(), character()),
+      small
+    ),
+  "small explicit id subsets ride the echo verbatim (WP3 round-trip)"
+)
 ok(
   ut_cmp_error(
     agent_normalize_figure_spec(
@@ -514,26 +540,35 @@ ok(
   "volcano template derives default labels and plots all features"
 )
 
-# volcano label_top_n: rows reordered by significance (y, highest first)
-# so the capped label layer marks the most significant features
+# volcano label_top_n: rows ranked at RENDER time (y, highest first)
+# so the capped label layer marks the most significant features while
+# spec$features stays NULL (todo 3.1: the echo never grows with the set)
 volcano_labeled <- agent_figure_template_spec(
   template = "volcano", x = "logFC", y = "logFdr", color = "category",
   label_top_n = 3L, feature_data = fd2, sample_data = pd2, expression = mat2
 )
 ok(
-  ut_cmp_identical(
-    volcano_labeled$spec$features,
-    c("F5", "F1", "F4", "F8", "F10", "F6", "F2", "F3", "F7", "F9")
-  ),
-  "volcano label_top_n ranks features by significance, highest first"
+  is.null(volcano_labeled$spec$features),
+  "volcano label_top_n no longer resolves the reordered feature vector into the spec"
+)
+volcano_data <- omicsViewer:::agent_build_figure_data(
+  volcano_labeled$spec, fd2, pd2, mat2)
+volcano_plot <- agent_build_figure_plot(volcano_data, volcano_labeled$spec)
+volcano_labels <- volcano_plot$layers[[3]]$data[["__feature_id__"]]
+ok(
+  ut_cmp_identical(volcano_labels,
+                   c("F5", "F1", "F4")) &&
+    ut_cmp_identical(length(volcano_labels), 3L),
+  "volcano label layer marks the top-n by significance at render time"
 )
 ok(
-  ut_cmp_identical(length(volcano_labeled$spec$features), 10L) &&
-    ut_cmp_identical(volcano_labeled$spec$layers[[3]]$geom, "label") &&
+  ut_cmp_identical(volcano_labeled$spec$layers[[3]]$geom, "label") &&
     ut_cmp_identical(volcano_labeled$spec$layers[[3]]$mappings$label, "__feature_id__") &&
     ut_cmp_identical(volcano_labeled$spec$layers[[3]]$params$max_labels, 3L) &&
+    ut_cmp_identical(volcano_labeled$spec$layers[[3]]$params$order_by,
+                     list(column = "logFdr", decreasing = TRUE)) &&
     ut_cmp_identical(volcano_labeled$spec$layers[[1]]$mappings$color, "category"),
-  "volcano label layer is capped at the requested count and carries color"
+  "volcano label layer carries color and a render-time order_by"
 )
 
 ok(
@@ -712,9 +747,9 @@ volcano_data <- agent_build_figure_data(
   volcano_labeled$spec, fd2, pd2, mat2
 )
 ok(
-  ut_cmp_identical(volcano_data[["__feature_id__"]][1], "F5") &&
+  ut_cmp_identical(volcano_data[["__feature_id__"]][1], "F1") &&
     ut_cmp_identical(nrow(volcano_data), 10L),
-  "labeled volcano data keeps all rows with the most significant first"
+  "labeled volcano data keeps the natural row order (ranking is render-time)"
 )
 ok(
   inherits(agent_build_figure_plot(volcano_data, volcano_labeled$spec), "ggplot") &&
@@ -741,18 +776,20 @@ ok(
 )
 
 # features subset is ranked within itself when label_top_n is requested
+# (todo 3.1: the subset rides the spec unchanged; ranking is render-time)
 volcano_subset_labeled <- agent_figure_template_spec(
   template = "volcano", x = "logFC", y = "logFdr", features = c("F3", "F1", "F7"),
   label_top_n = 2L, feature_data = fd2, sample_data = pd2, expression = mat2
 )
+subset_data <- omicsViewer:::agent_build_figure_data(
+  volcano_subset_labeled$spec, fd2, pd2, mat2)
+subset_plot <- agent_build_figure_plot(subset_data, volcano_subset_labeled$spec)
+subset_labels <- subset_plot$layers[[3]]$data[["__feature_id__"]]
 ok(
-  ut_cmp_identical(
-    volcano_subset_labeled$spec$features,
-    c("F1", "F3", "F7")  # y: F1=5 leads; F3/F7 tie at 0, stable input order
-  ) && ut_cmp_identical(
-    volcano_subset_labeled$spec$layers[[3]]$params$max_labels, 2L
-  ),
-  "WP6b: label_top_n ranks the explicit subset by significance"
+  ut_cmp_identical(volcano_subset_labeled$spec$features, c("F3", "F1", "F7")) &&
+    ut_cmp_identical(subset_labels, c("F1", "F3")) &&
+    ut_cmp_identical(volcano_subset_labeled$spec$layers[[3]]$params$max_labels, 2L),
+  "WP6b: label_top_n ranks the explicit subset at render time (y: F1=5 leads; F3/F7 tie at 0)"
 )
 
 # unknown IDs are rejected (validated downstream by the normalizer)
@@ -801,15 +838,18 @@ ok(
   is.null(agent_figure_ids_param(NULL, "features")) &&
     is.null(agent_figure_ids_param(character(), "features")) &&
     is.null(agent_figure_ids_param(NA_character_, "features")) &&
-    is.null(agent_figure_ids_param(sanitize(list("null", "[]")), "features")) &&
     is.null(agent_figure_ids_param(sanitize(list()), "features")) &&
+    ut_cmp_identical(
+      agent_figure_ids_param(sanitize(list("null", "[]")), "features"),
+      c("null", "[]")
+    ) &&
     ut_cmp_identical(
       agent_figure_ids_param(sanitize(list("F1", "F2")), "features"), c("F1", "F2")
     ) &&
     ut_cmp_identical(
       agent_figure_ids_param(c(" F1 ", "", "F2"), "features"), c("F1", "F2")
     ),
-  "WP6b: id-array param normalizes provider sentinel shapes"
+  "WP6b: id-array params keep sentinel-equal elements as data (3.3)"
 )
 
 # subsets only attach to data sources that actually plot them
@@ -943,10 +983,10 @@ ok(
 ok(
   ut_cmp_identical(
     agent_where_normalize(list(column = "category", op = "in",
-                               values = sanitize(list("kinase", "null", "", NA))))[[ "values" ]],
-    "kinase"
+                               values = sanitize(list("kinase", "null", "", NA))))[["values"]],
+    c("kinase", "null")
   ),
-  "where in-values drop NA/empty/sentinel entries"
+  "where in-values drop NA/empty entries; sentinel-equal strings are data (3.3)"
 )
 # idempotency: canonical filters re-normalize identically
 ok(
@@ -1325,4 +1365,135 @@ ok(
     identical(grammar_wide$scale_overrides$channels, c("color", "fill")) &&
     !is.null(grammar_wide$theme_options$fields$legend_position),
   "figure grammar documents filters, scale overrides, and theme options"
+)
+
+## ---- Stage 2 (todo 3.1/3.8): bounded echo, patch mode, registry LRU ----
+agent_figure_spec_patch <- omicsViewer:::agent_figure_spec_patch
+agent_figure_registry_evict <- omicsViewer:::agent_figure_registry_evict
+
+# todo 3.1 size budget: volcano + labels + echo on a synthetic 20k-feature
+# dataset stays kilobytes (the pre-Stage-2 spec resolved all 20k ids into
+# features AND echoed them in every tool result)
+fd20k <- data.frame(
+  logFC = rnorm(20000), logFdr = abs(rnorm(20000)),
+  row.names = paste0("G", 1:20000), check.names = FALSE)
+v20k <- agent_figure_template_spec(
+  template = "volcano", x = "logFC", y = "logFdr", label_top_n = 10L,
+  feature_data = fd20k, sample_data = pd)
+echo20k <- agent_figure_spec_echo(
+  v20k$spec, all_features = rownames(fd20k), all_samples = rownames(pd))
+ok(
+  is.null(v20k$spec$features) && is.null(echo20k$features) &&
+    nchar(jsonlite::toJSON(echo20k, auto_unbox = TRUE), type = "bytes") < 4000L,
+  "volcano label_top_n on a 20k-feature dataset yields a <4 KB echo"
+)
+
+# patch semantics (todo 3.1): unmentioned fields keep the base value
+patch_base <- agent_normalize_figure_spec(
+  list(data_source = "feature_annotation",
+       layers = list(list(geom = "point", x = "score", y = "score")),
+       theme = "minimal", palette = "colorblind",
+       labels = list(title = "Base", x = "score")),
+  fd, pd, mat, character(), character())
+patched <- agent_figure_spec_patch(patch_base, list(
+  theme = "classic",
+  labels = list(title = "Revised", y = NULL),
+  layers = list(list(geom = "point", x = "score", y = "category",
+                     params = list(alpha = 0.4)))
+))
+ok(
+  ut_cmp_identical(patched$theme, "classic") &&
+    ut_cmp_identical(patched$palette, "colorblind") &&
+    ut_cmp_identical(patched$labels$title, "Revised") &&
+    ut_cmp_identical(patched$labels$x, "score") &&
+    is.null(patched$labels$y) &&
+    ut_cmp_identical(patched$layers[[1]]$params$alpha, 0.4),
+  "patch replaces mentioned fields, keeps unmentioned, nulls clear keys"
+)
+patched_norm <- agent_normalize_figure_spec(
+  patched, fd, pd, mat, character(), character())
+ok(
+  ut_cmp_identical(patched_norm$theme, "classic") &&
+    ut_cmp_identical(patched_norm$layers[[1]]$mappings$y, "category"),
+  "patched specs re-normalize against the live dataset"
+)
+ok(
+  ut_cmp_error(
+    agent_figure_spec_patch(patch_base, list(bogus = 1)),
+    "Unknown figure changes field"
+  ),
+  "unknown patch fields are rejected for model self-correction"
+)
+# clearing features back to the default set
+patch_clear <- agent_figure_spec_patch(
+  agent_normalize_figure_spec(
+    list(data_source = "feature_annotation",
+         features = c("F1", "F2"),
+         layers = list(list(geom = "point", x = "score", y = "score"))),
+    fd, pd, mat, character(), character()),
+  list(features = NULL))
+ok(
+  is.null(patch_clear$features),
+  "explicit null on an array field clears it (re-normalization re-defaults)"
+)
+
+# registry LRU eviction (todo 3.8)
+mk_registry <- function(n, parent_of = NULL, used = NULL) {
+  out <- list()
+  for (i in seq_len(n)) {
+    out[[paste0("fig_", i)]] <- list(
+      id = paste0("fig_", i),
+      parent_id = if (i %in% parent_of) "fig_1" else NULL,
+      created_at = sprintf("2026-01-%02dT00:00:00Z", i),
+      last_used_at = used[[i]]
+    )
+  }
+  out
+}
+heads_only <- mk_registry(20)
+ok(
+  ut_cmp_identical(
+    agent_figure_registry_evict(heads_only, exclude = "fig_20")$evicted, "fig_1"
+  ),
+  "registry at capacity evicts the oldest lineage head"
+)
+ok(
+  ut_cmp_identical(
+    agent_figure_registry_evict(mk_registry(19))$evicted, character()),
+  "registry below capacity evicts nothing"
+)
+superseded <- mk_registry(20, parent_of = 2:20)
+ok(
+  ut_cmp_identical(
+    agent_figure_registry_evict(superseded, exclude = "fig_20")$evicted, "fig_1"
+  ),
+  "superseded revisions evict before lineage heads (fig_1 has children)"
+)
+stale_touch <- mk_registry(20)
+stale_touch[["fig_15"]]$last_used_at <- "2025-06-01T00:00:00Z"
+ok(
+  ut_cmp_identical(
+    agent_figure_registry_evict(stale_touch)$evicted, "fig_15"
+  ),
+  "LRU uses last_used_at, not creation order"
+)
+ok(
+  ut_cmp_identical(
+    agent_figure_registry_evict(
+      mk_registry(2, parent_of = 2), capacity = 2L, exclude = "fig_1")$evicted,
+    "fig_2"
+  ),
+  "the figure under revision is never evicted"
+)
+ok(
+  ut_cmp_identical(
+    length(agent_figure_registry_evict(heads_only)$registry), 19L),
+  "eviction leaves room for exactly one new entry"
+)
+# grammar advertises the revision contract + label ordering
+grammar_s2 <- agent_figure_grammar()
+ok(
+  !is.null(grammar_s2$revision$description) &&
+    !is.null(grammar_s2$label_layers$example$params$order_by),
+  "figure grammar documents patch-mode revision and label ordering"
 )
