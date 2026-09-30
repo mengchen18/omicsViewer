@@ -2223,6 +2223,45 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           tryCatch(.context_janitor(), error = function(e) NULL)
       })
 
+      # WP-guide item 24: post-turn nudge. Some providers end a turn with
+      # tool calls but no closing text, leaving the user with silent tool
+      # cards. When that happens, submit a one-line follow-up asking for a
+      # summary - at most ONCE per conversation turn chain (a nudged turn
+      # that again ends tool-only is left alone; no nudge loops).
+      .nudge_armed <- TRUE
+      .context_keep$post_turn_nudge <- observeEvent(chat_object$status(), ignoreInit = TRUE, {
+        if (!identical(chat_object$status(), "idle"))
+          return(NULL)
+        turns <- tryCatch(chat_object$client$get_turns(),
+                          error = function(e) NULL)
+        if (is.null(turns) || !length(turns))
+          return(NULL)
+        last <- turns[[length(turns)]]
+        if (!identical(last@role, "assistant")) {
+          .nudge_armed <<- TRUE
+          return(NULL)
+        }
+        has_text <- any(vapply(last@contents, function(cc)
+          inherits(cc, "ellmer::ContentText") && nzchar(cc@text),
+          logical(1)))
+        has_tool <- any(vapply(last@contents, function(cc)
+          inherits(cc, "ellmer::ContentToolRequest"),
+          logical(1)))
+        if (has_text || !has_tool)
+          .nudge_armed <<- TRUE
+        if (has_text || !has_tool || !isTRUE(isolate(.nudge_armed)))
+          return(NULL)
+        .nudge_armed <<- FALSE
+        agent_logger_event(logger, "post_turn_nudge", list())
+        tryCatch(
+          chat_object$update_user_input(
+            value = paste("Please summarize what these tool calls did and",
+                          "what I should look at next, in one or two",
+                          "sentences."),
+            submit = TRUE),
+          error = function(e) NULL)
+      })
+
       last_logged_stream_status <- reactiveVal(NULL)
       observeEvent(chat_object$status(), ignoreInit = TRUE, {
         status_value <- chat_object$status()

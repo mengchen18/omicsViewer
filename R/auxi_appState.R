@@ -128,27 +128,40 @@ dataset_state <- function(dataset, id = NA_character_) {
 #'
 #' @keywords internal
 #' @rdname app_state_helpers
+# fingerprint cache for SQLite connections (M6): every fingerprint used to
+# cost 2 full exprs-table reads + 2 full feature-table reads; saves and
+# restores re-read the same unchanged file repeatedly. Cached by database
+# path + modification time, so any file change re-computes.
+.fingerprint_cache <- new.env(parent = emptyenv())
+
 dataset_fingerprint <- function(dataset, id = NULL) {
   if (is.null(dataset))
     return(NA_character_)
 
-  feat <- tryCatch(
-    rownames(getExprs(dataset)),
-    error = function(e) rownames(dataset)
-  )
-  samp <- tryCatch(
-    colnames(getExprs(dataset)),
-    error = function(e) colnames(dataset)
-  )
-  fd <- tryCatch(colnames(getFData(dataset)), error = function(e) character())
+  cache_key <- NULL
+  if (inherits(dataset, "SQLiteConnection")) {
+    info <- tryCatch(DBI::dbGetInfo(dataset), error = function(e) NULL)
+    path <- if (is.null(info)) "" else (info$dbname %.or_default% "")
+    mt <- tryCatch(file.mtime(path), error = function(e) NA_real_)[1]
+    if (length(mt) == 1 && !is.na(mt)) {
+      cache_key <- paste(path, format(mt), id %.or_default% "")
+      hit <- tryCatch(.fingerprint_cache[[cache_key]], error = function(e) NULL)
+      if (length(hit) == 1 && !is.na(hit))
+        return(hit)
+    }
+  }
+
+  # M6: one read per table (was: getExprs x2, getFData x2)
+  ex <- tryCatch(getExprs(dataset), error = function(e) NULL)
+  fd0 <- tryCatch(getFData(dataset), error = function(e) NULL)
+  feat <- if (is.null(ex)) rownames(dataset) else rownames(ex)
+  samp <- if (is.null(ex)) colnames(dataset) else colnames(ex)
+  fd <- if (is.null(fd0)) character() else colnames(fd0)
   pd <- tryCatch(colnames(getPData(dataset)), error = function(e) character())
-  gs <- tryCatch(
-    {
-      x <- unique(attr(getFData(dataset), "GS")$gsId)
-      as.character(x[!is.na(x)])
-    },
-    error = function(e) character()
-  )
+  gs <- if (is.null(fd0)) character() else {
+    x <- unique(attr(fd0, "GS")$gsId)
+    as.character(x[!is.na(x)])
+  }
 
   parts <- c(
     as.character(id %.or_default% NA),
@@ -156,7 +169,10 @@ dataset_fingerprint <- function(dataset, id = NULL) {
     length(feat), length(samp),
     feat, samp, fd, pd, sort(gs)
   )
-  .state_hash(parts)
+  fp <- .state_hash(parts)
+  if (!is.null(cache_key))
+    .fingerprint_cache[[cache_key]] <- fp
+  fp
 }
 
 `%.or_default%` <- function(x, y) if (is.null(x)) y else x

@@ -92,7 +92,16 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   })
   .dtd_consume_restore <- function() {
     st <- .dtd_restore_slot()  # reactive read: a restore re-renders the table
-    if (!is.null(st)) isolate(.dtd_restore_slot(NULL))
+    if (!is.null(st)) {
+      # R-M1: defer while the table has no data yet - consuming here would
+      # validate st$selected_rows against an empty/pre-restore table and
+      # silently drop the saved row selection; the slot stays armed and is
+      # consumed by the first render that actually has data
+      ts <- tryCatch(tabsort(), error = function(e) NULL)
+      if (is.null(ts) || is.null(ts$tab) || nrow(ts$tab) == 0)
+        return(NULL)
+      isolate(.dtd_restore_slot(NULL))
+    }
     st
   }
 
@@ -140,8 +149,12 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   selectedRows <- function(st = NULL) {
     if (!is.null(storeTab)) {
       # store-backed tables: the desired row id is canonical (survives
-      # re-renders; cleared when the id is gone from the current table)
-      sid <- .dtd_sel_id()
+      # re-renders; cleared when the id is gone from the current table).
+      # isolate (R-M2): reading the id inside renderDataTable used to make
+      # every selection change re-render the WHOLE table (page reset,
+      # filters/order lost); live selection updates go through the DT
+      # proxy observer below instead
+      sid <- isolate(.dtd_sel_id())
       if (length(sid) == 1L && nzchar(sid)) {
         ids <- rowIds()
         ts <- tabsort()
@@ -233,8 +246,10 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
 
   # ------------------------------------------------------------------
   # Store glue for the row-selection binding (acknowledgement-aware:
-  # pushes re-render the table and ack through the same observer that
-  # mirrors user clicks). Observer retention is mandatory.
+  # pushes select the row through the DT proxy without re-rendering;
+  # user clicks and pushes acknowledge through the same sync observer,
+  # which is guarded against stale positional reports across table-data
+  # changes (R-H5). Observer retention is mandatory.
   # ------------------------------------------------------------------
   .dtd_keep_list <- list()
   .dtd_keep <- function(obs) {
@@ -253,6 +268,19 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     id <- unique(ids[ii])
     if (length(id) == 1L) id else NULL
   })
+  # table-data epoch (R-H5): increments on every tabsort recomputation
+  # (a reactive, so every reader sees the SAME value within a flush - no
+  # observer-ordering race). A positional report derived from an input
+  # that was set under an OLDER table must not be re-mapped against the
+  # new table: the derived id would name a DIFFERENT row (the ORA results
+  # table used to silently switch the selected pathway this way)
+  .dtd_epoch_n <- 0L
+  .dtd_tab_epoch <- reactive({
+    tabsort()
+    .dtd_epoch_n <<- .dtd_epoch_n + 1L
+    .dtd_epoch_n
+  })
+  .dtd_input_epoch <- NULL  # epoch under which the last selection report was accepted
   if (!is.null(storeTab)) {
     # snapshot of the input at push time: while a push is in flight, the
     # input still reports the PRE-render selection; that stale report is
@@ -261,6 +289,15 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
     .dtd_push_input <- reactiveVal(NULL)
     .dtd_keep(observe({
       id <- .dtd_current_id()
+      epoch <- .dtd_tab_epoch()
+      if (!identical(.dtd_input_epoch, epoch)) {
+        # R-H5: the selection input predates the current table data -
+        # skip this (stale positional) report and consume the transition;
+        # the re-render/proxy re-establishes the id-based selection and
+        # the browser re-reports, which lands with matched epochs
+        .dtd_input_epoch <<- epoch
+        return(NULL)
+      }
       pend <- .dtd_root_store$pending[[.dtd_full_key]]
       stale_report <- !is.null(pend) && !identical(pend$value, id) &&
         identical(input$table_rows_selected, .dtd_push_input())
@@ -280,8 +317,9 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
       store_seed(storeTab,
                  stats::setNames(list(isolate(.dtd_current_id())), store_key))
     }))
-    # store -> UI push: re-render with the pushed row preselected; DT
-    # reports the selection and the sync observer above acknowledges
+    # store -> UI push: set the desired id; the proxy observer below
+    # selects the row WITHOUT re-rendering the table, and DT's report of
+    # the selection acknowledges through the sync observer above
     .dtd_epoch <- store_epoch(storeTab)
     .dtd_keep(observe({
       .dtd_epoch()
@@ -291,6 +329,17 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
         .dtd_push_input(input$table_rows_selected)
         .dtd_sel_id(v)
       }
+    }))
+    # live selection updates via the DT proxy (R-M2): pushes and user
+    # clicks converge on .dtd_sel_id; applying them through the proxy
+    # preserves page/sort/filter where a re-render reset them
+    .dtd_keep(observe({
+      .dtd_sel_id()
+      rows <- isolate(selectedRows())
+      DT::selectRows(
+        DT::dataTableProxy(ns("table"), session = session,
+                           deferUntilFlush = TRUE),
+        if (notNullAndPositiveLength(rows)) rows else NULL)
     }))
   }
   

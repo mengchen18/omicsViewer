@@ -48,6 +48,7 @@ L1_result_space_module <- function(
     store_stringdb <- NULL
     store_ptm <- NULL
     store_geneshot <- NULL
+    store_rs <- NULL  # L1: referenced by the status-restore observer even when store is NULL
     if (!is.null(store)) {
       store_feature_general <- widget_store_child(store, "resultspace.feature_general")
       store_sample_general <- widget_store_child(store, "resultspace.sample_general")

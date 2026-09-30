@@ -106,13 +106,20 @@ gslist_module <- function(
     pageLength = DEFAULT_TABLE_PAGE_LENGTH_LARGE,
     reactive_row_ids = reactive({
       if (is.null(tab()) || nrow(tab()) == 0) return(NULL)
-      paste(tab()$gsId, tab()$featureId, sep = "|")
+      # R-M8: gsId was renamed to "Gene-set" in reactive_pathway(); the
+      # old tab()$gsId was NULL and produced garbage ids
+      paste(tab()[["Gene-set"]], tab()$featureId, sep = "|")
     })
   )
 
   reactive({
-    req(ii())
-    as.character( tab()$featureId[ii()] )
+    v <- ii()
+    req(v)
+    out <- as.character( tab()$featureId[v] )
+    # R-M8: carry the DT status so the snapshot save path
+    # (eset_gslist_tab) is not dead
+    attr(out, "status") <- attr(v, "status")
+    out
     })
 
   }) # end moduleServer

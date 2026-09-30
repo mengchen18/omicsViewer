@@ -72,3 +72,44 @@ res <- try(
                               PCA = FALSE, correlation = FALSE),
   silent = TRUE)
 ok(!inherits(res, "try-error"), "prep - accepts NA survival entries")
+
+# ---------------- R-M7: censor slider survives data changes ----------------
+# The slider used to be rebuilt AT MAX on every dat() change (a
+# sample-selection change silently reset the user's censor time), and
+# store pushes landing before the renderUI slider existed were lost.
+# The renderUI now sets the value at render time from the module's
+# desired-value reactiveVal.
+sv_resp_r7 <- shiny::reactiveVal(c("100", "200+", "300", "150+"))
+sv_ui_r7 <- NULL
+shiny::testServer(function(input, output, session) {
+  omicsViewer:::survival_module("sv", reactive_resp = sv_resp_r7,
+    reactive_strata = reactive(NULL), reactive_checkpoint = reactive(TRUE))
+  shiny::outputOptions(output, "sv-censor_output", suspendWhenHidden = FALSE)
+}, {
+  for (i in 1:5) session$flushReact()
+  session$setInputs(`sv-censor` = 300)   # warm ignoreInit observer (slider init)
+  for (i in 1:3) session$flushReact()
+  session$setInputs(`sv-censor` = 150)   # user picks a censor time
+  for (i in 1:3) session$flushReact()
+  sv_resp_r7(c("100", "200+", "300", "400"))  # sample-selection change
+  for (i in 1:4) session$flushReact()
+  sv_ui_r7 <<- tryCatch(paste(output[["sv-censor_output"]], collapse = ""),
+                        error = function(e) conditionMessage(e))
+})
+ok(grepl('data-from="150"', sv_ui_r7, fixed = TRUE) &&
+     grepl('data-max="400"', sv_ui_r7, fixed = TRUE),
+   "survival: censor slider keeps the user value across data changes (R-M7)")
+
+# R-L4: a 2-column gs data.frame (featureId, gsId; no weight) is
+# documented input - as.integer(NULL) used to error "replacement has 0
+# rows". The fix defaults weight to 1.
+gsdf <- data.frame(featureId = c(1, 2), gsId = c("gs1", "gs1"))
+res <- try(
+  omicsViewer::prepOmicsViewer(expr, pd, fd, gs = gsdf,
+                               PCA = FALSE, correlation = FALSE,
+                               SummarizedExperiment = FALSE),
+  silent = TRUE)
+ok(!inherits(res, "try-error"), "prep - 2-column gs accepted (R-L4)")
+ok(!inherits(res, "try-error") &&
+     identical(as.integer(attr(Biobase::fData(res), "GS")$weight), c(1L, 1L)),
+   "prep - missing gs weight defaults to 1 (R-L4)")

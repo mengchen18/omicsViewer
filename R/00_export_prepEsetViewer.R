@@ -289,6 +289,9 @@ prepOmicsViewer <- function(
     if (all(colnames(gs) %in% c("featureId", "gsId", "weight"))) {
       gs$featureId <- factor(rownames(fData)[gs$featureId])
       gs$gsId <- factor(gs$gsId)
+      # R-L4: a 2-column gs (featureId, gsId) is documented input;
+      # as.integer(NULL) used to error("replacement has 0 rows")
+      if (is.null(gs$weight)) gs$weight <- 1L
       gs$weight <- as.integer(gs$weight)
     } else {
       if (is.vector(gs) && length(gs) == nrow(expr)) {

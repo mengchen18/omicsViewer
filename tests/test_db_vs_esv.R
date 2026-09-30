@@ -51,3 +51,29 @@ for (i in c("sx", "sy", "fx", "fy")) {
 dd2 <- getDend(esv2)
 ok(ut_cmp_identical(dd2, NULL), "db get dend")
 
+
+# ---------------- M4: ESVObj = SummarizedExperiment ----------------
+# Documented `omicsViewer(dir, ESVObj = se)` failed: the L0 path called
+# tallGS directly on the SE (fData/pData don't exist) and the getters
+# silently returned NULL for unsupported classes. The fix converts via
+# asEsetWithAttr first and the getters raise an explicit error.
+se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(exprs = Biobase::exprs(esv1)),
+  colData = S4Vectors::DataFrame(Biobase::pData(esv1)),
+  rowData = S4Vectors::DataFrame(Biobase::fData(esv1)))
+# gene-set matrix attribute must survive the conversion chain
+rd <- SummarizedExperiment::rowData(se)
+attr(rd, "GS") <- attr(Biobase::fData(esv1), "GS")
+SummarizedExperiment::rowData(se) <- rd
+esv3 <- omicsViewer:::tallGS(omicsViewer:::asEsetWithAttr(se))
+ok(ut_cmp_identical(inherits(esv3, "ExpressionSet"), TRUE),
+   "M4: ESVObj SummarizedExperiment converts to ExpressionSet")
+ok(ut_cmp_identical(
+   is.data.frame(attr(Biobase::fData(esv3), "GS")), TRUE),
+   "M4: GS attribute survives the conversion chain")
+ok(ut_cmp_identical(
+   identical(getExprs(esv3), Biobase::exprs(obj)), TRUE),
+   "M4: converted SE reads through getExprs")
+ok(ut_cmp_identical(
+   inherits(tryCatch(getExprs(se), error = function(e) e), "error"), TRUE),
+   "M4: getExprs raises an explicit error on a raw SE")

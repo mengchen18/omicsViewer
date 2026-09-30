@@ -243,3 +243,79 @@ shiny::testServer(omv_ora_host(character(0)), {
 })
 ok(!inherits(omv_reg_neg, "htmlwidget"),
    "ORA: no selection -> no results table (control)")
+
+# ---------------- R-H2: NA in the collapse column ----------------
+# A LEADING NA in the collapsed values used to reach rii() as rii()[1] ==
+# NA, and `if (NA == "notest")` in OT() errored the eager oraTab observer
+# ("missing value where TRUE/FALSE needed" -> session close). Non-leading
+# NAs survived as a pseudo-gene (background + overlap polluted). The fix
+# drops NA/"" from val/ck BEFORE collapsing and compares with identical().
+omv_na_fd <- local({
+  dat <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+  fd <- Biobase::fData(dat)[1:40, , drop = FALSE]
+  fd
+})
+attr(omv_na_fd, "GS") <- data.frame(
+  featureId = factor(rownames(omv_na_fd)),
+  gsId = factor(rep(paste0("gs", 1:4), each = 10)),
+  weight = 1)
+# f1/f2 collapse to NA (leading NA in the selected set), f3-f6 to A-D
+omv_na_fd$`cat|sub|col` <- c(NA, NA, "A", "B", "C", "D", rep("Z", 34))
+omv_na_sel <- head(rownames(omv_na_fd), 6)
+
+omv_na_host <- function() function(input, output, session) {
+  session$userData$ora_ret <- omicsViewer:::enrichment_analysis_module(
+    "ora",
+    reactive_featureData = shiny::reactive(omv_na_fd),
+    reactive_i = shiny::reactive(omv_na_sel),
+    reactive_status = shiny::reactive(list(xax = c("cat", "sub", "col"))))
+  shiny::outputOptions(output, "ora-stab-table", suspendWhenHidden = FALSE)
+  shiny::outputOptions(output, "ora-errorMsg", suspendWhenHidden = FALSE)
+}
+omv_na_res <- NULL; omv_na_tri <- NULL
+shiny::testServer(omv_na_host(), {
+  for (i in 1:5) session$flushReact()
+  # drive the collapse cascade directly (testServer relays no
+  # updateSelectInput messages; the commit observer reads the inputs)
+  session$setInputs(`ora-tris_ora-analysis` = "cat",
+                    `ora-tris_ora-subset` = "sub",
+                    `ora-tris_ora-variable` = "col")
+  for (i in 1:10) tryCatch(session$flushReact(), error = function(e) NULL)
+  omv_na_tri <<- tryCatch(session$userData$ora_ret(), error = function(e) NULL)
+  omv_na_res <<- tryCatch(
+    output[["ora-stab-table"]],
+    error = function(e) conditionMessage(e))
+})
+ok(!is.null(omv_na_tri) && identical(omv_na_tri$xax$variable, "col"),
+   "ORA: collapse cascade committed the NA-bearing variable (R-H2 branch evidence)")
+ok(inherits(omv_na_res, "json"),
+   "ORA: leading-NA collapse column still renders results (R-H2, no session crash)")
+
+# ---------------- R-M6: selection shrinks below testable minimum ----------------
+# The old observer only wrote oraTab when rii() was non-NULL, so shrinking
+# the selection to <= 1 collapsed entity left the PREVIOUS results table
+# on screen. The fix writes an explicit no-test message once something was
+# shown (and stays quiet on cold start).
+omv_m6_host <- function() function(input, output, session) {
+  omicsViewer:::enrichment_analysis_module(
+    "ora",
+    reactive_featureData = shiny::reactive(omv_reg_fd),
+    reactive_i = shiny::reactive(
+      if (isTRUE(input$shrink %in% 1)) head(rownames(omv_reg_fd), 1)
+      else omv_reg_ids))
+  shiny::outputOptions(output, "ora-errorMsg", suspendWhenHidden = FALSE)
+}
+omv_m6_pre <- NULL; omv_m6_post <- NULL
+shiny::testServer(omv_m6_host(), {
+  for (i in 1:10) session$flushReact()
+  omv_m6_pre <<- tryCatch(output[["ora-errorMsg"]],
+                          error = function(e) conditionMessage(e))
+  session$setInputs(shrink = 1)
+  for (i in 1:10) session$flushReact()
+  omv_m6_post <<- tryCatch(output[["ora-errorMsg"]],
+                           error = function(e) conditionMessage(e))
+})
+ok(!is.null(omv_m6_pre) && !grepl("Too few", omv_m6_pre, fixed = TRUE),
+   "ORA: no spurious no-test message before the selection shrinks (R-M6 control)")
+ok(grepl("Too few feature IDs", omv_m6_post, fixed = TRUE),
+   "ORA: shrunk selection shows explicit no-test message (R-M6)")

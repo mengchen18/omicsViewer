@@ -52,3 +52,41 @@ exprNA[1, 1:11] <- NA
 fillNA <- omicsViewer:::fillNA
 res <- fillNA(exprNA)
 ok(ut_cmp_equal(length(unique(res[1, 1:11])), 1), "fillNA")
+
+# R-M12: var.equal must be a formal, not a ... entry - a documented
+# var.equal = FALSE call used to collide with the hard-coded TRUE inside
+# the per-row t.test call ("formal argument ... matched by multiple
+# actual arguments"), the error was swallowed per row and every p-value
+# came back NA.
+res_ve <- multi.t.test(x = expr, pheno = ph, compare = cmp, var.equal = FALSE)
+ok(
+  ut_cmp_equal(all(!is.na(res_ve$`ttest|A_vs_B|pvalue`)), TRUE),
+  "multi.t.test - var.equal = FALSE yields p-values (R-M12)"
+)
+ok(
+  ut_cmp_equal(identical(
+    res_ve$`ttest|A_vs_B|pvalue`,
+    multi.t.test(x = expr, pheno = ph, compare = cmp, var.equal = TRUE)$`ttest|A_vs_B|pvalue`),
+    FALSE),
+  "multi.t.test - var.equal = FALSE differs from TRUE (R-M12, Welch)"
+)
+
+# R-L4: read.proteinGroups.tmt - with NO contaminator/reverse/site-only
+# rows, ir was integer(0) and ab[-ir, ] subset every table to ZERO rows
+# (the whole dataset silently disappeared).
+tf <- tempfile(fileext = ".txt")
+# full column families (summed numeric-suffix columns + plain individual
+# channels), as in a real proteinGroups.txt
+writeLines(c(
+  paste("Majority.protein.IDs", "Only.identified.by.site",
+        "Fraction.1", "Reporter.intensity.corrected.1", "Reporter.intensity.corrected.2",
+        "Reporter.intensity.corrected", "Reporter.intensity.count.1",
+        "Reporter.intensity.count", "Reporter.intensity.1", "Reporter.intensity",
+        sep = "\t"),
+  paste("P1", "-", "5", "10", "20", "10", "1", "1", "10", "10", sep = "\t"),
+  paste("P2", "-", "6", "11", "21", "11", "1", "1", "11", "11", sep = "\t")), tf)
+rp <- omicsViewer:::read.proteinGroups.tmt(tf)
+ok(ut_cmp_equal(nrow(rp$Reporter.intensity.corrected), 2),
+   "read.proteinGroups.tmt: no filtered rows keeps ALL rows (R-L4)")
+ok(ut_cmp_equal(nrow(rp$annot), 2),
+   "read.proteinGroups.tmt: annotation keeps ALL rows (R-L4)")

@@ -255,6 +255,7 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   # showRegLine <- reactiveVal(FALSE)
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()
+  .sg_keep_observers <- list()
   vs_scatter <- plotly_scatter_module(
     "sample_general_beeswarm",
     reactive_param_plotly_scatter = reactive({
@@ -280,6 +281,13 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     reactive_regLine = reactive(FALSE), # showRegLine,
     reactive_checkpoint = reactive(pheno()$type == "beeswarm"),
     htest_var1 = htestV1, htest_var2 = htestV2)
+  # L7: keep the user's t-test group picks across re-renders (observer
+  # retained per the observer-GC rule)
+  .sg_keep_observers$htest <- observe({
+    v <- vs_scatter()
+    if (!is.null(v$htest_V1)) htestV1(v$htest_V1)
+    if (!is.null(v$htest_V2)) htestV2(v$htest_V2)
+  })
 
   # cont table stats
   factorIndependency_module("sample_general_contab",

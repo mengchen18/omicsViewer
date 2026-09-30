@@ -181,20 +181,26 @@ stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId
 
   if (!is.null(background)) {
     if (!backgroundStringId) {
+      # R-L4: map the BACKGROUND (not the query) to string ids; the old
+      # code put the query genes' ids into background_string_identifiers
+      # and referenced an undefined `g` in the backgroundStringId branch
       g <- getStringId(genes, taxid = taxid)
       if (inherits(g, "character")) {
         return(g)
       }
-      sg <- g$stringId
       genes <- intersect(genes, g$queryItem)
+      gb <- getStringId(background, taxid = taxid)
+      if (inherits(gb, "character")) {
+        return(gb)
+      }
+      params$background_string_identifiers <- paste(gb$stringId, collapse = "%0d")
     } else {
-      sg <- background
+      params$background_string_identifiers <- paste(background, collapse = "%0d")
       genes <- intersect(genes, background)
     }
     if (length(genes) == 0) {
       return("Error: No genes exist in the current background!")
     }
-    params$background_string_identifiers <- paste(g$stringId, collapse = "%0d")
   }
 
   params$identifiers <- paste(genes, collapse = "%0d")

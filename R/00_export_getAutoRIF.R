@@ -27,7 +27,9 @@ getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
     return(NULL)
   }
 
-  term <- gsub(" ", "%20", term)
+  # R-M5: the payload is a JSON body, not a URL - URL-encoding the terms
+  # (%20) used to corrupt multi-word queries ("wound healing" matched a
+  # literal "wound%20healing" string and returned a fraction of the genes)
   term <- paste(term, collapse = ",")
   GENESHOT_URL <- 'https://maayanlab.cloud/geneshot/api/search'
   payload <- list("rif" = rif, "term" = term)
@@ -79,6 +81,8 @@ getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
     df <- df[df$n > min(ceiling(nrow(df)/AUTORIF_THRESHOLD_DIVISOR), AUTORIF_MIN_THRESHOLD), ]
 
   attr(df, "term") <- r$search_term
-  attr(df, "pubmedID_count") <- r$pubmedID_count
+  # R-M5: the API field is PubMedID_count (pubmedID_count never existed,
+  # so the attribute was always NULL)
+  attr(df, "pubmedID_count") <- r$PubMedID_count
   df
 }

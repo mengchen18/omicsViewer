@@ -331,7 +331,10 @@ app_module <- function(
     # try to get global object first
     if (!is.null(ESVObj())) {
       updateSelectizeInput(session, "selectFile", choices = c("ESVObj.RDS", ll()), selected = "ESVObj.RDS")
-      return( tallGS(ESVObj()) )
+      # M4: convert SummarizedExperiment first (tallGS reads fData/pData,
+      # which only exist on ExpressionSet) - documented ESVObj = se used to
+      # fail here
+      return( tallGS(asEsetWithAttr(ESVObj())) )
     }
     # otherwise load from disk
     req(input$selectFile)
@@ -431,8 +434,12 @@ app_module <- function(
   })
   
   validEset <- function(expr, pd, fd) {
-    i1 <- all(rownames(expr) == rownames(fd))
-    i2 <- all(colnames(expr) == rownames(pd))
+    # L8: identical() with non-NULL checks - all(rownames(x) == ...) recycles
+    # (a NULL side passes as all-TRUE) and a length-1 rowname side never fails
+    i1 <- !is.null(rownames(expr)) && !is.null(rownames(fd)) &&
+      identical(rownames(expr), rownames(fd))
+    i2 <- !is.null(colnames(expr)) && !is.null(rownames(pd)) &&
+      identical(colnames(expr), rownames(pd))
     if (!(i1 && i2))
       return(
         list(
@@ -486,7 +493,7 @@ app_module <- function(
   
   output$download <- downloadHandler(
     filename = function() {
-      paste0("ExpressenSet", Sys.time(), ".xlsx")
+      paste0("ExpressionSet_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".xlsx")
     },
     content = function(file) {
       td <- function(tab) {
@@ -623,20 +630,23 @@ app_module <- function(
   observeEvent( expr(), {
     # same-value recomputes of the expression reactive must not clear the
     # live selection (observeEvent does not dedupe); dims + boundary ids
-    # are the dataset-change granularity this reset means
+    # are the dataset-change granularity this reset means. ONE observer
+    # for both spaces (N1): rh used to have a bare reset without the
+    # signature gate, and a shared marker across two observers would let
+    # the first consume the transition and spare the second
     e <- expr()
     sig <- paste(nrow(e), ncol(e), head(rownames(e), 1), tail(rownames(e), 1),
                  head(colnames(e), 1), tail(colnames(e), 1), sep = "|")
     if (identical(sig, isolate(.expr_reset_last()))) return(NULL)
     .expr_reset_last(sig)
     ri(NULL)
+    rh(NULL)
   } )
 
   rh <- reactiveVal()
   observeEvent( v1(), {
-    rh( c( v1()$sample ) )
+    rh( c( v1()$sample) )
     })
-  observeEvent( expr(), rh(NULL) )
 
   v2 <- L1_result_space_module("resultspace",
                    reactive_expr = expr,
@@ -655,13 +665,8 @@ app_module <- function(
   # =======================================================
   # =======================================================
 
-  dir <- reactiveVal()
-  observe({
-    dd <- getwd()
-    if (!is.null(.dir()))
-      dd <- .dir()
-    dir(dd)
-    })
+  # N1: a `dir` reactiveVal here was written on every flush and never read
+  # (the `.dir()` closure is the live accessor) - removed (todo 4.6/N1)
 
   # =====================================================================
   # Optional session-local AI assistant

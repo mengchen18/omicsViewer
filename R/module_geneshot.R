@@ -216,8 +216,11 @@ geneshot_module <- function(
                variable = "xax_variable"),
       sel = v1, keep = .gs_keep)
     .gs_keep(observeEvent(input$term, {
-      if (!is.null(input$term) && nzchar(input$term))
-        store_sync_from_ui(store, "term", input$term)
+      # R-L3: a cleared term syncs too - the store used to keep the stale
+      # term and snapshots saved a term the UI no longer showed
+      if (!is.null(input$term))
+        store_sync_from_ui(store, "term",
+                           if (nzchar(trimws(input$term))) input$term else NULL)
     }, ignoreInit = TRUE))
     # seed the term once it exists and is non-empty; the cascade has no
     # meaningful default and fills on the first pick
@@ -273,6 +276,9 @@ geneshot_module <- function(
     }
 
     show_modal_spinner(text = "Querying Geneshot database ...")
+    # R-L3: any error (or early return) below must still take the modal
+    # down - a stuck spinner looks like a frozen app
+    on.exit(remove_modal_spinner(), add = TRUE)
     res <- getAutoRIF(terms, filter = TRUE)
     remove_modal_spinner()
 

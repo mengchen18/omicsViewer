@@ -198,7 +198,12 @@ enrichment_analysis_module <- function(
       return(NULL)
     val <- reactive_featureData()[, cs]
     names(val) <- rownames(reactive_featureData())
+    # R-H2: NA/"" collapse values must not count as pseudo-genes (they used
+    # to inflate size_bg and leak NA into rii(), which crashed the eager
+    # oraTab observer with `NA == "notest"` and closed the session).
+    val <- val[!is.na(val) & val != ""]
     ck <- val[reactive_i()]
+    ck <- ck[!is.na(ck)]
     col_key( ck )
 
     rii(unique(ck))
@@ -207,6 +212,7 @@ enrichment_analysis_module <- function(
         rii("notest")
 
     rp$featureId <- as.factor( val[ as.character( rp$featureId ) ] )
+    rp <- rp[!is.na(rp$featureId), ]
     reactive_pathway_collapsed( unique(rp) )
 
     size_bg( length(unique(val)) )
@@ -219,7 +225,7 @@ enrichment_analysis_module <- function(
   
     notest <- "No geneset has been tested, please try to include more input feature IDs!" 
 
-    if (rii()[1] == "notest")
+    if (identical(rii()[1], "notest"))
       return(notest)
   
     if (is.null(reactive_pathway_collapsed()))
@@ -246,8 +252,15 @@ enrichment_analysis_module <- function(
   
   oraTab <- reactiveVal( NULL )
   observe({
-    if (!is.null(rii()))
-      oraTab( OT() )
+    if (is.null(rii())) {
+      # R-M6: the selection shrinking below the testable minimum must not
+      # leave the previous results table on screen - show an explicit
+      # no-test message (only once something was shown; not on cold start).
+      if (!is.null(isolate(oraTab())))
+        oraTab("Too few feature IDs are selected to test over-representation, please try to include more input feature IDs!")
+      return(NULL)
+    }
+    oraTab( OT() )
   })
   
   

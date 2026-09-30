@@ -102,6 +102,16 @@ survival_module <- function(
     .sv_store_observers[[length(.sv_store_observers) + 1L]] <<- obs
     invisible(obs)
   }
+  # desired censor time (R-M7): the slider used to be rebuilt AT MAX on
+  # every dat() change (sample-selection changes clobbered the user's
+  # choice), and store pushes landed before the renderUI slider existed
+  # (updateSliderInput to a missing input is a no-op - the push was
+  # lost). The renderUI now sets the VALUE at render time from this
+  # reactiveVal; user drags and store pushes both record into it.
+  .sv_desired <- reactiveVal(NULL)
+  .sv_keep(observeEvent(input$censor, {
+    if (!is.null(input$censor)) .sv_desired(input$censor)
+  }, ignoreInit = TRUE))
   if (!is.null(store)) {
     .sv_range <- function() {
       d <- tryCatch(dat(), shiny.silent.error = function(e) NULL,
@@ -146,6 +156,9 @@ survival_module <- function(
       rg <- .sv_range()
       if (!is.null(rg))
         cv <- min(max(cv, rg[1]), rg[2])
+      # record the desired value FIRST so a push that lands before the
+      # slider exists still applies when the view renders it (R-M7)
+      .sv_desired(cv)
       updateSliderInput(session, "censor", value = cv)
     }))
   }
@@ -158,13 +171,19 @@ survival_module <- function(
   })
   
   output$censor_output <- renderUI({
-    nm <- max(dat()$time, na.rm = TRUE)
+    rg <- suppressWarnings(range(dat()$time, na.rm = TRUE))
+    if (length(rg) != 2 || any(!is.finite(rg)))
+      return(NULL)
+    # R-M7: keep the user's (or pushed) censor time across re-renders;
+    # clamp into the current time range, default to the max
+    val <- isolate(.sv_desired())
+    val <- if (is.null(val)) rg[2] else min(max(val, rg[1]), rg[2])
     tagList(
       fluidRow(
         column(12, offset = 0, style='padding-left:5px; padding-right:5px; padding-top:0px; padding-bottom:0px',
                div(style="display: inline-block;vertical-align:top;", h5("Censor at")),
                div(style="padding-left:25px; display: inline-block;vertical-align:top; width:65%;", 
-                   sliderInput(ns("censor"), label = NULL, min = min(dat()$time, na.rm = TRUE), max = nm, value = nm)
+                   sliderInput(ns("censor"), label = NULL, min = rg[1], max = rg[2], value = val)
                )
         )),
       tags$p(

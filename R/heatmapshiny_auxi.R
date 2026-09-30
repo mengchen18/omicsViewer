@@ -179,6 +179,10 @@ shinyPlotTooltipsUI <- function(id) {
   
   ns <- NS(id)
   
+  # R-L2: the message type is NAMESPACED per instance. A fixed
+  # 'placeDraggable' type was registered once per heatmap and shiny.js
+  # keeps only the LAST handler per type - tooltips were positioned only
+  # for the last-registered heatmap instance.
   htmlCode <- sprintf(
     "// Get mouse coordinates
     var mouseX, mouseY;
@@ -188,12 +192,11 @@ shinyPlotTooltipsUI <- function(id) {
     }).mouseover();
     
     // Function to possition draggable, place on current mouse coordinates
-    Shiny.addCustomMessageHandler ('placeDraggable',function (message) {
+    Shiny.addCustomMessageHandler ('%s',function (message) {
     var element = $('#%s').parent();
     element.css({'top': mouseY + 'px', 'left' : mouseX + 'px'})
     });", 
-    # ns("hover_info"),
-    # ns("hover_info"),
+    paste0("placeDraggable-", ns("hover_info")),
     ns("hover_info")
   )
   
@@ -246,7 +249,11 @@ shinyPlotTooltips <- function(id, points) {
 
   output$hover_info <- renderText({
     req(points())
-    session$sendCustomMessage(type = 'placeDraggable', message = list())
+    # R-L2: namespaced message type - one handler per tooltip instance
+    # (a fixed type was overwritten by every additional heatmap)
+    session$sendCustomMessage(
+      type = paste0("placeDraggable-", session$ns("hover_info")),
+      message = list())
     paste0(
       '<p style="background-color:rgb(250,250,250); padding:5px; border-radius:3px; border: 2px solid #CCC">',
       points(), '</p>'

@@ -477,12 +477,15 @@ read.proteinGroups.tmt <- function(file, xref=NULL) {
   ir <- c(grep("^CON_", ab$Majority.protein.IDs), 
           grep("^REV_", ab$Majority.protein.IDs), 
           which(ab$Only.identified.by.site == "+"))
+  # R-L4: with nothing to filter, -integer(0) subsets to ZERO rows and
+  # the whole dataset is silently dropped
+  keep <- setdiff(seq_len(nrow(ab)), ir)
   
   eSum <- c("Fraction", "Reporter.intensity.corrected", "Reporter.intensity", "Reporter.intensity.count")
   ls <- list()
   for (i in eSum) {
     gb <- grep(paste0(i, ".[0-9]*$"), colnames(ab), value = TRUE)
-    ls[[i]] <- apply(ab[-ir, gb, drop = FALSE], 2, as.numeric)
+    ls[[i]] <- apply(ab[keep, gb, drop = FALSE], 2, as.numeric)
     ab[gb] <- NULL
   }
   
@@ -490,13 +493,13 @@ read.proteinGroups.tmt <- function(file, xref=NULL) {
   eInd <- c("Reporter.intensity.corrected", "Reporter.intensity.count", "Reporter.intensity")
   for (i in eInd) {
     gb <- grep(i, colnames(ab), value = TRUE)
-    lsind[[i]] <- apply(ab[-ir, gb, drop = FALSE], 2, as.numeric)
+    lsind[[i]] <- apply(ab[keep, gb, drop = FALSE], 2, as.numeric)
     ab[gb] <- NULL
   }
   
   lsind$Reporter.intensity.corrected.log10 <- log10(lsind$Reporter.intensity.corrected)
   lsind$Reporter.intensity.corrected.log10[is.infinite(lsind$Reporter.intensity.corrected.log10)] <- NA
-  lsind$annot <- ab[-ir, ]
+  lsind$annot <- ab[keep, ]
   lsind$Summed <- ls
   colnames(lsind$Reporter.intensity.corrected.log10) <- make.names(
     sub("Reporter.intensity.corrected.", "", colnames(lsind$Reporter.intensity.corrected.log10)) 

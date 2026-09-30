@@ -93,9 +93,13 @@ correlationAnalysis <- function(x, pheno, min.value = MIN_SAMPLES_CORRELATION, p
 #'   presented (more than once) in the columns of \code{pheno} selected by the
 #'   values in the first column. The samples mapped to the two values are compared. 
 #'   If paired comparisons to be done, the orders of samples should be mapped
-#' @param fillNA logical; whether NA should be filled? If FALSE (default), t test 
+#' @param fillNA logical; whether NA should be filled? If FALSE (default), t test
 #'   will be performed whenever possible. If not possible, then NA will be returned. 
 #'   If TRUE, the missing value will be replaced using \code{\link{fillNA}}. 
+#' @param var.equal logical; forwarded to \code{\link{t.test}}. A formal
+#'   (not a \code{...} entry) so a documented \code{var.equal = FALSE}
+#'   call does not collide with the hard-coded default and silently turn
+#'   every p-value NA (R-M12).
 #' @param ... other parameters passed to \code{\link{t.test}}
 #' @importFrom methods is
 #' @return a \code{data.frame} stores the t-test results with the follow columns:
@@ -134,7 +138,7 @@ correlationAnalysis <- function(x, pheno, min.value = MIN_SAMPLES_CORRELATION, p
 #' )
 #' tres <- multi.t.test(x = expr, pheno = pd, compare = tests)
 
-multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
+multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, var.equal = TRUE, ...) {
   
   x0 <- x
   if( is.vector(compare) || length(compare) == 3)
@@ -172,7 +176,7 @@ multi.t.test <- function(x, pheno, compare = NULL, fillNA = FALSE, ...) {
     
     tv <- apply(x, 1, function(xx) {
       t <- tryCatch(
-        t.test(xx[i1], xx[i2], var.equal = TRUE, ...),
+        t.test(xx[i1], xx[i2], var.equal = var.equal, ...),
         error = function(e) {
           # Log error for debugging without exposing to end user
           if (getOption("omicsViewer.debug", FALSE)) {

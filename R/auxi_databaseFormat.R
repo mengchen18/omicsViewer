@@ -198,8 +198,10 @@ getExprs <- function(x) {
     rownames(mat) <- rn
   } else if (inherits(x, "ExpressionSet"))
     mat <- exprs(x)
+  else
+    stop("getExprs: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
   mat
-} 
+}
 
 getExprsImpute <- function(x) {
   if (inherits(x, "SQLiteConnection")) {
@@ -212,9 +214,9 @@ getExprsImpute <- function(x) {
     rownames(mat) <- rn
   } else if (inherits(x, "ExpressionSet"))
     mat <- exprsImpute(x) else 
-      mat <- NULL
+      stop("getExprsImpute: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
   mat
-} 
+}
 
 getPData <- function(x) {
   if (inherits(x, "SQLiteConnection")) {
@@ -223,7 +225,8 @@ getPData <- function(x) {
     mat$rowname <- NULL
   } else if (inherits(x, "ExpressionSet")) {
     mat <- pData(x)
-  }
+  } else
+    stop("getPData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
   # TODO: SQLite persistence/restoration of quickViews is a known gap and will
   # be addressed with the broader stateful-UI work.
   mat
@@ -242,7 +245,8 @@ getFData <- function(x) {
     }
   } else if (inherits(x, "ExpressionSet")) {
     mat <- fData(x)
-  }
+  } else
+    stop("getFData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
   # TODO: SQLite persistence/restoration of quickViews is a known gap and will
   # be addressed with the broader stateful-UI work.
   mat
@@ -259,7 +263,8 @@ getAx <- function(x, what) {
     }
   } else if (inherits(x, "ExpressionSet")) {
     v <- attr(x, what)
-  }
+  } else
+    stop("getAx: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
   v
 }
 

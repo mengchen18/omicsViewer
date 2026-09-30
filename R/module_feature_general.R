@@ -343,6 +343,7 @@ feature_general_module <- function(id,
   showRegLine <- reactiveVal(FALSE)
   htestV1 <- reactiveVal()
   htestV2 <- reactiveVal()
+  .fg_keep_observers <- list()
   v_scatter <- plotly_scatter_module("feature_general_scatter",
                           reactive_param_plotly_scatter = scatter_vars,
                           reactive_checkpoint = showScatter,
@@ -409,6 +410,13 @@ feature_general_module <- function(id,
                            reactive_param_plotly_scatter = scatter_vars,
                            reactive_checkpoint = showBeeswarm,
                            htest_var1 = htestV1, htest_var2 = htestV2)
+  # L7: keep the user's t-test group picks across re-renders (observer
+  # retained per the observer-GC rule)
+  .fg_keep_observers$htest <- observe({
+    v <- v_beeswarm()
+    if (!is.null(v$htest_V1)) htestV1(v$htest_V1)
+    if (!is.null(v$htest_V2)) htestV2(v$htest_V2)
+  })
 
   plot_roc_pr_module("feature_general_roc_pr",
     reactive_param = scatter_vars, reactive_checkpoint = showBeeswarm)

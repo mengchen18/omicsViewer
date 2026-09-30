@@ -646,6 +646,14 @@ meta_scatter_module <- function(
     .scatter_keep(observe({
       showRegLine(v_scatter()$regline)
     }))
+    # L7: feed the beeswarm t-test groups back - htestV1/V2 used to be
+    # write-only seeds (never written), so a user's group pick was lost on
+    # every re-render and never entered scatter_status
+    .scatter_keep(observe({
+      v <- v_scatter()
+      htestV1(v$htest_V1)
+      htestV2(v$htest_V2)
+    }))
 
     selVal <- reactiveVal(
       list(
@@ -885,6 +893,8 @@ meta_scatter_module <- function(
         yax = list(v1 = vals[["y_analysis"]], v2 = vals[["y_subset"]],
                    v3 = vals[["y_variable"]]),
         showRegLine = showRegLine(),
+        htestV1 = safe_state_value(htestV1()),
+        htestV2 = safe_state_value(htestV2()),
         attr4 = safe_state_value(attr4select$status),
         selection_clicked = current$clicked,
         selection_selected = current$selected,
@@ -964,6 +974,11 @@ meta_scatter_module <- function(
 
       # Restore regression line setting
       showRegLine(s$showRegLine)
+
+      # L7: restore the beeswarm t-test groups (widget inputs; the test
+      # itself is recomputed from them)
+      if (!is.null(s$htestV1)) htestV1(s$htestV1)
+      if (!is.null(s$htestV2)) htestV2(s$htestV2)
 
       # Computed hypothesis-test output is intentionally not restored; it is
       # recalculated from the restored widget and selection state.

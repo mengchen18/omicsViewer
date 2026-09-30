@@ -151,10 +151,13 @@ ptmotif_module <- function(
 
   observe({
     req(bg.seqs())
-    if (length(unique(nchar(bg.seqs()))) > 1)
-      errText(
-        "The length of sequences is different. The input of seqLogo analysis requires the sequences have the same length"
-      )
+    # R-M10: clear the message on a good column - it used to stick
+    # forever after one bad SeqLogo column
+    errText(
+      if (length(unique(nchar(bg.seqs()))) > 1)
+        "The length of sequences is different. The input of seqLogo analysis requires the sequences have the same length" else
+        NULL
+    )
   })
 
   output$errorMsg <- renderText({

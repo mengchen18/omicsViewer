@@ -287,6 +287,11 @@ quick_badges_module <- function(id, views, activeId) {
     selectedTrigger <- reactiveVal(0)
     clickCounts <- reactiveVal(list())
 
+    # R-L1: observers are created ONCE per view id (keyed registry).
+    # Re-creating them on every views() invalidation leaked one observer
+    # per button per invalidation; the registry also keeps them referenced
+    # (observer-GC rule).
+    .qb_observers <- list()
     observeEvent(views(), {
       vv <- isolate(views())
       selectedId(NULL)
@@ -294,27 +299,29 @@ quick_badges_module <- function(id, views, activeId) {
       if (is.null(vv) || !nrow(vv))
         return(NULL)
 
-      invisible(lapply(seq_len(nrow(vv)), function(i) {
-        buttonId <- paste0("badge_", vv$id[i])
-        local({
-          buttonIdLocal <- buttonId
-          viewIdLocal <- vv$id[i]
-          observeEvent(input[[buttonIdLocal]], {
-            currentClick <- input[[buttonIdLocal]]
-            counts <- isolate(clickCounts())
-            previousClick <- if (is.null(counts[[buttonIdLocal]])) 0 else counts[[buttonIdLocal]]
-            counts[[buttonIdLocal]] <- currentClick
-            clickCounts(counts)
+      for (vid in vv$id) {
+        buttonId <- paste0("badge_", vid)
+        if (is.null(.qb_observers[[buttonId]]))
+          local({
+            buttonIdLocal <- buttonId
+            viewIdLocal <- vid
+            obs <- observeEvent(input[[buttonIdLocal]], {
+              currentClick <- input[[buttonIdLocal]]
+              counts <- isolate(clickCounts())
+              previousClick <- if (is.null(counts[[buttonIdLocal]])) 0 else counts[[buttonIdLocal]]
+              counts[[buttonIdLocal]] <- currentClick
+              clickCounts(counts)
 
-            # Re-rendering the active button resets its actionButton counter.
-            # Only increasing counters represent genuine user clicks.
-            if (currentClick > previousClick) {
-              selectedId(viewIdLocal)
-              selectedTrigger(selectedTrigger() + 1)
-            }
-          }, ignoreInit = TRUE)
-        })
-      }))
+              # Re-rendering the active button resets its actionButton counter.
+              # Only increasing counters represent genuine user clicks.
+              if (currentClick > previousClick) {
+                selectedId(viewIdLocal)
+                selectedTrigger(selectedTrigger() + 1)
+              }
+            }, ignoreInit = TRUE)
+            .qb_observers[[buttonIdLocal]] <<- obs
+          })
+      }
     }, ignoreInit = FALSE)
 
     output$badgeContainer <- renderUI({

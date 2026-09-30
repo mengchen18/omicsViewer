@@ -455,11 +455,11 @@ attr4selector_module <- function(
     pendingCorner(NULL)
   }, ignoreInit = TRUE)
     
+  # N1: the dead `debounce(foo, 1000)` observe was removed - searchValue
+  # is deliberately not fed from input$searchon (dormant wiring, see the
+  # registration note above); the debounce was re-created and discarded on
+  # every observer run
   searchValue <- reactiveVal()
-  observe({
-    foo <- function() searchValue(input$searchon)
-    debounce(foo, 1000) 
-    })  
 
   observe({    
     if (is.null(vv())) {

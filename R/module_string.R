@@ -161,8 +161,10 @@ string_module <- function(
     )
     .str_root_store <- if (is.null(store$parent)) store else store$parent
     .str_keep(observeEvent(input$tax, {
-      if (!is.null(input$tax) && nzchar(input$tax))
-        store_sync_from_ui(store, "taxonomy", input$tax)
+      # R-L3: a cleared taxonomy syncs too (the store kept the stale value)
+      if (!is.null(input$tax))
+        store_sync_from_ui(store, "taxonomy",
+                           if (nzchar(trimws(input$tax))) input$tax else NULL)
     }, ignoreInit = TRUE))
     .str_keep(observeEvent(input$showLabel, {
       if (!is.null(input$showLabel))
@@ -233,6 +235,8 @@ string_module <- function(
     }
 
     show_modal_spinner(text = "Querying STRING network ...")
+    # R-L3: any error (or early return) below must still take the modal down
+    on.exit(remove_modal_spinner(), add = TRUE)
     r <- stringNetwork(genes = ids, taxid = input$tax)
     remove_modal_spinner()
 
@@ -267,6 +271,8 @@ string_module <- function(
   gs <- eventReactive( input$run, {
     req(!overflow())
     show_modal_spinner(text = "Querying STRING enrichment database ...")
+    # R-L3: any error (or early return) below must still take the modal down
+    on.exit(remove_modal_spinner(), add = TRUE)
     tab <- stringGSA(genes = reactive_ids(), taxid = input$tax)
     remove_modal_spinner()
 

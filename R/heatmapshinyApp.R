@@ -260,8 +260,16 @@ iheatmapModule <- function(
     updateSelectInput(
       session, "colSortBy", choices = c(names(cdg()), "hierarchical cluster", "none", colnames(pd()))) 
     })
+  .hmap_rowsort_choices <- reactiveVal(NULL)
   observe({
     cs <- c(names(rdg()), "none", "hierarchical cluster", fdColWithGS())
+    # M8: rdg()/fdColWithGS() re-derive on every selection change; pushing
+    # the choices again re-set the selectize (and its default) each time,
+    # clobbering an explicit "none" pick. Push only when the choice SET
+    # actually changed.
+    if (identical(cs, isolate(.hmap_rowsort_choices())))
+      return(NULL)
+    .hmap_rowsort_choices(cs)
     ss <- clsRow()
     if (ss == "none" && cs[[1]] != "none")
       ss <- cs[[1]]
@@ -477,11 +485,39 @@ iheatmapModule <- function(
     # return()-based guards (no for/next control flow inside observe()).
     # rowSortBy/annotRow are server-side selectize inputs; their update
     # goes through updateSelectizeInput exactly like the status path.
+    # M9: server-side selectize pushes must carry the choices (and
+    # server = TRUE) - a bare selected= push cannot register a value
+    # beyond the choices the client has loaded. The choice reactives are
+    # read isolated and defensively: a req() failure inside them must
+    # never kill the whole push observer.
+    .hmap_choices <- function(which) {
+      tryCatch(isolate({
+        if (identical(which, "row")) {
+          cs <- c(names(rdg()), "none", "hierarchical cluster", fdColWithGS())
+          .hmap_rowsort_choices(cs)
+          cs
+        } else {
+          fdColWithGS()
+        }
+      }), error = function(e) NULL, shiny.silent.error = function(e) NULL)
+    }
     .heatmap_push_input <- function(key, input_id, value) {
       if (startsWith(key, "margin_")) {
         updateSliderInput(session, input_id, value = value)
-      } else if (input_id %in% c("rowSortBy", "annotRow")) {
-        updateSelectizeInput(session, input_id, selected = value)
+      } else if (input_id == "rowSortBy") {
+        cs <- .hmap_choices("row")
+        if (!is.null(cs))
+          updateSelectizeInput(session, input_id, choices = cs,
+                               selected = value, server = TRUE)
+        else
+          updateSelectizeInput(session, input_id, selected = value)
+      } else if (input_id == "annotRow") {
+        cs <- .hmap_choices("col")
+        if (!is.null(cs))
+          updateSelectizeInput(session, input_id, choices = cs,
+                               selected = value, server = TRUE)
+        else
+          updateSelectizeInput(session, input_id, selected = value)
       } else {
         updateSelectInput(session, input_id, selected = value)
       }
