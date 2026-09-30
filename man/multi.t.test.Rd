@@ -4,7 +4,7 @@
 \alias{multi.t.test}
 \title{Function to perform multiple t-tests on an expression matrix}
 \usage{
-multi.t.test(x, pheno, compare = NULL, fillNA = FALSE, ...)
+multi.t.test(x, pheno, compare = NULL, fillNA = FALSE, var.equal = TRUE, ...)
 }
 \arguments{
 \item{x}{an expression matrix, usually log10 transformed.}
@@ -19,9 +19,14 @@ presented (more than once) in the columns of \code{pheno} selected by the
 values in the first column. The samples mapped to the two values are compared. 
 If paired comparisons to be done, the orders of samples should be mapped}
 
-\item{fillNA}{logical; whether NA should be filled? If FALSE (default), t test 
+\item{fillNA}{logical; whether NA should be filled? If FALSE (default), t test
 will be performed whenever possible. If not possible, then NA will be returned. 
 If TRUE, the missing value will be replaced using \code{\link{fillNA}}.}
+
+\item{var.equal}{logical; forwarded to \code{\link{t.test}}. A formal
+(not a \code{...} entry) so a documented \code{var.equal = FALSE}
+call does not collide with the hard-coded default and silently turn
+every p-value NA (R-M12).}
 
 \item{...}{other parameters passed to \code{\link{t.test}}}
 }

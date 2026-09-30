@@ -543,10 +543,10 @@ validate_app_state <- function(state, dataset = NULL, dataset_id = NA_character_
 #'
 #' The returned name contains only portable filename characters and cannot
 #' represent a path or parent-directory reference. Unicode letters and
-#' numbers are preserved (Perl `\p{L}`/`\p{N}` classes; todo 2.7); names
-#' are capped at 80 characters so the generated file name stays comfortably
-#' below the usual 255-byte file system limit even with the dataset-id
-#' prefix (todo 1.5).
+#' numbers are preserved (Perl Unicode property classes in the regular
+#' expression; todo 2.7); names are capped at 80
+#' characters so the generated file name stays comfortably below the usual
+#' 255-byte file system limit even with the dataset-id prefix (todo 1.5).
 #'
 #' @param name Character user input.
 #' @param fallback Name used when input is empty.
