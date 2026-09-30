@@ -10,3 +10,17 @@
 ^tests/e2e_agent/node_modules/
 ^tests/e2e_agent/artifacts/
 ^tests/e2e_agent/tier_a_results\.json$
+
+# agent e2e harness: the Node harness itself is not part of the R package
+^tests/e2e_agent/.*\.mjs$
+^tests/e2e_agent/package.*\.json$
+^tests/e2e_agent/score_tier_b_gate\.R$
+^tests/e2e_agent/tier_b_tasks\.md$
+^tests/e2e_agent/README
+
+# local-only build artifact at the repo root (1.1 MB)
+^index\.html$
+
+# revision plan
+^todo\.md$
+^review/$

@@ -44,8 +44,6 @@ import(Matrix, except = image)
 import(matrixStats)
 import(plotly)
 import(shiny, except = c(dataTableOutput, renderDataTable))
-import(shiny, except = c(dataTableOutput, renderDataTable))
-
 import(stringr)
 importFrom(Biobase,"fData<-")
 importFrom(Biobase,"pData<-")

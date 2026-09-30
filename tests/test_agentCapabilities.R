@@ -110,9 +110,16 @@ ok(
   "search respects max_results and reports truncation"
 )
 ok(
-  ut_cmp_error(agent_capability_search(s, "null"),
+  ut_cmp_error(agent_capability_search(s, NULL),
                "non-empty capability search query"),
-  "sentinel query strings are rejected"
+  "absent queries are rejected (sentinels are neutralized at the WP15 seam)"
+)
+ok(
+  ut_cmp_identical(
+    is.null(omicsViewer:::agent_args_sanitize(list(query = "null"))$query),
+    TRUE
+  ),
+  "the literal 'null' sentinel never reaches capability-search validators"
 )
 ok(
   ut_cmp_error(agent_capability_search(s, "x", max_results = 0L),

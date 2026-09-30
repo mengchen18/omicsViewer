@@ -8,6 +8,7 @@
 \alias{agent_turn_usage}
 \alias{agent_budget_violation}
 \alias{agent_environment_config}
+\alias{agent_allow_user_endpoint}
 \alias{agent_validate_provider_config}
 \alias{agent_quick_view_records}
 \alias{.agent_normalize_state_sections}
@@ -37,11 +38,14 @@ agent_budget_violation(used_tokens, used_cost_usd, limits)
 
 agent_environment_config()
 
+agent_allow_user_endpoint()
+
 agent_validate_provider_config(
   provider,
   model = "",
   api_key = "",
-  base_url = ""
+  base_url = "",
+  allow_local_http = FALSE
 )
 
 agent_quick_view_records(views)
@@ -88,7 +92,7 @@ agent_normalize_state_update(
   max_samples = 2000L
 )
 
-.agent_nullable_scalar(x)
+.agent_nullable_scalar(x, arg = NULL)
 
 agent_history_redact(text)
 
@@ -122,6 +126,12 @@ agent_history_restore_payload(payload, max_bytes = 512L * 1024L)
 \item{api_key}{Optional session API key.}
 
 \item{base_url}{Optional HTTPS or local HTTP API endpoint.}
+
+\item{allow_local_http}{Whether local (localhost / 127.0.0.1) HTTP
+endpoints are accepted; FALSE by default so user-supplied endpoints
+cannot target services on the server host (SSRF) or leak the key over
+plain HTTP. Administrator-supplied settings and
+\code{OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT} opt in.}
 
 \item{views}{A data.frame from \code{\link{prepare_quick_views}}, or NULL.}
 
@@ -217,6 +227,8 @@ A list with provider, model, base URL, API key, configuration
   status, and credential source. An empty API key means that the user must
   supply one in the current session.
 
+TRUE or FALSE.
+
 A normalized provider-configuration list without changing the
   credential source.
 
@@ -288,6 +300,13 @@ depend on reactive state.
 Environment variables are intentionally limited to provider selection, model
 selection, an optional OpenAI-compatible base URL, and credentials. The API
 key is never placed in Shiny UI state, snapshots, tool results, or logs.
+
+When a server environment key is in use, the provider and the API base
+URL are locked to the environment values so the administrator's key can
+never be carried to a user-chosen endpoint (credential exfiltration).
+Administrators who consciously allow user-supplied endpoints set
+\code{OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT} to a true value; the same flag
+re-enables local HTTP endpoints for keys entered in the settings modal.
 
 Accepts a character vector (or list) of requested section names from
 the canonical tool-argument document and normalizes it so

@@ -156,8 +156,16 @@ agent_figure_grammar <- function() {
   )
 }
 
-.agent_figure_scalar <- function(x, fallback = NULL, max_chars = 200L) {
-  if (is.null(x) || length(x) == 0 || is.na(x))
+.agent_figure_scalar <- function(x, fallback = NULL, max_chars = 200L, arg = NULL) {
+  # Array-safe: a length>1 value previously crashed on `is.na(x) || ...`.
+  # With a known argument name the model gets a self-correctable error
+  # instead (todo 1.7); unnamed callers keep the historic behaviour.
+  if (is.null(x) || length(x) == 0L)
+    return(fallback)
+  if (length(x) > 1L && !is.null(arg))
+    stop("Expected a single string for ", arg, "; received ", length(x),
+         " values.", call. = FALSE)
+  if (isTRUE(is.na(x[1])))
     return(fallback)
   out <- trimws(as.character(x)[1])
   if (is.na(out)) return(fallback)
@@ -215,7 +223,12 @@ agent_figure_grammar <- function() {
 }
 
 .agent_figure_choice <- function(value, choices, name, fallback = NULL) {
-  if (is.null(value) || length(value) == 0 || is.na(value))
+  if (is.null(value) || length(value) == 0L)
+    return(fallback)
+  if (length(value) > 1L)
+    stop("Expected a single string for ", name, "; received ", length(value),
+         " values.", call. = FALSE)
+  if (isTRUE(is.na(value[1])))
     return(fallback)
   value <- .agent_figure_scalar(value, max_chars = 100L)
   if (is.null(value) || !value %in% choices)
@@ -272,7 +285,7 @@ agent_figure_grammar <- function() {
 
 .agent_where_text <- function(value, name) {
   if (.agent_param_absent(value)) stop("Figure filter ", name, " is required for this operator.")
-  out <- .agent_figure_scalar(value, max_chars = 200L)
+  out <- .agent_figure_scalar(value, max_chars = 200L, arg = paste0("filter.", name))
   if (is.null(out)) stop("Figure filter ", name, " is required for this operator.")
   out
 }
@@ -348,7 +361,7 @@ agent_where_normalize <- function(where, mappings = NULL) {
   if (length(unknown))
     stop("Unknown figure filter field(s): ", paste(unknown, collapse = ", "))
 
-  column <- .agent_figure_scalar(where$column, max_chars = 500L)
+  column <- .agent_figure_scalar(where$column, max_chars = 500L, arg = "filter.column")
   if (is.null(column))
     stop("Figure filter requires a column.")
   if (column %in% c("x", "y")) {
@@ -459,7 +472,7 @@ agent_where_eval <- function(where, data) {
     return(Reduce(`|`, hits))
   }
 
-  column <- .agent_figure_scalar(node$column, max_chars = 500L)
+  column <- .agent_figure_scalar(node$column, max_chars = 500L, arg = "filter.column")
   if (is.null(column) || !column %in% colnames(data))
     stop("Figure filter column is unavailable: ", column, ".",
          .agent_suggest_text(column, colnames(data)))
@@ -538,7 +551,7 @@ agent_where_eval <- function(where, data) {
 # ---- constant colors, scale overrides, theme tweaks --------------------
 
 .agent_figure_color_scalar <- function(value, what) {
-  out <- .agent_figure_scalar(value, max_chars = 9L)
+  out <- .agent_figure_scalar(value, max_chars = 9L, arg = what)
   if (is.null(out)) return(NULL)
   if (!grepl(.agent_figure_hex_pattern, out))
     stop("Figure ", what, " must be a hex color like '#b2182b', not: ", out, ".")
@@ -810,7 +823,8 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
       stop("Every figure layer requires an allowlisted geom.")
 
     mappings <- lapply(.agent_figure_aesthetics, function(aesthetic) {
-      .agent_figure_scalar(layer[[aesthetic]], max_chars = 500L)
+      .agent_figure_scalar(layer[[aesthetic]], max_chars = 500L,
+                           arg = paste0("layer mappings.", aesthetic))
     })
     names(mappings) <- .agent_figure_aesthetics
     mappings <- mappings[!vapply(mappings, is.null, logical(1))]
@@ -899,7 +913,7 @@ agent_normalize_figure_spec <- function(spec, feature_data, sample_data, express
     list(geom = geom, mappings = mappings, params = params, filter = filter)
   })
 
-  facet_by <- .agent_figure_scalar(spec$facet_by, max_chars = 500L)
+  facet_by <- .agent_figure_scalar(spec$facet_by, max_chars = 500L, arg = "facet_by")
   facet_ncol <- .agent_figure_integer_param(spec$facet_ncol, "facet_ncol", 1L, 6L, NULL)
   x_transform <- .agent_figure_choice(
     spec$x_transform, .agent_figure_transforms, "x transform", "identity"
@@ -1016,7 +1030,7 @@ agent_figure_templates <- function() {
 }
 
 .agent_template_space <- function(space) {
-  value <- .agent_figure_scalar(space, max_chars = 100L)
+  value <- .agent_figure_scalar(space, max_chars = 100L, arg = "space")
   if (is.null(value)) return(NULL)
   if (!value %in% c("feature", "sample"))
     stop("Figure template space must be 'feature' or 'sample', not: ", value, ".")
@@ -1029,7 +1043,7 @@ agent_figure_templates <- function() {
 # conflict when a column exists in both spaces and none was pinned.
 .agent_template_column <- function(value, role, feature_data, sample_data,
                                    space = NULL, required = TRUE) {
-  column <- .agent_figure_scalar(value, max_chars = 500L)
+  column <- .agent_figure_scalar(value, max_chars = 500L, arg = role)
   if (is.null(column)) {
     if (required)
       stop("Figure template requires a ", role, " column.")
@@ -1140,7 +1154,7 @@ agent_figure_templates <- function() {
                                     feature_data, sample_data, space,
                                     selected_features, features = NULL) {
   x_col <- .agent_template_column(x, "x (grouping)", feature_data, sample_data, space)
-  y_value <- .agent_figure_scalar(y, max_chars = 500L)
+  y_value <- .agent_figure_scalar(y, max_chars = 500L, arg = "y")
   if (is.null(y_value)) {
     # expression mode: distribution of the selected features' expression
     # grouped by a sample annotation column
@@ -1255,7 +1269,7 @@ agent_figure_template_spec <- function(template = NULL, x = NULL, y = NULL,
                                        expression = NULL,
                                        selected_features = character(),
                                        selected_samples = character()) {
-  template_value <- .agent_figure_scalar(template, max_chars = 100L)
+  template_value <- .agent_figure_scalar(template, max_chars = 100L, arg = "template")
   if (is.null(template_value))
     stop("Figure template is required. Available templates: ",
          paste(.agent_figure_templates, collapse = ", "), ".")
@@ -1266,7 +1280,7 @@ agent_figure_template_spec <- function(template = NULL, x = NULL, y = NULL,
   label_top_n <- .agent_figure_integer_param(label_top_n, "label_top_n", 0L, 50L, 0L)
   if (label_top_n > 0L && template_value %in% c("boxplot", "histogram"))
     stop("label_top_n is supported by the volcano and scatter templates only.")
-  title_value <- .agent_figure_scalar(title)
+  title_value <- .agent_figure_scalar(title, arg = "title")
   # WP6b: normalize the optional ID subsets up front so the volcano
   # template can rank within the subset.
   features_value <- .agent_figure_ids_param(features, "features")

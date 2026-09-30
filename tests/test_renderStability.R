@@ -21,10 +21,18 @@
 suppressMessages({
   library(shiny)
   library(Biobase)
+  if (!requireNamespace("unittest", quietly = TRUE) ||
+      !requireNamespace("pkgload", quietly = TRUE)) {
+    message("render-stability harness needs unittest + pkgload (Suggests)")
+    quit(save = "no", status = 0)
+  }
   library(unittest, quietly = TRUE)
   pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
 })
-dat <- readRDS("inst/extdata/demo.RDS")
+demo_path <- system.file("extdata", "demo.RDS", package = "omicsViewer")
+if (!nzchar(demo_path))
+  demo_path <- file.path("inst", "extdata", "demo.RDS")
+dat <- readRDS(demo_path)
 fd <- fData(dat); pd <- pData(dat); ex <- exprs(dat)
 `%||%` <- function(a, b) if (is.null(a)) b else a
 

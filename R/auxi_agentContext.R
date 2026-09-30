@@ -172,15 +172,20 @@ agent_content_estimate_tokens <- function(content) {
 #' already covers system prompt, tool schemas, and all earlier turns), then
 #' adds a char-based estimate of everything appended since. Without a usage
 #' anchor (fresh or restored client; some providers stop reporting usage)
-#' every content is estimated from characters plus a fixed tool-schema
-#' overhead. ellmer 0.5.0's own \code{token_count()} is deliberately not
-#' used: for OpenAI-compatible providers it issues a real HTTP request.
+#' every content is estimated from characters plus the session's fixed
+#' overhead: the first completed request's reported input tokens when known
+#' (recorded by the module's on_request_end hook), otherwise the historical
+#' constant below. ellmer 0.5.0's own \code{token_count()} is deliberately
+#' not used: for OpenAI-compatible providers it issues a real HTTP request.
 #'
 #' @param turns List of ellmer Turn objects.
+#' @param overhead Fixed overhead in tokens for the unanchored path (the
+#'   first request's measured input tokens); NULL falls back to the
+#'   historical constant.
 #' @return Single numeric token estimate.
 #' @keywords internal
 #' @rdname agentContextHelpers
-agent_estimate_context_tokens <- function(turns) {
+agent_estimate_context_tokens <- function(turns, overhead = NULL) {
   turns <- Filter(.agent_is_turn, turns)
   if (!length(turns))
     return(0)
@@ -205,8 +210,13 @@ agent_estimate_context_tokens <- function(turns) {
                                   numeric(1)))
     }
   }
-  if (anchor_index == 0L)
-    extra <- extra + .agent_context_tool_overhead_tokens
+  if (anchor_index == 0L) {
+    fixed_overhead <- .agent_context_tool_overhead_tokens
+    if (!is.null(overhead) && length(overhead) == 1L &&
+        is.finite(overhead) && overhead > 0)
+      fixed_overhead <- overhead
+    extra <- extra + fixed_overhead
+  }
   round(anchor_tokens + extra)
 }
 
@@ -438,11 +448,14 @@ agent_stub_history <- function(turns, policy = agent_context_policy(),
 #' @param turns List of ellmer Turn objects.
 #' @param target_tokens Numeric budget for the kept suffix.
 #' @param keep_exchanges Minimum number of trailing exchanges to keep.
+#' @param overhead Fixed overhead for the unanchored estimate path (see
+#'   \code{\link{agent_estimate_context_tokens}}).
 #' @return Integer index into \code{turns} (keep \code{turns[i..end]}), or
 #'   NULL when there is nothing that can safely be dropped.
 #' @keywords internal
 #' @rdname agentContextHelpers
-agent_compaction_cut <- function(turns, target_tokens, keep_exchanges = 1L) {
+agent_compaction_cut <- function(turns, target_tokens, keep_exchanges = 1L,
+                                 overhead = NULL) {
   turns <- Filter(.agent_is_turn, turns)
   starts <- which(vapply(turns, function(t) {
     inherits(t, "ellmer::UserTurn") &&
@@ -459,7 +472,7 @@ agent_compaction_cut <- function(turns, target_tokens, keep_exchanges = 1L) {
   # no-op cut. Walk candidates keeping as much as fits the target.
   for (i in allowed_idx) {
     kept <- turns[allowed[i]:length(turns)]
-    if (agent_estimate_context_tokens(kept) <= target_tokens)
+    if (agent_estimate_context_tokens(kept, overhead = overhead) <= target_tokens)
       return(allowed[i])
   }
   allowed[length(allowed)]

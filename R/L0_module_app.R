@@ -380,9 +380,18 @@ app_module <- function(
     if (sss > 1e7)
       show_modal_spinner(text = "Loading data ...")
 
-    # 6. Load with error handling
+    # 6. Load with error handling. Warnings are surfaced as console
+    # messages but must NOT abort the load: a tryCatch warning *handler*
+    # would swallow the warning and return NULL, turning any coercion or
+    # reshape warning into "file may be corrupted" (todo 1.4).
     v <- tryCatch(
-      esetLoader(flink),
+      withCallingHandlers(
+        esetLoader(flink),
+        warning = function(w) {
+          message("Warning during file loading: ", conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
+      ),
       error = function(e) {
         if (sss > 1e7) remove_modal_spinner()
         showNotification(
@@ -391,9 +400,6 @@ app_module <- function(
           duration = NULL
         )
         return(NULL)
-      },
-      warning = function(w) {
-        message("Warning during file loading: ", w$message)
       }
     )
 
@@ -1022,12 +1028,26 @@ app_module <- function(
   })
 
   observeEvent(input$snapshot_delete_confirm, {
-    req(nrow(df <- savedSS()) > 0)
-    req(i <- match(deleteSS(), df$name))
-    unlink(file.path(.dir(), df$link[i]))
-    removeModal()
-    deleteSS(NULL)
-    snapshot_refresh(snapshot_refresh() + 1L)
+    # Snapshot I/O failures (read-only data dir, full disk, stale listing)
+    # must surface as notifications, not unhandled errors that close the
+    # session (todo 1.5).
+    tryCatch(
+      {
+        req(nrow(df <- savedSS()) > 0)
+        req(i <- match(deleteSS(), df$name))
+        unlink(file.path(.dir(), df$link[i]))
+        removeModal()
+        deleteSS(NULL)
+        snapshot_refresh(snapshot_refresh() + 1L)
+      },
+      shiny.silent.error = function(e) NULL,
+      error = function(e) {
+        showNotification(
+          sprintf("Could not delete snapshot: %s", conditionMessage(e)),
+          type = "error", duration = 10
+        )
+      }
+    )
   })
 
   observeEvent(input$snapshot, {
@@ -1074,43 +1094,56 @@ app_module <- function(
       return(NULL)
     }
 
-    # Child state reactives can contain unmet req() conditions while optional
-    # panels initialize (notably in testServer/headless sessions). Treat those
-    # silent validation results as empty panel state rather than losing the
-    # snapshot; genuine errors still abort below.
-    data_status <- tryCatch(
-      attr(v1(), "status"),
-      shiny.silent.error = function(e) list(),
-      error = function(e) stop(e)
+    # Snapshot I/O failures (read-only data dir, full disk, name longer than
+    # the file system allows) must surface as notifications, not unhandled
+    # errors that close the session (todo 1.5).
+    saved_ok <- tryCatch(
+      {
+        data_status <- tryCatch(
+          attr(v1(), "status"),
+          shiny.silent.error = function(e) list(),
+          error = function(e) stop(e)
+        )
+        result_status <- tryCatch(
+          v2(),
+          shiny.silent.error = function(e) list(),
+          error = function(e) stop(e)
+        )
+        obj <- build_app_state(
+          dataset = reactive_eset(),
+          dataset_id = current_dataset_id(),
+          data_status = data_status,
+          result_status = result_status,
+          selected_features = ri(),
+          selected_samples = rh(),
+          label = name
+        )
+        # Canonical widget-store state rides along (S4 start): keeps every
+        # registered widget's desired value in one authoritative snapshot.
+        obj$widget_store <- store_snapshot(app_store)
+        # WP11: the conversation rides along only when the user opted in and
+        # there is a conversation to save (assistant unconfigured -> NULL).
+        if (isTRUE(input$snapshot_include_chat)) {
+          chat_payload <- tryCatch(
+            assistant_api$snapshot_payload(),
+            error = function(e) NULL
+          )
+          if (!is.null(chat_payload))
+            obj$assistant <- chat_payload
+        }
+        write_app_state(obj, flink)
+        TRUE
+      },
+      error = function(e) {
+        showNotification(
+          sprintf("Could not save snapshot %s: %s", name, conditionMessage(e)),
+          type = "error", duration = 10
+        )
+        FALSE
+      }
     )
-    result_status <- tryCatch(
-      v2(),
-      shiny.silent.error = function(e) list(),
-      error = function(e) stop(e)
-    )
-    obj <- build_app_state(
-      dataset = reactive_eset(),
-      dataset_id = current_dataset_id(),
-      data_status = data_status,
-      result_status = result_status,
-      selected_features = ri(),
-      selected_samples = rh(),
-      label = name
-    )
-    # Canonical widget-store state rides along (S4 start): keeps every
-    # registered widget's desired value in one authoritative snapshot.
-    obj$widget_store <- store_snapshot(app_store)
-    # WP11: the conversation rides along only when the user opted in and
-    # there is a conversation to save (assistant unconfigured -> NULL).
-    if (isTRUE(input$snapshot_include_chat)) {
-      chat_payload <- tryCatch(
-        assistant_api$snapshot_payload(),
-        error = function(e) NULL
-      )
-      if (!is.null(chat_payload))
-        obj$assistant <- chat_payload
-    }
-    write_app_state(obj, flink)
+    if (!isTRUE(saved_ok))
+      return(NULL)
     snapshot_refresh(snapshot_refresh() + 1L)
     removeModal()
     showNotification(sprintf("Snapshot %s saved.", name), type = "message", duration = 3)

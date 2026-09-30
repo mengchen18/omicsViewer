@@ -37,17 +37,206 @@ ok(ut_cmp_identical(config$configured, TRUE), "provider config reports a key")
 ok(
   ut_cmp_error(
     agent_validate_provider_config(provider = "openai", base_url = "ftp://example.org"),
-    "API base URL must use HTTPS, or local HTTP for this machine only."
+    "API base URL must use HTTPS"
   ),
   "remote non-HTTPS provider base URLs are rejected"
 )
 ok(
+  ut_cmp_error(
+    agent_validate_provider_config("openai", base_url = "http://127.0.0.1:8080/v1"),
+    "OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT"
+  ),
+  "local HTTP provider endpoints are rejected for user settings by default"
+)
+ok(
+  ut_cmp_error(
+    agent_validate_provider_config("openai", base_url = "http://localhost:11434/v1"),
+    "API base URL must use HTTPS"
+  ),
+  "localhost HTTP provider endpoints are rejected for user settings by default"
+)
+ok(
   ut_cmp_identical(
-    agent_validate_provider_config("openai", base_url = "http://127.0.0.1:8080/v1")$base_url,
+    agent_validate_provider_config(
+      "openai", base_url = "http://127.0.0.1:8080/v1", allow_local_http = TRUE
+    )$base_url,
     "http://127.0.0.1:8080/v1"
   ),
-  "local HTTP provider endpoints are allowed"
+  "local HTTP provider endpoints are accepted when explicitly allowed"
 )
+
+## -------------------------- 1.2 environment-key endpoint lock ----
+agent_allow_user_endpoint <- omicsViewer:::agent_allow_user_endpoint
+old_endpoint_flag <- Sys.getenv("OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT")
+old_env_key <- Sys.getenv("OMICSVIEWER_LLM_API_KEY")
+old_env_provider <- Sys.getenv("OMICSVIEWER_LLM_PROVIDER")
+old_env_base_url <- Sys.getenv("OMICSVIEWER_LLM_BASE_URL")
+on.exit(Sys.setenv(
+  OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT = if (identical(old_endpoint_flag, "")) "" else old_endpoint_flag,
+  OMICSVIEWER_LLM_API_KEY = if (identical(old_env_key, "")) "" else old_env_key,
+  OMICSVIEWER_LLM_PROVIDER = if (identical(old_env_provider, "")) "" else old_env_provider,
+  OMICSVIEWER_LLM_BASE_URL = if (identical(old_env_base_url, "")) "" else old_env_base_url
+), add = TRUE)
+Sys.setenv(OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT = "")
+ok(
+  ut_cmp_identical(agent_allow_user_endpoint(), FALSE),
+  "user-supplied endpoints are disabled by default"
+)
+Sys.setenv(OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT = "true")
+ok(
+  ut_cmp_identical(agent_allow_user_endpoint(), TRUE),
+  "OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT opts in to user endpoints"
+)
+Sys.setenv(OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT = "")
+
+Sys.setenv(
+  OMICSVIEWER_LLM_API_KEY = "sk-server-secret",
+  OMICSVIEWER_LLM_PROVIDER = "openai",
+  OMICSVIEWER_LLM_BASE_URL = ""
+)
+env_config <- agent_environment_config()
+ok(
+  ut_cmp_identical(env_config$key_source, "environment"),
+  "environment key is reported with key_source 'environment'"
+)
+ok(
+  ut_cmp_identical(env_config$configured, TRUE),
+  "environment key marks the assistant configured"
+)
+Sys.setenv(
+  OMICSVIEWER_LLM_API_KEY = "sk-server-secret",
+  OMICSVIEWER_LLM_BASE_URL = "http://localhost:8080/v1"
+)
+local_gateway <- agent_environment_config()
+ok(
+  ut_cmp_identical(local_gateway$base_url, "http://localhost:8080/v1"),
+  "administrator-supplied local gateway endpoints remain allowed"
+)
+Sys.setenv(OMICSVIEWER_LLM_BASE_URL = "")
+
+if (requireNamespace("shinychat", quietly = TRUE)) {
+  compact_state <- list(
+    dataset = list(id = "d", class = "test", dimensions = c(features = 3L, samples = 4L)),
+    active_tabs = list(), selection = list(), available_tabs = list(),
+    annotations = list(), quick_views = list(), panels = list(),
+    figure_grammar = list(), state_policy = "widget-only"
+  )
+  mat <- matrix(0, nrow = 3, ncol = 4,
+                dimnames = list(rownames(fd), rownames(pd)))
+
+  ## Exfiltration probe: environment key + attacker endpoint + blank key
+  shiny::testServer(
+    omicsViewer:::ai_assistant_module,
+    args = list(
+      state = shiny::reactive(compact_state),
+      state_available = shiny::reactive(TRUE),
+      feature_data = shiny::reactive(fd),
+      sample_data = shiny::reactive(pd),
+      expression_data = shiny::reactive(mat),
+      selected_features = shiny::reactive(character()),
+      selected_samples = shiny::reactive(character()),
+      apply_state = function(x) list(),
+      apply_scatter_view = function(...) list()
+    ),
+    expr = {
+      ok(
+        ut_cmp_identical(isolate(config())$key_source, "environment"),
+        "module session starts on the environment key"
+      )
+      session$setInputs(
+        provider = "openai", model = "", api_key = "",
+        base_url = "https://attacker.example/v1"
+      )
+      session$setInputs(settings_save = 1L)
+      rejected <- isolate(config())
+      ok(
+        ut_cmp_identical(rejected$base_url, ""),
+        "environment key is withheld from an attacker endpoint (base URL unchanged)"
+      )
+      ok(
+        ut_cmp_identical(rejected$api_key, "sk-server-secret"),
+        "environment key value is retained server-side"
+      )
+      ok(
+        ut_cmp_identical(rejected$key_source, "environment"),
+        "key source is unchanged after the rejected save"
+      )
+      ok(
+        ut_cmp_identical(isFALSE(session$isClosed()), TRUE),
+        "session stays alive after a rejected settings save"
+      )
+
+      ## A session key may use its own HTTPS endpoint
+      session$setInputs(
+        provider = "openai", model = "", api_key = "sk-user-own",
+        base_url = "https://user-endpoint.example/v1"
+      )
+      session$setInputs(settings_save = 2L)
+      user_cfg <- isolate(config())
+      ok(
+        ut_cmp_identical(user_cfg$base_url, "https://user-endpoint.example/v1"),
+        "a session key may point at its own HTTPS endpoint"
+      )
+      ok(
+        ut_cmp_identical(user_cfg$key_source, "session"),
+        "entering a key switches the credential source to 'session'"
+      )
+
+      ## Keeping the endpoint + blank key still inherits the session key
+      session$setInputs(provider = "openai", model = "other-model", api_key = "")
+      session$setInputs(settings_save = 3L)
+      inherited <- isolate(config())
+      ok(
+        ut_cmp_identical(inherited$api_key, "sk-user-own"),
+        "a blank key on an unchanged endpoint inherits the session key"
+      )
+      ok(
+        ut_cmp_identical(inherited$base_url, "https://user-endpoint.example/v1"),
+        "model changes do not disturb the endpoint"
+      )
+    }
+  )
+
+  ## With the administrator opt-in, a blank key may carry the environment key
+  ## to a user-chosen endpoint
+  Sys.setenv(OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT = "true")
+  shiny::testServer(
+    omicsViewer:::ai_assistant_module,
+    args = list(
+      state = shiny::reactive(compact_state),
+      state_available = shiny::reactive(TRUE),
+      feature_data = shiny::reactive(fd),
+      sample_data = shiny::reactive(pd),
+      expression_data = shiny::reactive(mat),
+      selected_features = shiny::reactive(character()),
+      selected_samples = shiny::reactive(character()),
+      apply_state = function(x) list(),
+      apply_scatter_view = function(...) list()
+    ),
+    expr = {
+      session$setInputs(
+        provider = "openai", model = "", api_key = "",
+        base_url = "https://approved-gateway.example/v1"
+      )
+      session$setInputs(settings_save = 1L)
+      allowed <- isolate(config())
+      ok(
+        ut_cmp_identical(allowed$base_url, "https://approved-gateway.example/v1"),
+        "the administrator opt-in allows user endpoints"
+      )
+      ok(
+        ut_cmp_identical(allowed$key_source, "environment"),
+        "the environment key is carried only under the explicit opt-in"
+      )
+    }
+  )
+  Sys.setenv(OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT = "")
+  Sys.setenv(OMICSVIEWER_LLM_API_KEY = "")
+  Sys.setenv(
+    OMICSVIEWER_LLM_PROVIDER = if (identical(old_env_provider, "")) "" else old_env_provider,
+    OMICSVIEWER_LLM_BASE_URL = if (identical(old_env_base_url, "")) "" else old_env_base_url
+  )
+}
 
 old_request_limit <- Sys.getenv("OMICSVIEWER_LLM_MAX_REQUESTS")
 Sys.setenv(OMICSVIEWER_LLM_MAX_REQUESTS = "1000")

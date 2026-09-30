@@ -119,6 +119,48 @@ ok(
   "figure registry is capped at 20 entries"
 )
 
+## ------------------------------------------- 1.8: nested runtime refs ----
+# Live streams attach the registered ToolDef to every ContentToolRequest,
+# and ContentToolResult@request keeps that nested reference. The slim path
+# must strip BOTH levels so the persisted payload never embeds handler
+# closures (the module environment, including credentials), while keeping
+# the nested request's id + name (the stubber needs them after restore).
+secret_env <- new.env(parent = emptyenv())
+secret_env$key <- "sk-slim-path-sentinel"
+secret_handler <- function(`_intent`) list(ok = TRUE)
+environment(secret_handler) <- secret_env
+secret_tool <- ellmer::tool(
+  secret_handler, name = "state_tool", description = "closure-heavy",
+  arguments = list(`_intent` = ellmer::type_string("intent"))
+)
+nested_req <- ellmer::ContentToolRequest(
+  id = "nested-1", name = "state_tool",
+  arguments = list(`_intent` = "x"), tool = secret_tool
+)
+heavy_turns <- list(
+  UserTurn(contents = list(ContentText("call the tool"))),
+  AssistantTurn(contents = list(nested_req)),
+  UserTurn(contents = list(ellmer::ContentToolResult(
+    value = list(ok = TRUE), request = nested_req)))
+)
+heavy_payload <- agent_history_payload(heavy_turns, figures = list())
+heavy_bytes <- serialize(heavy_payload$turns, connection = NULL)
+ok(
+  identical(length(grepRaw("sk-slim-path-sentinel", heavy_bytes, fixed = TRUE)), 0L),
+  "slimmed snapshot turns do not embed handler closures (nested request path)"
+)
+ok(
+  identical(
+    heavy_payload$turns[[3]]@contents[[1]]@request@name,
+    "state_tool"
+  ) && identical(heavy_payload$turns[[3]]@contents[[1]]@request@id, "nested-1"),
+  "nested request id + name survive slimming for the restore-time stubber"
+)
+ok(
+  identical(heavy_payload$turns[[3]]@contents[[1]]@request@tool, NULL),
+  "nested request carries no ToolDef after slimming"
+)
+
 ## -------------------------------------------------- restore validation ----
 ok(
   identical(agent_history_restore_payload(payload)$version, 1L),

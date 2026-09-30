@@ -64,3 +64,5 @@ tests/e2e_agent/tier_a_results.json
 .fuse_hidden*
 Rplots.pdf
 review/
+.codegraph
+

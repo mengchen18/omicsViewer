@@ -345,7 +345,7 @@ agent_normalize_enrichment_update <- function(update, feature_data) {
 
   prefix <- paste0("resultspace.", method)
   patch <- list()
-  collapse <- .agent_nullable_scalar(update$collapse)
+  collapse <- .agent_nullable_scalar(update$collapse, arg = "collapse")
   if (nzchar(collapse)) {
     parts <- strsplit(collapse, "|", fixed = TRUE)[[1]]
     if (length(parts) != 3L || any(!nzchar(parts)))
@@ -361,7 +361,7 @@ agent_normalize_enrichment_update <- function(update, feature_data) {
     patch[[paste0(prefix, ".xax_subset")]] <- parts[[2]]
     patch[[paste0(prefix, ".xax_variable")]] <- parts[[3]]
   }
-  pathway <- .agent_nullable_scalar(update$selected_pathway)
+  pathway <- .agent_nullable_scalar(update$selected_pathway, arg = "selected_pathway")
   if (nzchar(pathway))
     patch[[paste0(prefix, ".selected_row")]] <- pathway
   if (!length(patch))

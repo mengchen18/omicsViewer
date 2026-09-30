@@ -9,6 +9,39 @@
 #' @keywords internal
 NULL
 
+#' Parse an httr response without undeclared dependencies
+#'
+#' httr's default parsed content handler dispatches tab-separated responses
+#' to readr, which omicsViewer does not declare. TSV endpoints (string-db)
+#' are therefore parsed explicitly with base utils; every other content
+#' type keeps httr's default parsing (JSON needs only jsonlite).
+#'
+#' @param response An httr response object.
+#' @return Parsed content: a data.frame for TSV, whatever httr's parsed
+#'   handler returns otherwise.
+#' @keywords internal
+parse_response_content <- function(response) {
+  content_type <- tryCatch(
+    tolower(as.character(httr::headers(response)$`content-type`)),
+    error = function(e) ""
+  )
+  if (length(content_type) == 0 || is.na(content_type))
+    content_type <- ""
+  if (grepl("tab-separated-values", content_type, fixed = TRUE)) {
+    txt <- httr::content(response, as = "text", encoding = "UTF-8")
+    return(utils::read.delim(
+      text = txt,
+      sep = "\t",
+      header = TRUE,
+      quote = "",
+      comment.char = "",
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    ))
+  }
+  httr::content(response, as = "parsed")
+}
+
 #' Safe HTTP GET wrapper with error handling
 #'
 #' @description
@@ -66,7 +99,7 @@ safe_GET <- function(url, query = NULL, timeout = 30, api_name = "API", ...) {
     }
 
     # Extract content
-    content_data <- httr::content(response)
+    content_data <- parse_response_content(response)
 
     result$success <- TRUE
     result$data <- content_data
@@ -160,7 +193,7 @@ safe_POST <- function(url, body = NULL, encode = "json", timeout = 30, api_name 
     }
 
     # Extract content
-    content_data <- httr::content(response)
+    content_data <- parse_response_content(response)
 
     result$success <- TRUE
     result$data <- content_data

@@ -1,3 +1,7 @@
+if (!requireNamespace("unittest", quietly = TRUE)) {
+  message("test_appState needs unittest (Suggests-only)")
+  quit(save = "no", status = 0)
+}
 library(omicsViewer)
 library(Biobase)
 library(unittest, quietly = TRUE)
@@ -252,7 +256,10 @@ ok(
 if (dir.exists(.rt_dir)) unlink(.rt_dir, recursive = TRUE)
 dir.create(.rt_dir, recursive = TRUE)
 Sys.setenv(OMICSVIEWER_TEST_HOOKS = "true")
-.rt_dat <- readRDS(file.path("inst", "extdata", "demo.RDS"))
+.rt_demo_path <- system.file("extdata", "demo.RDS", package = "omicsViewer")
+if (!nzchar(.rt_demo_path))
+  .rt_demo_path <- file.path("inst", "extdata", "demo.RDS")
+.rt_dat <- readRDS(.rt_demo_path)
 .rt_store_vals <- function() {
   omicsViewer:::store_snapshot(.rt_app_store)$values
 }
@@ -351,3 +358,55 @@ shiny::testServer(app_rt, {
 })
 Sys.unsetenv("OMICSVIEWER_TEST_HOOKS")
 unlink(.rt_dir, recursive = TRUE)
+
+## ------------- 1.5: save into an unwritable directory must not crash ---
+# A read-only data dir is normal on shared servers. The save observer must
+# surface the failure as a notification and keep the session alive instead
+# of letting the error escape (ShinySession$unhandledError closes the app).
+if (identical(Sys.getenv("USER", "chen"), "root")) {
+  ok(TRUE, "snapshot failure probe skipped for root (chmod is not enforced)")
+} else {
+  .ro_dir <- file.path(tempdir(), paste0("esv-ro-", Sys.getpid()))
+  if (dir.exists(.ro_dir)) unlink(.ro_dir, recursive = TRUE)
+  dir.create(.ro_dir, recursive = TRUE)
+  Sys.chmod(.ro_dir, "0555")
+  app_ro <- function(input, output, session) {
+    omicsViewer:::app_module(
+      "app", .dir = shiny::reactive(.ro_dir),
+      ESVObj = shiny::reactive(.rt_dat), store = omicsViewer:::widget_store_new())
+  }
+  shiny::testServer(app_ro, {
+    session$setInputs(`app-dataspace-eset` = "Feature")
+    session$flushReact()
+    session$setInputs(`app-snapshot_name` = "ro1")
+    session$setInputs(`app-snapshot_save` = 1L)
+    session$flushReact()
+    ok(
+      length(list.files(.ro_dir, pattern = "\\.ESS$", ignore.case = TRUE)) == 0L,
+      "failed snapshot save writes no .ESS file"
+    )
+    ok(
+      ut_cmp_identical(isFALSE(session$isClosed()), TRUE),
+      "session survives a failed snapshot save"
+    )
+    # a second attempt must still work (the modal stays usable)
+    session$setInputs(`app-snapshot_name` = "ro2")
+    session$setInputs(`app-snapshot_save` = 2L)
+    session$flushReact()
+    ok(
+      ut_cmp_identical(isFALSE(session$isClosed()), TRUE),
+      "session survives repeated failed snapshot saves"
+    )
+  })
+  Sys.chmod(.ro_dir, "0755")
+  unlink(.ro_dir, recursive = TRUE)
+}
+
+ok(
+  ut_cmp_identical(
+    nchar(sanitize_snapshot_name(paste(replicate(300, "a", simplify = "character"), collapse = "")),
+                    type = "bytes") <= 80L,
+    TRUE
+  ),
+  "snapshot names are capped so file names stay under file system limits"
+)

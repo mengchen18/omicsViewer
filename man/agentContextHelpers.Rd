@@ -25,7 +25,7 @@ agent_last_human_turn_index(turns)
 
 agent_content_estimate_tokens(content)
 
-agent_estimate_context_tokens(turns)
+agent_estimate_context_tokens(turns, overhead = NULL)
 
 agent_stub_history(
   turns,
@@ -33,7 +33,12 @@ agent_stub_history(
   archive = .agent_context_new_archive()
 )
 
-agent_compaction_cut(turns, target_tokens, keep_exchanges = 1L)
+agent_compaction_cut(
+  turns,
+  target_tokens,
+  keep_exchanges = 1L,
+  overhead = NULL
+)
 
 agent_system_prompt_strip_block(prompt)
 
@@ -55,6 +60,9 @@ agent_promise_race(promise_list)
 }
 \arguments{
 \item{turns}{List of ellmer Turn objects.}
+
+\item{overhead}{Fixed overhead for the unanchored estimate path (see
+\code{\link{agent_estimate_context_tokens}}).}
 
 \item{policy}{From \code{\link{agent_context_policy}}.}
 
@@ -130,9 +138,11 @@ Anchors on the last completed assistant turn's reported usage (its input
 already covers system prompt, tool schemas, and all earlier turns), then
 adds a char-based estimate of everything appended since. Without a usage
 anchor (fresh or restored client; some providers stop reporting usage)
-every content is estimated from characters plus a fixed tool-schema
-overhead. ellmer 0.5.0's own \code{token_count()} is deliberately not
-used: for OpenAI-compatible providers it issues a real HTTP request.
+every content is estimated from characters plus the session's fixed
+overhead: the first completed request's reported input tokens when known
+(recorded by the module's on_request_end hook), otherwise the historical
+constant below. ellmer 0.5.0's own \code{token_count()} is deliberately
+not used: for OpenAI-compatible providers it issues a real HTTP request.
 
 Rewrites tool results older than the latest exchange (never the latest
 exchange itself, never while a stream runs - the caller enforces that):

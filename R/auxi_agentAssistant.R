@@ -12,8 +12,17 @@
 #' @name agentAssistantHelpers
 NULL
 
-.agent_trim_scalar <- function(x, fallback = "") {
-  if (is.null(x) || length(x) == 0 || is.na(x))
+.agent_trim_scalar <- function(x, fallback = "", arg = NULL) {
+  # Array-safe: a length>1 value previously crashed on `is.na(x) || ...`
+  # ('length = N in coercion to logical(1)'). With a known argument name
+  # the model gets a self-correctable error instead (todo 1.7); unnamed
+  # callers keep the historic first-element behaviour.
+  if (is.null(x) || length(x) == 0L)
+    return(fallback)
+  if (length(x) > 1L && !is.null(arg))
+    stop("Expected a single string for ", arg, "; received ", length(x),
+         " values.", call. = FALSE)
+  if (isTRUE(is.na(x[1])))
     return(fallback)
   out <- trimws(as.character(x)[1])
   if (is.na(out) || !nzchar(out)) fallback else out
@@ -270,12 +279,16 @@ agent_environment_config <- function() {
 
   # Apply the same validation to administrator-provided settings as to settings
   # entered in the modal. In particular, do not silently send a session key to
-  # a remote non-HTTPS endpoint.
+  # a remote non-HTTPS endpoint. Administrator-supplied settings are trusted to
+  # point at a local gateway (e.g. a local OpenAI-compatible proxy), so local
+  # HTTP is accepted on this path; user-supplied local endpoints require
+  # OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT.
   validated <- agent_validate_provider_config(
     provider = provider,
     model = model,
     api_key = api_key,
-    base_url = base_url
+    base_url = base_url,
+    allow_local_http = TRUE
   )
   list(
     provider = validated$provider,
@@ -287,19 +300,41 @@ agent_environment_config <- function() {
   )
 }
 
+#' Whether users may redirect the assistant to a custom endpoint
+#'
+#' When a server environment key is in use, the provider and the API base
+#' URL are locked to the environment values so the administrator's key can
+#' never be carried to a user-chosen endpoint (credential exfiltration).
+#' Administrators who consciously allow user-supplied endpoints set
+#' \code{OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT} to a true value; the same flag
+#' re-enables local HTTP endpoints for keys entered in the settings modal.
+#'
+#' @return TRUE or FALSE.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_allow_user_endpoint <- function() {
+  tolower(.agent_trim_scalar(Sys.getenv("OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT"))) %in%
+    c("true", "t", "yes", "y", "on", "1")
+}
+
 #' Validate user-supplied assistant provider settings
 #'
 #' @param provider Single provider name: openai or anthropic.
 #' @param model Optional model name. An empty value uses the provider default.
 #' @param api_key Optional session API key.
 #' @param base_url Optional HTTPS or local HTTP API endpoint.
+#' @param allow_local_http Whether local (localhost / 127.0.0.1) HTTP
+#'   endpoints are accepted; FALSE by default so user-supplied endpoints
+#'   cannot target services on the server host (SSRF) or leak the key over
+#'   plain HTTP. Administrator-supplied settings and
+#'   \code{OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT} opt in.
 #'
 #' @return A normalized provider-configuration list without changing the
 #'   credential source.
 #' @keywords internal
 #' @rdname agentAssistantHelpers
 agent_validate_provider_config <- function(provider, model = "", api_key = "",
-                                            base_url = "") {
+                                            base_url = "", allow_local_http = FALSE) {
   provider <- .agent_trim_scalar(provider)
   if (!provider %in% c("openai", "anthropic"))
     stop("LLM provider must be 'openai' or 'anthropic'.")
@@ -320,8 +355,12 @@ agent_validate_provider_config <- function(provider, model = "", api_key = "",
       "^http://(localhost|127\\.0\\.0\\.1)([/:]|$)",
       base_url
     )
-    if (!startsWith(base_url, "https://") && !local_http)
-      stop("API base URL must use HTTPS, or local HTTP for this machine only.")
+    if (!startsWith(base_url, "https://") && !(local_http && isTRUE(allow_local_http)))
+      stop(paste(
+        "API base URL must use HTTPS.",
+        "Local HTTP endpoints require an administrator to set",
+        "OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT=TRUE."
+      ))
   }
 
   list(
@@ -611,7 +650,7 @@ agent_annotation_catalog <- function(feature_data, sample_data) {
 agent_search_annotations <- function(space, query, feature_data, sample_data,
                                      max_results = 20L) {
   space <- match.arg(space, c("feature", "sample"))
-  query <- .agent_trim_scalar(query)
+  query <- .agent_trim_scalar(query, arg = "query")
   if (!nzchar(query))
     stop("Search query must not be empty.")
   if (nchar(query) > 128)
@@ -695,7 +734,7 @@ agent_search_annotations <- function(space, query, feature_data, sample_data,
 agent_summarize_annotation <- function(space, column, feature_data, sample_data,
                                        max_values = 12L) {
   space <- match.arg(space, c("feature", "sample"))
-  column <- .agent_trim_scalar(column)
+  column <- .agent_trim_scalar(column, arg = "column")
   max_values <- suppressWarnings(as.integer(max_values)[1])
   if (is.na(max_values) || max_values < 1L || max_values > 20L)
     stop("max_values must be an integer from 1 through 20.")
@@ -828,10 +867,10 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 #' @return A validated scatter-space and axis update.
 #' @keywords internal
 #' @rdname agentAssistantHelpers
-.agent_nullable_scalar <- function(x) {
+.agent_nullable_scalar <- function(x, arg = NULL) {
   # Trim to a scalar string; absent values (NULL / empty) normalize to ""
   # so downstream nzchar() logic treats the argument as absent.
-  .agent_trim_scalar(x)
+  .agent_trim_scalar(x, arg = arg)
 }
 
 agent_normalize_scatter_view <- function(space, quick_view_id = NULL,
@@ -840,7 +879,7 @@ agent_normalize_scatter_view <- function(space, quick_view_id = NULL,
                                          feature_columns = character(),
                                          sample_columns = character()) {
   space <- match.arg(space, c("feature", "sample"))
-  quick_view_id <- .agent_nullable_scalar(quick_view_id)
+  quick_view_id <- .agent_nullable_scalar(quick_view_id, arg = "quick_view_id")
 
   if (nzchar(quick_view_id)) {
     views <- quick_views[[space]]
@@ -857,8 +896,8 @@ agent_normalize_scatter_view <- function(space, quick_view_id = NULL,
                 x_axis = view$x, y_axis = view$y))
   }
 
-  x_axis <- .agent_nullable_scalar(x_axis)
-  y_axis <- .agent_nullable_scalar(y_axis)
+  x_axis <- .agent_nullable_scalar(x_axis, arg = "x_axis")
+  y_axis <- .agent_nullable_scalar(y_axis, arg = "y_axis")
   if (!nzchar(x_axis) || !nzchar(y_axis))
     stop("A scatter view requires either quick_view_id or both x_axis and y_axis.")
 
@@ -940,12 +979,24 @@ agent_history_redact <- function(text) {
 #' @rdname agentAssistantHelpers
 .agent_slim_turn <- function(turn) {
   contents <- lapply(turn@contents, function(x) {
-    if (inherits(x, "ellmer::ContentToolResult"))
+    if (inherits(x, "ellmer::ContentToolResult")) {
+      # The paired request is kept (WP13's stubber needs id + name), but
+      # its nested runtime ToolDef reference must be dropped exactly as
+      # on top-level requests: a closure there would embed the module
+      # environment (incl. credentials) in the persisted payload (1.8).
+      req <- x@request
+      if (!is.null(req) && inherits(req, "ellmer::ContentToolRequest") &&
+          !is.null(req@tool))
+        req <- ellmer::ContentToolRequest(
+          id = req@id, name = req@name,
+          arguments = req@arguments, extra = req@extra
+        )
       return(ellmer::ContentToolResult(
         value = x@value,
-        request = x@request,
+        request = req,
         error = x@error
       ))
+    }
     if (inherits(x, "ellmer::ContentToolRequest") && !is.null(x@tool))
       return(ellmer::ContentToolRequest(
         id = x@id, name = x@name,
@@ -1007,6 +1058,10 @@ agent_history_payload <- function(turns, figures = list(),
   turns <- Filter(function(t) inherits(t, "ellmer::Turn"), turns)
   if (!length(turns))
     return(NULL)
+  # Defense in depth (1.8): the archive re-merge in snapshot_payload can
+  # hand pre-strip turns (closure-heavy originals) to this builder; strip
+  # runtime ToolDef references before anything is measured or persisted.
+  turns <- agent_strip_runtime_refs(turns)$turns
   slim <- lapply(turns, .agent_slim_turn)
   records <- agent_transcript_records(slim)
   # object.size over-counts S7 objects (class metadata is charged to every

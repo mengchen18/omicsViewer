@@ -356,7 +356,9 @@ validate_app_state <- function(state, dataset = NULL, dataset_id = NA_character_
 #' Sanitize a user-supplied snapshot name
 #'
 #' The returned name contains only portable filename characters and cannot
-#' represent a path or parent-directory reference.
+#' represent a path or parent-directory reference. Names are capped at 80
+#' characters so the generated file name stays comfortably below the usual
+#' 255-byte file system limit even with the dataset-id prefix (todo 1.5).
 #'
 #' @param name Character user input.
 #' @param fallback Name used when input is empty.
@@ -372,6 +374,9 @@ sanitize_snapshot_name <- function(name, fallback = "snapshot") {
   name <- gsub("[_.-]+$", "", name)
   if (!nzchar(name) || name == "." || name == "..")
     name <- fallback
+  while (nchar(name, type = "bytes") > 80L && nzchar(name)) {
+    name <- substr(name, 1L, max(1L, nchar(name, type = "chars") - 1L))
+  }
   name
 }
 

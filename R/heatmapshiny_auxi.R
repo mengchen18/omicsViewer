@@ -174,7 +174,6 @@ sideCorKey <- function(x, label) {
 ############## tooltips ################
 #' @description shiny UI for tooltips
 #' @param id id
-#' @rawNamespace import(shiny, except = c(dataTableOutput, renderDataTable))
 #' 
 shinyPlotTooltipsUI <- function(id) {
   

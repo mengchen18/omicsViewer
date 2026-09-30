@@ -44,6 +44,7 @@ NULL
 .ai_dependencies_available <- function() {
   requireNamespace("ellmer", quietly = TRUE) &&
     requireNamespace("shinychat", quietly = TRUE) &&
+    requireNamespace("coro", quietly = TRUE) &&
     utils::packageVersion("ellmer") >= "0.5.0" &&
     utils::packageVersion("shinychat") >= "0.5.0"
 }
@@ -345,6 +346,15 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           "Custom API base URL (optional)",
           value = current$base_url,
           placeholder = "https://example.org/v1"
+        ),
+        tags$p(
+          class = "text-muted",
+          style = "font-size: 12px;",
+          if (identical(current$key_source, "environment") && !agent_allow_user_endpoint())
+            paste(
+              "A server API key is in use: the provider and API endpoint stay",
+              "locked to the server configuration unless you enter your own key."
+            )
         ),
         tags$p(
           class = "text-muted",
@@ -1452,11 +1462,14 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               "request_limit_reached",
               list(request_index = request_count, request_limit = request_limit)
             )
-            stop(
+            # safeError keeps the explanatory message visible when the app
+            # runs with shiny.sanitize.errors = TRUE (generic error pages
+            # would hide WHY the assistant stopped)
+            stop(shiny::safeError(paste0(
               "Assistant request limit reached for this session (",
               request_limit,
               "). Start a new browser session or ask an administrator to adjust OMICSVIEWER_LLM_MAX_REQUESTS."
-            )
+            )))
           }
           # WP12: budget ceilings are checked before the request is spent
           violation <- agent_budget_violation(
@@ -1505,13 +1518,48 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                 cost_limit_usd = cost_limits$cost_usd
               )
             )
-            stop(violation)
+            # safeError: keep the budget explanation visible under
+            # shiny.sanitize.errors (todo 1.9)
+            stop(shiny::safeError(violation))
           }
         })
         client$on_request_end(function(turn) {
           usage <- agent_turn_usage(turn)
           session_usage$tokens <<- session_usage$tokens + usage$tokens
           session_usage$cost_usd <<- session_usage$cost_usd + usage$cost_usd
+          # Record the session's fixed context overhead from the FIRST
+          # completed request (todo 1.9): its input tokens are exactly the
+          # system prompt + tool schemas + the first user message, the part
+          # char-based estimators cannot see on restored/fresh clients.
+          if (isTRUE(session_overhead_tokens <= 0)) {
+            first_input <- suppressWarnings(as.numeric(turn@tokens))
+            first_input <- first_input[is.finite(first_input)]
+            if (length(first_input) >= 1L) {
+              session_overhead_tokens <<- first_input[[1]]
+              agent_logger_event(
+                logger,
+                "context_overhead_measured",
+                list(fixed_tokens = session_overhead_tokens)
+              )
+            }
+          }
+          if (!isTRUE(unpriced_warned) && !is.null(cost_limits$cost_usd)) {
+            turn_cost <- suppressWarnings(as.numeric(turn@cost)[1])
+            if (length(turn_cost) == 1L && is.na(turn_cost)) {
+              unpriced_warned <<- TRUE
+              agent_logger_event(
+                logger,
+                "model_unpriced",
+                list(
+                  model = isolate(config())$model,
+                  note = paste(
+                    "provider reports no usage cost for this model;",
+                    "OMICSVIEWER_LLM_MAX_COST_USD cannot trip",
+                    "(the token ceiling still applies)")
+                )
+              )
+            }
+          }
           agent_logger_event(
             logger,
             "assistant_response",
@@ -1598,6 +1646,15 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # slow provider otherwise relaunches a doomed summary every idle flip
       # (observed 2026-09-28: two ~6-minute summaries, both discarded).
       compaction_backoff_until <- 0
+      # 1.9: fixed context overhead for unanchored estimates. The historical
+      # constant (1,600) badly underestimates the real fixed cost (measured
+      # ~7,000 tokens for system prompt + tool schemas + greeting); the
+      # first completed request's reported input tokens replace it.
+      session_overhead_tokens <- 0
+      # 1.9: one-time log warning when the provider does not report usage
+      # costs -- with an unpriced model the MAX_COST_USD ceiling can never
+      # trip and the administrator should know (token ceiling still works).
+      unpriced_warned <- FALSE
 
       .context_install_compaction <- function(summary, method, kept,
                                               turns_compacted,
@@ -1608,10 +1665,10 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                                               estimate, usage) {
         current_status <- tryCatch(
           isolate(chat_object$status()),
-          error = function(e) "running"
+          error = function(e) "streaming"
         )
         current_ok <- tryCatch(
-          !identical(current_status, "running") &&
+          !identical(current_status, "streaming") &&
             identical(
               agent_context_digest(chat_object$client$get_turns()),
               digest_before
@@ -1633,7 +1690,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               method = paste0(method, "_conflict_discarded"),
               estimated_tokens = estimate,
               turns_compacted = turns_compacted,
-              reason = if (identical(current_status, "running"))
+              reason = if (identical(current_status, "streaming"))
                 "stream_running" else "digest_changed",
               digest_before_turns = digest_parts_before$count,
               digest_now_turns = if (!is.null(now_parts)) now_parts$count else NA_integer_,
@@ -1649,12 +1706,13 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         client <- chat_object$client
         old_prompt <- tryCatch(client$get_system_prompt(), error = function(e) NULL)
         old_turns <- tryCatch(client$get_turns(), error = function(e) NULL)
-        tryCatch(
+        installed <- tryCatch(
           {
             client$set_system_prompt(
               agent_system_prompt_add_block(old_prompt, summary)
             )
             client$set_turns(kept)
+            TRUE
           },
           error = function(e) {
             tryCatch({
@@ -1671,8 +1729,14 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                 error = .agent_log_condition(e)
               )
             )
+            FALSE
           }
         )
+        # A failed install must not fall through to the success log and
+        # usage accounting below (todo 1.9: the summary tokens were charged
+        # even though the summary never reached the history).
+        if (!isTRUE(installed))
+          return(invisible(FALSE))
         session_usage$tokens <<- session_usage$tokens + usage$tokens
         session_usage$cost_usd <<- session_usage$cost_usd + usage$cost_usd
         agent_logger_event(
@@ -1695,7 +1759,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         turns <- tryCatch(client$get_turns(), error = function(e) NULL)
         if (!length(turns) || !length(Filter(.agent_is_turn, turns)))
           return(invisible(FALSE))
-        if (identical(isolate(chat_object$status()), "running"))
+        if (identical(isolate(chat_object$status()), "streaming"))
           return(invisible(FALSE))
 
         # Canonicalize turns at the maintenance boundary: strip the
@@ -1747,7 +1811,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         if (isTRUE(context_policy$tokens <= 0L) || isTRUE(compaction_in_flight))
           return(invisible(FALSE))
         est_t0 <- .step_now()
-        estimate <- agent_estimate_context_tokens(turns)
+        estimate <- agent_estimate_context_tokens(turns,
+                                                  overhead = session_overhead_tokens)
         est_ms <- .step_now() - est_t0
         if (estimate <= context_policy$tokens)
           return(invisible(FALSE))
@@ -1767,7 +1832,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         cut_t0 <- .step_now()
         cut <- agent_compaction_cut(
           turns,
-          target_tokens = floor(context_policy$tokens * context_policy$compact_to)
+          target_tokens = floor(context_policy$tokens * context_policy$compact_to),
+          overhead = session_overhead_tokens
         )
         cut_ms <- .step_now() - cut_t0
         if (is.null(cut) || cut <= 1L)
@@ -1924,7 +1990,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       }
 
       .context_keep$janitor <- observeEvent(chat_object$status(), ignoreInit = TRUE, {
-        if (!identical(chat_object$status(), "running"))
+        if (!identical(chat_object$status(), "streaming"))
           tryCatch(.context_janitor(), error = function(e) NULL)
       })
 
@@ -2007,6 +2073,32 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       previous <- isolate(config())
       key <- .agent_trim_scalar(input$api_key)
       key_source <- "session"
+      base_url <- .agent_trim_scalar(input$base_url)
+      endpoint_changed <- !identical(input$provider, previous$provider) ||
+        !identical(base_url, previous$base_url)
+      # Security: never carry the server's environment key to a different
+      # provider or endpoint (credential exfiltration). Both stay locked to
+      # the environment values unless the user supplies their own key or the
+      # administrator opted in via OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT.
+      if (!nzchar(key) && endpoint_changed &&
+          identical(previous$key_source, "environment") &&
+          !agent_allow_user_endpoint()) {
+        error_message <- paste(
+          "A server API key is configured for this session.",
+          "Enter your own API key to change the provider or API endpoint,",
+          "or ask an administrator to set OMICSVIEWER_LLM_ALLOW_USER_ENDPOINT=TRUE."
+        )
+        agent_logger_event(
+          logger,
+          "provider_settings_invalid",
+          list(error = list(
+            class = "endpoint_locked",
+            message = "server key withheld from a changed provider/endpoint"
+          ))
+        )
+        showNotification(error_message, type = "error")
+        return(NULL)
+      }
       if (!nzchar(key) && identical(input$provider, previous$provider) &&
           isTRUE(previous$configured)) {
         key <- previous$api_key
@@ -2018,7 +2110,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           provider = input$provider,
           model = input$model,
           api_key = key,
-          base_url = input$base_url
+          base_url = base_url,
+          allow_local_http = agent_allow_user_endpoint()
         ),
         error = function(e) e
       )
@@ -2043,6 +2136,16 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       }
 
       next_config$key_source <- key_source
+      if (endpoint_changed) {
+        agent_logger_event(
+          logger,
+          "provider_endpoint_changed",
+          list(
+            provider = next_config$provider,
+            base_url = if (nzchar(next_config$base_url)) next_config$base_url else "provider-default"
+          )
+        )
+      }
       agent_logger_event(
         logger,
         "provider_settings_saved",

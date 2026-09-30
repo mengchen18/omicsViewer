@@ -419,3 +419,57 @@ for (fx in names(replay_errors)) {
     paste("golden replay:", fx, "raises no filter warnings")
   )
 }
+
+# ---- 5. scalar-argument arrays raise named correctable errors (1.7) ------
+# A length>1 value for a scalar tool argument previously crashed the scalar
+# helpers with "'length = N' in coercion to 'logical(1)'" -- a cryptic
+# provider-facing error. The helpers must name the argument instead.
+search_annotations_fn <- omicsViewer:::agent_search_annotations
+ok(
+  ut_cmp_error(
+    search_annotations_fn(space = "feature", query = c("score", "cat"), fd, pd),
+    "Expected a single string for query"
+  ),
+  "array payload for a scalar search query names the argument"
+)
+ok(
+  ut_cmp_error(
+    omicsViewer:::agent_summarize_annotation(
+      space = "feature", column = c("score", "category"), fd, pd),
+    "Expected a single string for column"
+  ),
+  "array payload for a scalar annotation column names the argument"
+)
+ok(
+  ut_cmp_error(
+    omicsViewer:::agent_normalize_scatter_view(
+      space = "feature", x_axis = c("a|b|c", "d|e|f"), y_axis = "a|b|c",
+      feature_columns = c("a|b|c")),
+    "Expected a single string for x_axis"
+  ),
+  "array payload for a scatter axis names the argument"
+)
+ok(
+  ut_cmp_error(
+    omicsViewer:::agent_figure_template_spec(
+      template = c("volcano", "scatter"), feature_data = fd, sample_data = pd),
+    "Expected a single string for template"
+  ),
+  "array payload for a figure template names the argument"
+)
+ok(
+  ut_cmp_error(
+    omicsViewer:::agent_normalize_figure_spec(
+      list(geom = c("point", "bar"), x = "score"), feature_data = fd,
+      sample_data = pd),
+    "geom"
+  ),
+  "figure geom arrays are rejected with the field named"
+)
+ok(
+  ut_cmp_identical(
+    omicsViewer:::.agent_trim_scalar(c("  x ", "y"), arg = NULL),
+    "x"
+  ),
+  "unnamed trim-scalar callers keep the historic first-element behaviour"
+)

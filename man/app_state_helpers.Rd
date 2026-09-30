@@ -140,7 +140,9 @@ Validation warns on incompatible metadata rather than blocking restoration.
 Individual modules remain responsible for validating their own choices.
 
 The returned name contains only portable filename characters and cannot
-represent a path or parent-directory reference.
+represent a path or parent-directory reference. Names are capped at 80
+characters so the generated file name stays comfortably below the usual
+255-byte file system limit even with the dataset-id prefix (todo 1.5).
 
 This pure helper is separated from the Shiny server so schema construction
 can be tested without launching the full application.
