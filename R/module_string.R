@@ -51,7 +51,8 @@ string_ui <- function(id) {
           tagAppendAttributes(`aria-live` = "assertive")),
       column(
         2, offset = 0, style='padding-left:15px; padding-right:2px; padding-top:0px; padding-bottom:0px',
-        actionButton(ns("run"), "Run!") %>%
+        actionButton(ns("run"), "Run!",
+          title = "Query the STRING database for interactions among the currently selected features (max ~300; requires internet)") %>%
           tagAppendAttributes(`data-testid` = paste0(id, "-run-analysis-button")))
     ),
     uiOutput(ns("noresRet")),

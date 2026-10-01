@@ -146,7 +146,8 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
     style = "background:white;",
     absolutePanel(
       top = 5, right = 20, style = "z-index: 9999;", width = 115,
-      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL) %>%
+      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL,
+        title = "Download the complete dataset (expression matrix, feature and sample annotations, gene sets) as an Excel workbook") %>%
         tagAppendAttributes(`data-testid` = "app-download-dataset-button"),
       actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro")) %>%
         tagAppendAttributes(`data-testid` = "app-snapshot-button",

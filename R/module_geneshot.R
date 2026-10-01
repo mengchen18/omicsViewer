@@ -51,7 +51,8 @@ geneshot_ui <- function(id) {
         ),
       column(
         width = 4, align = "right",
-        actionButton(ns("submit"), label = "Search related genes!", width = "100%") %>%
+        actionButton(ns("submit"), label = "Search related genes!", width = "100%",
+          title = "Mine the literature for genes associated with the search term(s); separate multiple terms with ';'") %>%
           tagAppendAttributes(`data-testid` = paste0(id, "-search-button"))
         ),
       column(

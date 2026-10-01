@@ -115,7 +115,9 @@ meta_scatter_ui <- function(id) {
           direction = "vertical",
           status = "primary"
         ) %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-axis-mode-selector")),
+          tagAppendAttributes(
+            `data-testid` = paste0(id, "-axis-mode-selector"),
+            title = "Shortcut: jump to predefined axis pairs (e.g. volcano, PCA).\nCustom: pick the X and Y variables yourself with the two selectors below."),
         attr4selector_ui(ns("a4selector"))
       ),
       div(
@@ -151,7 +153,8 @@ meta_scatter_ui <- function(id) {
     ),
     div(
       style = "position: relative;",
-      actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs") %>%
+      actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs",
+        title = "Deselect all points (clears lasso/box/click selections in this plot)") %>%
         tagAppendAttributes(
           class = "msc-clear-overlay",
           `data-testid` = paste0(id, "-clear-selection-button")
