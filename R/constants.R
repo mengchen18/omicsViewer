@@ -186,8 +186,8 @@ AGENT_STATE_SECTIONS <- c("annotations", "quick_views", "panels", "figure_gramma
 # description clustering - the pairwise pass is quadratic in row count
 ORA_CLUSTER_MAX_ROWS <- 200
 
-# R-H6 (todo 4.3): hard row cap for adist()-based clustering - the dense
-# n x n distance matrix costs ~n^2 * 8 bytes (10-60 GB at 20-50k features,
-# which kills every session on a shared server). Above the cap adist
-# refuses with an actionable message.
-ADIST_MAX_ROWS <- 5000
+# R-H6 (todo 4.3): hard row cap for adist()-based clustering. The dense
+# n x n distance matrix costs ~n^2 * 8 bytes (~20 GB at the 50k cap plus
+# copies) - large but bounded, and clustering beyond it is not informative
+# anyway. Above the cap adist refuses with an actionable message.
+ADIST_MAX_ROWS <- 50000
