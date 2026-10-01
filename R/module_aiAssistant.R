@@ -26,10 +26,10 @@
 #'   table-view update (WP8 \code{set_table_view}).
 #' @param store Canonical widget store (\code{\link{widget_store_new}})
 #'   shared with the app modules. When given, the generic widget tier
-#'   (\code{list_widgets}, \code{get_widget}, \code{set_widgets}) is
+#'   (\code{find_controls}, \code{describe_control}, \code{set_widgets}) is
 #'   registered alongside the curated tools, plus the WP8 semantic tools
-#'   and the WP9 discovery tools (\code{search_ui_capabilities},
-#'   \code{get_ui_capability}) generated from the same registry
+#'   and the WP9 discovery tools (\code{find_controls},
+#'   \code{describe_control}) generated from the same registry
 #'   (plan section 6.3, S3/WP8/WP9).
 #'
 #' @return The UI returns Shiny tags. The server module returns (invisibly)
@@ -55,8 +55,8 @@ NULL
     "Call get_omics_viewer_state before describing the current dataset or interface; it returns a compact overview (active tabs, selections, quick views, current scatter axes, capability counts). Request sections (annotations, quick_views, panels, figure_grammar) only when the task needs them.",
     "Use search_annotations and summarize_annotation to discover bounded metadata before answering metadata questions.",
     "Use set_omics_viewer_state or set_scatter_view only after the user explicitly asks you to change the visible interface.",
-    "Prefer the semantic tools - set_scatter_view for scatter axes, set_omics_viewer_state for tabs and selections, set_enrichment_parameters for the ORA/fGSEA panel, set_table_view for feature/sample/expression tables; use the generic widget tools (list_widgets, get_widget, set_widgets) only for controls those tools do not cover.",
-    "Use search_ui_capabilities to discover controllable interface capabilities by meaning (panels, filters, enrichment, figures); get_ui_capability describes one by id.",
+    "Prefer the semantic tools - set_scatter_view for scatter axes, set_omics_viewer_state for tabs and selections, set_enrichment_parameters for the ORA/fGSEA panel, set_table_view for feature/sample/expression tables; use the generic widget tools (find_controls, describe_control, set_widgets) only for controls those tools do not cover.",
+    "Use find_controls to discover controllable interface capabilities by meaning (query) or id prefix; describe_control describes one by id.",
     "Use create_figure and update_figure with declarative specifications; never propose or execute arbitrary R, JavaScript, or shell code.",
     "Figure highlighting: layers accept structured filters (e.g. {column, op, value}) and constant hex colors; scale sets explicit per-category colors; theme_options tunes legend, label rotation, and grid - request the figure_grammar section for the exact forms.",
     "Never claim that an analysis was performed unless its result is represented in the current application state.",

@@ -379,8 +379,8 @@ ok(
   "every registered tool travels on convert = FALSE"
 )
 ok(
-  ut_cmp_identical(length(tool_names) >= 14L, TRUE),
-  "the property sweep covers the full registered tool surface"
+  ut_cmp_identical(length(tool_names) >= 13L, TRUE),
+  "the property sweep covers the full registered tool surface (13 after the 4.4e consolidation)"
 )
 
 # ---- 4b. output codec at the seam (3.2) ----------------------------------

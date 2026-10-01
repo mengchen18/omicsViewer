@@ -255,33 +255,59 @@ agent_tool_registry <- function(state, feature_data, sample_data,
   # canonical widget store. isolate() is required: validation reads
   # choices providers, which read module reactives (triset() etc.).
   # ----------------------------------------------------------------
-  list_widgets_tool <- agent_tool(
-    function(section = NULL, `_intent`) {
-      result <- shiny::isolate(shiny::withReactiveDomain(
-        session_domain, agent_widget_list(store, section)))
-      ids <- vapply(result$widgets, function(w) w$id, character(1))
-      if (!length(ids)) ids <- "(none)"
-      .ai_tool_result(
-        result,
-        title = "Listed controllable widgets",
-        label = paste(result$widget_count, "widgets",
-                     if (is.null(result$section)) "" else paste("in", result$section)),
-        preview = paste(utils::head(ids, 5), collapse = ", ")
-      )
+  # todo 4.4(e): the four discovery tools (list_widgets, get_widget,
+  # search_ui_capabilities, get_ui_capability) consolidated into two -
+  # one search surface and one describe surface - saving two schemas
+  # per request and a model routing decision. The WP9 capability
+  # registry and its agent-controllability gating are unchanged.
+  find_controls_tool <- agent_tool(
+    function(query = NULL, prefix = NULL, max_results = 20L, `_intent`) {
+      if (!.agent_param_absent(query)) {
+        result <- shiny::isolate(shiny::withReactiveDomain(
+          session_domain, agent_capability_search(store, query, max_results)))
+        ids <- vapply(result$capabilities, function(r) r$id, character(1))
+        if (!length(ids)) ids <- "(no matches)"
+        .ai_tool_result(
+          result, title = "Searched UI controls",
+          label = paste0(result$query, " : ", result$match_count,
+                         " of ", result$capability_count),
+          preview = paste(utils::head(ids, 5), collapse = ", "))
+      } else {
+        result <- shiny::isolate(shiny::withReactiveDomain(
+          session_domain, agent_widget_list(store, prefix)))
+        ids <- vapply(result$widgets, function(w) w$id, character(1))
+        if (!length(ids)) ids <- "(none)"
+        .ai_tool_result(
+          result, title = "Listed UI controls",
+          label = paste(result$widget_count, "widgets",
+                        if (is.null(result$section)) ""
+                        else paste("under", result$section)),
+          preview = paste(utils::head(ids, 5), collapse = ", "))
+      }
     },
-    name = "list_widgets",
+    name = "find_controls",
     description = paste(
-      "List the user-editable interface widgets you can control, with canonical ids, kinds,",
-      "allowed values, and current values.",
-      "Optional section filters by id prefix (e.g. 'dataspace' or 'dataspace.expr_heatmap').",
-      "Use this before set_widgets and to answer questions about available interface controls."
+      "Find interface controls you can read or control - by meaning (query) or by canonical id prefix (prefix); pass exactly one.",
+      "query searches everything: semantic tools (scatter, enrichment, tables, figures) and every user-editable widget,",
+      "matching ids, labels, help text, and panels case-insensitively (at most 50 records).",
+      "prefix lists the user-editable widgets whose canonical id starts with it (e.g. 'dataspace' or 'dataspace.expr_heatmap'),",
+      "with kinds, allowed values, and current values.",
+      "Use this before set_widgets and to answer questions about available controls; describe_control(id) returns one record in full."
     ),
     arguments = list(
-      section = ellmer::type_string("Optional canonical id prefix to filter by.", required = FALSE),
-      `_intent` = ellmer::type_string("Short user-facing reason for listing widgets.")
+      query = ellmer::type_string(
+        "Case-insensitive search query (1-128 characters); mutually exclusive with prefix.",
+        required = FALSE),
+      prefix = ellmer::type_string(
+        "Canonical widget id prefix to list widgets under (e.g. 'dataspace'); mutually exclusive with query.",
+        required = FALSE),
+      max_results = ellmer::type_integer(
+        "Maximum records for a query search, from 1 through 50.",
+        required = FALSE),
+      `_intent` = ellmer::type_string("Short user-facing reason for this search.")
     ),
     annotations = ellmer::tool_annotations(
-      title = "Listing interface widgets",
+      title = "Finding UI controls",
       read_only_hint = TRUE,
       destructive_hint = FALSE,
       idempotent_hint = TRUE,
@@ -289,30 +315,35 @@ agent_tool_registry <- function(state, feature_data, sample_data,
     )
   )
 
-  get_widget_tool <- agent_tool(
+  describe_control_tool <- agent_tool(
     function(id, `_intent`) {
-      result <- shiny::isolate(shiny::withReactiveDomain(
-        session_domain, agent_widget_describe(store, id)))
+      # widget ids first (full widget record); anything else - including
+      # semantic tool names - resolves through the capability registry
+      result <- tryCatch(
+        shiny::isolate(shiny::withReactiveDomain(
+          session_domain, agent_widget_describe(store, id))),
+        error = function(e) shiny::isolate(shiny::withReactiveDomain(
+          session_domain, agent_capability_get(store, id))))
       .ai_tool_result(
-        result,
-        title = "Described interface widget",
+        result, title = "Described UI control",
         label = result$id,
         preview = paste(result$kind, "|",
                         if (is.null(result$current_value)) "(unset)"
                         else as.character(result$current_value))
       )
     },
-    name = "get_widget",
+    name = "describe_control",
     description = paste(
-      "Describe one user-editable widget by exact canonical id: kind, meaning, allowed",
-      "values, dependencies, and its current value. Ids come from list_widgets."
+      "Describe one control by exact id, in full: a widget id (from find_controls) gives kind, meaning,",
+      "allowed values, dependencies, and current value; a semantic tool name gives the panel, purpose,",
+      "allowed values, dependencies, and the tool that operates it."
     ),
     arguments = list(
-      id = ellmer::type_string("Exact canonical widget id from list_widgets."),
-      `_intent` = ellmer::type_string("Short user-facing reason for describing this widget.")
+      id = ellmer::type_string("Exact control id (widget id or semantic tool name) from find_controls."),
+      `_intent` = ellmer::type_string("Short user-facing reason for describing this control.")
     ),
     annotations = ellmer::tool_annotations(
-      title = "Describing interface widget",
+      title = "Describing UI control",
       read_only_hint = TRUE,
       destructive_hint = FALSE,
       idempotent_hint = TRUE,
@@ -346,7 +377,7 @@ agent_tool_registry <- function(state, feature_data, sample_data,
       "whose types match the widget kind (string/number/boolean; e.g.",
       "'{\"dataspace.expr_heatmap.heatmap_colors\": \"RdGy\"}').",
       "Only requested widgets change; invalid keys are reported per key with closest-match",
-      "suggestions so you can correct and retry. Discover ids and allowed values with list_widgets."
+      "suggestions so you can correct and retry. Discover ids and allowed values with find_controls."
     ),
     arguments = list(
       patch = ellmer::type_string(paste(
@@ -493,80 +524,6 @@ agent_tool_registry <- function(state, feature_data, sample_data,
     annotations = ellmer::tool_annotations(
       title = "Updating table view",
       read_only_hint = FALSE,
-      destructive_hint = FALSE,
-      idempotent_hint = TRUE,
-      open_world_hint = FALSE
-    )
-  )
-
-  # ----------------------------------------------------------------
-  # WP9 discovery tools: generated from the capability registry
-  # (widget bindings + tool metadata) - one source of truth.
-  # ----------------------------------------------------------------
-  search_capabilities_tool <- agent_tool(
-    function(query, max_results = 20L, `_intent`) {
-      result <- shiny::isolate(shiny::withReactiveDomain(
-        session_domain, agent_capability_search(store, query, max_results)))
-      ids <- vapply(result$capabilities, function(r) r$id, character(1))
-      if (!length(ids)) ids <- "(no matches)"
-      .ai_tool_result(
-        result,
-        title = "Searched UI capabilities",
-        label = paste0(result$query, " : ", result$match_count, " of ",
-                       result$capability_count),
-        preview = paste(utils::head(ids, 5), collapse = ", ")
-      )
-    },
-    name = "search_ui_capabilities",
-    description = paste(
-      "Search everything you can read or control in this app by meaning:",
-      "semantic tools (scatter, enrichment, tables, figures) and every user-editable",
-      "widget with its panel, purpose, allowed values, and the tool that operates it.",
-      "Case-insensitive substring match over ids, labels, help text, and panels.",
-      "Use this before list_widgets when looking by purpose rather than exact id prefix;",
-      "returns at most 50 records with match counts."
-    ),
-    arguments = list(
-      query = ellmer::type_string("Case-insensitive search query (1-128 characters)."),
-      max_results = ellmer::type_integer(
-        "Maximum records to return, from 1 through 50.", required = FALSE),
-      `_intent` = ellmer::type_string("Short user-facing reason for this search.")
-    ),
-    annotations = ellmer::tool_annotations(
-      title = "Searching UI capabilities",
-      read_only_hint = TRUE,
-      destructive_hint = FALSE,
-      idempotent_hint = TRUE,
-      open_world_hint = FALSE
-    )
-  )
-
-  get_capability_tool <- agent_tool(
-    function(id, `_intent`) {
-      result <- shiny::isolate(shiny::withReactiveDomain(
-        session_domain, agent_capability_get(store, id)))
-      .ai_tool_result(
-        result,
-        title = "Described UI capability",
-        label = result$id,
-        preview = paste(result$kind, "|", result$operation)
-      )
-    },
-    name = "get_ui_capability",
-    description = paste(
-      "Describe one capability by exact id: a widget id (from list_widgets or",
-      "search_ui_capabilities) or a semantic tool name. Returns the panel, purpose,",
-      "allowed values, dependencies, and the tool that operates it."
-    ),
-    arguments = list(
-      id = ellmer::type_string(
-        "Exact capability id (widget id or semantic tool name)."),
-      `_intent` = ellmer::type_string(
-        "Short user-facing reason for describing this capability.")
-    ),
-    annotations = ellmer::tool_annotations(
-      title = "Describing UI capability",
-      read_only_hint = TRUE,
       destructive_hint = FALSE,
       idempotent_hint = TRUE,
       open_world_hint = FALSE
@@ -1010,15 +967,13 @@ agent_tool_registry <- function(state, feature_data, sample_data,
       client$register_tool(set_state_tool)
       client$register_tool(set_scatter_tool)
       if (!is.null(store)) {
-        client$register_tool(list_widgets_tool)
-        client$register_tool(get_widget_tool)
+        client$register_tool(find_controls_tool)
+        client$register_tool(describe_control_tool)
         client$register_tool(set_widgets_tool)
         if (!is.null(apply_enrichment))
           client$register_tool(set_enrichment_tool)
         if (!is.null(apply_table_view))
           client$register_tool(set_table_view_tool)
-        client$register_tool(search_capabilities_tool)
-        client$register_tool(get_capability_tool)
       }
       client$register_tool(create_figure_tool)
       client$register_tool(get_figure_tool)
@@ -1028,12 +983,11 @@ agent_tool_registry <- function(state, feature_data, sample_data,
     tools = list(
       get_state = get_state_tool, search = search_tool,
       summary = summary_tool, set_state = set_state_tool,
-      set_scatter = set_scatter_tool, list_widgets = list_widgets_tool,
-      get_widget = get_widget_tool, set_widgets = set_widgets_tool,
+      set_scatter = set_scatter_tool, find_controls = find_controls_tool,
+      describe_control = describe_control_tool,
+      set_widgets = set_widgets_tool,
       set_enrichment = set_enrichment_tool,
       set_table_view = set_table_view_tool,
-      search_capabilities = search_capabilities_tool,
-      get_capability = get_capability_tool,
       create_figure = create_figure_tool, get_figure = get_figure_tool,
       update_figure = update_figure_tool
     )

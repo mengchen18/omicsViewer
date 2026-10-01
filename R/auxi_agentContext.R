@@ -33,8 +33,8 @@ NULL
 # design (WP1 progressive disclosure: the model is prompted to re-fetch).
 .agent_context_state_tools <- "get_omics_viewer_state"
 .agent_context_capability_tools <- c(
-  "search_ui_capabilities",
-  "get_ui_capability"
+  "find_controls",
+  "describe_control"
 )
 .agent_context_figure_tools <- c("create_figure", "update_figure")
 
@@ -253,7 +253,7 @@ agent_estimate_context_tokens <- function(turns, overhead = NULL) {
 #' exchange itself, never while a stream runs - the caller enforces that):
 #' \itemize{
 #'   \item snapshot tools (\code{get_omics_viewer_state},
-#'     \code{search_ui_capabilities}, \code{get_ui_capability}): every result
+#'     \code{find_controls}, \code{describe_control}): every result
 #'     but the newest per tool is replaced by a stub;
 #'   \item figure tools: a result whose \code{figure_id} is a later result's
 #'     \code{parent_figure_id} (a direct revision) is stubbed; independent

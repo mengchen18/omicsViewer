@@ -200,7 +200,7 @@ proc1 <- new_app_process(fake_openai(list(
   sse_tool("c1", "get_omics_viewer_state", "{\"_intent\":\"overview\"}"),
   sse_tool("c2", "search_annotations",
            "{\"space\":\"feature\",\"query\":\"Gene\",\"_intent\":\"find\"}"),
-  sse_tool("c3", "list_widgets", "{\"_intent\":\"list controls\"}"),
+  sse_tool("c3", "find_controls", "{\"prefix\":\"dataspace\",\"_intent\":\"list controls\"}"),
   sse_final("Used three tools; the interface is ready.", 4000, 20)
 )))
 old1 <- t2_env_on(proc1, list(OMICSVIEWER_LLM_CONTEXT_TOKENS = "0"))
@@ -240,7 +240,7 @@ ok(ut_cmp_identical(t2$final, "Used three tools; the interface is ready."),
 ## Governor stop: the request limit blocks the NEXT submit; the blocked
 ## submit spends no provider request.
 proc2 <- new_app_process(fake_openai(list(
-  sse_tool("c1", "list_widgets", "{\"_intent\":\"first\"}"),
+  sse_tool("c1", "find_controls", "{\"query\":\"heatmap\",\"_intent\":\"first\"}"),
   sse_final("first submit done", 100, 10)
 )))
 log2 <- file.path(tempdir(), paste0("t2-logs-gov-", Sys.getpid()))
