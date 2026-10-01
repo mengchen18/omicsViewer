@@ -271,12 +271,32 @@ testServer(cornerApp, {
     "clear drops the figure emphasis"
   )
 
-  session$setInputs(`scatter-tris_main_scatter2-variable` = "log.fdr")
+  # same-axes re-fires (the clear_counter invalidation, cutoff echoes)
+  # stay disarmed - the no-resurrection rule (the historic bug: the
+  # corner observer re-fired on the clear's own invalidation and
+  # re-selected the corner genes immediately after the clear)
   session$flushReact(); session$flushOutput()
   session$flushReact(); session$flushOutput()
   ok(
     length(corner_bus$read()$ids) == 0L,
-    "an axis switch after clear does not resurrect the corner selection"
+    "same-axes re-fires after clear do not resurrect the corner selection"
+  )
+
+  # a settled switch to a DIFFERENT view re-arms the corner: the disarm
+  # is view-scoped (.corner_disarm_axes) because the cutoff/corner
+  # configuration is live and follows the view. Previously clear was a
+  # one-way dead end: switching to another volcano selected nothing
+  # until the user edited a cutoff (reported defect, 2026-10-01)
+  session$setInputs(`scatter-tris_main_scatter2-variable` = "log.fdr")
+  session$flushReact(); session$flushOutput()
+  session$flushReact(); session$flushOutput()
+  ok(
+    ut_cmp_identical(corner_bus$read()$ids, c("f1", "f2")),
+    "an axis switch to another view after clear re-derives the corner selection"
+  )
+  ok(
+    identical(corner_bus$read()$origin, "corner"),
+    "the re-derived corner selection reports through the corner origin"
   )
 
   # a genuine corner edit re-engages the corner

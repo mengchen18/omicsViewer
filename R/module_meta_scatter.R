@@ -427,13 +427,19 @@ meta_scatter_module <- function(
     # cornerEngaged (propagation gate) is a SEPARATE concept: whether
     # corner changes may CLAIM the selection at all. Disengaged by clear
     # and by a manual-selection restore; re-engaged by any genuine
-    # cutoff/corner edit. The historic returnCornerSelection/sbc pair
-    # collapsed into these two flags.
+    # cutoff/corner edit, or by a settled axis switch to a DIFFERENT view
+    # while a corner configuration is live (the disarm is view-scoped:
+    # .corner_disarm_axes holds the axes the clear cleared, and only
+    # same-axes echoes stay disarmed - otherwise clear was a one-way
+    # dead end and the next volcano never re-selected its corner).
+    # The historic returnCornerSelection/sbc pair collapsed into these
+    # two flags.
     selectionDisplayAxes <- reactiveVal(NULL)
     pendingSelectionDisplayAxes <- reactiveVal(NULL)
     selectionDisplayTrigger <- reactiveVal(0L)
     cornerEngaged <- reactiveVal(TRUE)
     cornerAuthority <- reactiveVal(FALSE)
+    .corner_disarm_axes <- reactiveVal(NULL)
     .scatter_ids_in_rects <- function(coords, rects) {
       i <- lapply(rects, function(r1) {
         which(coords$x > r1["x0"] & coords$x < r1["x1"] &
@@ -542,6 +548,33 @@ meta_scatter_module <- function(
       req(length(x) == length(y))
       list(x = x, y = y)
     })
+
+    # View classification for the clear-button placement (DOM only). Mirrors
+    # the plot module's hm(): exactly one categorical axis + one numeric
+    # axis = beeswarm (that view's top band carries the group-select /
+    # t-test row, so the overlay would cover the table); both numeric =
+    # scatter (overlay on the reg-line band). xycoord()'s req()s suspend
+    # this observer while axes are unset - then the static overlay class
+    # (the initial markup) stays, which matches the scatter default.
+    .scatter_is_beeswarm <- reactive({
+      cc <- tryCatch(xycoord(), shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.null(cc)) return(FALSE)
+      i1 <- (is.factor(cc$x) || is.character(cc$x)) && is.numeric(cc$y)
+      i2 <- (is.factor(cc$y) || is.character(cc$y)) && is.numeric(cc$x)
+      isTRUE(i1 || i2)
+    })
+    .scatter_keep(observe({
+      bee <- .scatter_is_beeswarm()
+      shinyjs::runjs(paste0(
+        "(function(){var b=document.getElementById('", ns("clear"), "');",
+        "if(!b)return;",
+        "b.classList.toggle('msc-clear-overlay', ",
+        ifelse(bee, "false", "true"), ");",
+        "b.classList.toggle('msc-clear-inline', ",
+        ifelse(bee, "true", "false"), ");})()"
+      ))
+    }))
 
     # Track clear button clicks
     clear_counter <- reactiveVal(0)
@@ -720,6 +753,10 @@ meta_scatter_module <- function(
       selectionDisplayAxes(NULL)
       pendingSelectionDisplayAxes(NULL)
       cornerEngaged(FALSE)
+      # view-scoped disarm: only the axes the clear cleared stay
+      # disarmed; a settled switch to a different view re-arms (corner
+      # observer)
+      .corner_disarm_axes(.scatter_axis_signature(v1(), v2()))
       cornerAuthority(FALSE)
       # the figure-origin report slot is no longer current: without the
       # forget, a GENUINE re-selection of the same ids after the clear
@@ -878,11 +915,25 @@ meta_scatter_module <- function(
         .rectval_gen_last <<- gen
         return(NULL)
       }
-      if (!isTRUE(cornerEngaged())) {
-        return(NULL)
-      }
       if (!isTRUE(conv)) {
         return(NULL)
+      }
+      if (!isTRUE(cornerEngaged())) {
+        # View-scoped re-arm: the disarm record holds the axes the clear
+        # (or a corner-off restore) disengaged. Same-axes re-fires (cutoff
+        # echoes, clear_counter bumps) stay disarmed - the no-resurrection
+        # rule. A SETTLED axis switch to a different view with a live
+        # corner configuration (rec is non-NULL) re-arms it: the corner
+        # follows the view exactly like the load-time arming, and the
+        # record is consumed so the fire history after the re-arm is the
+        # ordinary engaged path. Without this, clear was a one-way dead
+        # end - switching volcanos selected nothing until the user edited
+        # a cutoff.
+        if (is.null(rec) || identical(.scatter_axis_signature(v1(), v2()),
+                                      .corner_disarm_axes()))
+          return(NULL)
+        cornerEngaged(TRUE)
+        .corner_disarm_axes(NULL)
       }
 
       if (identical(rec, .rectval_last())) {
@@ -1071,8 +1122,13 @@ meta_scatter_module <- function(
       # (figure lasso, table pick, heatmap brush) disengages it until the
       # user edits a cutoff (re-engagement observer above).
       cornerEngaged(isTRUE(s$selectByCorner))
-      if (!isTRUE(s$selectByCorner))
+      if (!isTRUE(s$selectByCorner)) {
         .corner_rearm_suppress(TRUE)
+        # view-scoped disarm (same rule as the clear): the restored view
+        # itself stays corner-off; a later settled switch to a different
+        # view re-arms through the corner observer
+        .corner_disarm_axes(restored_axes)
+      }
       .scatter_restore_gen(isolate(.scatter_restore_gen()) + 1L)
       cornerAuthority(FALSE)
       selVal(list(
