@@ -5,6 +5,7 @@
 \alias{selection_store_new}
 \alias{selection_port}
 \alias{selection_report}
+\alias{selection_forget_report}
 \alias{selection_apply}
 \alias{selection_watch}
 \alias{selection_read}
@@ -25,6 +26,8 @@ selection_report(
   anchor = NULL,
   mirror = NULL
 )
+
+selection_forget_report(store, key, origin)
 
 selection_apply(
   store,
@@ -50,7 +53,7 @@ selection_state(store)
 
 \item{key}{Selection space key.}
 
-\item{origin}{Origin slot (see \code{\link{selection_store_new}}).}
+\item{origin}{Origin slot whose last report is no longer current.}
 
 \item{report}{The interaction report value compared for dedupe (any
 object; compared with \code{identical()}).}
@@ -68,9 +71,11 @@ An environment holding one record per key (plain value plus a
   reactiveVal invalidation signal), per-(key, origin) last-report slots
   and a reactive global epoch.
 
-A list(apply =, report =, watch =, read =, key =, store =).
+A list(apply =, report =, forget =, watch =, read =, key =, store =).
 
 TRUE when the report was applied.
+
+TRUE when a slot was dropped.
 
 TRUE when the write changed the record.
 
@@ -95,6 +100,14 @@ report is an echo (a module return that recomputed without a user
 interaction) and is skipped, so it can never revert a newer selection
 made by another source. A changed report is applied transactionally
 (identical cores are no-ops).
+
+Drops the per-(key, origin) report-dedupe slot WITHOUT touching the
+record. Writers call this when their interaction state was reset by
+something other than a user selection (the browser loses its plotly
+selection shape to a re-render; clear/restore replace the selection
+'s source): the stale slot would otherwise dedupe a GENUINE re-selection
+whose payload equals the pre-reset report (select f1, clear, re-select
+f1 - the identical report never landed and the record stayed empty).
 
 Bypasses the report dedupe (the writer states the change is real);
 still dedupes on the resolved record core.

@@ -21,19 +21,17 @@ are therefore covered indirectly (golden v2 fixture carries origin
 "figure" for the sample space); live verification happens in the Tier A
 browser suite.
 
-## 2. Commented-out test: hand-built v2 fixture selection records
+## 2. Hand-built v2 fixture selection records — RESOLVED (todo 4.1, 2026-09-30)
 
-`tests/test_snapshotRoundTrip.R` case 9 contains two commented-out
-assertions ("v2 selection records restore", "v2 record origin survives
-the round trip"). Root cause: restoring a **hand-built** v2 fixture
-(feature-fig panel status entirely absent, selection only in the
-top-level section) still loses the selection records to a corner-echo
-clear that races the restore within one flush. Real saves (cases 2, 2b,
-10) restore selections of every origin (table / lasso / corner) correctly
-and those assertions are green. The widget-store part of the v2 fixture
-restores correctly (asserted). Future fix: extend the rectval observer's
-restore-generation gate to cover fixtures without a feature-fig panel
-status, then re-enable the two assertions.
+The two formerly commented-out assertions in `tests/test_snapshotRoundTrip.R`
+case 9 ("v2 selection records restore", "v2 record origin survives the round
+trip") are re-enabled and green. Root cause was the restore applying the
+selection in the SAME flush as the axes cascade, so a corner-echo clear ate
+the records of a hand-built v2 fixture (no feature-fig panel status). The
+phased restore controller (todo 4.1 / deferred 2.8) now applies the
+selection through the selection bus only after the restored axes have
+converged, which sequences the corner re-engagement after the record write.
+Suite now 63 assertions.
 
 ## 3. Transient "--select--" sentinel may rest in the widget store
 

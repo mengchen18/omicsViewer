@@ -58,10 +58,10 @@ table-view update (WP8 \code{set_table_view}).}
 
 \item{store}{Canonical widget store (\code{\link{widget_store_new}})
 shared with the app modules. When given, the generic widget tier
-(\code{list_widgets}, \code{get_widget}, \code{set_widgets}) is
+(\code{find_controls}, \code{describe_control}, \code{set_widgets}) is
 registered alongside the curated tools, plus the WP8 semantic tools
-and the WP9 discovery tools (\code{search_ui_capabilities},
-\code{get_ui_capability}) generated from the same registry
+and the WP9 discovery tools (\code{find_controls},
+\code{describe_control}) generated from the same registry
 (plan section 6.3, S3/WP8/WP9).}
 }
 \value{

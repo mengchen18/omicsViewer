@@ -88,9 +88,8 @@ ok(
            function(r) r$operation, character(1)),
     c("get_omics_viewer_state", "search_annotations", "summarize_annotation",
       "set_omics_viewer_state", "set_scatter_view", "set_enrichment_parameters",
-      "set_table_view", "create_figure", "update_figure", "list_widgets",
-      "get_widget", "set_widgets", "search_ui_capabilities",
-      "get_ui_capability")),
+      "set_table_view", "create_figure", "update_figure", "find_controls",
+      "describe_control", "set_widgets")),
     TRUE),
   "tool records cover the full assistant allowlist incl. WP8/WP9 tools"
 )

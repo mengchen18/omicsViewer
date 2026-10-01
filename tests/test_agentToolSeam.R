@@ -379,8 +379,8 @@ ok(
   "every registered tool travels on convert = FALSE"
 )
 ok(
-  ut_cmp_identical(length(tool_names) >= 14L, TRUE),
-  "the property sweep covers the full registered tool surface"
+  ut_cmp_identical(length(tool_names) >= 13L, TRUE),
+  "the property sweep covers the full registered tool surface (13 after the 4.4e consolidation)"
 )
 
 # ---- 4b. output codec at the seam (3.2) ----------------------------------
@@ -536,7 +536,7 @@ shiny::testServer(
         layer3 = res@extra$data$spec$layers[[3]]$filter
       ) else NULL
       replay_warnings[[fx]] <<- if (is.null(res@error))
-        (res@extra$data$warnings %||% character()) else character("failed")
+        (res@extra$data$warnings %||% character()) else "failed"
     }
   })
 

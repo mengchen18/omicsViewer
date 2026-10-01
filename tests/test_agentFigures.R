@@ -1497,3 +1497,108 @@ ok(
     !is.null(grammar_s2$label_layers$example$params$order_by),
   "figure grammar documents patch-mode revision and label ordering"
 )
+
+## ---- Stage 3 (todo 4.2): single-source grammar + narrowed schema --------
+agent_figure_spec_schema <- omicsViewer:::agent_figure_spec_schema
+agent_figure_where_schema <- omicsViewer:::agent_figure_where_schema
+agent_where_normalize <- omicsViewer:::agent_where_normalize
+
+# The model-facing contract narrows filter nesting to depth 2 (one
+# combinator around leaves); the validator keeps accepting depth 3 so
+# pre-narrowing transcripts and golden replays still parse.
+where_t1 <- agent_figure_where_schema()
+ok(
+  ut_cmp_identical(
+    "all" %in% names(where_t1@properties), TRUE) &&
+    ut_cmp_identical(
+      "all" %in% names(
+        where_t1@properties$all@items@properties), FALSE),
+  "filter schema offers one combinator level only (depth 2)"
+)
+deep3 <- list(column = "score", op = ">", value = 1)
+for (i in 1:2) deep3 <- list(all = list(deep3))
+norm_deep3 <- agent_where_normalize(deep3)
+ok(
+  ut_cmp_identical(
+    isTRUE(tryCatch(
+      {omicsViewer:::.agent_where_validate_caps(norm_deep3); TRUE},
+      error = function(e) FALSE)), TRUE),
+  "validator still accepts depth-3 filters (replay compatibility)"
+)
+deep4 <- list(column = "score", op = ">", value = 1)
+for (i in 1:3) deep4 <- list(all = list(deep4))
+ok(
+  ut_fails(
+    omicsViewer:::.agent_where_validate_caps(
+      agent_where_normalize(deep4)),
+    "nests at most 3 levels"),
+  "validator still rejects filters beyond depth 3"
+)
+
+# The spec schema derives from the grammar tables (single source):
+# layer params in table order, geom enum == the geoms constant.
+patch_type <- agent_figure_spec_schema(required = FALSE, layers_required = FALSE)
+ok(
+  ut_cmp_identical(
+    names(patch_type@properties$layers@items@properties$params@properties),
+    names(omicsViewer:::.agent_figure_param_specs())),
+  "layer params schema comes from the grammar table (table order)"
+)
+ok(
+  ut_cmp_identical(
+    patch_type@properties$layers@items@properties$geom@values,
+    omicsViewer:::.agent_figure_geoms),
+  "geom enum comes from the geoms constant"
+)
+ok(
+  ut_cmp_identical(
+    names(patch_type@properties$theme_options@properties),
+    names(omicsViewer:::.agent_figure_theme_option_specs())),
+  "theme option schema comes from the grammar table"
+)
+
+# Validator defaults come from the same table.
+plain <- agent_normalize_figure_spec(
+  list(layers = list(list(geom = "point", x = "score", y = "score"))),
+  fd, pd, mat, character(), character())
+specs_table <- omicsViewer:::.agent_figure_param_specs()
+ok(
+  ut_cmp_identical(plain$layers[[1]]$params$size, specs_table$size$default) &&
+    ut_cmp_identical(plain$layers[[1]]$params$alpha, specs_table$alpha$default) &&
+    ut_cmp_identical(plain$layers[[1]]$params$max_labels,
+                     specs_table$max_labels$default),
+  "validator parameter defaults come from the grammar table"
+)
+
+# Geom requirements are table-driven for both validator and prose.
+reqs <- omicsViewer:::.agent_figure_geom_required()
+text_missing_label <- tryCatch(
+  agent_normalize_figure_spec(
+    list(layers = list(list(geom = "text", x = "score", y = "score"))),
+    fd, pd, mat, character(), character()),
+  error = function(e) conditionMessage(e))
+ok(
+  ut_cmp_identical(
+    grepl("requires mapping", text_missing_label), TRUE) &&
+    ut_cmp_identical(
+      identical(reqs$text, c("x", "y", "label")) &&
+        identical(reqs$bar, "x") && identical(reqs$hline, character()),
+      TRUE),
+  "geom requirements come from the grammar table"
+)
+
+# The prose grammar advertises the schema contract, not the looser
+# validator cap, and its params/geoms sections derive from the tables.
+grammar_42 <- agent_figure_grammar()
+ok(
+  ut_cmp_identical(grammar_42$limits$max_filter_depth, 2L) &&
+    grepl("2 nesting levels", grammar_42$layer_filters$form, fixed = TRUE),
+  "prose grammar advertises the depth-2 filter contract"
+)
+ok(
+  ut_cmp_identical(names(grammar_42$layer_params),
+                   names(specs_table)) &&
+    ut_cmp_identical(names(grammar_42$geom_requirements),
+                     omicsViewer:::.agent_figure_geoms),
+  "prose grammar derives params and geom requirements from the tables"
+)

@@ -1140,6 +1140,11 @@ meta_scatter_module <- function(
       # Keep an explicit list member as a robust fallback; some reactive
       # consumers historically lost attributes when forwarding module values.
       current$state <- sta
+      # Control-plane handle (todo 4.1): the axes-convergence reactive as a
+      # CLOSURE, not a value - assigning the function object adds no
+      # reactive dependency here, and the L0 restore controller calls it
+      # to wait for restored axes to settle before applying the selection.
+      current$axes_converged <- .scatter_axes_converged
       attr(current, "status") <- sta
       # Derived quick views are not snapshot state, but the optional AI
       # assistant uses this metadata to describe and validate one-click views.

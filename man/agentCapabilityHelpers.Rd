@@ -91,7 +91,7 @@ closest-match suggestions (WP2).
 
 WP9 context hygiene: the \code{get_omics_viewer_state} overview carries
 counts only (capability total, panels, semantic tool ids), never record
-contents - discovery goes through \code{search_ui_capabilities}. Unlike
+contents - discovery goes through \code{find_controls}. Unlike
 \code{\link{agent_capability_records}} this never invokes choices
 providers, so it stays cheap.
 

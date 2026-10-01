@@ -583,7 +583,7 @@ agent_compact_state <- function(state, annotations = NULL, quick_views = NULL,
     out$scatter_view <- scatter_view
 
   # WP9: capability COUNTS only in the overview - record contents are
-  # discovered through search_ui_capabilities (context hygiene).
+  # discovered through find_controls (context hygiene).
   capabilities <- agent_capability_summary(store)
   if (!is.null(capabilities))
     out$capabilities <- capabilities

@@ -182,9 +182,8 @@ shiny::testServer(
     expected_tools <- c(
       "get_omics_viewer_state", "search_annotations", "summarize_annotation",
       "set_omics_viewer_state", "set_scatter_view", "create_figure", "get_figure", "update_figure",
-      "list_widgets", "get_widget", "set_widgets",
-      "set_enrichment_parameters", "set_table_view",
-      "search_ui_capabilities", "get_ui_capability"
+      "find_controls", "describe_control", "set_widgets",
+      "set_enrichment_parameters", "set_table_view"
     )
     ok(
       ut_cmp_identical(sort(names(tools)), sort(expected_tools)),
@@ -330,7 +329,7 @@ shiny::testServer(
     )
 
     # ---- WP9 discovery tools ------------------------------------------
-    cap_search <- tools$search_ui_capabilities(
+    cap_search <- tools$find_controls(
       query = "filter", `_intent` = "unit test"
     )
     ok(
@@ -340,7 +339,7 @@ shiny::testServer(
                    logical(1))),
       "capability search matches widget capabilities by meaning"
     )
-    cap_get <- tools$get_ui_capability(
+    cap_get <- tools$describe_control(
       id = "set_table_view", `_intent` = "unit test"
     )
     ok(
@@ -349,7 +348,7 @@ shiny::testServer(
       "capability get returns semantic tool records"
     )
     cap_error <- tryCatch(
-      tools$get_ui_capability(id = "set_table_vie", `_intent` = "unit test"),
+      tools$describe_control(id = "set_table_vie", `_intent` = "unit test"),
       error = function(e) conditionMessage(e)
     )
     ok(
@@ -435,19 +434,19 @@ shiny::testServer(
     )
 
     # ---- S3 generic widget tier ---------------------------------------
-    widgets_result <- tools$list_widgets(section = "dataspace", `_intent` = "unit test")
+    widgets_result <- tools$find_controls(prefix = "dataspace", `_intent` = "unit test")
     ok(
       ut_cmp_identical(widgets_result@extra$data$widget_count, 7L) &&
         ut_cmp_identical(widgets_result@extra$data$widgets$dataspace.expr_heatmap.heatmap_colors$kind,
                          "select"),
-      "list_widgets returns section-filtered registry records"
+      "find_controls(prefix) returns section-filtered registry records"
     )
-    widget_result <- tools$get_widget(
+    widget_result <- tools$describe_control(
       id = "dataspace.expr_heatmap.heatmap_colors", `_intent` = "unit test")
     ok(
       ut_cmp_identical(widget_result@extra$data$id, "dataspace.expr_heatmap.heatmap_colors") &&
         "RdGy" %in% widget_result@extra$data$allowed_values,
-      "get_widget describes one widget with allowed values"
+      "describe_control describes one widget with allowed values"
     )
     set_widgets_result <- tools$set_widgets(
       patch = "{\"dataspace.expr_heatmap.heatmap_colors\": \"RdGy\", \"dataspace.expr_heatmap.margin_bottom\": 9}",
@@ -477,20 +476,20 @@ shiny::testServer(
     # glm flash serializes omitted optionals as literal "null"/"{}"/"[]"
     # strings. Guards the whole boundary class: no tool whose normalization
     # happens inside the tool body may error or degrade on sentinels.
-    swept_listing <- tools$list_widgets(
-      section = "null", `_intent` = "sentinel sweep")
+    swept_listing <- tools$find_controls(
+      prefix = "null", `_intent` = "sentinel sweep")
     ok(
       ut_cmp_identical(swept_listing@extra$data$widget_count, 12L) &&
         is.null(swept_listing@extra$data$section),
-      "list_widgets treats a sentinel section as omitted"
+      "find_controls treats a sentinel prefix as omitted"
     )
     swept_id_error <- tryCatch(
-      tools$get_widget(id = "{}", `_intent` = "sentinel sweep"),
+      tools$describe_control(id = "{}", `_intent` = "sentinel sweep"),
       error = function(e) conditionMessage(e)
     )
     ok(
       grepl('argument "id" is missing', swept_id_error),
-      "get_widget treats a sentinel id as an omitted required arg"
+      "describe_control treats a sentinel id as an omitted required arg"
     )
     swept_figures <- tools$create_figure(
       spec = list(

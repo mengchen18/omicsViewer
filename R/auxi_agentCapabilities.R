@@ -87,33 +87,25 @@ NULL
     help_text = "Create a revised figure from the complete spec returned by the previous call."
   ),
   list(
-    id = "list_widgets", panel = "Widgets", tier = "generic",
-    label = "List widgets",
-    help_text = paste("List every user-editable widget with canonical id, kind,",
-                      "allowed values, and current value; optional prefix filter.")
+    id = "find_controls", panel = "Controls", tier = "discovery",
+    label = "Find controls",
+    help_text = paste("Find controllable interface controls by meaning (query:",
+                      "semantic tools, figures, and every user-editable widget",
+                      "with panel and help text) or by canonical id prefix",
+                      "(widget kinds, allowed values, current values).")
   ),
   list(
-    id = "get_widget", panel = "Widgets", tier = "generic",
-    label = "Describe one widget",
-    help_text = "Describe one widget by exact canonical id with its current value."
+    id = "describe_control", panel = "Controls", tier = "discovery",
+    label = "Describe one control",
+    help_text = paste("Describe one control by exact id - a widget id gives",
+                      "kind, allowed values, dependencies, and current value;",
+                      "a semantic tool name gives the operating contract.")
   ),
   list(
-    id = "set_widgets", panel = "Widgets", tier = "generic",
+    id = "set_widgets", panel = "Controls", tier = "generic",
     label = "Set widgets",
     help_text = paste("Apply a JSON-object patch of canonical widget ids to",
                       "values for controls the semantic tools do not cover.")
-  ),
-  list(
-    id = "search_ui_capabilities", panel = "Capabilities", tier = "discovery",
-    label = "Search capabilities",
-    help_text = paste("Search by meaning across everything controllable:",
-                      "semantic tools, figures, and every user-editable widget",
-                      "with its panel, help text, and operating tool.")
-  ),
-  list(
-    id = "get_ui_capability", panel = "Capabilities", tier = "discovery",
-    label = "Describe one capability",
-    help_text = "Describe one capability by exact id (a widget id or a semantic tool id)."
   )
 )
 
@@ -267,7 +259,7 @@ agent_capability_get <- function(store = NULL, id) {
   if (!length(hit))
     stop("Unknown capability id: ", id, ".",
          .agent_suggest_text(want, keys),
-         " Discover ids with search_ui_capabilities.")
+         " Discover ids with find_controls.")
   records[[hit[[1L]]]]
 }
 
@@ -275,7 +267,7 @@ agent_capability_get <- function(store = NULL, id) {
 #'
 #' WP9 context hygiene: the \code{get_omics_viewer_state} overview carries
 #' counts only (capability total, panels, semantic tool ids), never record
-#' contents - discovery goes through \code{search_ui_capabilities}. Unlike
+#' contents - discovery goes through \code{find_controls}. Unlike
 #' \code{\link{agent_capability_records}} this never invokes choices
 #' providers, so it stays cheap.
 #'
