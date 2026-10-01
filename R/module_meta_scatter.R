@@ -100,23 +100,19 @@ meta_scatter_ui <- function(id) {
       column(
         1,
         attr4selector_ui(ns("a4selector")),
-        actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs") %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-clear-selection-button"))
+        radioGroupButtons(
+          inputId = ns("axisMode"),
+          label = " ",
+          size = "xs",
+          choices = c("Quick" = "quick", "Custom" = "custom"),
+          selected = "quick",
+          direction = "vertical",
+          status = "primary"
+        ) %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-axis-mode-selector"))
       ), # style = "margin-top: 20px;",
       column(
         11,
-        radioGroupButtons(
-          inputId = ns("axisMode"),
-          label = NULL,
-          choices = c("Quick view" = "quick", "Custom visualization" = "custom"),
-          selected = "quick",
-          status = "primary",
-          size = "sm",
-          justified = TRUE,
-          individual = FALSE,
-          width = "100%"
-        ),
-        hr(style = "margin: 8px 0;"),
         tabsetPanel(
           id = ns("axisModeTabs"),
           type = "hidden",
@@ -133,7 +129,28 @@ meta_scatter_ui <- function(id) {
       )
     ),
     tags$h3("Interactive Scatter Plot Visualization", class = "sr-only", `aria-label` = "Scatter plot with lasso and box selection tools, regression line option, and corner selection for volcano plots"),
-    plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT),
+    # The clear-selection control anchors on the reg-line band (top-right):
+    # the plot module owns that band's left side (regTickBox), the selection
+    # semantics stay in THIS module - only the DOM placement differs
+    # (absolute inside a relative wrapper around the plot module). In
+    # beeswarm views that band belongs to the plot module's group-select /
+    # t-test row, so the server switches the button to an inline row above
+    # it (an overlay would cover the table) - see .scatter_is_beeswarm.
+    tags$style(
+      ".msc-clear-overlay { position: absolute; top: 10px; right: 2px;",
+      "  z-index: 400; }",
+      ".msc-clear-inline { display: block; width: -moz-fit-content;",
+      "  width: fit-content; margin: 0 2px 6px auto; }"
+    ),
+    div(
+      style = "position: relative;",
+      actionBttn(ns("clear"), "Clear figure selection", style = "minimal", color = "primary", size = "xs") %>%
+        tagAppendAttributes(
+          class = "msc-clear-overlay",
+          `data-testid` = paste0(id, "-clear-selection-button")
+        ),
+      plotly_scatter_ui(ns("main_scatterOutput"), height = META_SCATTER_PLOT_HEIGHT)
+    ),
     # Hidden text summary for AI browsers and screen readers
     div(
       class = "sr-only", `aria-live` = "polite", `aria-atomic` = "true",
@@ -373,7 +390,7 @@ meta_scatter_module <- function(
       if (is.null(axisModeRoot$pending[[kmode]])) return(NULL)
       updateRadioGroupButtons(
         session, "axisMode",
-        choices = c("Quick view" = "quick", "Custom visualization" = "custom"),
+        choices = c("Quick" = "quick", "Custom" = "custom"),
         selected = mode
       )
       updateTabsetPanel(session, "axisModeTabs", selected = mode)
