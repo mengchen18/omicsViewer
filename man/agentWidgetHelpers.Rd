@@ -50,7 +50,7 @@ Receipt: \code{applied} (ids, dependency-ordered),
 }
 \description{
 Thin, registry-driven logic behind the generic assistant tools
-\code{list_widgets}, \code{get_widget}, and \code{set_widgets}
+\code{find_controls}, \code{describe_control}, and \code{set_widgets}
 (AGENT_ACCURACY_PLAN.md section 6.3, tier 2). Everything here is a pure
 function of the canonical widget store, so the whole tier is unit-testable
 without ellmer or a browser; the ellmer tools in
