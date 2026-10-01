@@ -69,6 +69,16 @@ attr4selector_ui <- function(id, circle = TRUE, right = FALSE) {
 #'   outgoing view's cutoffs (observed live: switching volcano -> cor left a
 #'   67-gene corner selection on the correlation plot). Axis-neutral corners
 #'   (left/right/top/bottom ...) stay valid on any numeric axes.
+#' @param default_tooltip logical, default FALSE. When TRUE the Tooltips
+#'   cascade starts with a sensible preselection instead of the
+#'   "--select--" placeholder: while no store value, user selection or
+#'   restore has ever set it, the first annotation column whose variable
+#'   name matches \code{ATTR4_TOOLTIP_DEFAULT_PATTERN} ("symbol|name",
+#'   case-insensitive - e.g. SYMBOL, Gene.name, gene_name) is preselected,
+#'   whichever column comes first in the annotation. Implemented as a
+#'   one-shot \code{store_seed} (a store value that landed first - restore,
+#'   agent apply, user pick - always wins, and an explicit "--select--"
+#'   unset is never re-seeded; dataset switches re-arm the seed).
 #' @examples
 #' #' # library(shiny)
 #' # library(shinyjs)
@@ -97,7 +107,8 @@ attr4selector_module <- function(
   reactive_triset = reactive(NULL), pre_volcano = reactive(FALSE),
   reactive_status = reactive(NULL), store = NULL,
   corner_apply_gate = reactive(TRUE),
-  corner_valid_on_axes = reactive(TRUE)
+  corner_valid_on_axes = reactive(TRUE),
+  default_tooltip = FALSE
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -247,6 +258,59 @@ attr4selector_module <- function(
   selectSize <- .a4_make_selector("selectSizeUI", "size", "Size", selectSize_s1, selectSize_s2, selectSize_s3)
   selectTooltip <- .a4_make_selector("selectTooltipUI", "tooltip", "Tooltips", selectTooltip_s1, selectTooltip_s2, selectTooltip_s3)
   searchOnCol <- .a4_make_selector("selectSearchCol", "search", "Search", searchOnCol_s1, searchOnCol_s2, searchOnCol_s3)
+
+  # Tooltips default (default_tooltip = TRUE owners): a ONE-SHOT seed, not
+  # cascade plumbing. The logic is exactly the simple contract: when the
+  # triset first arrives, IF the store has no tooltip value yet (no restore,
+  # agent apply or user pick landed first - store_seed skips held keys) THEN
+  # preselect the first annotation column whose variable matches
+  # ATTR4_TOOLTIP_DEFAULT_PATTERN ("symbol|name", case-insensitive).
+  # From then on the default is indistinguishable from any other stored
+  # value: user picks and explicit unsets win and are never repaired back
+  # (one-shot flag); a dataset switch re-arms the seed for the new dataset
+  # (reset generation, mirroring the axis seed observer).
+  if (isTRUE(default_tooltip)) {
+    .a4_tip_keep <- list()
+    .a4_tip_seeded <- FALSE
+    .a4_tip_gen <- NULL
+    .a4_tip_keep[[length(.a4_tip_keep) + 1L]] <- observe({
+      # wait for the panel widgets to be live (same signal the cutoff seed
+      # uses): under a headless mock session the cascade never settles, so
+      # the seeded value must not enter the store there either - otherwise
+      # a saved panel status ("unset") and the widget-store section
+      # ("Gene.name") of one snapshot contradict each other and a restore
+      # resolves them apart (test_appState round trip)
+      if (is.null(input$xcut)) return(NULL)
+      if (!is.null(store4)) {
+        gen <- .a4_root_store$reset_rv()
+        if (!identical(gen, .a4_tip_gen)) {
+          .a4_tip_gen <<- gen
+          .a4_tip_seeded <<- FALSE
+        }
+      }
+      if (.a4_tip_seeded) return(NULL)
+      ts <- .a4_ts()
+      if (is.null(ts) || !nrow(ts)) return(NULL)
+      .a4_tip_seeded <<- TRUE
+      i <- grep(ATTR4_TOOLTIP_DEFAULT_PATTERN, ts[, 3], ignore.case = TRUE)
+      if (!length(i)) return(NULL)
+      k <- i[1]
+      if (!is.null(store4)) {
+        # held tooltip key: a store value arrived first - keep it
+        if (!is.null(store_read(store4, "tooltip_variable")[[1]]))
+          return(NULL)
+        store_seed(store4, list(
+          tooltip_analysis = ts[k, 1], tooltip_subset = ts[k, 2],
+          tooltip_variable = ts[k, 3]))
+      } else {
+        # store-less owners: drive the restore selectors, like a restore
+        if (!is.null(selectTooltip()$variable)) return(NULL)
+        selectTooltip_s1(ts[k, 1])
+        selectTooltip_s2(ts[k, 2])
+        selectTooltip_s3(ts[k, 3])
+      }
+    })
+  }
 
   # Store glue (observer-GC rule: keep every observer referenced)
   if (!is.null(store4)) {

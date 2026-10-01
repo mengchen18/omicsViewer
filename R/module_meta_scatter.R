@@ -78,7 +78,8 @@
 #' \itemize{
 #'   \item Figure attribute selector (color, shape, size controls)
 #'   \item Clear selection button
-#'   \item A compact Quick view / Custom visualization mode switch
+#'   \item A compact Shortcut / Custom visualization mode switch (above the
+#'     figure attribute gear box)
 #'   \item Quick-view badges for common X/Y axis combinations
 #'   \item X-axis and Y-axis variable selectors for custom visualizations
 #'   \item Interactive plotly scatter plot with lasso/box selection
@@ -96,23 +97,29 @@ meta_scatter_ui <- function(id) {
   ns <- NS(id)
   tagList(
     tags$h3("Plot Controls and Variable Selection", class = "sr-only", `aria-label` = "Controls for customizing scatter plot appearance including color, shape, size mapping and selecting X and Y axis variables"),
-    fluidRow(
-      column(
-        1,
-        attr4selector_ui(ns("a4selector")),
+    # Left rail: the Shortcut/Custom mode switch sits ABOVE the figure
+    # attribute gear box; a tight flex column keeps the two visually glued
+    # (no bootstrap column gutters - the mode switch relates to the axis
+    # selectors on the right, the gear to the whole figure). The rail takes
+    # only its natural width so the tab content starts close beside it.
+    div(
+      style = "display:flex; align-items:flex-start;",
+      div(
+        style = "display:flex; flex-direction:column; align-items:center; gap:4px; margin:0 2px 2px 0;",
         radioGroupButtons(
           inputId = ns("axisMode"),
-          label = " ",
+          label = NULL,
           size = "xs",
-          choices = c("Quick" = "quick", "Custom" = "custom"),
+          choices = c("Shortcut" = "quick", "Custom" = "custom"),
           selected = "quick",
           direction = "vertical",
           status = "primary"
         ) %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-axis-mode-selector"))
-      ), # style = "margin-top: 20px;",
-      column(
-        11,
+          tagAppendAttributes(`data-testid` = paste0(id, "-axis-mode-selector")),
+        attr4selector_ui(ns("a4selector"))
+      ),
+      div(
+        style = "flex:1 1 auto; min-width:0;",
         tabsetPanel(
           id = ns("axisModeTabs"),
           type = "hidden",
@@ -388,11 +395,11 @@ meta_scatter_module <- function(
       mode <- store_read(store, "axis_mode")[[1]]
       if (is.null(mode)) return(NULL)
       if (is.null(axisModeRoot$pending[[kmode]])) return(NULL)
-      updateRadioGroupButtons(
-        session, "axisMode",
-        choices = c("Quick" = "quick", "Custom" = "custom"),
-        selected = mode
-      )
+      # Only relay the SELECTION: passing `choices` here would re-render
+      # the whole button group (labels back to "Quick", status reset to the
+      # black "default", size to "normal") - shinyWidgets rebuilds the
+      # markup from the update args whenever choices is non-NULL.
+      updateRadioGroupButtons(session, "axisMode", selected = mode)
       updateTabsetPanel(session, "axisModeTabs", selected = mode)
     })
 
@@ -532,7 +539,8 @@ meta_scatter_module <- function(
       reactive_triset = triset, pre_volcano = displayed_volcano, reactive_status = attr4select_status,
       store = store,
       corner_apply_gate = .scatter_axes_converged,
-      corner_valid_on_axes = displayed_volcano
+      corner_valid_on_axes = displayed_volcano,
+      default_tooltip = TRUE
     )
 
     xycoord <- reactive({
@@ -766,6 +774,8 @@ meta_scatter_module <- function(
       # until the repaint resets the event inputs; that echo stays blocked
       # by the payload guard and the epoch guard suppresses the reset.
       selection$forget("figure")
+      .figure_last_ids(character(0))
+      .figure_last_axes(NULL)
       selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
       selection$report(
         origin = "clear",
@@ -778,6 +788,16 @@ meta_scatter_module <- function(
     # causing unnecessary reactive chain invalidations. We store the previous
     # selection and only update selVal when it truly changes.
     clientSideSelection <- reactiveVal(character(0))
+    # Replay memory: the ids AND axes of the last genuine figure report.
+    # The browser keeps REPORTING the last selection payload until its
+    # event inputs reset, and a round trip through another view resets
+    # clientSideSelection via the empty echo - so the SAME payload
+    # re-arriving on the axes it was made on is the stale shape, not a
+    # user action (without this guard it resurrected the manual
+    # selection the corner had just replaced when switching back:
+    # lasso on volcano A, switch to B and back).
+    .figure_last_ids <- reactiveVal(character(0))
+    .figure_last_axes <- reactiveVal(NULL)
     # Render epoch of the figure the current browser selection was made
     # on. The plotly event inputs RESET whenever the graph is replaced (an
     # axis switch, a cutoff edit, any params commit), and the module return
@@ -794,9 +814,21 @@ meta_scatter_module <- function(
       l <- get_names()
       u_c <- l[v_scatter()$clicked]
       u_s <- l[v_scatter()$selected]
+      tmp <- c(u_c, u_s)
+
+      # stale replay of the last figure selection on its own axes: the
+      # payload round-tripped through another view (its ids stopped
+      # matching mid-switch, the empty echo reset clientSideSelection)
+      # and now matches again - drop it (the view switch already
+      # replaced this selection; a genuine re-selection differs in ids
+      # or axes, and clear/deselect reset the memory)
+      if (notNullAndPositiveLength(tmp) &&
+          identical(tmp, .figure_last_ids()) &&
+          identical(.scatter_axis_signature(v1(), v2()), .figure_last_axes()))
+        return(NULL)
 
       # Only update if selection actually changed
-      req(!identical(tmp <- c(u_c, u_s), clientSideSelection()))
+      req(!identical(tmp, clientSideSelection()))
       if (notNullAndPositiveLength(tmp)) {
         selRenderEpoch(v_scatter()$render_epoch %||% 0L)
       } else if (!identical(v_scatter()$render_epoch %||% 0L,
@@ -816,6 +848,13 @@ meta_scatter_module <- function(
       clientSideSelection(tmp)
       axes <- if (notNullAndPositiveLength(tmp))
         .scatter_axis_signature(v1(), v2()) else NULL
+      if (notNullAndPositiveLength(tmp)) {
+        .figure_last_ids(tmp)
+        .figure_last_axes(axes)
+      } else {
+        .figure_last_ids(character(0))
+        .figure_last_axes(NULL)
+      }
       selVal(list(
         clicked = u_c,
         selected = u_s
@@ -936,10 +975,20 @@ meta_scatter_module <- function(
         .corner_disarm_axes(NULL)
       }
 
-      if (identical(rec, .rectval_last())) {
+      # Dedupe on AXES + RECTS, not rects alone: the two demo volcanos
+      # share their cutoff values, so switching views recomputes
+      # VALUE-IDENTICAL rectangles on DIFFERENT axes - a rects-only
+      # dedupe skipped the claim and kept a stale manual selection (the
+      # record) while the emphasis painted the live corner area (the
+      # display), the two contradicting each other. Same rects on the
+      # SAME axes is still an echo (the no-resurrection rule); same
+      # rects on different axes is a view switch and claims like the
+      # load-time arming, dropping the manual selection.
+      .claim <- list(axes = .scatter_axis_signature(v1(), v2()), rects = rec)
+      if (identical(.claim, .rectval_last())) {
         return(NULL)
       }
-      .rectval_last(rec)
+      .rectval_last(.claim)
 
       if (is.null(rec)) {
         selVal(list(
@@ -989,9 +1038,16 @@ meta_scatter_module <- function(
           !identical(.claim_prev_anchor, l[i]) &&
           identical(.claim_prev_axes, axes))
         selectionDisplayTrigger(isolate(selectionDisplayTrigger()) + 1L)
+      # The report VALUE carries the axes as well: the per-(key, origin)
+      # slot dedupe in selection_report compares report values, and two
+      # volcano views can share their cutoff-derived rect VALUES - a
+      # rects-only report made the view-switch claim an "echo" at the bus
+      # level and silently dropped it, keeping whatever selection the
+      # previous view left behind. Same axes + same rects is still an
+      # echo; different axes always lands.
       selection$report(
         origin = "corner",
-        report = list(rects = rec),
+        report = list(axes = axes, rects = rec),
         ids = l[i], anchor = axes,
         mirror = if (notNullAndPositiveLength(l[i])) l[i] else TRUE)
     }))

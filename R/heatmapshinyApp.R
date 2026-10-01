@@ -1143,7 +1143,14 @@ iheatmapModule <- function(
     clicked = NULL,
     selected = list(col = NULL, row = NULL)
   )
+  # User-driven clear signal. The downstream adoption observers drop the
+  # EMPTY module returns that follow a clear (echo guards against
+  # load-time / widget-seed echoes), so a clear would never reach the
+  # selection bus. The counter carries the user click explicitly - same
+  # pattern as the scatter's origin = "clear" report.
+  clearSignal <- reactiveVal(0L)
   observeEvent(input$clear, {
+    clearSignal(clearSignal() + 1L)
     selVal$clicked <- NULL#
     selVal$selected <- list(col = NULL, row = NULL)
   })
@@ -1155,7 +1162,8 @@ iheatmapModule <- function(
   reactive({
     r <- list(
       clicked = selVal$clicked, #clickedName(),
-      brushed = selVal$selected) # brushedValues())
+      brushed = selVal$selected) # brushedValues()
+    r$clears <- clearSignal()
     # M5 (todo 4.3): status reports WIDGET INPUTS only. Reading
     # rowSB()/colSB() here forced the full ordering/dendrogram chain -
     # including the cor-heatmap's pairwise cor() + cor(t(cc)) - on every

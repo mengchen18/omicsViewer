@@ -74,6 +74,13 @@ AUTORIF_THRESHOLD_DIVISOR <- 200
 # UI Layout Dimensions
 # =============================================================================
 
+#' @description Case-insensitive grep pattern matched against annotation
+#'   variable names (the third triselector level) when a Tooltips
+#'   attribute cascade starts unset: the first matching column is
+#'   preselected so hover labels show gene symbols / gene names out of
+#'   the box (see \code{attr4selector_module}).
+ATTR4_TOOLTIP_DEFAULT_PATTERN <- "symbol|name"
+
 #' @description Default height for scatter plots in pixels.
 DEFAULT_SCATTER_PLOT_HEIGHT <- "400px"
 

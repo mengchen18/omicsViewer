@@ -442,6 +442,22 @@ L1_data_space_module <- function(
                           ids = ids, mirror = ids_or_true(ids))
     })
 
+    # Clear button (Cor tab): the module bumps `clears` on a user click;
+    # report an explicit EMPTY selection through the bus - the adoption
+    # observer above drops empty returns by design (echo guard), so the
+    # clear must be carried explicitly. Same contract as the scatter's
+    # origin = "clear" report (ids empty, mirror TRUE).
+    .cor_clear_last <- reactiveVal(NULL)
+    observe({
+      n <- tryCatch(s_cor_heatmap()$clears, error = function(e) NULL)
+      if (is.null(n) || identical(n, .cor_clear_last())) return(NULL)
+      .cor_clear_last(n)
+      if (n > 0)
+        sel_sample$report(origin = "cor_heatmap",
+                          report = list(src = "clear", n = n),
+                          ids = character(0), mirror = TRUE)
+    })
+
     ## ============== selection from heatmap - samples and feature ========
 
     observeEvent(s_heatmap(), {
@@ -470,6 +486,28 @@ L1_data_space_module <- function(
       if (notNullAndPosLength(ids_s))
         sel_sample$report(origin = "heatmap", report = .rpt,
                           ids = ids_s, mirror = ids_or_true(ids_s))
+    })
+
+    # Clear button (Heatmap tab): see the Cor-tab clear observer above -
+    # an explicit empty report for both spaces the static heatmap feeds.
+    # NOTE: observeEvent fires on INVALIDATION, not on value change - the
+    # module return invalidates on every brush/click/widget edit, so an
+    # observeEvent(s_heatmap()$clears, ...) re-fired the clear report on
+    # every subsequent selection and wiped it (reported: heatmap selection
+    # dead forever after one clear). The counter is deduped EXPLICITLY.
+    .hm_clear_last <- reactiveVal(NULL)
+    observe({
+      n <- tryCatch(s_heatmap()$clears, error = function(e) NULL)
+      if (is.null(n) || identical(n, .hm_clear_last())) return(NULL)
+      .hm_clear_last(n)
+      if (n > 0) {
+        sel_feature$report(origin = "heatmap",
+                           report = list(src = "clear", n = n),
+                           ids = character(0), mirror = TRUE)
+        sel_sample$report(origin = "heatmap",
+                          report = list(src = "clear", n = n),
+                          ids = character(0), mirror = TRUE)
+      }
     })
 
     ## The scatter modules (feature and sample space) report their own
@@ -687,6 +725,26 @@ L1_data_space_module <- function(
       if (notNullAndPosLength(ids_s))
         sel_sample$report(origin = "dyn_heatmap", report = .rpt,
                           ids = ids_s, mirror = NULL)
+    })
+
+    # Clear button (Dynamic heatmap tab): see the Cor-tab clear observer
+    # above - an explicit empty report for both spaces it feeds. Unlike
+    # its brush reports (mirror NULL - the matrix is subset by the
+    # selection), the clear resets the table-row mirror as well, matching
+    # the scatter's clear contract.
+    .dyn_clear_last <- reactiveVal(NULL)
+    observe({
+      n <- tryCatch(s_dyn_heatmap()$clears, error = function(e) NULL)
+      if (is.null(n) || identical(n, .dyn_clear_last())) return(NULL)
+      .dyn_clear_last(n)
+      if (n > 0) {
+        sel_feature$report(origin = "dyn_heatmap",
+                           report = list(src = "clear", n = n),
+                           ids = character(0), mirror = TRUE)
+        sel_sample$report(origin = "dyn_heatmap",
+                          report = list(src = "clear", n = n),
+                          ids = character(0), mirror = TRUE)
+      }
     })
 
     ############## dynamic heatmap function end ##################

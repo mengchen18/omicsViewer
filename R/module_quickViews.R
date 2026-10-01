@@ -326,8 +326,25 @@ quick_badges_module <- function(id, views, activeId) {
 
     output$badgeContainer <- renderUI({
       vv <- views()
+      # The badges live in a rounded box sized to match the two triselector
+      # rows of the Custom tab (2 x ~53px + padding): switching Shortcut /
+      # Custom keeps the same footprint, so the surrounding layout (plot
+      # below, rail beside) never jumps.
+      boxStyle <- paste0(
+        "display:flex; flex-wrap:wrap; align-items:center; align-content:center;",
+        "gap:4px; box-sizing:border-box; width:100%;",
+        "border:1px solid #ccc; border-radius:10px; padding:4px 10px;",
+        "margin:0 0 2px 0; min-height:104px;"
+      )
       if (is.null(vv) || !nrow(vv))
-        return(tags$p("No quick views detected; use Custom visualization.", style = "color:#777; font-size:12px; margin:0;"))
+        return(tags$div(
+          class = "quick-view-badges",
+          style = boxStyle,
+          role = "group",
+          `aria-label` = "Quick visualization shortcuts",
+          tags$p("No quick views detected; use Custom visualization.",
+                 style = "color:#777; font-size:12px; margin:0;")
+        ))
       # Never read activeId() while creating buttons: before the triselectors
       # initialize, its req() can suspend this renderUI permanently. Keep the
       # button DOM stable and update active styling in place after each flush.
@@ -351,7 +368,7 @@ quick_badges_module <- function(id, views, activeId) {
 
       badgeUi <- tags$div(
         class = "quick-view-badges",
-        style = "display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-bottom:2px;",
+        style = boxStyle,
         role = "group",
         `aria-label` = "Quick visualization shortcuts",
         buttons

@@ -1,8 +1,12 @@
 #' @description utility - dataTable for download shiny UI
 #' @param id id
 #' @param showTable logical, if the table should be shown
+#' @param button logical, default FALSE. When TRUE the download control is
+#'   rendered as a button (\code{downloadButton}) instead of the historical
+#'   plain link, so it visually matches sibling action buttons in the same
+#'   toolbar row.
 #' 
-dataTableDownload_ui <- function(id, showTable = TRUE) {
+dataTableDownload_ui <- function(id, showTable = TRUE, button = FALSE) {
   ns <- NS(id)
   if (showTable) {
     r <- tagList(
@@ -39,6 +43,9 @@ dataTableDownload_ui <- function(id, showTable = TRUE) {
 #'   \code{reactive_row_ids} yielding stable semantic ids.
 #' @param store_label label for the registered binding
 #' @param store_help help text for the registered binding
+#' @param button logical, default FALSE; render the download control as a
+#'   button (\code{downloadButton}) instead of a plain link - see
+#'   \code{dataTableDownload_ui}
 #' @importFrom utils write.table
 #' @examples
 #' # source("R/module_triselector.R")
@@ -60,7 +67,7 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   reactive_cols=reactive(NULL), prefix = "", pageLength = 10, sortBy = NULL,
   decreasing = TRUE, reactive_row_ids = reactive(NULL),
   store = NULL, store_key = NULL, store_label = "Selected row",
-  store_help = NULL) {
+  store_help = NULL, button = FALSE) {
 
   moduleServer(id, function(input, output, session) {
 
@@ -196,7 +203,11 @@ dataTableDownload_module <- function(id, reactive_table, tab_status = reactive(N
   
   output$showButton <- renderUI({
     req(rtab())
-    downloadLink(ns("downloadData"), "Save table")
+    if (isTRUE(button))
+      downloadButton(ns("downloadData"), "Save table",
+        class = "btn btn-default", icon = icon("download"))
+    else
+      downloadLink(ns("downloadData"), "Save table")
   })
   
   formatTab <- function(tab, sel = 0, pageLength = pageLength, st = NULL) {

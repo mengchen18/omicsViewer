@@ -1,26 +1,47 @@
 #' @description utility - dataTable shiny UI
 #' @param id id
-#' @importFrom shinyWidgets switchInput
+#' @importFrom shinyWidgets switchInput dropdown tooltipOptions
 #' 
 dataTable_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    fluidRow(
-      # column(2, dropdown(
-      #   margin = "25px", status = "default", icon = icon("cog"), width = "700px",
-      #   tooltip = tooltipOptions(title = "Add more columns to the table!"),
-      #    )),
-      column(3,
-        actionButton(ns("clear"), "Show all") %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-clear-filter-button"))
+    # One toolbar row above the table: the four controls sit side by side
+    # in a single tight, right-aligned flex row (no bootstrap column
+    # gutters): Show all, the multi-selection switch, Save table and the
+    # Add-column dropdown panel (like the scatter's figure-attribute gear
+    # box) so the toolbar stays a single row.
+    div(
+      style = paste0(
+        "display:flex; flex-wrap:wrap; align-items:center;",
+        "justify-content:flex-end; gap:8px; padding:2px 0 6px 0;"
       ),
-      column(6, align = "center",
-        shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px") %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-multiselect-toggle"))
-      ),
-      column(3, dataTableDownload_ui(ns("downloadTable"), showTable = FALSE), align="right")
+      actionButton(ns("clear"), "Show all") %>%
+        tagAppendAttributes(`data-testid` = paste0(id, "-clear-filter-button")),
+      # The switchInput root (div.form-group.shiny-input-container) gets
+      # BS3's margin-bottom:15px and computes ~100px wider than the visible
+      # bootstrap-switch; inline-fit the box so the flex row's
+      # align-items:center centers the VISIBLE switch flush with the
+      # buttons and no invisible trailing gap precedes "Save table".
+      shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px") %>%
+        tagAppendAttributes(
+          `data-testid` = paste0(id, "-multiselect-toggle"),
+          style = paste0(
+            "width:-moz-fit-content; width:fit-content;",
+            " margin-bottom:0; margin-top:0;"
+          )
+        ),
+      dataTableDownload_ui(ns("downloadTable"), showTable = FALSE, button = TRUE),
+      dropdown(
+        inputId = ns("addcolPanel"),
+        label = "Add column", icon = icon("plus"),
+        circle = FALSE, right = TRUE, status = "default", width = "620px",
+        tooltip = tooltipOptions(title = "Add more columns to the table!"),
+        margin = "10px",
+        uiOutput(ns("selector")) %>%
+          tagAppendAttributes(`data-testid` = paste0(id, "-add-column-panel"))
+      ) %>%
+        tagAppendAttributes(`data-testid` = paste0(id, "-add-column-button"))
     ),
-    uiOutput(ns("selector")),
     DT::dataTableOutput(ns("table"))
   )
 }
@@ -111,7 +132,8 @@ dataTable_module <- function(
   })
   
   dataTableDownload_module(
-    "downloadTable", reactive_table = rdd, prefix = "viewerTable_"
+    "downloadTable", reactive_table = rdd, prefix = "viewerTable_",
+    button = TRUE
   )
 
   cols <- eventReactive(reactive_data(), {
@@ -377,8 +399,10 @@ dataTable_module <- function(
   }
 
   output$selector <- renderUI({
-    req(cols()$opt)
-    req(nrow(cols()$opt) > 0)
+    opt <- cols()$opt
+    if (is.null(opt) || !nrow(opt))
+      return(tags$p("No more columns available.",
+                    style = "color:#777; font-size:12px; margin:0 0 4px 0;"))
     triselector_ui(ns("select"))
     })
   
