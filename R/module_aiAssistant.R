@@ -797,22 +797,18 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         invisible(TRUE)
       }
 
-      .context_janitor <- function() {
-        if (is.null(chat_object))
-          return(invisible(FALSE))
-        client <- chat_object$client
-        turns <- tryCatch(client$get_turns(), error = function(e) NULL)
+      # todo 4.4(d): the janitor is split at its seam. .context_stub_request
+      # canonicalizes + stubs superseded content; .context_maybe_compact is
+      # the compaction trigger. Both run at IDLE only: the original plan
+      # moved the stub into the client's on_request_start hook, but under
+      # ellmer 0.5.0 a set_turns() inside that hook DESYNCS the running
+      # stream's own turn accumulation (every tool result duplicated -
+      # probed against a scripted fake server, tests/test_agentLoopOffline
+      # caught it live). Revisit when ellmer documents a mutating
+      # pre-request hook.
+      .context_stub_request <- function(client, turns) {
         if (!length(turns) || !length(Filter(.agent_is_turn, turns)))
           return(invisible(FALSE))
-        if (identical(isolate(chat_object$status()), "streaming"))
-          return(invisible(FALSE))
-
-        # Canonicalize turns at the maintenance boundary: strip the
-        # runtime-only ToolDef references ellmer attaches to tool requests
-        # during a stream (agent_strip_runtime_refs). Without this every
-        # tool-call turn serializes the entire application object graph
-        # through the handler closure - minutes of event-loop stall per
-        # compaction digest observed 2026-09-28 (see the function's docs).
         stripped <- tryCatch(
           agent_strip_runtime_refs(turns),
           error = function(e) NULL
@@ -821,14 +817,6 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           tryCatch(client$set_turns(stripped$turns), error = function(e) NULL)
           turns <- stripped$turns
         }
-
-        # WP13b diagnostics: step timings (ms) logged with the compaction
-        # "start" event. All steps are pure R and measure in milliseconds
-        # (verified 2026-09-28 on a 1.8 MB turn list) - the 5-6 minute
-        # stub->start gaps seen in the wild are process stalls, not compute,
-        # and these timings make that visible per-event.
-        .step_now <- function() proc.time()[["elapsed"]]
-        stub_t0 <- .step_now()
         stubbed <- tryCatch(
           agent_stub_history(turns, context_policy, context_archive),
           error = function(e) {
@@ -839,10 +827,8 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             NULL
           }
         )
-        stub_ms <- .step_now() - stub_t0
         if (!is.null(stubbed) && isTRUE(stubbed$changed)) {
           tryCatch(client$set_turns(stubbed$turns), error = function(e) NULL)
-          turns <- stubbed$turns
           agent_logger_event(
             logger, "history_stubbed",
             list(
@@ -852,6 +838,32 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             )
           )
         }
+        invisible(TRUE)
+      }
+
+      # WP13b diagnostics: step timings (ms) logged with the compaction
+      # "start" event. All steps are pure R and measure in milliseconds
+      # (verified 2026-09-28 on a 1.8 MB turn list) - the 5-6 minute
+      # stub->start gaps seen in the wild are process stalls, not compute,
+      # and these timings make that visible per-event.
+      .step_now <- function() proc.time()[["elapsed"]]
+
+      .context_maybe_compact <- function() {
+        if (is.null(chat_object))
+          return(invisible(FALSE))
+        client <- chat_object$client
+        turns <- tryCatch(client$get_turns(), error = function(e) NULL)
+        if (!length(turns) || !length(Filter(.agent_is_turn, turns)))
+          return(invisible(FALSE))
+        if (identical(isolate(chat_object$status()), "streaming"))
+          return(invisible(FALSE))
+        # the turns are already canonical + stubbed at every request
+        # boundary (.context_stub_request); the stub pass here is only the
+        # safety net for paths that never started a request (a freshly
+        # restored history) and is a cheap no-op otherwise.
+        .context_stub_request(client, turns)
+        turns <- tryCatch(client$get_turns(), error = function(e) turns)
+        stub_ms <- 0
 
         if (isTRUE(context_policy$tokens <= 0L) || isTRUE(compaction_in_flight))
           return(invisible(FALSE))
@@ -1079,9 +1091,15 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         invisible(TRUE)
       }
 
-      .context_keep$janitor <- observeEvent(chat_object$status(), ignoreInit = TRUE, {
-        if (!identical(chat_object$status(), "streaming"))
-          tryCatch(.context_janitor(), error = function(e) NULL)
+      # todo 4.4(d): compaction triggers on turn/error completion - idle
+      # by construction (shinychat updates last_turn()/last_error() when
+      # the stream settles), instead of the status-vocabulary observer the
+      # original 1.3 fix had to keep patching.
+      .context_keep$compaction_turn <- observeEvent(chat_object$last_turn(), ignoreInit = TRUE, {
+        tryCatch(.context_maybe_compact(), error = function(e) NULL)
+      })
+      .context_keep$compaction_error <- observeEvent(chat_object$last_error(), ignoreInit = TRUE, {
+        tryCatch(.context_maybe_compact(), error = function(e) NULL)
       })
 
       # WP-guide item 24: post-turn nudge. Some providers end a turn with
@@ -1427,7 +1445,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           })
         }
         if (isTRUE(chat_restored))
-          tryCatch(.context_janitor(), error = function(e) NULL)
+          tryCatch(.context_maybe_compact(), error = function(e) NULL)
         agent_logger_event(
           logger, "history_restored",
           list(
