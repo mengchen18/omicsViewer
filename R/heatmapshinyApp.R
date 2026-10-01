@@ -1,17 +1,18 @@
 #' @description interactive heatmap
-#' @param x a matrix object or \code{ExpressionSet} or \code{SummarizedExperiment}
-#' @param fData feature data, ignored if x is an ExpressionSet
-#' @param pData phenotype data, ignored if x is an ExpressionSet
+#' @param x a matrix object, an \code{\link[Biobase]{ExpressionSet}}, or
+#'   any object with \code{getExprs}/\code{getFData}/\code{getPData}
+#'   methods (e.g. an xcms \code{xcmsFeatureSet})
+#' @param fData feature data, ignored if x is not a matrix
+#' @param pData phenotype data, ignored if x is not a matrix
 #' @param impute whether impute the expression matrix
 #' @importFrom matrixStats rowSums2 rowVars
-#' @importFrom Biobase fData pData exprs
 #' 
 iheatmap <- function(x, fData = NULL, pData = NULL, impute = FALSE) {
   
-  if (inherits(x, "ExpressionSet") || inherits(x, "xcmsFeatureSet")) {
-    fData <- fData(x)
-    pData <- pData(x)
-    x <- exprs(x)
+  if (!is.matrix(x)) {
+    fData <- getFData(x)
+    pData <- getPData(x)
+    x <- getExprs(x)
   }
   
   ir <- unique(

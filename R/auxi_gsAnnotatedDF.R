@@ -83,8 +83,21 @@ totall <- function(gsmat) {
   gs
 }
 
+#' Detangle gene-set annotation from feature data
+#'
+#' For \code{\link[Biobase]{ExpressionSet}} objects, gene-set columns
+#' (\code{GS|...|name}) in \code{fData} are moved into the long
+#' data.frame \code{attr(, "GS")} form, and a sparse \code{GS} attribute
+#' (dgCMatrix/lgCMatrix) is converted to the same form. Any other class is
+#' returned unchanged (identity) - classes that carry gene-set annotation
+#' some other way (e.g. via their own \code{getFData} method) need no
+#' detangling.
+#' @param obj an \code{ExpressionSet} or any other object
+#' @return obj with the gene-set annotation normalized
 #' @importFrom Biobase fData
-tallGS <- function(obj) {
+setGeneric("tallGS", function(obj) standardGeneric("tallGS"))
+
+setMethod("tallGS", "ExpressionSet", function(obj) {
   fd <- Biobase::fData(obj)
   # Column subsetting can drop arbitrary metadata attributes.
   fdQuickViews <- attr(fd, "quickViews")
@@ -108,7 +121,9 @@ tallGS <- function(obj) {
   }
   Biobase::fData(obj) <- fd
   obj
-}
+})
+
+setMethod("tallGS", "ANY", function(obj) obj)
 
 
 vectORATall <- function(

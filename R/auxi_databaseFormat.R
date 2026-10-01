@@ -141,28 +141,37 @@ str2hclust <- function(x) {
 
 
 #' Convert SummarizedExperiment to ExpressionSet retaining all attributes
-#' @param x an object of class SummarizedExperiment
+#' @param x an object of class \code{SummarizedExperiment} or
+#'   \code{ExpressionSet}, or any class with its own \code{asEsetWithAttr}
+#'   method (dispatched automatically)
 #' @return an object of class ExpressionSet
-asEsetWithAttr <- function(x) {
-  if (inherits(x, "SummarizedExperiment")) {
-    eset <- as(x, "ExpressionSet")
-    colnames(pData(eset)) <- colnames(colData(x))
-    colnames(fData(eset)) <- colnames(rowData(x))
-    
-    DFattrs <- c("rownames", "nrows", "listData", "elementType", "elementMetadata", "metadata", "class")
-    for (i in setdiff(names(attributes(colData(x))), DFattrs)) 
-      attr(pData(eset), i) <- attr(colData(x), i)
-    for (i in setdiff(names(attributes(rowData(x))), DFattrs))
-      attr(fData(eset), i) <- attr(rowData(x), i)
-    SEattrs <- c("assays", "colData", "NAMES", "elementMetadata", "metadata", "class")
-    for (i in setdiff(names(attributes(x)), SEattrs))
-      attr(eset, i) <- attr(x, i)
-  } else if (inherits(x, "ExpressionSet")) {
-    eset <- x
-  } else
-    stop("x should be either an SummarizedExperiment or ExpressionSet")
+#' @name asEsetWithAttr
+#' @export
+setGeneric("asEsetWithAttr", function(x) standardGeneric("asEsetWithAttr"))
+
+#' @rdname asEsetWithAttr
+setMethod("asEsetWithAttr", "SummarizedExperiment", function(x) {
+  eset <- as(x, "ExpressionSet")
+  colnames(pData(eset)) <- colnames(colData(x))
+  colnames(fData(eset)) <- colnames(rowData(x))
+
+  DFattrs <- c("rownames", "nrows", "listData", "elementType", "elementMetadata", "metadata", "class")
+  for (i in setdiff(names(attributes(colData(x))), DFattrs))
+    attr(pData(eset), i) <- attr(colData(x), i)
+  for (i in setdiff(names(attributes(rowData(x))), DFattrs))
+    attr(fData(eset), i) <- attr(rowData(x), i)
+  SEattrs <- c("assays", "colData", "NAMES", "elementMetadata", "metadata", "class")
+  for (i in setdiff(names(attributes(x)), SEattrs))
+    attr(eset, i) <- attr(x, i)
   eset
-}
+})
+
+#' @rdname asEsetWithAttr
+setMethod("asEsetWithAttr", "ExpressionSet", function(x) x)
+
+#' @rdname asEsetWithAttr
+setMethod("asEsetWithAttr", "ANY", function(x)
+  stop("x should be either an SummarizedExperiment or ExpressionSet"))
 
 #' Read the object of SummarizedExperiment or ExpressetSet to be visualized using omicsViewer
 #' @description This function accept a path to a sqlite database or RDS object. If an RDS file to be read, 
@@ -189,84 +198,160 @@ readESVObj <- function(x) {
   x
 }
 
-getExprs <- function(x) {
-  if (inherits(x, "SQLiteConnection")) {
-    mat <- dbGetQuery(x, "SELECT * FROM exprs;")
-    rn <- mat$rowname
-    mat$rowname <- NULL
-    mat <- apply(mat, 2, as.numeric)
-    rownames(mat) <- rn
-  } else if (inherits(x, "ExpressionSet"))
-    mat <- exprs(x)
-  else
-    stop("getExprs: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
-  mat
-}
+#' Extract the expression matrix of an omicsViewer dataset
+#' @param x an SQLite connection, an \code{ExpressionSet}, or any class
+#'   with its own \code{getExprs} method (dispatched automatically)
+#' @return the (features x samples) expression matrix
+#' @name getExprs
+#' @export
+setGeneric("getExprs", function(x) standardGeneric("getExprs"))
 
-getExprsImpute <- function(x) {
-  if (inherits(x, "SQLiteConnection")) {
-    if (!"exprsimpute" %in% dbListTables(x))
-      return(NULL)
-    mat <- dbGetQuery(x, "SELECT * FROM exprsimpute;")
-    rn <- mat$rowname
-    mat$rowname <- NULL
-    mat <- apply(mat, 2, as.numeric)
-    rownames(mat) <- rn
-  } else if (inherits(x, "ExpressionSet"))
-    mat <- exprsImpute(x) else 
-      stop("getExprsImpute: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
+#' @rdname getExprs
+setMethod("getExprs", "SQLiteConnection", function(x) {
+  mat <- dbGetQuery(x, "SELECT * FROM exprs;")
+  rn <- mat$rowname
+  mat$rowname <- NULL
+  mat <- apply(mat, 2, as.numeric)
+  rownames(mat) <- rn
   mat
-}
+})
 
-getPData <- function(x) {
-  if (inherits(x, "SQLiteConnection")) {
-    mat <- dbGetQuery(x, "SELECT * FROM sample;")
-    rownames(mat) <- mat$rowname
-    mat$rowname <- NULL
-  } else if (inherits(x, "ExpressionSet")) {
-    mat <- pData(x)
-  } else
-    stop("getPData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
+#' @rdname getExprs
+setMethod("getExprs", "ExpressionSet", function(x) exprs(x))
+
+#' @rdname getExprs
+# legacy xcms companion class; the method keeps \code{iheatmap} working
+# on peak tables extracted through the generic accessors
+setMethod("getExprs", "xcmsFeatureSet", function(x) exprs(x))
+
+#' @rdname getExprs
+setMethod("getExprs", "ANY", function(x)
+  stop("getExprs: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
+
+#' Extract the imputed expression matrix of an omicsViewer dataset
+#' @param x an SQLite connection, an \code{ExpressionSet}, or any class
+#'   with its own \code{getExprsImpute} method (dispatched automatically)
+#' @return the imputed expression matrix, or NULL if the dataset carries
+#'   no imputed values
+#' @name getExprsImpute
+#' @export
+setGeneric("getExprsImpute", function(x) standardGeneric("getExprsImpute"))
+
+#' @rdname getExprsImpute
+setMethod("getExprsImpute", "SQLiteConnection", function(x) {
+  if (!"exprsimpute" %in% dbListTables(x))
+    return(NULL)
+  mat <- dbGetQuery(x, "SELECT * FROM exprsimpute;")
+  rn <- mat$rowname
+  mat$rowname <- NULL
+  mat <- apply(mat, 2, as.numeric)
+  rownames(mat) <- rn
+  mat
+})
+
+#' @rdname getExprsImpute
+setMethod("getExprsImpute", "ExpressionSet", function(x) exprsImpute(x))
+
+#' @rdname getExprsImpute
+setMethod("getExprsImpute", "ANY", function(x)
+  stop("getExprsImpute: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
+
+#' Extract the phenotype (sample) annotation of an omicsViewer dataset
+#' @param x an SQLite connection, an \code{ExpressionSet}, or any class
+#'   with its own \code{getPData} method (dispatched automatically)
+#' @return the sample annotation data.frame
+#' @name getPData
+#' @export
+setGeneric("getPData", function(x) standardGeneric("getPData"))
+
+#' @rdname getPData
+setMethod("getPData", "SQLiteConnection", function(x) {
   # TODO: SQLite persistence/restoration of quickViews is a known gap and will
   # be addressed with the broader stateful-UI work.
+  mat <- dbGetQuery(x, "SELECT * FROM sample;")
+  rownames(mat) <- mat$rowname
+  mat$rowname <- NULL
   mat
-}
+})
 
-getFData <- function(x) {
-  if (inherits(x, "SQLiteConnection")) {
-    mat <- dbGetQuery(x, "SELECT * FROM feature;")
-    rownames(mat) <- mat$rowname
-    mat$rowname <- NULL
-    gs <- dbGetQuery(x, "SELECT * FROM GS;")
-    if (nrow(gs) > 0) {
-      gs$featureId <- as.factor(gs$featureId)
-      gs$gsId <- as.factor(gs$gsId)
-      attr(mat, "GS") <- gs
-    }
-  } else if (inherits(x, "ExpressionSet")) {
-    mat <- fData(x)
-  } else
-    stop("getFData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
+#' @rdname getPData
+setMethod("getPData", "ExpressionSet", function(x) pData(x))
+
+#' @rdname getPData
+# legacy xcms companion class; the method keeps \code{iheatmap} working
+# on peak tables extracted through the generic accessors
+setMethod("getPData", "xcmsFeatureSet", function(x) pData(x))
+
+#' @rdname getPData
+setMethod("getPData", "ANY", function(x)
+  stop("getPData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
+
+#' Extract the feature annotation of an omicsViewer dataset
+#' @param x an SQLite connection, an \code{ExpressionSet}, or any class
+#'   with its own \code{getFData} method (dispatched automatically)
+#' @return the feature annotation data.frame; the gene-set annotation
+#'   rides along as the \code{GS} attribute where available
+#' @name getFData
+#' @export
+setGeneric("getFData", function(x) standardGeneric("getFData"))
+
+#' @rdname getFData
+setMethod("getFData", "SQLiteConnection", function(x) {
   # TODO: SQLite persistence/restoration of quickViews is a known gap and will
   # be addressed with the broader stateful-UI work.
+  mat <- dbGetQuery(x, "SELECT * FROM feature;")
+  rownames(mat) <- mat$rowname
+  mat$rowname <- NULL
+  gs <- dbGetQuery(x, "SELECT * FROM GS;")
+  if (nrow(gs) > 0) {
+    gs$featureId <- as.factor(gs$featureId)
+    gs$gsId <- as.factor(gs$gsId)
+    attr(mat, "GS") <- gs
+  }
   mat
-}
+})
 
-getAx <- function(x, what) {
-  if (inherits(x, "SQLiteConnection")) {
-    if (what == "dendrogram") {
-      v <- getDend(x)
-    } else {
-      v <- dbGetQuery(x, "SELECT value FROM axes WHERE axis = :x;", params = list(x = what))[[1]]
-      if (length(v) == 0)
-        v <- NULL
-    }
-  } else if (inherits(x, "ExpressionSet")) {
-    v <- attr(x, what)
-  } else
-    stop("getAx: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)")
+#' @rdname getFData
+setMethod("getFData", "ExpressionSet", function(x) fData(x))
+
+#' @rdname getFData
+# legacy xcms companion class; the method keeps \code{iheatmap} working
+# on peak tables extracted through the generic accessors
+setMethod("getFData", "xcmsFeatureSet", function(x) fData(x))
+
+#' @rdname getFData
+setMethod("getFData", "ANY", function(x)
+  stop("getFData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
+
+#' Read a default axis of an omicsViewer dataset
+#' @param x an SQLite connection, an \code{ExpressionSet}, or any class
+#'   with its own \code{getAx} method (dispatched automatically)
+#' @param what a character scalar naming the axis (\code{fx}, \code{fy},
+#'   \code{sx}, \code{sy} or \code{dendrogram})
+#' @return the axis value (usually a column name), or NULL when unset
+#' @name getAx
+#' @export
+setGeneric("getAx", function(x, what) standardGeneric("getAx"))
+
+#' @rdname getAx
+setMethod("getAx", signature(x = "SQLiteConnection", what = "ANY"), function(x, what) {
+  if (what == "dendrogram") {
+    v <- getDend(x)
+  } else {
+    v <- dbGetQuery(x, "SELECT value FROM axes WHERE axis = :x;", params = list(x = what))[[1]]
+    if (length(v) == 0)
+      v <- NULL
+  }
   v
-}
+})
+
+#' @rdname getAx
+setMethod("getAx", signature(x = "ExpressionSet", what = "ANY"), function(x, what)
+  attr(x, what))
+
+#' @rdname getAx
+setMethod("getAx", signature(x = "ANY", what = "ANY"), function(x, what)
+  stop("getAx: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
 
 
 getDend <- function(x) {

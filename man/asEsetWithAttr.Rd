@@ -2,12 +2,23 @@
 % Please edit documentation in R/auxi_databaseFormat.R
 \name{asEsetWithAttr}
 \alias{asEsetWithAttr}
+\alias{asEsetWithAttr,SummarizedExperiment-method}
+\alias{asEsetWithAttr,ExpressionSet-method}
+\alias{asEsetWithAttr,ANY-method}
 \title{Convert SummarizedExperiment to ExpressionSet retaining all attributes}
 \usage{
 asEsetWithAttr(x)
+
+\S4method{asEsetWithAttr}{SummarizedExperiment}(x)
+
+\S4method{asEsetWithAttr}{ExpressionSet}(x)
+
+\S4method{asEsetWithAttr}{ANY}(x)
 }
 \arguments{
-\item{x}{an object of class SummarizedExperiment}
+\item{x}{an object of class \code{SummarizedExperiment} or
+\code{ExpressionSet}, or any class with its own \code{asEsetWithAttr}
+method (dispatched automatically)}
 }
 \value{
 an object of class ExpressionSet
