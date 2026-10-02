@@ -418,7 +418,9 @@ feature_general_module <- function(id,
   metatab <- reactive({
     req(reactive_i())
     tab <- reactive_featureData()
-    tab <- tab[, grep("^General\\|", colnames(tab)), drop = FALSE]
+    kp <- strsplit(colnames(tab), split = "\\|")[[1]][[1]]
+    kp <- sprintf("^%s\\|", kp)
+    tab <- tab[, grep(kp, colnames(tab)), drop = FALSE]
     tab <- tab[reactive_i(), , drop = FALSE]
     ic <- vapply(tab, is.numeric, logical(1)) & vapply(tab, is.integer, logical(1))
     tab[ic] <- lapply(tab[ic], signif, digits = 2)
