@@ -283,19 +283,34 @@ iheatmapModule <- function(
     })
   
   # ######## prepare heatmap data ########
+  # breaks must be strictly increasing: image.default() warns and re-sorts
+  # ("unsorted 'breaks'") when the data min/max sit outside the inner
+  # seq() span, e.g. counts beyond +/-2. Clamping the inner span to the
+  # data range keeps the sequence monotonic by construction while holding
+  # length at exactly 101 breaks = 100 intervals, so a 100-colour palette
+  # maps cleanly (image() errors "must have one more break than colour" on
+  # any other count). The width-0 case (all values identical) is padded
+  # back out to 101 points.
+  .brk <- function(x) {
+    lo <- min(x, na.rm = TRUE); hi <- max(x, na.rm = TRUE)
+    if (!is.finite(lo) || !is.finite(hi)) return(seq(-2, 2, length.out = 101))
+    if (hi <= lo) return(seq(lo, hi + 1, length.out = 101))
+    a <- max(lo, -2); b <- min(hi, 2)
+    if (b - a <= 0) seq(lo, hi, length.out = 101) else seq(a, b, length.out = 101)
+  }
   mm <- reactive({
     req(input$scale)
     req(matr())
     if (input$scale == "row") {
-      mm <- t(scale(t(matr()))) 
-      brk <- c(min(mm, na.rm = TRUE), seq(-2, 2, length.out = 99), max(mm, na.rm = TRUE))
+      mm <- t(scale(t(matr())))
+      brk <- .brk(mm)
     } else if (input$scale == "column") {
       mm <- scale(matr())
-      brk <- c(min(mm, na.rm = TRUE), seq(-2, 2, length.out = 99), max(mm, na.rm = TRUE))
+      brk <- .brk(mm)
     } else {
       mm <- matr()
       brk <- seq(min(mm, na.rm = TRUE), max(mm, na.rm = TRUE), length.out = 101)
-    }    
+    }
     list(mat = mm, breaks = brk)
   })
   
@@ -719,6 +734,16 @@ iheatmapModule <- function(
   })
   
   output$heatmap <- renderPlot({
+    # Render barrier (mirrors module_scatter.R / auxi_shiny_misc.R
+    # output_visible, todo 4.3): while the browser reports this output
+    # hidden, suspend. A tab switch collapses the panel for a beat, and a
+    # render landing in that window hands the graphics device a degenerate
+    # width -- "invalid 'width' argument" raised inside shiny's
+    # resizeSavedPlot -> plotPNG -> startPNG. The req() sits INSIDE
+    # renderPlot so the render re-runs by itself when the panel becomes
+    # visible again; hidden/headless both resolve to TRUE, so testServer
+    # keeps exercising the computation path.
+    req(output_visible(session, ns("heatmap")))
     par(mar = c(input$marginBottom, 0, 0, input$marginRight))
     req(hm()$mat)
     image(hm()$mat, x = seq_len(nrow(hm()$mat)), y = seq_len(ncol(hm()$mat)), xlim = ranges$x, ylim = ranges$y,
