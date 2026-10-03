@@ -89,7 +89,9 @@ gslist_module <- function(
     req(f1 <- reactive_featureData())
     gss <- attr(f1, "GS")
     req(gss)
-    s <- cbind(gss, f1[fmatch(gss$featureId, rownames(f1)), grep("^General", colnames(f1)), drop = FALSE])
+    kp <- strsplit(colnames(f1), split = "\\|")[[1]][[1]]
+    kp <- sprintf("^%s\\|", kp)
+    s <- cbind(gss, f1[fmatch(gss$featureId, rownames(f1)), grep(kp, colnames(f1)), drop = FALSE])
     colnames(s)[colnames(s) == "gsId"] <- "Gene-set"
     s
   })

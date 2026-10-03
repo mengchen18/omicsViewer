@@ -306,7 +306,9 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   metatab <- reactive({
     req(reactive_j())
     tab <- reactive_phenoData()
-    tab <- tab[, grep("^General\\|", colnames(tab)), drop = FALSE]
+    kp <- strsplit(colnames(tab), split = "\\|")[[1]][[1]]
+    kp <- sprintf("^%s\\|", kp)
+    tab <- tab[, grep(kp, colnames(tab)), drop = FALSE]
     tab <- tab[reactive_j(), , drop = FALSE]
     ic <- vapply(tab, is.numeric, logical(1)) & vapply(tab, is.integer, logical(1))
     tab[ic] <- lapply(tab[ic], signif, digits = 2)
