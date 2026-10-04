@@ -687,6 +687,28 @@ iheatmapModule <- function(
     list(ord = ord_c, hcl = hcl_c)
   })
   
+  # Layout readiness for the heatmap plot. output$heatmap_ui (bottom right)
+  # is a renderUI, so the plot's DOM node is re-created every time that UI
+  # re-renders; gating the plot on its own output_<id>_hidden flag reads a
+  # flag attached to a node that has just been replaced, and shiny.js only
+  # clears _hidden once the replacement node's observers attach -- a node
+  # replaced in that window leaves the render permanently suspended and the
+  # heatmap disappears on tab entry. Gating on the owning UI's own layout
+  # inputs is immune to node replacement: these are pure server-side
+  # reactives, never a browser geometry report, and they are exactly the
+  # inputs whose re-evaluation regenerates output$heatmap_ui. Touching them
+  # re-runs both the UI and (via the req in output$heatmap) the plot, so the
+  # barrier still self-heals instead of stranding. width_right() is derived
+  # from show_row_sideColor()/show_row_dend()/width_left()/width_mid(), so
+  # reading it transitively covers the parameter-panel state that governs
+  # the panel's shape. Defined here (before output$heatmap reads it) because
+  # R resolves these closures at call time, not at definition time.
+  heatmap_ui_ready <- reactive({
+    wid <- width_right()
+    req(wid, isTRUE(as.numeric(wid) > 0))
+    TRUE
+  })
+
   hm <- reactive({
     mmo <- mm()$mat[rowSB()$ord, colSB()$ord]
     list(
@@ -733,17 +755,27 @@ iheatmapModule <- function(
     addHeatmapAnnotation_plot(dat_rowSideCol(), ylim = ranges$y-0.5)
   })
   
+  # The heatmap element is NOT a static UI node: output$heatmap_ui (bottom
+  # right) is a renderUI that emits plotOutput(ns("heatmap")), so the plot's
+  # DOM node is re-created whenever that UI re-renders. Gating the plot on
+  # its OWN output_<id>_hidden flag therefore reads a flag belonging to a
+  # node that has just been replaced: shiny.js sets _hidden=true for an id
+  # that drops out of the DOM (doSendOutputInfo) and only clears it once the
+  # replacement node's observers attach, so a re-created node can strand the
+  # render suspended and the heatmap disappears on tab entry.
+  #
+  # Gate on the OWNING UI instead. heatmap_ui_ready() (defined below, next
+  # to width_right -- R evaluates these closures lazily, so the definition
+  # must precede the render that reads it) is a pure server-side reactive:
+  # it depends on the parameter-panel reactives that drive the layout, never
+  # on a browser geometry report, so it is immune to node replacement. It
+  # still defers the first paint until the layout inputs have settled, which
+  # is what keeps the render out of the zero-width window that raised
+  # "invalid 'width' argument" in shiny's resizeSavedPlot -> plotPNG ->
+  # startPNG. req() keeps the guard INSIDE the render so the plot re-runs by
+  # itself once the UI exists.
   output$heatmap <- renderPlot({
-    # Render barrier (mirrors module_scatter.R / auxi_shiny_misc.R
-    # output_visible, todo 4.3): while the browser reports this output
-    # hidden, suspend. A tab switch collapses the panel for a beat, and a
-    # render landing in that window hands the graphics device a degenerate
-    # width -- "invalid 'width' argument" raised inside shiny's
-    # resizeSavedPlot -> plotPNG -> startPNG. The req() sits INSIDE
-    # renderPlot so the render re-runs by itself when the panel becomes
-    # visible again; hidden/headless both resolve to TRUE, so testServer
-    # keeps exercising the computation path.
-    req(output_visible(session, ns("heatmap")))
+    req(heatmap_ui_ready())
     par(mar = c(input$marginBottom, 0, 0, input$marginRight))
     req(hm()$mat)
     image(hm()$mat, x = seq_len(nrow(hm()$mat)), y = seq_len(ncol(hm()$mat)), xlim = ranges$x, ylim = ranges$y,
