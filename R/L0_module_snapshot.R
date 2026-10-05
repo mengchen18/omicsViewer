@@ -160,14 +160,14 @@ snapshot_module <- function(input, output, session, .dir, dataset_id,
     req(nrow(df <- savedSS()) > 0)
     req(i <- match(deleteSS(), df$name))
     showModal(modalDialog(
-      title = "Delete snapshot",
+      title = tagList(icon("trash"), "Delete snapshot"),
       sprintf("Delete snapshot %s? This cannot be undone.", df$name[i]),
       footer = tagList(
         actionButton(ns("snapshot_delete_cancel"), "Cancel"),
-        actionButton(ns("snapshot_delete_confirm"), "Delete", class = "btn-danger")
+        actionButton(ns("snapshot_delete_confirm"), label = tagList(icon("trash"), "Delete"), class = "btn-danger")
       ),
       easyClose = TRUE
-    ))
+    ) %>% tagAppendAttributes(class = "omicsviewer-modal"))
   })
 
   observeEvent(input$snapshot_delete_cancel, {
@@ -216,11 +216,11 @@ snapshot_module <- function(input, output, session, .dir, dataset_id,
     snapshot_refresh(snapshot_refresh() + 1L)
     showModal(
       modalDialog(
-        title = NULL,
+        title = tagList(icon("camera-retro"), "Snapshots"),
         .snapshot_experimental_note,
         fluidRow(
           column(9, textInput(ns("snapshot_name"), label = "Save new snapshot", placeholder = "snapshot name", width = "100%")),
-          column(3, style = "padding-top:25px", actionButton(ns("snapshot_save"), label = "Save"))
+          column(3, style = "padding-top:31px", actionButton(ns("snapshot_save"), label = tagList(icon("save"), "Save")))
         ),
         # WP11: conversation persistence is opt-in per snapshot - transcripts
         # may contain sensitive dataset content, so nothing is saved silently.
@@ -237,7 +237,7 @@ snapshot_module <- function(input, output, session, .dir, dataset_id,
         DTOutput(ns("tab_saveSS")),
         footer = NULL,
         easyClose = TRUE
-      )
+      ) %>% tagAppendAttributes(class = "omicsviewer-modal")
     )
   })
 
@@ -346,17 +346,17 @@ snapshot_module <- function(input, output, session, .dir, dataset_id,
     restoreSS(list(state = ss, name = df$name[i],
                    warnings = attr(ss, "warnings") %||% character()))
     showModal(modalDialog(
-      title = "Restore snapshot",
+      title = tagList(icon("history"), "Restore snapshot"),
       .snapshot_experimental_note,
       sprintf("Restore snapshot \"%s\"? The current view state will be replaced.", df$name[i]),
       if (length(restoreSS()$warnings))
         tags$ul(tags$li(paste(restoreSS()$warnings, collapse = " "))) else NULL,
       footer = tagList(
         actionButton(ns("snapshot_restore_cancel"), "Cancel"),
-        actionButton(ns("snapshot_restore_confirm"), "Restore", class = "btn-primary")
+        actionButton(ns("snapshot_restore_confirm"), label = tagList(icon("rotate-right"), "Restore"), class = "btn-primary")
       ),
       easyClose = TRUE
-    ))
+    ) %>% tagAppendAttributes(class = "omicsviewer-modal"))
   })
 
   observeEvent(input$snapshot_restore_cancel, {

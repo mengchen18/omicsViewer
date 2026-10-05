@@ -7,12 +7,17 @@
 L1_data_space_ui <- function(id, activeTab = "Feature") {
   ns <- NS(id)
   navbarPage(
-    "Data",
+    title = tagList(
+      icon("database"),
+      tags$span(class = "omicsviewer-nav-title", "Data"),
+      tags$span(class = "omicsviewer-nav-sub", " — explore the data, select features and samples")
+    ),
+    windowTitle = "Data",
     id = ns("eset"),
     selected = activeTab,
     theme = shinytheme("spacelab"),
     tabPanel(
-      tags$span("Feature", title = "Feature space scatter plot.\nPlot any two feature-level variables (e.g. fold change vs p-value for a volcano plot, PCA coordinates) with one point per gene/protein.\nUse lasso / box selection to pick features for the analyses on the right panel."),
+      tags$span(icon("braille"), "Feature", title = "Feature space scatter plot.\nPlot any two feature-level variables (e.g. fold change vs p-value for a volcano plot, PCA coordinates) with one point per gene/protein.\nUse lasso / box selection to pick features for the analyses on the right panel."),
       value = "Feature",
       tags$h2("Feature Scatter Plot", class = "sr-only", `aria-label` = "2D scatter plot visualization of feature metadata with correlation analysis and interactive selection"),
       div(
@@ -27,7 +32,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       meta_scatter_ui(ns("feature_space"))
     ),
     tabPanel(
-      tags$span("Feature table", title = "Feature annotation table.\nBrowse and search all feature-level annotations (statistics, gene sets, ...); click rows to select features.\nUse the 'More columns' dropdown to add further annotation columns."),
+      tags$span(icon("table-cells"), "Feature table", title = "Feature annotation table.\nBrowse and search all feature-level annotations (statistics, gene sets, ...); click rows to select features.\nUse the 'More columns' dropdown to add further annotation columns."),
       value = "Feature table",
       tags$h2("Feature Metadata Table", class = "sr-only", `aria-label` = "Searchable table of feature annotations including gene names, protein IDs, statistical test results, and functional classifications"),
       div(
@@ -42,7 +47,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       dataTable_ui(ns("tab_feature"))
     ),
     tabPanel(
-      tags$span("Sample", title = "Sample space scatter plot.\nPlot any two sample-level variables (PCA/UMAP coordinates, clinical variables) with one point per sample.\nCheck replicate similarity, batch effects and outliers; select points to highlight samples across the app."),
+      tags$span(icon("people-line"), "Sample", title = "Sample space scatter plot.\nPlot any two sample-level variables (PCA/UMAP coordinates, clinical variables) with one point per sample.\nCheck replicate similarity, batch effects and outliers; select points to highlight samples across the app."),
       value = "Sample",
       tags$h2("Sample Scatter Plot", class = "sr-only", `aria-label` = "2D scatter plot visualization of sample metadata with group comparisons and interactive selection"),
       div(
@@ -57,7 +62,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       meta_scatter_ui(ns("sample_space"))
     ),
     tabPanel(
-      tags$span("Sample table", title = "Sample annotation table.\nBrowse and search sample metadata (experimental conditions, phenotypes, ...); click rows to select samples.\nUse the 'More columns' dropdown to add further annotation columns."),
+      tags$span(icon("table-list"), "Sample table", title = "Sample annotation table.\nBrowse and search sample metadata (experimental conditions, phenotypes, ...); click rows to select samples.\nUse the 'More columns' dropdown to add further annotation columns."),
       value = "Sample table",
       tags$h2("Sample Metadata Table", class = "sr-only", `aria-label` = "Searchable table of sample annotations including experimental conditions, phenotypes, and clinical variables"),
       div(
@@ -72,7 +77,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       dataTable_ui(ns("tab_pheno"))
     ),
     tabPanel(
-      tags$span("Cor", title = "Sample correlation heatmap.\nPairwise correlations between all samples with hierarchical clustering (darker = stronger correlation).\nUse it as quality control: replicates/biological groups should form blocks; off-cluster samples may be outliers or batch effects.\nOpen 'Controls' to change clustering, scaling and the legend."),
+      tags$span(icon("table-cells-large"), "Cor", title = "Sample correlation heatmap.\nPairwise correlations between all samples with hierarchical clustering (darker = stronger correlation).\nUse it as quality control: replicates/biological groups should form blocks; off-cluster samples may be outliers or batch effects.\nOpen 'Controls' to change clustering, scaling and the legend."),
       value = "Cor",
       tags$h2("Correlation Heatmap", class = "sr-only", `aria-label` = "Interactive correlation matrix heatmap showing pairwise correlations between samples with hierarchical clustering dendrogram"),
       div(
@@ -113,7 +118,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       )
     ),
     tabPanel(
-      tags$span("Heatmap", title = "Expression heatmap.\nAbundance of the currently selected features (rows) across all samples (columns) with hierarchical clustering.\nColor blocks reveal co-regulated features and sample groupings.\nOpen 'Controls' to change clustering, colors, scaling and the legend."),
+      tags$span(icon("fire"), "Heatmap", title = "Expression heatmap.\nAbundance of the currently selected features (rows) across all samples (columns) with hierarchical clustering.\nColor blocks reveal co-regulated features and sample groupings.\nOpen 'Controls' to change clustering, colors, scaling and the legend."),
       value = "Heatmap",
       tags$h2("Expression Heatmap", class = "sr-only", `aria-label` = "Interactive expression heatmap showing feature abundance across samples with hierarchical clustering and customizable color scales"),
       div(
@@ -154,7 +159,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       )
     ),
     tabPanel(
-      tags$span("Dynamic heatmap", title = "Interactive expression heatmap.\nClick or drag on rows to select features by their expression pattern (e.g. up-regulated in one group).\nThe selected rows become the active feature selection and feed all downstream analyses."),
+      tags$span(icon("chart-simple"), "Dynamic heatmap", title = "Interactive expression heatmap.\nClick or drag on rows to select features by their expression pattern (e.g. up-regulated in one group).\nThe selected rows become the active feature selection and feed all downstream analyses."),
       value = "Dynamic heatmap",
       tags$h2("Dynamic Heatmap with Selection", class = "sr-only", `aria-label` = "Interactive expression heatmap with row selection capabilities for subsetting features based on expression patterns"),
       div(
@@ -195,7 +200,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       )
     ),
     tabPanel(
-      tags$span("Expression", title = "Expression matrix.\nThe numeric abundance matrix underlying all views: rows are features, columns are samples.\nSearch and sort to inspect exact values."),
+      tags$span(icon("chart-line"), "Expression", title = "Expression matrix.\nThe numeric abundance matrix underlying all views: rows are features, columns are samples.\nSearch and sort to inspect exact values."),
       value = "Expression",
       tags$h2("Expression Matrix Table", class = "sr-only", `aria-label` = "Searchable table showing quantitative expression values for all features across all samples"),
       div(
@@ -210,7 +215,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
       dataTable_ui(ns("tab_expr"))
     ),
     tabPanel(
-      tags$span("GSList", title = "Gene set membership.\nWhich feature belongs to which gene set (pathway/functional category); features can be in multiple sets.\nThis annotation drives the ORA and fGSEA enrichment analyses."),
+      tags$span(icon("sitemap"), "GSList", title = "Gene set membership.\nWhich feature belongs to which gene set (pathway/functional category); features can be in multiple sets.\nThis annotation drives the ORA and fGSEA enrichment analyses."),
       value = "GSList",
       tags$h2("Gene Set Membership Table", class = "sr-only", `aria-label` = "Table showing which features belong to which gene sets or functional categories for pathway enrichment analysis"),
       div(

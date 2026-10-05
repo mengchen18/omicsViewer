@@ -59,6 +59,24 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 
   comp <- list(
     useShinyjs(),
+    # omicsViewer theme: namespaced CSS (see auxi_uiTheme.R) plus a small
+    # SVG favicon for standalone sessions. Everything is scoped through the
+    # .omicsviewer-app root class set on the wrapper below, so embedding the
+    # viewer into a host app neither overrides nor leaks these rules.
+    tags$head(
+      tags$link(
+        rel = "icon",
+        href = paste0(
+          "data:image/svg+xml,",
+          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>",
+          "<rect width='64' height='64' rx='14' fill='%230e7490'/>",
+          "<text x='32' y='44' font-family='Arial' font-size='34' ",
+          "font-weight='bold' fill='white' text-anchor='middle'>oV</text>",
+          "</svg>"
+        )
+      ),
+      omicsviewer_ui_theme()
+    ),
     # Skip navigation links for keyboard users and AI browsers
     tags$a(
       href = paste0("#", ns("main-content")),
@@ -145,11 +163,13 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
     ),
     style = "background:white;",
     absolutePanel(
-      top = 5, right = 20, style = "z-index: 9999;", width = 115,
-      downloadButton(outputId = ns("download"), label = "xlsx", class = NULL,
+      top = 12, right = 20, style = "z-index: 9999;", width = 115,
+      downloadButton(outputId = ns("download"), label = tagList(icon("file-excel"), "xlsx"),
+        class = "omicsviewer-tool-btn", icon = NULL,
         title = "Download the complete dataset (expression matrix, feature and sample annotations, gene sets) as an Excel workbook") %>%
         tagAppendAttributes(`data-testid` = "app-download-dataset-button"),
-      actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro")) %>%
+      actionButton(ns("snapshot"), label = NULL, icon = icon("camera-retro"),
+        class = "omicsviewer-tool-btn") %>%
         tagAppendAttributes(`data-testid` = "app-snapshot-button",
                            title = "Manage snapshots")
     ),
@@ -205,7 +225,9 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
       ))
     comp <- c(l2, comp)
     }
-  do.call(fluidRow, comp)
+  # scoping root for the namespaced theme (auxi_uiTheme.R); wrapping the
+  # row keeps every rule inside this subtree when embedded in host apps
+  tags$div(class = "omicsviewer-app", do.call(fluidRow, comp))
 }
 
 #' omicsViewer Application Server Logic (Level 0)
@@ -538,11 +560,11 @@ app_module <- function(
   output$summary <- renderUI({
     if (! vEset()) {
       txt <- sprintf(
-      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup></h3>',
+      '<div class="omicsviewer-titleblock"><h1 class="omicsviewer-app-title"><i class="fa fa-dna" aria-hidden="true"></i>%s</h1> <h3 class="omicsviewer-app-sub"><sup>%s</sup></h3></div>',
       appName, paste0("v", appVersion))
     } else {
     txt <- sprintf(
-      '<h1 style="display:inline;">%s</h1> <h3 style="display:inline;"><sup>%s</sup>  --   %s features and %s samples:</h3>',
+      '<div class="omicsviewer-titleblock"><h1 class="omicsviewer-app-title"><i class="fa fa-dna" aria-hidden="true"></i>%s</h1> <h3 class="omicsviewer-app-sub"><sup>%s</sup>  --   %s features and %s samples:</h3></div>',
       appName, paste0("v", appVersion), nrow(expr()), ncol(expr()))
     }
     HTML(txt)

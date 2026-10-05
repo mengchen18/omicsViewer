@@ -9,8 +9,10 @@ dataTable_ui <- function(id) {
     # in a single tight, right-aligned flex row (no bootstrap column
     # gutters): Show all, the multi-selection switch, Save table and the
     # Add-column dropdown panel (like the scatter's figure-attribute gear
-    # box) so the toolbar stays a single row.
+    # box) so the toolbar stays a single row. The omicsviewer-toolbar class
+    # is the theme hook for the compact widget sizing (auxi_uiTheme.R).
     div(
+      class = "omicsviewer-toolbar",
       style = paste0(
         "display:flex; flex-wrap:wrap; align-items:center;",
         "justify-content:flex-end; gap:8px; padding:2px 0 6px 0;"
@@ -22,7 +24,7 @@ dataTable_ui <- function(id) {
       # bootstrap-switch; inline-fit the box so the flex row's
       # align-items:center centers the VISIBLE switch flush with the
       # buttons and no invisible trailing gap precedes "Save table".
-      shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px") %>%
+      shinyWidgets::switchInput( inputId = ns("multisel"), label = "Multiple_selection" , labelWidth = "125px", size = "mini") %>%
         tagAppendAttributes(
           `data-testid` = paste0(id, "-multiselect-toggle"),
           style = paste0(

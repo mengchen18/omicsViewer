@@ -66,3 +66,6 @@ Rplots.pdf
 review/
 .codegraph
 
+
+# UI verification screenshots (session artifacts)
+tests/artifacts_ui/
