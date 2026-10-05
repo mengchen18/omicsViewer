@@ -687,28 +687,6 @@ iheatmapModule <- function(
     list(ord = ord_c, hcl = hcl_c)
   })
   
-  # Layout readiness for the heatmap plot. output$heatmap_ui (bottom right)
-  # is a renderUI, so the plot's DOM node is re-created every time that UI
-  # re-renders; gating the plot on its own output_<id>_hidden flag reads a
-  # flag attached to a node that has just been replaced, and shiny.js only
-  # clears _hidden once the replacement node's observers attach -- a node
-  # replaced in that window leaves the render permanently suspended and the
-  # heatmap disappears on tab entry. Gating on the owning UI's own layout
-  # inputs is immune to node replacement: these are pure server-side
-  # reactives, never a browser geometry report, and they are exactly the
-  # inputs whose re-evaluation regenerates output$heatmap_ui. Touching them
-  # re-runs both the UI and (via the req in output$heatmap) the plot, so the
-  # barrier still self-heals instead of stranding. width_right() is derived
-  # from show_row_sideColor()/show_row_dend()/width_left()/width_mid(), so
-  # reading it transitively covers the parameter-panel state that governs
-  # the panel's shape. Defined here (before output$heatmap reads it) because
-  # R resolves these closures at call time, not at definition time.
-  heatmap_ui_ready <- reactive({
-    wid <- width_right()
-    req(wid, isTRUE(as.numeric(wid) > 0))
-    TRUE
-  })
-
   hm <- reactive({
     mmo <- mm()$mat[rowSB()$ord, colSB()$ord]
     list(
@@ -721,14 +699,43 @@ iheatmapModule <- function(
     )
   })
   ######## render plot ########
+  # All plots in this module sit inside renderUI wrappers (<id>_ui), so a
+  # plot's DOM node is created lazily and replaced on layout changes, and
+  # the browser reports a new node's pixel size only ~100 ms after it
+  # appears. renderPlot reads that size BEFORE the render body runs
+  # (drawReactive -> drawPlot -> startPNG), so a render in the window
+  # between node creation and the size report handed png() a NULL width --
+  # the transient "invalid 'width' argument" on switching to the Dynamic
+  # heatmap tab (and on first entry of the other heatmap panels). No req()
+  # inside the body can prevent that (startPNG runs first). Instead give
+  # renderPlot width/height FUNCTIONS: the device size is then always a
+  # number (fallback until the report lands), and the function's reactive
+  # clientData read re-renders the plot at the true size when the report
+  # arrives.
+  .hm_w <- function(id) {
+    key <- paste0("output_", ns(id), "_width")
+    function() {
+      w <- tryCatch(session$clientData[[key]], error = function(e) NULL)
+      if (is.numeric(w) && length(w) == 1 && isTRUE(w > 1)) w else 600
+    }
+  }
+  .hm_h <- function(id) {
+    key <- paste0("output_", ns(id), "_height")
+    function() {
+      h <- tryCatch(session$clientData[[key]], error = function(e) NULL)
+      if (is.numeric(h) && length(h) == 1 && isTRUE(h > 1)) h else 400
+    }
+  }
+
   dat_colSideCol <- reactive({
     req(input$annotCol)    
     addHeatmapAnnotation(pd()[hm()$ord_c, input$annotCol],  var.name = input$annotCol)
   })
   output$colSideCol <- renderPlot({
+    req(ranges$x)
     par(mar = c(0, 0, 0, input$marginRight))
     addHeatmapAnnotation_plot( dat_colSideCol(), xlim = ranges$x-0.5)
-  })
+  }, width = .hm_w("colSideCol"), height = .hm_h("colSideCol"))
   
   dat_rowSideCol <- reactive({
     req(input$annotRow)
@@ -751,31 +758,13 @@ iheatmapModule <- function(
     addHeatmapAnnotation(am[hm()$ord_r, , drop = FALSE], column = FALSE, var.name = input$annotRow)
   })
   output$rowSideCol <- renderPlot({
+    req(ranges$y)
     par(mar= c(input$marginBottom, 0, 0, 0))
     addHeatmapAnnotation_plot(dat_rowSideCol(), ylim = ranges$y-0.5)
-  })
+  }, width = .hm_w("rowSideCol"), height = .hm_h("rowSideCol"))
   
-  # The heatmap element is NOT a static UI node: output$heatmap_ui (bottom
-  # right) is a renderUI that emits plotOutput(ns("heatmap")), so the plot's
-  # DOM node is re-created whenever that UI re-renders. Gating the plot on
-  # its OWN output_<id>_hidden flag therefore reads a flag belonging to a
-  # node that has just been replaced: shiny.js sets _hidden=true for an id
-  # that drops out of the DOM (doSendOutputInfo) and only clears it once the
-  # replacement node's observers attach, so a re-created node can strand the
-  # render suspended and the heatmap disappears on tab entry.
-  #
-  # Gate on the OWNING UI instead. heatmap_ui_ready() (defined below, next
-  # to width_right -- R evaluates these closures lazily, so the definition
-  # must precede the render that reads it) is a pure server-side reactive:
-  # it depends on the parameter-panel reactives that drive the layout, never
-  # on a browser geometry report, so it is immune to node replacement. It
-  # still defers the first paint until the layout inputs have settled, which
-  # is what keeps the render out of the zero-width window that raised
-  # "invalid 'width' argument" in shiny's resizeSavedPlot -> plotPNG ->
-  # startPNG. req() keeps the guard INSIDE the render so the plot re-runs by
-  # itself once the UI exists.
   output$heatmap <- renderPlot({
-    req(heatmap_ui_ready())
+    req(ranges$x, ranges$y)
     par(mar = c(input$marginBottom, 0, 0, input$marginRight))
     req(hm()$mat)
     image(hm()$mat, x = seq_len(nrow(hm()$mat)), y = seq_len(ncol(hm()$mat)), xlim = ranges$x, ylim = ranges$y,
@@ -792,21 +781,23 @@ iheatmapModule <- function(
       abline(h = seq(ranges$y[1], ranges$y[2], by = 1), col = "white")
       mtext(side = 4, at = rrn$at, text = rrn$lab, las = 2, line = 0.5)
     }    
-  })
+  }, width = .hm_w("heatmap"), height = .hm_h("heatmap"))
   
   output$dendCol <- renderPlot({
     req(hm()$dend_c)
+    req(ranges$x)
     par(mar = c(0, 0, 1, input$marginRight))
     plot(hm()$dend_c, xaxs="i", yaxs = "i", axes = FALSE, xlim = ranges$x, center = TRUE)
     axis(side = 4)
-  })
+  }, width = .hm_w("dendCol"), height = .hm_h("dendCol"))
   
   output$dendRow <- renderPlot({
     req(hm()$dend_r)
+    req(ranges$y)
     par(mar = c(input$marginBottom, 1, 0, 0))
     plot(hm()$dend_r, horiz = TRUE, yaxs="i", xaxs = "i", axes = FALSE, ylim = ranges$y)
     axis(side = 1)
-  })
+  }, width = .hm_w("dendRow"), height = .hm_h("dendRow"))
   
   ######## update range - heatmap ########
   # The snapshot zoom applies exactly ONCE per restore (todo 2.8): the
@@ -899,8 +890,8 @@ iheatmapModule <- function(
 
   ######### render keys ##########
   output$key_heatmap <- renderPlot(
-    heatmapKey(range(hm()$mat, na.rm = TRUE), heatColor())
-  )
+    heatmapKey(range(hm()$mat, na.rm = TRUE), heatColor()),
+    width = .hm_w("key_heatmap"), height = .hm_h("key_heatmap"))
   output$key_heatmap_ui <- renderUI({
     plotOutput(ns("key_heatmap"), height = "45px")
   })
@@ -915,7 +906,7 @@ iheatmapModule <- function(
       for (i in seq_along(lg$key))
         sideCorKey(x = lg$key[[i]], label = lg$var.name[i])
     }
-  })
+  }, width = .hm_w("key_colSideCor"), height = .hm_h("key_colSideCor"))
   output$key_colSideCor_ui <- renderUI({
     if (is.null(dat_colSideCol()$key))
       return()
@@ -935,7 +926,7 @@ iheatmapModule <- function(
       for (i in seq_along(lg$key))
         sideCorKey(x = lg$key[[i]], label = lg$var.name[i])
     }
-  })
+  }, width = .hm_w("key_rowSideCor"), height = .hm_h("key_rowSideCor"))
   output$key_rowSideCor_ui <- renderUI({
     if (is.null(dat_rowSideCol()$key))
       return()
@@ -949,19 +940,19 @@ iheatmapModule <- function(
   output$empty1 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
     plot(0, axes = FALSE, col = NA)
-  })
+  }, width = .hm_w("empty1"), height = .hm_h("empty1"))
   output$empty2 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
     plot(0, axes = FALSE, col = NA)
-  })
+  }, width = .hm_w("empty2"), height = .hm_h("empty2"))
   output$empty3 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
     plot(0, axes = FALSE, col = NA)
-  })
+  }, width = .hm_w("empty3"), height = .hm_h("empty3"))
   output$empty4 <- renderPlot({
     par(mar = c(0, 0, 0, 0))
     plot(0, axes = FALSE, col = NA)
-  })
+  }, width = .hm_w("empty4"), height = .hm_h("empty4"))
 
   ######### dynamic UI render; dynamic layout ##########
   show_col_dend <- reactiveVal(TRUE)
