@@ -176,7 +176,12 @@ ai_assistant_ui <- function(id) {
         bottom: 84px;
         z-index: 11000;
         width: min(440px, calc(100vw - 40px));
-        max-height: calc(100vh - 120px);
+        height: min(736px, calc(100vh - 120px));
+        min-width: 320px;
+        min-height: 280px;
+        max-width: min(680px, calc(100vw - 40px));
+        max-height: calc(100vh - 24px);
+        resize: both;
         display: flex;
         flex-direction: column;
         background: #fff;
@@ -184,6 +189,9 @@ ai_assistant_ui <- function(id) {
         border-radius: 8px;
         box-shadow: 0 10px 32px rgba(0,0,0,.20);
         overflow: hidden;
+      }
+      .omicsviewer-ai-panel.omicsviewer-ai-dragging {
+        box-shadow: 0 16px 40px rgba(0,0,0,.28);
       }
       .omicsviewer-ai-header {
         display: flex;
@@ -193,6 +201,12 @@ ai_assistant_ui <- function(id) {
         padding: 8px 10px;
         border-bottom: 1px solid #e4e7ea;
         background: #f7f8f9;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+      }
+      .omicsviewer-ai-panel.omicsviewer-ai-dragging .omicsviewer-ai-header {
+        cursor: grabbing;
       }
       .omicsviewer-ai-title {
         font-weight: 600;
@@ -209,6 +223,20 @@ ai_assistant_ui <- function(id) {
       .omicsviewer-ai-body {
         padding: 8px;
         overflow: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .omicsviewer-ai-body > .shiny-html-output {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .omicsviewer-ai-body shiny-chat-container {
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .omicsviewer-ai-setup {
         font-size: 13px;
@@ -221,7 +249,9 @@ ai_assistant_ui <- function(id) {
           right: 10px;
           bottom: 78px;
           width: calc(100vw - 20px);
-          max-height: calc(100vh - 96px);
+          height: calc(100vh - 96px);
+          max-height: none;
+          resize: none;
         }
       }
     ")),
@@ -266,18 +296,106 @@ ai_assistant_ui <- function(id) {
               title = "Opt in to local JSONL logging of prompts, assistant responses, tool calls, and failures. Credentials are never logged."
             )
         ),
-        uiOutput(ns("body"))
+        div(
+          class = "omicsviewer-ai-body",
+          uiOutput(ns("body"))
+        )
       )
     ),
     tags$script(HTML(paste0(
       "(function() {",
       "  var panel = document.getElementById(", .agent_js_string(panel_id), ");",
       "  var close = document.getElementById(", .agent_js_string(ns("close")), ");",
+      "  if (!panel) return;",
+      "  var header = panel.querySelector('.omicsviewer-ai-header');",
+      "  var STORAGE_KEY = 'omicsviewerAiPanelGeometry';",
+      "  var MOBILE = '(max-width: 576px)';",
+      "  var viewportWidth = function() { return document.documentElement.clientWidth; };",
+      "  var viewportHeight = function() { return document.documentElement.clientHeight; };",
+      "  var isMobile = function() { return window.matchMedia(MOBILE).matches; };",
+      "  var isHidden = function() { return getComputedStyle(panel).display === 'none'; };",
+      "  var clearGeometry = function() {",
+      "    panel.style.left = panel.style.top = '';",
+      "    panel.style.right = panel.style.bottom = '';",
+      "    panel.style.width = panel.style.height = '';",
+      "  };",
+      "  var applyGeometry = function(g) {",
+      "    if (isMobile()) { clearGeometry(); return; }",
+      "    var w = Math.max(300, Math.min(g.width, viewportWidth() - 16));",
+      "    var h = Math.max(260, Math.min(g.height, viewportHeight() - 16));",
+      "    panel.style.left = Math.max(0, Math.min(g.left, viewportWidth() - w)) + 'px';",
+      "    panel.style.top = Math.max(0, Math.min(g.top, viewportHeight() - h)) + 'px';",
+      "    panel.style.right = 'auto';",
+      "    panel.style.bottom = 'auto';",
+      "    panel.style.width = w + 'px';",
+      "    panel.style.height = h + 'px';",
+      "  };",
+      "  var saveGeometry = function() {",
+      "    if (isHidden() || isMobile()) return;",
+      "    var r = panel.getBoundingClientRect();",
+      "    try {",
+      "      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({",
+      "        left: Math.round(r.left), top: Math.round(r.top),",
+      "        width: Math.round(r.width), height: Math.round(r.height)",
+      "      }));",
+      "    } catch (e) { /* storage unavailable: position is simply not persisted */ }",
+      "  };",
+      "  var restoreGeometry = function() {",
+      "    var raw = null;",
+      "    try { raw = window.localStorage.getItem(STORAGE_KEY); } catch (e) {}",
+      "    if (!raw) return;",
+      "    try {",
+      "      var g = JSON.parse(raw);",
+      "      if (!isFinite(g.left) || !isFinite(g.top) || !isFinite(g.width) || !isFinite(g.height)) return;",
+      "      applyGeometry(g);",
+      "    } catch (e) { clearGeometry(); }",
+      "  };",
       "  document.addEventListener('keydown', function(event) {",
-      "    if (event.key !== 'Escape' || !panel || panel.getAttribute('style') === 'display: none;') return;",
+      "    if (event.key !== 'Escape' || isHidden()) return;",
       "    event.preventDefault();",
       "    if (close) close.click();",
       "  });",
+      "  if (header) {",
+      "    header.addEventListener('pointerdown', function(event) {",
+      "      if (event.button !== 0 || isMobile()) return;",
+      "      if (event.target.closest('button, a, input, select, textarea, label')) return;",
+      "      var rect = panel.getBoundingClientRect();",
+      "      applyGeometry({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });",
+      "      var grabX = event.clientX - rect.left;",
+      "      var grabY = event.clientY - rect.top;",
+      "      var onMove = function(move) {",
+      "        panel.style.left = Math.max(0, Math.min(move.clientX - grabX, viewportWidth() - panel.offsetWidth)) + 'px';",
+      "        panel.style.top = Math.max(0, Math.min(move.clientY - grabY, viewportHeight() - panel.offsetHeight)) + 'px';",
+      "        move.preventDefault();",
+      "      };",
+      "      var onUp = function() {",
+      "        header.removeEventListener('pointermove', onMove);",
+      "        header.removeEventListener('pointerup', onUp);",
+      "        header.removeEventListener('pointercancel', onUp);",
+      "        panel.classList.remove('omicsviewer-ai-dragging');",
+      "        saveGeometry();",
+      "      };",
+      "      panel.classList.add('omicsviewer-ai-dragging');",
+      "      try { header.setPointerCapture(event.pointerId); } catch (e) {}",
+      "      header.addEventListener('pointermove', onMove);",
+      "      header.addEventListener('pointerup', onUp);",
+      "      header.addEventListener('pointercancel', onUp);",
+      "      event.preventDefault();",
+      "    });",
+      "  }",
+      "  if (window.ResizeObserver) {",
+      "    new ResizeObserver(function() {",
+      "      if (!panel.classList.contains('omicsviewer-ai-dragging')) saveGeometry();",
+      "    }).observe(panel);",
+      "  }",
+      "  window.addEventListener('resize', function() {",
+      "    if (isMobile()) { clearGeometry(); return; }",
+      "    if (panel.style.left || panel.style.top) {",
+      "      var r = panel.getBoundingClientRect();",
+      "      applyGeometry({ left: r.left, top: r.top, width: r.width, height: r.height });",
+      "    }",
+      "  });",
+      "  restoreGeometry();",
       "})();"
     )))
   )
@@ -461,7 +579,7 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         placeholder = "Ask about the current analysis...",
         drawer = FALSE,
         width = "100%",
-        height = "min(58vh, 620px)",
+        height = "100%",
         fill = FALSE,
         show_history = FALSE,
         enable_cancel = TRUE,
