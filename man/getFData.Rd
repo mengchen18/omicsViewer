@@ -4,7 +4,6 @@
 \alias{getFData}
 \alias{getFData,SQLiteConnection-method}
 \alias{getFData,ExpressionSet-method}
-\alias{getFData,xcmsFeatureSet-method}
 \alias{getFData,ANY-method}
 \title{Extract the feature annotation of an omicsViewer dataset}
 \usage{
@@ -13,8 +12,6 @@ getFData(x)
 \S4method{getFData}{SQLiteConnection}(x)
 
 \S4method{getFData}{ExpressionSet}(x)
-
-\S4method{getFData}{xcmsFeatureSet}(x)
 
 \S4method{getFData}{ANY}(x)
 }

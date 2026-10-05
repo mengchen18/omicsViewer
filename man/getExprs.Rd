@@ -4,7 +4,6 @@
 \alias{getExprs}
 \alias{getExprs,SQLiteConnection-method}
 \alias{getExprs,ExpressionSet-method}
-\alias{getExprs,xcmsFeatureSet-method}
 \alias{getExprs,ANY-method}
 \title{Extract the expression matrix of an omicsViewer dataset}
 \usage{
@@ -13,8 +12,6 @@ getExprs(x)
 \S4method{getExprs}{SQLiteConnection}(x)
 
 \S4method{getExprs}{ExpressionSet}(x)
-
-\S4method{getExprs}{xcmsFeatureSet}(x)
 
 \S4method{getExprs}{ANY}(x)
 }

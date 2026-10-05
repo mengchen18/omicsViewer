@@ -1,7 +1,7 @@
 #' @description interactive heatmap
 #' @param x a matrix object, an \code{\link[Biobase]{ExpressionSet}}, or
 #'   any object with \code{getExprs}/\code{getFData}/\code{getPData}
-#'   methods (e.g. an xcms \code{xcmsFeatureSet})
+#'   methods (e.g. registered by the xcmsViewer companion package)
 #' @param fData feature data, ignored if x is not a matrix
 #' @param pData phenotype data, ignored if x is not a matrix
 #' @param impute whether impute the expression matrix

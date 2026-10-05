@@ -220,11 +220,6 @@ setMethod("getExprs", "SQLiteConnection", function(x) {
 setMethod("getExprs", "ExpressionSet", function(x) exprs(x))
 
 #' @rdname getExprs
-# legacy xcms companion class; the method keeps \code{iheatmap} working
-# on peak tables extracted through the generic accessors
-setMethod("getExprs", "xcmsFeatureSet", function(x) exprs(x))
-
-#' @rdname getExprs
 setMethod("getExprs", "ANY", function(x)
   stop("getExprs: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
 
@@ -278,11 +273,6 @@ setMethod("getPData", "SQLiteConnection", function(x) {
 setMethod("getPData", "ExpressionSet", function(x) pData(x))
 
 #' @rdname getPData
-# legacy xcms companion class; the method keeps \code{iheatmap} working
-# on peak tables extracted through the generic accessors
-setMethod("getPData", "xcmsFeatureSet", function(x) pData(x))
-
-#' @rdname getPData
 setMethod("getPData", "ANY", function(x)
   stop("getPData: unsupported class '", class(x)[1], "' - expected a SQLite connection or an ExpressionSet (convert SummarizedExperiment via asEsetWithAttr)"))
 
@@ -313,11 +303,6 @@ setMethod("getFData", "SQLiteConnection", function(x) {
 
 #' @rdname getFData
 setMethod("getFData", "ExpressionSet", function(x) fData(x))
-
-#' @rdname getFData
-# legacy xcms companion class; the method keeps \code{iheatmap} working
-# on peak tables extracted through the generic accessors
-setMethod("getFData", "xcmsFeatureSet", function(x) fData(x))
 
 #' @rdname getFData
 setMethod("getFData", "ANY", function(x)

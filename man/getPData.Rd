@@ -4,7 +4,6 @@
 \alias{getPData}
 \alias{getPData,SQLiteConnection-method}
 \alias{getPData,ExpressionSet-method}
-\alias{getPData,xcmsFeatureSet-method}
 \alias{getPData,ANY-method}
 \title{Extract the phenotype (sample) annotation of an omicsViewer dataset}
 \usage{
@@ -13,8 +12,6 @@ getPData(x)
 \S4method{getPData}{SQLiteConnection}(x)
 
 \S4method{getPData}{ExpressionSet}(x)
-
-\S4method{getPData}{xcmsFeatureSet}(x)
 
 \S4method{getPData}{ANY}(x)
 }
