@@ -17,6 +17,9 @@ store_restore <- omicsViewer:::store_restore
 store_registry_view <- omicsViewer:::store_registry_view
 store_describe <- omicsViewer:::store_describe
 store_epoch <- omicsViewer:::store_epoch
+store_bind_triselector <- omicsViewer:::store_bind_triselector
+store_seed <- omicsViewer:::store_seed
+store_reset <- omicsViewer:::store_reset
 
 ## ---------------------------------------------------------------- [1] ----
 mk <- function() {
@@ -512,3 +515,60 @@ ok(
   read_ep(e_a4) == 1L && read_ep(e_fs) == fs0 + 3L,
   "subtree writes advance the ancestor module's scoped epoch"
 )
+
+## ------------------------------- [WP2] bind -> reset -> user edit ----
+# store_bind_triselector must keep its dependency on sel() across the
+# store_reset consumption run. The observer used to return from the
+# generation-guard branch before reading sel(), so an observer kept only
+# the reset_rv dependency afterwards: after a dataset switch NO committed
+# triple ever reached the store again (user axis edits lost, acks severed,
+# .scatter_axes_converged stuck FALSE -> stale scatter figure).
+bt <- widget_store_new()
+bt_fs <- widget_store_child(bt, "dataspace.feature_space")
+store_register(bt_fs,
+  widget_binding("x_analysis", "select"),
+  widget_binding("x_subset", "select"),
+  widget_binding("x_variable", "select"))
+bt_sel <- shiny::reactiveVal(list(analysis = "PCA", subset = "All", variable = "PC2"))
+bt_keep <- list()
+store_bind_triselector(bt_fs,
+  keys = c(analysis = "x_analysis", subset = "x_subset", variable = "x_variable"),
+  sel = bt_sel,
+  keep = function(o) { bt_keep[[length(bt_keep) + 1L]] <<- o; invisible(o) })
+bt_rd <- function() store_read(bt_fs, "x_variable")[[1]]
+shiny:::flushReact()
+ok(identical(bt_rd(), "PC2"), "bind: initial settled triple reaches the store")
+bt_sel(list(analysis = "PCA", subset = "All", variable = "PC3"))
+shiny:::flushReact()
+ok(identical(bt_rd(), "PC3"), "bind: pre-reset user edit syncs")
+# dataset switch: reset + seed. The CACHED pre-reset triple must not be
+# re-synced over the cleared store (todo 2.5 guard must still hold).
+store_reset(bt, "dataspace")
+shiny:::flushReact()
+ok(is.null(bt_rd()),
+  "bind: reset clears keys; cached stale triple not re-synced (todo 2.5 guard)")
+store_seed(bt_fs, list(x_analysis = "ttest", x_subset = "A_vs_B",
+                       x_variable = "log.fdr"))
+shiny:::flushReact()
+ok(identical(bt_rd(), "log.fdr"), "bind: post-reset seed owns the store")
+# app-like sequence: the store push makes the triselector COMMIT the
+# seeded triple (a different value, so the reactiveVal re-arms), then the
+# user edits - the edit must reach the store.
+bt_sel(list(analysis = "ttest", subset = "A_vs_B", variable = "log.fdr"))
+shiny:::flushReact()
+bt_sel(list(analysis = "PCA", subset = "All", variable = "PC3"))
+shiny:::flushReact()
+ok(identical(bt_rd(), "PC3"),
+  "bind: seed-ack commit, then user edit reaches the store after reset")
+# a NOVEL post-reset pick with no intermediate commit must also sync. (A
+# re-set of the IDENTICAL pre-reset value cannot invalidate the reactiveVal
+# - same triple means no commit, no dependency to fire; mirrors the
+# triselector module's committed reactiveVal semantics.)
+store_reset(bt, "dataspace")
+shiny:::flushReact()
+store_seed(bt_fs, list(x_analysis = "ttest", x_subset = "A_vs_B",
+                       x_variable = "log.fdr"))
+shiny:::flushReact()
+bt_sel(list(analysis = "PCA", subset = "All", variable = "PC4"))
+shiny:::flushReact()
+ok(identical(bt_rd(), "PC4"), "bind: novel post-reset pick reaches the store")

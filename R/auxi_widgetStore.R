@@ -917,6 +917,17 @@ store_bind_triselector <- function(store, keys, sel,
   .gen <- new.env(parent = emptyenv())
   .gen$last <- shiny::isolate(root$reset_rv())
   keep(observe({
+    # sel() must be read BEFORE the reset-generation check: an observer
+    # keeps only the dependencies of its most recent run, and the run that
+    # consumes a reset used to return before reaching sel(), so the
+    # observer lost its dependency on the triselector's commits entirely
+    # - after a store_reset (dataset switch) no user axis change ever
+    # reached the store again and .scatter_axes_converged stayed FALSE
+    # (stale figure). Reading it first keeps that dependency alive; the
+    # generation guard below still drops the settled triple because it
+    # predates the reset (cached value, discarded on the mismatch branch).
+    tv <- tryCatch(sel(), shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
     gen <- root$reset_rv()
     if (!identical(gen, .gen$last)) {
       # first run after a reset: the held triple predates it; the
@@ -924,8 +935,6 @@ store_bind_triselector <- function(store, keys, sel,
       .gen$last <- gen
       return(NULL)
     }
-    tv <- tryCatch(sel(), shiny.silent.error = function(e) NULL,
-                   error = function(e) NULL)
     if (is.null(tv))
       return(NULL)
     store_sync_from_ui(store, keys[["analysis"]], tv$analysis)
