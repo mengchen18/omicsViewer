@@ -141,6 +141,62 @@ parse_quick_views <- function(shortcuts, triset = NULL, source = "custom") {
   out
 }
 
+#' Resolve the analysis categories recognized as volcano-producing
+#'
+#' @description
+#' The volcano machinery (default axes, quick-view detection, corner
+#' auto-selection) is keyed on the analysis token of the
+#' \code{Category|Subcategory|Variable} column convention. The recognized
+#' categories default to \code{VOLCANO_DEFAULT_ANALYSES} (\code{ttest},
+#' \code{DE}) and can be overridden per dataset through the
+#' \code{"volcanoCategories"} feature-data attribute, written by
+#' \code{\link{prepOmicsViewer}}'s \code{volcano.categories} argument.
+#' Invalid/missing attribute values fall back to the default set.
+#'
+#' @param meta Feature or sample metadata (or NULL). Only the
+#'   \code{"volcanoCategories"} attribute is consulted.
+#' @return Character vector of analysis category names.
+#' @keywords internal
+#' @importFrom stringr str_split_fixed
+volcano_analyses <- function(meta = NULL) {
+  v <- attr(meta, "volcanoCategories")
+  if (is.null(v) || !is.character(v) || !length(v) ||
+      anyNA(v) || any(!nzchar(v)))
+    return(VOLCANO_DEFAULT_ANALYSES)
+  v
+}
+
+#' Volcano x-axis candidate columns from metadata
+#'
+#' @description
+#' Columns of the form \code{<category>|<contrast>|mean.diff} where
+#' \code{<category>} is recognized by \code{\link{volcano_analyses}}.
+#' Tokenization mirrors \code{\link{trisetter}} (split on the first two
+#' pipes), so a contrast containing \code{|} stays intact.
+#'
+#' @param meta Feature or sample metadata.
+#' @return A data.frame with columns \code{x} (column name), \code{category},
+#'   \code{contrast} - in column order - or NULL when nothing matches.
+#' @keywords internal
+volcano_x_candidates <- function(meta) {
+  if (is.null(meta))
+    return(NULL)
+  cn <- colnames(meta)
+  if (is.null(cn) || !length(cn))
+    return(NULL)
+  cats <- volcano_analyses(meta)
+  if (!length(cats))
+    return(NULL)
+  parts <- str_split_fixed(cn, "\\|", n = 3)
+  keep <- parts[, 3] == "mean.diff" & parts[, 1] %in% cats
+  if (!any(keep))
+    return(NULL)
+  data.frame(
+    x = cn[keep], category = parts[keep, 1], contrast = parts[keep, 2],
+    stringsAsFactors = FALSE, row.names = NULL
+  )
+}
+
 #' Detect standard quick views from metadata column names
 #'
 #' @param meta Feature or sample metadata.
@@ -189,24 +245,30 @@ detect_quick_views <- function(meta, triset = NULL) {
     )))
   }
 
-  fx <- grep("^ttest\\|.+\\|mean\\.diff$", cn, value = TRUE)
-  for (xx in fx) {
-    contrast <- sub("^ttest\\|(.*)\\|mean\\.diff$", "\\1", xx)
-    yy <- paste0("ttest|", contrast, "|log.fdr")
-    yLabel <- "log.fdr"
-    if (!yy %in% cn) {
-      yy <- paste0("ttest|", contrast, "|log.pvalue")
-      yLabel <- "log.pvalue"
+  # Volcano views: any analysis category recognized by volcano_analyses()
+  # (ttest/DE by default). x = <category>|<contrast>|mean.diff,
+  # y = <category>|<contrast>|log.fdr (fallback log.pvalue).
+  vcand <- volcano_x_candidates(meta)
+  if (!is.null(vcand)) {
+    for (i in seq_len(nrow(vcand))) {
+      xx <- vcand$x[i]
+      contrast <- vcand$contrast[i]
+      yy <- paste(c(vcand$category[i], contrast, "log.fdr"), collapse = "|")
+      yLabel <- "log.fdr"
+      if (!yy %in% cn) {
+        yy <- paste(c(vcand$category[i], contrast, "log.pvalue"), collapse = "|")
+        yLabel <- "log.pvalue"
+      }
+      if (!yy %in% cn)
+        next
+      entries <- c(entries, list(list(
+        id = paste0("volcano_", .quick_view_id(contrast)),
+        label = paste("Volcano", gsub("_vs_", " vs ", contrast, fixed = TRUE)),
+        x = xx,
+        y = yy,
+        description = sprintf("mean.diff versus %s for %s", yLabel, contrast)
+      )))
     }
-    if (!yy %in% cn)
-      next
-    entries <- c(entries, list(list(
-      id = paste0("volcano_", .quick_view_id(contrast)),
-      label = paste("Volcano", gsub("_vs_", " vs ", contrast, fixed = TRUE)),
-      x = xx,
-      y = yy,
-      description = sprintf("mean.diff versus %s for %s", yLabel, contrast)
-    )))
   }
 
   if (!length(entries))

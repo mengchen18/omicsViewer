@@ -453,4 +453,58 @@ testServer(cornerApp, {
   )
 })
 
+# ---------------------------------------------------------------------------
+# Volcano category generalization: DE|A_vs_B|mean.diff x log.fdr arms the
+# volcano corner exactly like ttest (VOLCANO_DEFAULT_ANALYSES), WITHOUT an
+# explicit scorner pick - this is the default-volcano-selection contract.
+fdDE <- fd2
+colnames(fdDE) <- sub("^ttest\\|", "DE\\|", colnames(fdDE))
+volcanoCatBus <- NULL
+volcanoCatApp <- function(input, output, session) {
+  volcanoCatBus <<- omicsViewer:::selection_port(
+    omicsViewer:::selection_store_new(), "feature")
+  omicsViewer:::meta_scatter_module(
+    "scatter",
+    reactive_meta = reactive(fdDE),
+    reactive_expr = reactive(expr2),
+    combine = "feature",
+    source = "devolcano",
+    store = omicsViewer:::widget_store_child(
+      omicsViewer:::widget_store_new(), "test.devolcano"),
+    selection = volcanoCatBus
+  )
+}
+
+testServer(volcanoCatApp, {
+  session$setInputs(
+    `scatter-tris_main_scatter1-analysis` = "DE",
+    `scatter-tris_main_scatter1-subset` = "KO_vs_WT",
+    `scatter-tris_main_scatter1-variable` = "mean.diff",
+    `scatter-tris_main_scatter2-analysis` = "DE",
+    `scatter-tris_main_scatter2-subset` = "KO_vs_WT",
+    `scatter-tris_main_scatter2-variable` = "log.fdr",
+    `scatter-a4selector-xcut` = "log10(2)",
+    `scatter-a4selector-ycut` = "-log10(0.05)",
+    `scatter-main_scatterOutput-showRegLine` = FALSE
+  )
+  session$flushReact(); session$flushOutput()
+  session$flushReact(); session$flushOutput()
+  ok(
+    ut_cmp_identical(volcanoCatBus$read()$ids, c("f1", "f2")),
+    "a DE-named volcano auto-arms the corner selection without a manual pick"
+  )
+  ok(
+    identical(volcanoCatBus$read()$origin, "corner"),
+    "the DE volcano corner reports through the corner origin"
+  )
+
+  session$setInputs(`scatter-tris_main_scatter2-variable` = "log.pvalue")
+  session$flushReact(); session$flushOutput()
+  session$flushReact(); session$flushOutput()
+  ok(
+    ut_cmp_identical(volcanoCatBus$read()$ids, c("f1", "f2", "f3", "f4")),
+    "switching log.fdr -> log.pvalue re-derives the DE volcano corner"
+  )
+})
+
 untrace(omicsViewer:::plotly_scatter, where = asNamespace("omicsViewer"))

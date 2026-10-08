@@ -18,7 +18,8 @@ prepOmicsViewer(
   gs = NULL,
   stringDB = NULL,
   surv = NULL,
-  SummarizedExperiment = TRUE
+  SummarizedExperiment = TRUE,
+  volcano.categories = VOLCANO_DEFAULT_ANALYSES
 )
 }
 \arguments{
@@ -84,6 +85,16 @@ NULL = no survival analysis.}
 
 \item{SummarizedExperiment}{Logical. If TRUE, returns a \code{SummarizedExperiment} object;
 if FALSE, returns an \code{ExpressionSet}. Default: TRUE.}
+
+\item{volcano.categories}{Character vector of analysis category names whose
+\code{<category>|<contrast>|mean.diff} columns (paired with \code{log.fdr}
+or \code{log.pvalue}) form a volcano view. These categories drive the
+default feature-space axes, the auto-detected volcano quick views and the
+volcano corner auto-selection in the app. Default:
+\code{c("ttest", "DE")}. The value is stored as the
+\code{"volcanoCategories"} attribute of the feature data (note: like
+\code{"quickViews"}, this attribute is not yet persisted through the
+SQLite save path; the default set applies there).}
 }
 \value{
 A \code{SummarizedExperiment} or \code{ExpressionSet} object ready for visualization with

@@ -130,6 +130,45 @@ ok(
   "correlation quick-view Y axis"
 )
 
+# Volcano category generalization: DE-named analyses get the same detection
+# as ttest (VOLCANO_DEFAULT_ANALYSES), and datasets can opt custom categories
+# in through the volcanoCategories attribute.
+metaDE <- data.frame(
+  "DE|A_vs_B|mean.diff" = c(-1, 0, 1),
+  "DE|A_vs_B|log.fdr" = c(2, 1, 3),
+  check.names = FALSE
+)
+trisetDE <- rbind(
+  c("DE", "A_vs_B", "mean.diff"),
+  c("DE", "A_vs_B", "log.fdr")
+)
+viewsDE <- detect_quick_views(metaDE, trisetDE)
+ok(
+  ut_cmp_equal(viewsDE$id, "volcano_A_vs_B"),
+  "DE-named volcano columns are detected"
+)
+ok(
+  ut_cmp_equal(viewsDE$y, "DE|A_vs_B|log.fdr"),
+  "DE volcano quick-view Y axis keeps the DE category"
+)
+
+# an unrecognized category is not detected unless the dataset opts in
+metaOther <- metaDE
+colnames(metaOther) <- sub("^DE\\|", "MyTest\\|", colnames(metaOther))
+trisetOther <- rbind(
+  c("MyTest", "A_vs_B", "mean.diff"),
+  c("MyTest", "A_vs_B", "log.fdr")
+)
+ok(
+  ut_cmp_equal(nrow(detect_quick_views(metaOther, trisetOther)), 0),
+  "unknown categories are not volcano-detected by default"
+)
+attr(metaOther, "volcanoCategories") <- "MyTest"
+ok(
+  ut_cmp_equal(detect_quick_views(metaOther, trisetOther)$id, "volcano_A_vs_B"),
+  "the volcanoCategories attribute opts a custom category in"
+)
+
 set.seed(1234)
 exprTest <- matrix(rnorm(100), nrow = 5, ncol = 20)
 rownames(exprTest) <- paste0("f", 1:5)
@@ -160,6 +199,21 @@ ok(
 ok(
   ut_cmp_equal("pca" %in% attr(Biobase::pData(prepared), "quickViews")$id, TRUE),
   "prepOmicsViewer adds PCA sample shortcut"
+)
+ok(
+  ut_cmp_equal(
+    attr(Biobase::fData(prepared), "volcanoCategories"),
+    c("ttest", "DE")
+  ),
+  "prepOmicsViewer persists the volcanoCategories attribute"
+)
+ok(
+  ut_cmp_equal(attr(prepared, "fx"), "ttest|a_vs_b|mean.diff"),
+  "prepOmicsViewer default X axis is the first volcano mean.diff column"
+)
+ok(
+  ut_cmp_equal(attr(prepared, "fy"), "ttest|a_vs_b|log.fdr"),
+  "prepOmicsViewer default Y axis is the paired log.fdr column"
 )
 
 # Rendering only the active state must not recreate badge actionButtons: doing

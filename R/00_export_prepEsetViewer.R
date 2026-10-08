@@ -53,6 +53,15 @@
 #'   NULL = no survival analysis.
 #' @param SummarizedExperiment Logical. If TRUE, returns a \code{SummarizedExperiment} object;
 #'   if FALSE, returns an \code{ExpressionSet}. Default: TRUE.
+#' @param volcano.categories Character vector of analysis category names whose
+#'   \code{<category>|<contrast>|mean.diff} columns (paired with \code{log.fdr}
+#'   or \code{log.pvalue}) form a volcano view. These categories drive the
+#'   default feature-space axes, the auto-detected volcano quick views and the
+#'   volcano corner auto-selection in the app. Default:
+#'   \code{c("ttest", "DE")}. The value is stored as the
+#'   \code{"volcanoCategories"} attribute of the feature data (note: like
+#'   \code{"quickViews"}, this attribute is not yet persisted through the
+#'   SQLite save path; the default set applies there).
 #' @param ... Additional arguments passed to \code{\link{t.test}}, such as \code{paired = TRUE}
 #'   for paired t-tests or \code{var.equal = TRUE} for equal variance assumption.
 #'
@@ -149,7 +158,8 @@ prepOmicsViewer <- function(
   PCA = TRUE, ncomp = min(8, ncol(expr)), pca.fillNA = TRUE,
   t.test = NULL, ttest.fillNA = FALSE, correlation = TRUE, ...,
   gs = NULL, stringDB = NULL, surv = NULL, 
-  SummarizedExperiment = TRUE) {
+  SummarizedExperiment = TRUE,
+  volcano.categories = VOLCANO_DEFAULT_ANALYSES) {
   
   p0 <- pData
   ## cbind below drops arbitrary attributes; preserve user-defined quick views
@@ -313,7 +323,19 @@ prepOmicsViewer <- function(
   }
   
   # options to set default axis
-  fx1 <- grep("ttest\\|(.*?)_vs_(.*?)\\|mean.diff", colnames(fData), value = TRUE)
+  # Volcano default axes: any analysis category recognized as volcano-
+  # producing (volcano_analyses; ttest/DE by default, overridable via the
+  # volcano.categories argument). The recognized categories are persisted
+  # on the feature data so the app-side quick-view detection and the
+  # volcano corner auto-selection agree with this choice.
+  if (is.null(volcano.categories))
+    volcano.categories <- VOLCANO_DEFAULT_ANALYSES
+  if (!is.character(volcano.categories) || !length(volcano.categories) ||
+      anyNA(volcano.categories) || any(!nzchar(volcano.categories)))
+    stop("volcano.categories must be a character vector of non-empty category names")
+  attr(fData, "volcanoCategories") <- volcano.categories
+  vcand <- volcano_x_candidates(fData)
+  fx1 <- if (is.null(vcand)) character(0) else vcand$x
   fy1 <- intersect(colnames(fData), sub("mean.diff$", "log.fdr", fx1))
   fx2 <- grep("PCA\\|All\\|PC1\\(", colnames(fData), value = TRUE)
   fy2 <- grep("PCA\\|All\\|PC2\\(", colnames(fData), value = TRUE)

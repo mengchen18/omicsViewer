@@ -492,8 +492,10 @@ meta_scatter_module <- function(
       updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
     }, ignoreInit = TRUE))
 
-    # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from
-    # ttest), read from the DISPLAYED (settled) triselector triples. The
+    # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from a
+    # volcano-producing analysis category - ttest/DE by default, overridable
+    # per dataset via the volcanoCategories attribute, see volcano_analyses),
+    # read from the DISPLAYED (settled) triselector triples. The
     # store watchers lag one observer hop behind a user edit (the store
     # sync runs after the committed flip), which armed the volcano-exit
     # intent after the render had already painted the new axes with the
@@ -509,8 +511,9 @@ meta_scatter_module <- function(
       yv <- .scatter_read_tris(v2)
       if (is.null(xv) || is.null(yv))
         return(FALSE)
-      identical(xv$analysis, "ttest") &&
-        identical(yv$analysis, "ttest") &&
+      cats <- volcano_analyses(reactive_meta())
+      isTRUE(xv$analysis %in% cats) &&
+        isTRUE(yv$analysis %in% cats) &&
         identical(xv$variable, "mean.diff") &&
         yv$variable %in% c("log.fdr", "log.pvalue")
     })

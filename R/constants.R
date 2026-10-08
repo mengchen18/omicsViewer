@@ -58,6 +58,15 @@ MIN_ROC_PR_LABELS <- 2
 #' Ensures statistical reliability of correlation coefficients.
 MIN_SAMPLES_CORRELATION <- 12
 
+#' @description Analysis categories whose `Category|Subcategory|Variable` columns
+#'   form a volcano view (`<category>|<contrast>|mean.diff` paired with
+#'   `<category>|<contrast>|log.fdr` or `log.pvalue`). Drives the default
+#'   feature-space axes, the auto-detected volcano quick views and the volcano
+#'   corner auto-selection. Override per dataset through
+#'   `prepOmicsViewer(volcano.categories = ...)` (stored as the
+#'   `volcanoCategories` feature-data attribute).
+VOLCANO_DEFAULT_ANALYSES <- c("ttest", "DE")
+
 #' @description Quantile threshold for NA imputation (default 15th percentile).
 #' Used when filling missing values in expression data.
 IMPUTATION_QUANTILE_THRESHOLD <- 0.15
