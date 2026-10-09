@@ -237,7 +237,6 @@ L1_result_space_module <- function(
     output$optTabs <- renderUI({
       titleTabs <- list(
         title = tagList(
-          icon("flask"),
           tags$span(class = "omicsviewer-nav-title", "Analysis"),
           tags$span(class = "omicsviewer-nav-sub", " — analyse the current selection on the fly")
         ),

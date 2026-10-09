@@ -8,7 +8,6 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
   ns <- NS(id)
   navbarPage(
     title = tagList(
-      icon("database"),
       tags$span(class = "omicsviewer-nav-title", "Data"),
       tags$span(class = "omicsviewer-nav-sub", " — explore the data, select features and samples")
     ),

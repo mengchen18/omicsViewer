@@ -15,7 +15,9 @@ A \code{tagList} containing:
 \itemize{
   \item Text input for search terms (semicolon-separated)
   \item Submit button to trigger search
-  \item Gene ID mapper selector
+  \item \code{"Map ID"} dropdown button unfolding the gene ID mapper
+    triselector (feature annotation column Geneshot genes are matched
+    against), in the style of the tables' "Add column" button
   \item Interactive scatter plot of search results
   \item Results table with download functionality
 }

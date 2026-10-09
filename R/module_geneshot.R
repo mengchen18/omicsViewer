@@ -13,7 +13,9 @@
 #' \itemize{
 #'   \item Text input for search terms (semicolon-separated)
 #'   \item Submit button to trigger search
-#'   \item Gene ID mapper selector
+#'   \item \code{"Map ID"} dropdown button unfolding the gene ID mapper
+#'     triselector (feature annotation column Geneshot genes are matched
+#'     against), in the style of the tables' "Add column" button
 #'   \item Interactive scatter plot of search results
 #'   \item Results table with download functionality
 #' }
@@ -29,6 +31,7 @@
 #'
 #' @keywords internal
 #' @importFrom shinybusy show_modal_spinner remove_modal_spinner
+#' @importFrom shinyWidgets dropdown tooltipOptions
 #'
 geneshot_ui <- function(id) {
   ns <- NS(id)
@@ -42,22 +45,37 @@ geneshot_ui <- function(id) {
       tags$h4("How to interpret results"),
       tags$p("Genes are ranked by their association score with your search terms. The scatter plot shows publication count (x-axis) versus percentage of publications mentioning your search terms (y-axis). Genes in the upper right are both well-studied and highly associated with your query. The plus symbol (+) in the 'selected' column indicates genes that overlap with your currently selected features in the app.")
     ),
-    fluidRow(
-      column(
-        width = 8,
-        textInput(ns("term"), label = NULL, value = "", width = "100%",
-          placeholder = "Search any term here, multiple separated by (;) ...") %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-search-input"))
-        ),
-      column(
-        width = 4, align = "right",
-        actionButton(ns("submit"), label = "Search related genes!", width = "100%",
-          title = "Mine the literature for genes associated with the search term(s); separate multiple terms with ';'") %>%
-          tagAppendAttributes(`data-testid` = paste0(id, "-search-button"))
-        ),
-      column(
-        width = 11, triselector_ui(ns("geneNameCol")))
+    # One toolbar row (dataTable "Add column" pattern): the search box grows
+    # on the left, then the search button, and the Map-ID dropdown - the
+    # ID-mapper triselector behind a button, like the tables' "Add column"
+    # panel - sits last at the far right, so the tab header stays a single
+    # line. The omicsviewer-toolbar class is the theme hook for the compact
+    # widget sizing (auxi_uiTheme.R).
+    div(
+      class = "omicsviewer-toolbar",
+      style = paste0(
+        "display:flex; flex-wrap:wrap; align-items:center;",
+        "justify-content:flex-end; gap:8px; padding:2px 0 6px 0;"
       ),
+      textInput(ns("term"), label = NULL, value = "", width = "100%",
+        placeholder = "Search any term here, multiple separated by (;) ...") %>%
+        tagAppendAttributes(
+          `data-testid` = paste0(id, "-search-input"),
+          style = "flex:1 1 360px; margin-bottom:0;"
+        ),
+      actionButton(ns("submit"), label = "Search related genes!",
+        title = "Mine the literature for genes associated with the search term(s); separate multiple terms with ';'") %>%
+        tagAppendAttributes(`data-testid` = paste0(id, "-search-button")),
+      dropdown(
+        inputId = ns("mapIdPanel"),
+        label = "Map ID", icon = icon("id-card"),
+        circle = FALSE, right = TRUE, status = "default", width = "620px",
+        tooltip = tooltipOptions(title = "Choose the feature annotation column that Geneshot genes are matched against!"),
+        margin = "10px",
+        triselector_ui(ns("geneNameCol"))
+      ) %>%
+        tagAppendAttributes(`data-testid` = paste0(id, "-map-id-button"))
+    ),
     plotly::plotlyOutput(ns("plt")),
     tags$br(),
     dataTableDownload_ui(ns("autorif")),
