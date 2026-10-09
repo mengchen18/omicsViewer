@@ -34,6 +34,11 @@ enrichment_analysis_ui <- function(id) {
 #'   the results-table row selection (which drives the overlap-genes
 #'   table) register on the store; when NULL the legacy status-restore
 #'   path is kept.
+#' @param reactive_visible Optional reactive logical overriding the
+#'   browser-reported tab visibility in the R-H3 gates, for headless
+#'   regression tests (MockShinySession cannot report the
+#'   \code{output_*_hidden} clientData flag). NULL (default) keeps the
+#'   real \code{\link{output_visible}} read.
 #' @importFrom fastmatch fmatch
 #' @importFrom stats cutree
 #' @examples
@@ -58,7 +63,7 @@ enrichment_analysis_ui <- function(id) {
 
 enrichment_analysis_module <- function(
   id, reactive_featureData, reactive_i, reactive_status = reactive(NULL),
-  store = NULL
+  store = NULL, reactive_visible = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
@@ -159,17 +164,30 @@ enrichment_analysis_module <- function(
   reactive_pathway_collapsed <- reactiveVal( NULL )
   col_key <- reactiveVal( NULL )
 
-  observeEvent(list(
-    reactive_i(),
-    reactive_featureData(),
-    reactive_pathway(),
-    v1()
-    ), {
-    # R-H3: skip the collapse work while the ORA tab is hidden; the
-    # visibility flip re-runs this observer (clientData dependency) and
-    # the computation catches up before the table renders. Headless
-    # sessions report no flag and stay visible (output_visible).
-    if (!output_visible(session, ns("stab-table")))
+  # Tab-visibility source for the R-H3 gates: the browser's
+  # output_<id>_hidden clientData flag, overridable through the
+  # reactive_visible argument for headless regression tests
+  # (MockShinySession cannot report the flag).
+  .ora_visible <- function() {
+    if (!is.null(reactive_visible)) isTRUE(reactive_visible())
+    else output_visible(session, ns("stab-table"))
+  }
+
+  # R-H3 (2026-10-09 fix): a plain observe(), NOT observeEvent. While
+  # the tab is hidden the visibility gate below is the observer's ONLY
+  # reactive dependency, so the flip back to visible re-runs it and the
+  # computation catches up with the current selection before the table
+  # renders. The previous observeEvent form ran the handler inside
+  # isolate() (bindEvent.Observer), so the clientData read could never
+  # re-trigger it: selection changes arriving while the tab was hidden
+  # were dropped and the tab kept showing the previous selection's
+  # results (volcano rect selection -> stale ORA). The gate must stay
+  # FIRST - reads below it only register as dependencies when they
+  # execute. Headless sessions report no flag and stay visible
+  # (output_visible).
+  observe({
+
+    if (!.ora_visible())
       return(NULL)
 
     req(reactive_i())
@@ -185,17 +203,21 @@ enrichment_analysis_module <- function(
     # written and the whole tab rendered blank with zero diagnostics
     # (regression vs the pre-unification triselector, which preselected
     # "--select--" as a real value and drove the no-collapse branch on
-    # every selection change). v1() is in the trigger list, so a later
-    # manual pick re-fires this observer into the collapse branch.
+    # every selection change). v1() is read in this observer, so a later
+    # manual pick re-fires it into the collapse branch.
     v <- v1()
     if (is.null(v) || v$variable %in% c("", "--select--")) {
       size_bg( nrow(reactive_featureData()) )
       reactive_pathway_collapsed(NULL)
-      rii(reactive_i())
       col_key( NULL )
-      if ( length(rii()) <= 1 )
-        rii(NULL) else if ( length(rii()) <= 3 )
-          rii("notest")
+      # plain observe(): never read back a reactiveVal this observer
+      # writes (the old observeEvent form isolated these reads) - the
+      # self-dependency would loop the observer forever
+      ri <- reactive_i()
+      if ( length(ri) <= 1 )
+        rii(NULL) else if ( length(ri) <= 3 )
+          rii("notest") else
+            rii(ri)
       return()
     }
 
@@ -212,10 +234,11 @@ enrichment_analysis_module <- function(
     ck <- ck[!is.na(ck)]
     col_key( ck )
 
-    rii(unique(ck))
-    if ( length(rii()) <= 1)
-      rii(NULL) else if (length(rii()) <=  3)
-        rii("notest")
+    rk <- unique(ck)
+    if ( length(rk) <= 1)
+      rii(NULL) else if (length(rk) <=  3)
+        rii("notest") else
+          rii(rk)
 
     rp$featureId <- as.factor( val[ as.character( rp$featureId ) ] )
     rp <- rp[!is.na(rp$featureId), ]
@@ -264,8 +287,11 @@ enrichment_analysis_module <- function(
   oraTab <- reactiveVal( NULL )
   observe({
     # R-H3: no ORA while the tab is hidden (vectORATall + jaccard
-    # clustering on every selection change was ~20 s at 1000 sets)
-    if (!output_visible(session, ns("stab-table")))
+    # clustering on every selection change was ~20 s at 1000 sets).
+    # Plain observe(): the .ora_visible() read is a real dependency, so
+    # the visibility flip re-renders whatever the collapse observer
+    # above produced.
+    if (!.ora_visible())
       return(NULL)
     if (is.null(rii())) {
       # R-M6: the selection shrinking below the testable minimum must not

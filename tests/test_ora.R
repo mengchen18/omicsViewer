@@ -320,6 +320,93 @@ ok(!is.null(omv_m6_pre) && !grepl("Too few", omv_m6_pre, fixed = TRUE),
 ok(grepl("Too few feature IDs", omv_m6_post, fixed = TRUE),
    "ORA: shrunk selection shows explicit no-test message (R-M6)")
 
+# ------- R-H3 fix: selection change while the tab is hidden -------
+# The collapse observer used to be an observeEvent: bindEvent.Observer
+# runs the handler inside isolate(), so the output_visible() clientData
+# read inside it never re-triggered the observer. A selection change
+# arriving while the ORA tab was on a different analyst tab was dropped,
+# and switching to ORA kept showing the previous selection's results
+# (volcano rect selection -> stale ORA). The observer is a plain
+# observe() now: while hidden its only dependency is the visibility
+# flag, and the flip re-runs the collapse with the CURRENT selection.
+# MockShinySession cannot report output_*_hidden (unset keys read
+# FALSE/visible, writes do not stick), so both gates are driven through
+# the reactive_visible seam.
+omv_h3_host <- function() function(input, output, session) {
+  ids <- shiny::reactiveVal(head(rownames(omv_reg_fd), 5))  # gs1 block
+  vis <- shiny::reactiveVal(FALSE)                          # tab hidden
+  session$userData$h3_ids <- ids
+  session$userData$h3_vis <- vis
+  omicsViewer:::enrichment_analysis_module(
+    "ora",
+    reactive_featureData = shiny::reactive(omv_reg_fd),
+    reactive_i = ids,
+    reactive_visible = vis)
+  shiny::outputOptions(output, "ora-stab-table", suspendWhenHidden = FALSE)
+}
+omv_h3_t1 <- omv_h3_t2 <- omv_h3_t3 <- NULL
+shiny::testServer(omv_h3_host(), {
+  for (i in 1:10) session$flushReact()
+  omv_h3_t1 <<- tryCatch(output[["ora-stab-table"]],
+                         error = function(e) conditionMessage(e))
+  # selection changes while the tab is hidden (rect selection equivalent)
+  session$userData$h3_ids(rownames(omv_reg_fd)[11:15])      # gs2 block
+  for (i in 1:10) session$flushReact()
+  omv_h3_t2 <<- tryCatch(output[["ora-stab-table"]],
+                         error = function(e) conditionMessage(e))
+  # switch to the ORA tab: the flip must catch up with the new selection
+  session$userData$h3_vis(TRUE)
+  for (i in 1:10) session$flushReact()
+  omv_h3_t3 <<- tryCatch(output[["ora-stab-table"]],
+                         error = function(e) conditionMessage(e))
+})
+ok(!inherits(omv_h3_t1, "json"),
+   "ORA: nothing computed while the tab is hidden (R-H3 gate holds)")
+ok(!inherits(omv_h3_t2, "json"),
+   "ORA: hidden selection change computes nothing (R-H3 perf goal intact)")
+ok(inherits(omv_h3_t3, "json"),
+   "ORA: visibility flip catches up and renders the table (R-H3 fix)")
+
+# Scenario B - the sharp discriminator for the stale-table bug: results
+# computed while visible, selection shrinks below the testable minimum
+# while hidden. On the flip the R-M6 no-test message must REPLACE the
+# stale table (the buggy observeEvent form left the old results on
+# screen because the collapse observer never re-ran).
+omv_h3b_host <- function() function(input, output, session) {
+  ids <- shiny::reactiveVal(head(rownames(omv_reg_fd), 5))
+  vis <- shiny::reactiveVal(TRUE)
+  session$userData$h3_ids <- ids
+  session$userData$h3_vis <- vis
+  omicsViewer:::enrichment_analysis_module(
+    "ora",
+    reactive_featureData = shiny::reactive(omv_reg_fd),
+    reactive_i = ids,
+    reactive_visible = vis)
+  shiny::outputOptions(output, "ora-stab-table", suspendWhenHidden = FALSE)
+  shiny::outputOptions(output, "ora-errorMsg", suspendWhenHidden = FALSE)
+}
+omv_h3b_pre <- omv_h3b_post <- NULL
+shiny::testServer(omv_h3b_host(), {
+  for (i in 1:10) session$flushReact()
+  omv_h3b_pre <<- tryCatch(output[["ora-errorMsg"]],
+                           error = function(e) conditionMessage(e))
+  session$userData$h3_vis(FALSE)                             # leave ORA
+  for (i in 1:10) session$flushReact()
+  # selection shrinks while the tab is hidden
+  session$userData$h3_ids(head(rownames(omv_reg_fd), 1))
+  for (i in 1:10) session$flushReact()
+  # back to the ORA tab: must show the no-test message, not the stale
+  # table from the pre-shrink selection
+  session$userData$h3_vis(TRUE)
+  for (i in 1:10) session$flushReact()
+  omv_h3b_post <<- tryCatch(output[["ora-errorMsg"]],
+                            error = function(e) conditionMessage(e))
+})
+ok(!is.null(omv_h3b_pre) && !grepl("Too few", omv_h3b_pre, fixed = TRUE),
+   "ORA: no spurious no-test message while visible with a full selection (control)")
+ok(grepl("Too few feature IDs", omv_h3b_post, fixed = TRUE),
+   "ORA: hidden shrink replaces the stale table on flip (R-H3 fix, R-M6 path)")
+
 # ---------------- R-H3: jaccardList sparse reimplementation ----------------
 jaccard_ref <- function(x) {
   ax <- unique(unlist(x))
