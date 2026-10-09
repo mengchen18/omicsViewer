@@ -1,5 +1,23 @@
 #' @importFrom shinybusy show_modal_spinner remove_modal_spinner
 #' @importFrom ggplot2 geom_vline
+
+# ggseqlogo 0.2.2 uses ggplot2 idioms that are deprecated upstream:
+# aes_string() (deprecated in ggplot2 3.0.0) and guides(scale = FALSE)
+# (deprecated in ggplot2 3.5.0). Until that is fixed upstream, mute
+# exactly those lifecycle warnings at our call sites; any other warning
+# still surfaces.
+.ggseqlogo_quiet <- function(data) {
+  withCallingHandlers(
+    ggseqlogo::ggseqlogo(data = data),
+    warning = function(w) {
+      msg <- conditionMessage(w)
+      if (grepl("aes_string", msg, fixed = TRUE) ||
+          grepl("argument of `guides()`", msg, fixed = TRUE))
+        invokeRestart("muffleWarning")
+    }
+  )
+}
+
 ptmotif_ui <- function(id) {
 
   ns <- NS(id)
@@ -214,22 +232,22 @@ ptmotif_module <- function(
 
   output$plt <- renderPlot({
     req( logo() )
-    ggseqlogo::ggseqlogo( data = logo() ) + geom_vline(
-      xintercept = (ncol(logo())+1)/2, linetype="dashed", color = "orange", size=1.5
+    .ggseqlogo_quiet( data = logo() ) + geom_vline(
+      xintercept = (ncol(logo())+1)/2, linetype="dashed", color = "orange", linewidth=1.5
       )
   })
 
   output$plt.fg <- renderPlot({
     req( d <- fg.pfm() )
-    ggseqlogo::ggseqlogo( data = d ) + geom_vline(
-      xintercept = (ncol(d)+1)/2, linetype="dashed", color = "orange", size=1.5
+    .ggseqlogo_quiet( data = d ) + geom_vline(
+      xintercept = (ncol(d)+1)/2, linetype="dashed", color = "orange", linewidth=1.5
       )
     })
 
   output$plt.bg <- renderPlot({
     req( d <- bg.pfm() )
-    ggseqlogo::ggseqlogo( data = d ) + geom_vline(
-      xintercept = (ncol(d)+1)/2, linetype="dashed", color = "orange", size=1.5
+    .ggseqlogo_quiet( data = d ) + geom_vline(
+      xintercept = (ncol(d)+1)/2, linetype="dashed", color = "orange", linewidth=1.5
       )
     })
 

@@ -76,13 +76,25 @@ safe_GET <- function(url, query = NULL, timeout = 30, api_name = "API", ...) {
   )
 
   tryCatch({
-    # Perform GET request with timeout
-    response <- httr::GET(
-      url = url,
-      query = query,
-      httr::timeout(timeout),
-      ...
-    )
+    # Perform GET request with timeout.
+    # `query` is only forwarded when non-NULL: httr::GET(url, query = NULL)
+    # REPLACES (i.e. deletes) an existing query string baked into `url` via
+    # handle_url() -> modifyList(), which silently drops URL-baked params
+    # (seen as STRING API HTTP 400 "You have not provided any input").
+    if (is.null(query)) {
+      response <- httr::GET(
+        url = url,
+        httr::timeout(timeout),
+        ...
+      )
+    } else {
+      response <- httr::GET(
+        url = url,
+        query = query,
+        httr::timeout(timeout),
+        ...
+      )
+    }
 
     result$status_code <- httr::status_code(response)
 

@@ -11,16 +11,25 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
     stringsAsFactors = FALSE
   )
   rownames(nd) <- nd$name
-  nd$group <- 1
+  # string groups (not 1/2): the legend prints colourScale.domain() verbatim,
+  # so meaningful labels here become a meaningful legend. Orange marks the
+  # proteins of the enrichment term selected in the table above the network.
+  nd$group <- "Other proteins"
   i <- strsplit(gsa$preferredNames[i], ",")[[1]]
-  nd$group[nd$name %in% i] <- 2
+  nd$group[nd$name %in% i] <- "In selected term"
   links <- data.frame(
     source = fmatch(ntwk$preferredName_A, nd$name) - 1,
     target = fmatch(ntwk$preferredName_B, nd$name) - 1,
     value = (ntwk$score - 0.4)^2 * 10
   )
 
-  colorfunc <- networkD3::JS('colorfunc = function(i) { return i == 1 ? "#64A0C8" : "#E37222" };')
+  # networkD3 >= 0.4 calls colourScale.domain() for the legend, so the
+  # scale must be a real d3 ordinal scale, not a bare JS function (a bare
+  # function renders nodes but crashes the widget at the legend block,
+  # "color.domain is not a function").
+  colorfunc <- networkD3::JS(
+    'd3.scaleOrdinal().domain(["Other proteins", "In selected term"]).range(["#64A0C8", "#E37222"])'
+  )
   lab <- ifelse(label, 1, 0)
   forceNetwork(
     Links = links, Nodes = nd, Source = "source", linkColour = "gray",
