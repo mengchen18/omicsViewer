@@ -122,10 +122,11 @@ attr4selector_module <- function(
   # its child view and the keys register under <prefix>.attr4.*. The five
   # triselector cascades (color/shape/size/tooltip/search) are driven by
   # store_watch selectors; cutoffs and the selected area sync/push through
-  # the standard observers. The hidden search-value select (searchon) is
-  # deliberately NOT registered: its highlight wiring is dormant in the
-  # current UI (searchValue is never fed from input$searchon), so it is
-  # not a functional user-editable widget.
+  # the standard observers. The search-value select (searchon) is NOT
+  # registered either: its highlight (searchValue) is carried by
+  # params$status -> snapshot restore -> pre_search instead of a store
+  # key, keeping the control-plane surface unchanged; the widget wiring
+  # itself lives below (observeEvent(input$searchon)).
   # ------------------------------------------------------------------
   store4 <- NULL
   if (!is.null(store)) {
@@ -519,17 +520,27 @@ attr4selector_module <- function(
     pendingCorner(NULL)
   }, ignoreInit = TRUE)
     
-  # N1: the dead `debounce(foo, 1000)` observe was removed - searchValue
-  # is deliberately not fed from input$searchon (dormant wiring, see the
-  # registration note above); the debounce was re-created and discarded on
-  # every observer run
+  # searchValue: which values of the Search column to circle (open-ring
+  # highlight trace in plotly_scatter). Fed from the searchon select that
+  # appears below the Search cascade once a column is picked. This wiring
+  # used to live in a `debounce(foo, 1000)`-create-and-discard observe that
+  # was removed as dead code - but in shiny >= 1.6 debounce() itself
+  # installs a tracker observer that eagerly runs its argument, so the
+  # removal silently killed gene highlighting (re-installed 2026-10).
+  # A plain observer is enough: searchon is a select, not a text box, so
+  # there is nothing to debounce; reactiveVal dedupes identical reports.
   searchValue <- reactiveVal()
+  observeEvent(input$searchon, {
+    v <- input$searchon
+    searchValue(if (!is.null(v) && length(v) > 0L && any(nzchar(v))) v else NULL)
+  }, ignoreInit = TRUE)
 
   observe({    
     if (is.null(vv())) {
       updateSelectInput(session, "searchon", choices = NULL, selected = NULL)
       searchValue(NULL)
       pre_search(NULL)
+      params$highlight <- NULL
     }
     })
   observe({    
