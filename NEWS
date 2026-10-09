@@ -15,6 +15,25 @@ agent accuracy & control plane follow-ups (optional AI assistant):
    OMICSVIEWER_LLM_MAX_TOKENS cumulative budgets (unlimited-but-logged
    by default); budget_limit joins the log-summarizer error taxonomy
 
+Changes in version 2.1.78
+bug fixes:
+ - attr4: gene highlighting was dead - the searchon -> searchValue
+   wiring was removed as "dead code", but debounce() in shiny >= 1.6
+   installs a tracker observer that eagerly runs its argument, so the
+   idiom really did write input$searchon into searchValue. Re-wired as
+   observeEvent(input$searchon); unsetting the Search cascade now also
+   clears params$highlight. New regression board
+   tests/test_attr4SearchHighlight.R
+ - STRING API repairs: safe_GET() with a NULL query no longer strips
+   URL parameters (fixes the STRING 400); networkD3 ordinal legend
+   scale fix for the enrichment table
+ - PTMotif: .ggseqlogo_quiet() mutes ggseqlogo 0.2.2
+   deprecated-ggplot2 warnings; geom_vline(size=) -> linewidth=
+ - e2e: tracked Playwright regression guard
+   tests/e2e_agent/verify_clear_area.mjs confirming "Clear figure
+   selection" erases the scatter x/y area selection (volcano box-select
+   then Clear, census of plotly select-outline/selectionlayer artifacts)
+
 Changes in version 1.17.2
  - improved status save and reload, still in beta, not all status could be restored. 
  
