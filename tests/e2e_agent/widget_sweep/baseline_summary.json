@@ -1,0 +1,1712 @@
+{
+  "generated": "2026-10-11T12:27:10.883Z",
+  "note": "initial baseline: curated 2026-10-11 sweep (commit bd41a0a), statuses reconciled with live spot-checks (spotcheck_results.json, spotcheck2_results.json); counts: binding 141 success / 11 no-ui-effect / 2 timeout / 16 no-probe, semantic 18 success, dom-only 122 unaddressable, out-of-scope 27",
+  "source_results": "/media/chen/Elements/github/omicsViewer/tests/e2e_agent/widget_sweep/results",
+  "totals": {
+    "cases": 337
+  },
+  "by_category_status": {
+    "binding": {
+      "success": 141,
+      "no-ui-effect": 11,
+      "timeout": 2,
+      "no-probe": 16
+    },
+    "semantic-tool": {
+      "success": 18
+    },
+    "dom-only": {
+      "unaddressable": 122
+    },
+    "out-of-scope": {
+      "out-of-scope": 27
+    }
+  },
+  "cases": {
+    "dataspace.active_tab": {
+      "status": "success",
+      "case": "001-dataspace_active_tab",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.heatmap_colors": {
+      "status": "success",
+      "case": "002-dataspace_cor_heatmap_heatmap_colors",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.scale": {
+      "status": "success",
+      "case": "003-dataspace_cor_heatmap_scale",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.margin_bottom": {
+      "status": "success",
+      "case": "004-dataspace_cor_heatmap_margin_bottom",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.margin_right": {
+      "status": "success",
+      "case": "005-dataspace_cor_heatmap_margin_right",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.col_sort_by": {
+      "status": "success",
+      "case": "006-dataspace_cor_heatmap_col_sort_by",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.cluster_col_dist": {
+      "status": "success",
+      "case": "007-dataspace_cor_heatmap_cluster_col_dist",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.cluster_col_link": {
+      "status": "success",
+      "case": "008-dataspace_cor_heatmap_cluster_col_link",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.row_sort_by": {
+      "status": "success",
+      "case": "009-dataspace_cor_heatmap_row_sort_by",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.cluster_row_dist": {
+      "status": "success",
+      "case": "010-dataspace_cor_heatmap_cluster_row_dist",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.cluster_row_link": {
+      "status": "success",
+      "case": "011-dataspace_cor_heatmap_cluster_row_link",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.annot_col": {
+      "status": "success",
+      "case": "012-dataspace_cor_heatmap_annot_col",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.annot_row": {
+      "status": "success",
+      "case": "013-dataspace_cor_heatmap_annot_row",
+      "category": "binding"
+    },
+    "dataspace.cor_heatmap.tooltip_info": {
+      "status": "success",
+      "case": "014-dataspace_cor_heatmap_tooltip_info",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.heatmap_colors": {
+      "status": "success",
+      "case": "015-dataspace_expr_heatmap_heatmap_colors",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.scale": {
+      "status": "success",
+      "case": "016-dataspace_expr_heatmap_scale",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.margin_bottom": {
+      "status": "success",
+      "case": "017-dataspace_expr_heatmap_margin_bottom",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.margin_right": {
+      "status": "success",
+      "case": "018-dataspace_expr_heatmap_margin_right",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.col_sort_by": {
+      "status": "success",
+      "case": "019-dataspace_expr_heatmap_col_sort_by",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.cluster_col_dist": {
+      "status": "success",
+      "case": "020-dataspace_expr_heatmap_cluster_col_dist",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.cluster_col_link": {
+      "status": "success",
+      "case": "021-dataspace_expr_heatmap_cluster_col_link",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.row_sort_by": {
+      "status": "no-ui-effect",
+      "case": "022-dataspace_expr_heatmap_row_sort_by",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.cluster_row_dist": {
+      "status": "success",
+      "case": "023-dataspace_expr_heatmap_cluster_row_dist",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.cluster_row_link": {
+      "status": "success",
+      "case": "024-dataspace_expr_heatmap_cluster_row_link",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.annot_col": {
+      "status": "success",
+      "case": "025-dataspace_expr_heatmap_annot_col",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.annot_row": {
+      "status": "no-ui-effect",
+      "case": "026-dataspace_expr_heatmap_annot_row",
+      "category": "binding"
+    },
+    "dataspace.expr_heatmap.tooltip_info": {
+      "status": "success",
+      "case": "027-dataspace_expr_heatmap_tooltip_info",
+      "category": "binding"
+    },
+    "dataspace.feature_space.x_analysis": {
+      "status": "timeout",
+      "case": "028-dataspace_feature_space_x_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.x_subset": {
+      "status": "no-probe",
+      "case": "029-dataspace_feature_space_x_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.x_variable": {
+      "status": "timeout",
+      "case": "030-dataspace_feature_space_x_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.y_analysis": {
+      "status": "success",
+      "case": "031-dataspace_feature_space_y_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.y_subset": {
+      "status": "no-probe",
+      "case": "032-dataspace_feature_space_y_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.y_variable": {
+      "status": "success",
+      "case": "033-dataspace_feature_space_y_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.axis_mode": {
+      "status": "success",
+      "case": "034-dataspace_feature_space_axis_mode",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.color_analysis": {
+      "status": "success",
+      "case": "035-dataspace_feature_space_attr4_color_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.color_subset": {
+      "status": "success",
+      "case": "036-dataspace_feature_space_attr4_color_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.color_variable": {
+      "status": "success",
+      "case": "037-dataspace_feature_space_attr4_color_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.shape_analysis": {
+      "status": "success",
+      "case": "038-dataspace_feature_space_attr4_shape_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.shape_subset": {
+      "status": "success",
+      "case": "039-dataspace_feature_space_attr4_shape_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.shape_variable": {
+      "status": "success",
+      "case": "040-dataspace_feature_space_attr4_shape_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.size_analysis": {
+      "status": "success",
+      "case": "041-dataspace_feature_space_attr4_size_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.size_subset": {
+      "status": "success",
+      "case": "042-dataspace_feature_space_attr4_size_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.size_variable": {
+      "status": "success",
+      "case": "043-dataspace_feature_space_attr4_size_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.tooltip_analysis": {
+      "status": "success",
+      "case": "044-dataspace_feature_space_attr4_tooltip_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.tooltip_subset": {
+      "status": "no-probe",
+      "case": "045-dataspace_feature_space_attr4_tooltip_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.tooltip_variable": {
+      "status": "success",
+      "case": "046-dataspace_feature_space_attr4_tooltip_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.search_analysis": {
+      "status": "success",
+      "case": "047-dataspace_feature_space_attr4_search_analysis",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.search_subset": {
+      "status": "success",
+      "case": "048-dataspace_feature_space_attr4_search_subset",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.search_variable": {
+      "status": "success",
+      "case": "049-dataspace_feature_space_attr4_search_variable",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.xcut": {
+      "status": "success",
+      "case": "050-dataspace_feature_space_attr4_xcut",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.ycut": {
+      "status": "success",
+      "case": "051-dataspace_feature_space_attr4_ycut",
+      "category": "binding"
+    },
+    "dataspace.feature_space.attr4.scorner": {
+      "status": "success",
+      "case": "052-dataspace_feature_space_attr4_scorner",
+      "category": "binding"
+    },
+    "dataspace.sample_space.x_analysis": {
+      "status": "success",
+      "case": "053-dataspace_sample_space_x_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.x_subset": {
+      "status": "no-probe",
+      "case": "054-dataspace_sample_space_x_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.x_variable": {
+      "status": "success",
+      "case": "055-dataspace_sample_space_x_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.y_analysis": {
+      "status": "success",
+      "case": "056-dataspace_sample_space_y_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.y_subset": {
+      "status": "no-probe",
+      "case": "057-dataspace_sample_space_y_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.y_variable": {
+      "status": "success",
+      "case": "058-dataspace_sample_space_y_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.axis_mode": {
+      "status": "success",
+      "case": "059-dataspace_sample_space_axis_mode",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.color_analysis": {
+      "status": "success",
+      "case": "060-dataspace_sample_space_attr4_color_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.color_subset": {
+      "status": "success",
+      "case": "061-dataspace_sample_space_attr4_color_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.color_variable": {
+      "status": "success",
+      "case": "062-dataspace_sample_space_attr4_color_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.shape_analysis": {
+      "status": "success",
+      "case": "063-dataspace_sample_space_attr4_shape_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.shape_subset": {
+      "status": "success",
+      "case": "064-dataspace_sample_space_attr4_shape_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.shape_variable": {
+      "status": "success",
+      "case": "065-dataspace_sample_space_attr4_shape_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.size_analysis": {
+      "status": "success",
+      "case": "066-dataspace_sample_space_attr4_size_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.size_subset": {
+      "status": "success",
+      "case": "067-dataspace_sample_space_attr4_size_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.size_variable": {
+      "status": "success",
+      "case": "068-dataspace_sample_space_attr4_size_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.tooltip_analysis": {
+      "status": "success",
+      "case": "069-dataspace_sample_space_attr4_tooltip_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.tooltip_subset": {
+      "status": "success",
+      "case": "070-dataspace_sample_space_attr4_tooltip_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.tooltip_variable": {
+      "status": "success",
+      "case": "071-dataspace_sample_space_attr4_tooltip_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.search_analysis": {
+      "status": "success",
+      "case": "072-dataspace_sample_space_attr4_search_analysis",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.search_subset": {
+      "status": "success",
+      "case": "073-dataspace_sample_space_attr4_search_subset",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.search_variable": {
+      "status": "success",
+      "case": "074-dataspace_sample_space_attr4_search_variable",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.xcut": {
+      "status": "success",
+      "case": "075-dataspace_sample_space_attr4_xcut",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.ycut": {
+      "status": "success",
+      "case": "076-dataspace_sample_space_attr4_ycut",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.scorner": {
+      "status": "success",
+      "case": "077-dataspace_sample_space_attr4_scorner",
+      "category": "binding"
+    },
+    "dataspace.tab_pheno.multi_selection": {
+      "status": "success",
+      "case": "078-dataspace_tab_pheno_multi_selection",
+      "category": "binding"
+    },
+    "dataspace.tab_pheno.columns": {
+      "status": "no-ui-effect",
+      "case": "079-dataspace_tab_pheno_columns",
+      "category": "binding"
+    },
+    "dataspace.tab_pheno.page": {
+      "status": "no-ui-effect",
+      "case": "080-dataspace_tab_pheno_page",
+      "category": "binding"
+    },
+    "dataspace.tab_pheno.column_filters": {
+      "status": "no-ui-effect",
+      "case": "081-dataspace_tab_pheno_column_filters",
+      "category": "binding"
+    },
+    "dataspace.tab_feature.multi_selection": {
+      "status": "success",
+      "case": "082-dataspace_tab_feature_multi_selection",
+      "category": "binding"
+    },
+    "dataspace.tab_feature.columns": {
+      "status": "no-ui-effect",
+      "case": "083-dataspace_tab_feature_columns",
+      "category": "binding"
+    },
+    "dataspace.tab_feature.page": {
+      "status": "success",
+      "case": "084-dataspace_tab_feature_page",
+      "category": "binding"
+    },
+    "dataspace.tab_feature.column_filters": {
+      "status": "success",
+      "case": "085-dataspace_tab_feature_column_filters",
+      "category": "binding"
+    },
+    "dataspace.tab_expr.multi_selection": {
+      "status": "success",
+      "case": "086-dataspace_tab_expr_multi_selection",
+      "category": "binding"
+    },
+    "dataspace.tab_expr.columns": {
+      "status": "no-ui-effect",
+      "case": "087-dataspace_tab_expr_columns",
+      "category": "binding"
+    },
+    "dataspace.tab_expr.page": {
+      "status": "no-ui-effect",
+      "case": "088-dataspace_tab_expr_page",
+      "category": "binding"
+    },
+    "dataspace.tab_expr.column_filters": {
+      "status": "success",
+      "case": "089-dataspace_tab_expr_column_filters",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.heatmap_colors": {
+      "status": "success",
+      "case": "090-dataspace_dyn_heatmap_heatmap_colors",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.scale": {
+      "status": "success",
+      "case": "091-dataspace_dyn_heatmap_scale",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.margin_bottom": {
+      "status": "success",
+      "case": "092-dataspace_dyn_heatmap_margin_bottom",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.margin_right": {
+      "status": "success",
+      "case": "093-dataspace_dyn_heatmap_margin_right",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.col_sort_by": {
+      "status": "no-probe",
+      "case": "094-dataspace_dyn_heatmap_col_sort_by",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.cluster_col_dist": {
+      "status": "success",
+      "case": "095-dataspace_dyn_heatmap_cluster_col_dist",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.cluster_col_link": {
+      "status": "success",
+      "case": "096-dataspace_dyn_heatmap_cluster_col_link",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.row_sort_by": {
+      "status": "no-probe",
+      "case": "097-dataspace_dyn_heatmap_row_sort_by",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.cluster_row_dist": {
+      "status": "success",
+      "case": "098-dataspace_dyn_heatmap_cluster_row_dist",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.cluster_row_link": {
+      "status": "success",
+      "case": "099-dataspace_dyn_heatmap_cluster_row_link",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.annot_col": {
+      "status": "no-probe",
+      "case": "100-dataspace_dyn_heatmap_annot_col",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.annot_row": {
+      "status": "no-probe",
+      "case": "101-dataspace_dyn_heatmap_annot_row",
+      "category": "binding"
+    },
+    "dataspace.dyn_heatmap.tooltip_info": {
+      "status": "no-probe",
+      "case": "102-dataspace_dyn_heatmap_tooltip_info",
+      "category": "binding"
+    },
+    "resultspace.analyst_tab": {
+      "status": "success",
+      "case": "103-resultspace_analyst_tab",
+      "category": "binding"
+    },
+    "resultspace.feature_general.xax_analysis": {
+      "status": "success",
+      "case": "104-resultspace_feature_general_xax_analysis",
+      "category": "binding"
+    },
+    "resultspace.feature_general.xax_subset": {
+      "status": "success",
+      "case": "105-resultspace_feature_general_xax_subset",
+      "category": "binding"
+    },
+    "resultspace.feature_general.xax_variable": {
+      "status": "success",
+      "case": "106-resultspace_feature_general_xax_variable",
+      "category": "binding"
+    },
+    "resultspace.feature_general.plot_type": {
+      "status": "success",
+      "case": "107-resultspace_feature_general_plot_type",
+      "category": "binding"
+    },
+    "resultspace.feature_general.regression_line": {
+      "status": "no-ui-effect",
+      "case": "108-resultspace_feature_general_regression_line",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.color_analysis": {
+      "status": "success",
+      "case": "109-resultspace_feature_general_attr4_color_analysis",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.color_subset": {
+      "status": "success",
+      "case": "110-resultspace_feature_general_attr4_color_subset",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.color_variable": {
+      "status": "success",
+      "case": "111-resultspace_feature_general_attr4_color_variable",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.shape_analysis": {
+      "status": "success",
+      "case": "112-resultspace_feature_general_attr4_shape_analysis",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.shape_subset": {
+      "status": "success",
+      "case": "113-resultspace_feature_general_attr4_shape_subset",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.shape_variable": {
+      "status": "success",
+      "case": "114-resultspace_feature_general_attr4_shape_variable",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.size_analysis": {
+      "status": "success",
+      "case": "115-resultspace_feature_general_attr4_size_analysis",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.size_subset": {
+      "status": "success",
+      "case": "116-resultspace_feature_general_attr4_size_subset",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.size_variable": {
+      "status": "success",
+      "case": "117-resultspace_feature_general_attr4_size_variable",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.tooltip_analysis": {
+      "status": "success",
+      "case": "118-resultspace_feature_general_attr4_tooltip_analysis",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.tooltip_subset": {
+      "status": "success",
+      "case": "119-resultspace_feature_general_attr4_tooltip_subset",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.tooltip_variable": {
+      "status": "success",
+      "case": "120-resultspace_feature_general_attr4_tooltip_variable",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.search_analysis": {
+      "status": "success",
+      "case": "121-resultspace_feature_general_attr4_search_analysis",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.search_subset": {
+      "status": "success",
+      "case": "122-resultspace_feature_general_attr4_search_subset",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.search_variable": {
+      "status": "success",
+      "case": "123-resultspace_feature_general_attr4_search_variable",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.xcut": {
+      "status": "success",
+      "case": "124-resultspace_feature_general_attr4_xcut",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.ycut": {
+      "status": "success",
+      "case": "125-resultspace_feature_general_attr4_ycut",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.scorner": {
+      "status": "success",
+      "case": "126-resultspace_feature_general_attr4_scorner",
+      "category": "binding"
+    },
+    "resultspace.fgsea.xax_analysis": {
+      "status": "success",
+      "case": "127-resultspace_fgsea_xax_analysis",
+      "category": "binding"
+    },
+    "resultspace.fgsea.xax_subset": {
+      "status": "success",
+      "case": "128-resultspace_fgsea_xax_subset",
+      "category": "binding"
+    },
+    "resultspace.fgsea.xax_variable": {
+      "status": "success",
+      "case": "129-resultspace_fgsea_xax_variable",
+      "category": "binding"
+    },
+    "resultspace.fgsea.selected_row": {
+      "status": "no-ui-effect",
+      "case": "130-resultspace_fgsea_selected_row",
+      "category": "binding"
+    },
+    "resultspace.ora.xax_analysis": {
+      "status": "success",
+      "case": "131-resultspace_ora_xax_analysis",
+      "category": "binding"
+    },
+    "resultspace.ora.xax_subset": {
+      "status": "success",
+      "case": "132-resultspace_ora_xax_subset",
+      "category": "binding"
+    },
+    "resultspace.ora.xax_variable": {
+      "status": "success",
+      "case": "133-resultspace_ora_xax_variable",
+      "category": "binding"
+    },
+    "resultspace.ora.selected_row": {
+      "status": "success",
+      "case": "134-resultspace_ora_selected_row",
+      "category": "binding"
+    },
+    "resultspace.stringdb.taxonomy": {
+      "status": "success",
+      "case": "135-resultspace_stringdb_taxonomy",
+      "category": "binding"
+    },
+    "resultspace.stringdb.show_labels": {
+      "status": "success",
+      "case": "136-resultspace_stringdb_show_labels",
+      "category": "binding"
+    },
+    "resultspace.stringdb.selected_row": {
+      "status": "no-probe",
+      "case": "137-resultspace_stringdb_selected_row",
+      "category": "binding"
+    },
+    "resultspace.sample_general.xax_analysis": {
+      "status": "success",
+      "case": "138-resultspace_sample_general_xax_analysis",
+      "category": "binding"
+    },
+    "resultspace.sample_general.xax_subset": {
+      "status": "success",
+      "case": "139-resultspace_sample_general_xax_subset",
+      "category": "binding"
+    },
+    "resultspace.sample_general.xax_variable": {
+      "status": "success",
+      "case": "140-resultspace_sample_general_xax_variable",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.color_analysis": {
+      "status": "success",
+      "case": "141-resultspace_sample_general_attr4_color_analysis",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.color_subset": {
+      "status": "success",
+      "case": "142-resultspace_sample_general_attr4_color_subset",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.color_variable": {
+      "status": "success",
+      "case": "143-resultspace_sample_general_attr4_color_variable",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.shape_analysis": {
+      "status": "success",
+      "case": "144-resultspace_sample_general_attr4_shape_analysis",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.shape_subset": {
+      "status": "success",
+      "case": "145-resultspace_sample_general_attr4_shape_subset",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.shape_variable": {
+      "status": "success",
+      "case": "146-resultspace_sample_general_attr4_shape_variable",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.size_analysis": {
+      "status": "success",
+      "case": "147-resultspace_sample_general_attr4_size_analysis",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.size_subset": {
+      "status": "success",
+      "case": "148-resultspace_sample_general_attr4_size_subset",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.size_variable": {
+      "status": "success",
+      "case": "149-resultspace_sample_general_attr4_size_variable",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.tooltip_analysis": {
+      "status": "success",
+      "case": "150-resultspace_sample_general_attr4_tooltip_analysis",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.tooltip_subset": {
+      "status": "success",
+      "case": "151-resultspace_sample_general_attr4_tooltip_subset",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.tooltip_variable": {
+      "status": "success",
+      "case": "152-resultspace_sample_general_attr4_tooltip_variable",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.search_analysis": {
+      "status": "success",
+      "case": "153-resultspace_sample_general_attr4_search_analysis",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.search_subset": {
+      "status": "success",
+      "case": "154-resultspace_sample_general_attr4_search_subset",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.search_variable": {
+      "status": "success",
+      "case": "155-resultspace_sample_general_attr4_search_variable",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.xcut": {
+      "status": "success",
+      "case": "156-resultspace_sample_general_attr4_xcut",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.ycut": {
+      "status": "success",
+      "case": "157-resultspace_sample_general_attr4_ycut",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.scorner": {
+      "status": "success",
+      "case": "158-resultspace_sample_general_attr4_scorner",
+      "category": "binding"
+    },
+    "resultspace.sample_general.survival_censor": {
+      "status": "no-ui-effect",
+      "case": "159-resultspace_sample_general_survival_censor",
+      "category": "binding"
+    },
+    "resultspace.sample_general.batch_show_phenotype": {
+      "status": "success",
+      "case": "160-resultspace_sample_general_batch_show_phenotype",
+      "category": "binding"
+    },
+    "resultspace.sample_general.batch_show_features": {
+      "status": "success",
+      "case": "161-resultspace_sample_general_batch_show_features",
+      "category": "binding"
+    },
+    "resultspace.sample_general.batch_phenotype_selected_row": {
+      "status": "no-probe",
+      "case": "162-resultspace_sample_general_batch_phenotype_selected_row",
+      "category": "binding"
+    },
+    "resultspace.sample_general.batch_feature_selected_row": {
+      "status": "no-probe",
+      "case": "163-resultspace_sample_general_batch_feature_selected_row",
+      "category": "binding"
+    },
+    "resultspace.geneshot.term": {
+      "status": "success",
+      "case": "164-resultspace_geneshot_term",
+      "category": "binding"
+    },
+    "resultspace.geneshot.xax_analysis": {
+      "status": "success",
+      "case": "165-resultspace_geneshot_xax_analysis",
+      "category": "binding"
+    },
+    "resultspace.geneshot.xax_subset": {
+      "status": "success",
+      "case": "166-resultspace_geneshot_xax_subset",
+      "category": "binding"
+    },
+    "resultspace.geneshot.xax_variable": {
+      "status": "success",
+      "case": "167-resultspace_geneshot_xax_variable",
+      "category": "binding"
+    },
+    "resultspace.ptm.xax_analysis": {
+      "status": "no-probe",
+      "case": "168-resultspace_ptm_xax_analysis",
+      "category": "binding"
+    },
+    "resultspace.ptm.xax_subset": {
+      "status": "no-probe",
+      "case": "169-resultspace_ptm_xax_subset",
+      "category": "binding"
+    },
+    "resultspace.ptm.xax_variable": {
+      "status": "no-probe",
+      "case": "170-resultspace_ptm_xax_variable",
+      "category": "binding"
+    },
+    "tool:get_omics_viewer_state": {
+      "status": "success",
+      "case": "171-tool_get_omics_viewer_state",
+      "category": "semantic-tool"
+    },
+    "tool:find_controls(color)": {
+      "status": "success",
+      "case": "172-tool_find_controls_color",
+      "category": "semantic-tool"
+    },
+    "tool:describe_control(axis_mode)": {
+      "status": "success",
+      "case": "173-tool_describe_control_axis_mode",
+      "category": "semantic-tool"
+    },
+    "tool:set_scatter_view(feature,quick)": {
+      "status": "success",
+      "case": "174-tool_set_scatter_view_feature_quick",
+      "category": "semantic-tool"
+    },
+    "tool:set_scatter_view(feature,axes)": {
+      "status": "success",
+      "case": "175-tool_set_scatter_view_feature_axes",
+      "category": "semantic-tool"
+    },
+    "tool:set_scatter_view(sample,quick)": {
+      "status": "success",
+      "case": "176-tool_set_scatter_view_sample_quick",
+      "category": "semantic-tool"
+    },
+    "tool:set_scatter_view(sample,axes)": {
+      "status": "success",
+      "case": "177-tool_set_scatter_view_sample_axes",
+      "category": "semantic-tool"
+    },
+    "tool:set_omics_viewer_state(data_space_tab)": {
+      "status": "success",
+      "case": "178-tool_set_omics_viewer_state_data_space_tab",
+      "category": "semantic-tool"
+    },
+    "tool:set_omics_viewer_state(analysis_space_tab)": {
+      "status": "success",
+      "case": "179-tool_set_omics_viewer_state_analysis_space_tab",
+      "category": "semantic-tool"
+    },
+    "tool:set_omics_viewer_state(features)": {
+      "status": "success",
+      "case": "180-tool_set_omics_viewer_state_features",
+      "category": "semantic-tool"
+    },
+    "tool:set_omics_viewer_state(samples)": {
+      "status": "success",
+      "case": "181-tool_set_omics_viewer_state_samples",
+      "category": "semantic-tool"
+    },
+    "tool:set_omics_viewer_state(features,clear)": {
+      "status": "success",
+      "case": "182-tool_set_omics_viewer_state_features_clear",
+      "category": "semantic-tool"
+    },
+    "tool:set_enrichment_parameters(ora)": {
+      "status": "success",
+      "case": "183-tool_set_enrichment_parameters_ora",
+      "category": "semantic-tool"
+    },
+    "tool:set_enrichment_parameters(fgsea)": {
+      "status": "success",
+      "case": "184-tool_set_enrichment_parameters_fgsea",
+      "category": "semantic-tool"
+    },
+    "tool:set_enrichment_parameters(bogus_pathway)": {
+      "status": "success",
+      "case": "185-tool_set_enrichment_parameters_bogus_pathway",
+      "category": "semantic-tool"
+    },
+    "tool:set_table_view(feature_table)": {
+      "status": "success",
+      "case": "186-tool_set_table_view_feature_table",
+      "category": "semantic-tool"
+    },
+    "tool:set_table_view(sample_table,clear)": {
+      "status": "success",
+      "case": "187-tool_set_table_view_sample_table_clear",
+      "category": "semantic-tool"
+    },
+    "tool:set_table_view(expression_table)": {
+      "status": "success",
+      "case": "188-tool_set_table_view_expression_table",
+      "category": "semantic-tool"
+    },
+    "dom:app-selectFile": {
+      "status": "unaddressable",
+      "case": "189-dom_app_selectFile",
+      "category": "dom-only"
+    },
+    "dom:app-snapshot": {
+      "status": "unaddressable",
+      "case": "190-dom_app_snapshot",
+      "category": "dom-only"
+    },
+    "dom:app-assistant-toggle": {
+      "status": "unaddressable",
+      "case": "191-dom_app_assistant_toggle",
+      "category": "dom-only"
+    },
+    "dom:app-assistant-new_chat": {
+      "status": "unaddressable",
+      "case": "192-dom_app_assistant_new_chat",
+      "category": "dom-only"
+    },
+    "dom:app-assistant-settings": {
+      "status": "unaddressable",
+      "case": "193-dom_app_assistant_settings",
+      "category": "dom-only"
+    },
+    "dom:app-assistant-close": {
+      "status": "unaddressable",
+      "case": "194-dom_app_assistant_close",
+      "category": "dom-only"
+    },
+    "dom:app-assistant-enable_logging": {
+      "status": "unaddressable",
+      "case": "195-dom_app_assistant_enable_logging",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-axisMode": {
+      "status": "unaddressable",
+      "case": "196-dom_app_dataspace_feature_space_axisMode",
+      "category": "dom-only"
+    },
+    "dom:btn-21211889": {
+      "status": "unaddressable",
+      "case": "197-dom_btn_21211889",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectColorUI-analysis": {
+      "status": "unaddressable",
+      "case": "198-dom_app_dataspace_feature_space_a4selector_selectColorUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectColorUI-subset": {
+      "status": "unaddressable",
+      "case": "199-dom_app_dataspace_feature_space_a4selector_selectColorUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectShapeUI-analysis": {
+      "status": "unaddressable",
+      "case": "200-dom_app_dataspace_feature_space_a4selector_selectShapeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectShapeUI-subset": {
+      "status": "unaddressable",
+      "case": "201-dom_app_dataspace_feature_space_a4selector_selectShapeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectSizeUI-analysis": {
+      "status": "unaddressable",
+      "case": "202-dom_app_dataspace_feature_space_a4selector_selectSizeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectSizeUI-subset": {
+      "status": "unaddressable",
+      "case": "203-dom_app_dataspace_feature_space_a4selector_selectSizeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectTooltipUI-subset": {
+      "status": "unaddressable",
+      "case": "204-dom_app_dataspace_feature_space_a4selector_selectTooltipUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectSearchCol-analysis": {
+      "status": "unaddressable",
+      "case": "205-dom_app_dataspace_feature_space_a4selector_selectSearchCol_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-selectSearchCol-subset": {
+      "status": "unaddressable",
+      "case": "206-dom_app_dataspace_feature_space_a4selector_selectSearchCol_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-showSearchBox": {
+      "status": "unaddressable",
+      "case": "207-dom_app_dataspace_feature_space_a4selector_showSearchBox",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-a4selector-searchon": {
+      "status": "unaddressable",
+      "case": "208-dom_app_dataspace_feature_space_a4selector_searchon",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-axisModeTabs": {
+      "status": "unaddressable",
+      "case": "209-dom_app_dataspace_feature_space_axisModeTabs",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-clear": {
+      "status": "unaddressable",
+      "case": "210-dom_app_dataspace_feature_space_clear",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_feature-clear": {
+      "status": "unaddressable",
+      "case": "211-dom_app_dataspace_tab_feature_clear",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_feature-addcolPanel": {
+      "status": "unaddressable",
+      "case": "212-dom_app_dataspace_tab_feature_addcolPanel",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-axisMode": {
+      "status": "unaddressable",
+      "case": "213-dom_app_dataspace_sample_space_axisMode",
+      "category": "dom-only"
+    },
+    "dom:btn-893594663": {
+      "status": "unaddressable",
+      "case": "214-dom_btn_893594663",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectColorUI-analysis": {
+      "status": "unaddressable",
+      "case": "215-dom_app_dataspace_sample_space_a4selector_selectColorUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectColorUI-subset": {
+      "status": "unaddressable",
+      "case": "216-dom_app_dataspace_sample_space_a4selector_selectColorUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectShapeUI-analysis": {
+      "status": "unaddressable",
+      "case": "217-dom_app_dataspace_sample_space_a4selector_selectShapeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectShapeUI-subset": {
+      "status": "unaddressable",
+      "case": "218-dom_app_dataspace_sample_space_a4selector_selectShapeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectSizeUI-analysis": {
+      "status": "unaddressable",
+      "case": "219-dom_app_dataspace_sample_space_a4selector_selectSizeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectSizeUI-subset": {
+      "status": "unaddressable",
+      "case": "220-dom_app_dataspace_sample_space_a4selector_selectSizeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectTooltipUI-analysis": {
+      "status": "unaddressable",
+      "case": "221-dom_app_dataspace_sample_space_a4selector_selectTooltipUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectTooltipUI-subset": {
+      "status": "unaddressable",
+      "case": "222-dom_app_dataspace_sample_space_a4selector_selectTooltipUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectSearchCol-analysis": {
+      "status": "unaddressable",
+      "case": "223-dom_app_dataspace_sample_space_a4selector_selectSearchCol_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-selectSearchCol-subset": {
+      "status": "unaddressable",
+      "case": "224-dom_app_dataspace_sample_space_a4selector_selectSearchCol_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-showSearchBox": {
+      "status": "unaddressable",
+      "case": "225-dom_app_dataspace_sample_space_a4selector_showSearchBox",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-a4selector-searchon": {
+      "status": "unaddressable",
+      "case": "226-dom_app_dataspace_sample_space_a4selector_searchon",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-axisModeTabs": {
+      "status": "unaddressable",
+      "case": "227-dom_app_dataspace_sample_space_axisModeTabs",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-tris_main_scatter1-subset": {
+      "status": "unaddressable",
+      "case": "228-dom_app_dataspace_sample_space_tris_main_scatter1_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-tris_main_scatter2-subset": {
+      "status": "unaddressable",
+      "case": "229-dom_app_dataspace_sample_space_tris_main_scatter2_subset",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-clear": {
+      "status": "unaddressable",
+      "case": "230-dom_app_dataspace_sample_space_clear",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_pheno-clear": {
+      "status": "unaddressable",
+      "case": "231-dom_app_dataspace_tab_pheno_clear",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_pheno-addcolPanel": {
+      "status": "unaddressable",
+      "case": "232-dom_app_dataspace_tab_pheno_addcolPanel",
+      "category": "dom-only"
+    },
+    "dom:mydropdown2": {
+      "status": "unaddressable",
+      "case": "233-dom_mydropdown2",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-corheatmapViewer-clear": {
+      "status": "unaddressable",
+      "case": "234-dom_app_dataspace_corheatmapViewer_clear",
+      "category": "dom-only"
+    },
+    "dom:mydropdown": {
+      "status": "unaddressable",
+      "case": "235-dom_mydropdown",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-heatmapViewer-rowSortBy": {
+      "status": "unaddressable",
+      "case": "236-dom_app_dataspace_heatmapViewer_rowSortBy",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-heatmapViewer-annotRow": {
+      "status": "unaddressable",
+      "case": "237-dom_app_dataspace_heatmapViewer_annotRow",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-heatmapViewer-clear": {
+      "status": "unaddressable",
+      "case": "238-dom_app_dataspace_heatmapViewer_clear",
+      "category": "dom-only"
+    },
+    "dom:mydropdown3": {
+      "status": "unaddressable",
+      "case": "239-dom_mydropdown3",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-dynheatmapViewer-colSortBy": {
+      "status": "unaddressable",
+      "case": "240-dom_app_dataspace_dynheatmapViewer_colSortBy",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-dynheatmapViewer-rowSortBy": {
+      "status": "unaddressable",
+      "case": "241-dom_app_dataspace_dynheatmapViewer_rowSortBy",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-dynheatmapViewer-annotCol": {
+      "status": "unaddressable",
+      "case": "242-dom_app_dataspace_dynheatmapViewer_annotCol",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-dynheatmapViewer-annotRow": {
+      "status": "unaddressable",
+      "case": "243-dom_app_dataspace_dynheatmapViewer_annotRow",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-dynheatmapViewer-tooltipInfo": {
+      "status": "unaddressable",
+      "case": "244-dom_app_dataspace_dynheatmapViewer_tooltipInfo",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-dynheatmapViewer-clear": {
+      "status": "unaddressable",
+      "case": "245-dom_app_dataspace_dynheatmapViewer_clear",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_expr-clear": {
+      "status": "unaddressable",
+      "case": "246-dom_app_dataspace_tab_expr_clear",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_expr-addcolPanel": {
+      "status": "unaddressable",
+      "case": "247-dom_app_dataspace_tab_expr_addcolPanel",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-quickViews-badge_pca": {
+      "status": "unaddressable",
+      "case": "248-dom_app_dataspace_feature_space_quickViews_badge_pca",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-quickViews-badge_cor_MDR": {
+      "status": "unaddressable",
+      "case": "249-dom_app_dataspace_feature_space_quickViews_badge_cor_MDR",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-quickViews-badge_cor_Doubleing.Time": {
+      "status": "unaddressable",
+      "case": "250-dom_app_dataspace_feature_space_quickViews_badge_cor_Doubleing_Time",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-quickViews-badge_volcano_RE_vs_ME": {
+      "status": "unaddressable",
+      "case": "251-dom_app_dataspace_feature_space_quickViews_badge_volcano_RE_vs_ME",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-quickViews-badge_volcano_RE_vs_LE": {
+      "status": "unaddressable",
+      "case": "252-dom_app_dataspace_feature_space_quickViews_badge_volcano_RE_vs_LE",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-feature_space-quickViews-badge_volcano_MT_vs_WT": {
+      "status": "unaddressable",
+      "case": "253-dom_app_dataspace_feature_space_quickViews_badge_volcano_MT_vs_WT",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-tris_feature_general-analysis": {
+      "status": "unaddressable",
+      "case": "254-dom_app_resultspace_feature_general_tris_feature_general_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-tris_feature_general-subset": {
+      "status": "unaddressable",
+      "case": "255-dom_app_resultspace_feature_general_tris_feature_general_subset",
+      "category": "dom-only"
+    },
+    "dom:btn-627614942": {
+      "status": "unaddressable",
+      "case": "256-dom_btn_627614942",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectColorUI-analysis": {
+      "status": "unaddressable",
+      "case": "257-dom_app_resultspace_feature_general_a4_gf_selectColorUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectColorUI-subset": {
+      "status": "unaddressable",
+      "case": "258-dom_app_resultspace_feature_general_a4_gf_selectColorUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectShapeUI-analysis": {
+      "status": "unaddressable",
+      "case": "259-dom_app_resultspace_feature_general_a4_gf_selectShapeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectShapeUI-subset": {
+      "status": "unaddressable",
+      "case": "260-dom_app_resultspace_feature_general_a4_gf_selectShapeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectSizeUI-analysis": {
+      "status": "unaddressable",
+      "case": "261-dom_app_resultspace_feature_general_a4_gf_selectSizeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectSizeUI-subset": {
+      "status": "unaddressable",
+      "case": "262-dom_app_resultspace_feature_general_a4_gf_selectSizeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectTooltipUI-analysis": {
+      "status": "unaddressable",
+      "case": "263-dom_app_resultspace_feature_general_a4_gf_selectTooltipUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectTooltipUI-subset": {
+      "status": "unaddressable",
+      "case": "264-dom_app_resultspace_feature_general_a4_gf_selectTooltipUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectSearchCol-analysis": {
+      "status": "unaddressable",
+      "case": "265-dom_app_resultspace_feature_general_a4_gf_selectSearchCol_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-selectSearchCol-subset": {
+      "status": "unaddressable",
+      "case": "266-dom_app_resultspace_feature_general_a4_gf_selectSearchCol_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-showSearchBox": {
+      "status": "unaddressable",
+      "case": "267-dom_app_resultspace_feature_general_a4_gf_showSearchBox",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-a4_gf-searchon": {
+      "status": "unaddressable",
+      "case": "268-dom_app_resultspace_feature_general_a4_gf_searchon",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ora-tris_ora-analysis": {
+      "status": "unaddressable",
+      "case": "269-dom_app_resultspace_ora_tris_ora_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ora-tris_ora-subset": {
+      "status": "unaddressable",
+      "case": "270-dom_app_resultspace_ora_tris_ora_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-stringdb-run": {
+      "status": "unaddressable",
+      "case": "271-dom_app_resultspace_stringdb_run",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ptm-tris_seqlogo-analysis": {
+      "status": "unaddressable",
+      "case": "272-dom_app_resultspace_ptm_tris_seqlogo_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ptm-tris_seqlogo-subset": {
+      "status": "unaddressable",
+      "case": "273-dom_app_resultspace_ptm_tris_seqlogo_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ptm-tris_seqlogo-variable": {
+      "status": "unaddressable",
+      "case": "274-dom_app_resultspace_ptm_tris_seqlogo_variable",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-geneshotTab-submit": {
+      "status": "unaddressable",
+      "case": "275-dom_app_resultspace_geneshotTab_submit",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-geneshotTab-mapIdPanel": {
+      "status": "unaddressable",
+      "case": "276-dom_app_resultspace_geneshotTab_mapIdPanel",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-geneshotTab-geneNameCol-analysis": {
+      "status": "unaddressable",
+      "case": "277-dom_app_resultspace_geneshotTab_geneNameCol_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-geneshotTab-geneNameCol-subset": {
+      "status": "unaddressable",
+      "case": "278-dom_app_resultspace_geneshotTab_geneNameCol_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-tris_sample_general-analysis": {
+      "status": "unaddressable",
+      "case": "279-dom_app_resultspace_sample_general_tris_sample_general_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-tris_sample_general-subset": {
+      "status": "unaddressable",
+      "case": "280-dom_app_resultspace_sample_general_tris_sample_general_subset",
+      "category": "dom-only"
+    },
+    "dom:btn-46368303": {
+      "status": "unaddressable",
+      "case": "281-dom_btn_46368303",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectColorUI-analysis": {
+      "status": "unaddressable",
+      "case": "282-dom_app_resultspace_sample_general_a4_gp_selectColorUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectColorUI-subset": {
+      "status": "unaddressable",
+      "case": "283-dom_app_resultspace_sample_general_a4_gp_selectColorUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectShapeUI-analysis": {
+      "status": "unaddressable",
+      "case": "284-dom_app_resultspace_sample_general_a4_gp_selectShapeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectShapeUI-subset": {
+      "status": "unaddressable",
+      "case": "285-dom_app_resultspace_sample_general_a4_gp_selectShapeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectSizeUI-analysis": {
+      "status": "unaddressable",
+      "case": "286-dom_app_resultspace_sample_general_a4_gp_selectSizeUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectSizeUI-subset": {
+      "status": "unaddressable",
+      "case": "287-dom_app_resultspace_sample_general_a4_gp_selectSizeUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectTooltipUI-analysis": {
+      "status": "unaddressable",
+      "case": "288-dom_app_resultspace_sample_general_a4_gp_selectTooltipUI_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectTooltipUI-subset": {
+      "status": "unaddressable",
+      "case": "289-dom_app_resultspace_sample_general_a4_gp_selectTooltipUI_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectSearchCol-analysis": {
+      "status": "unaddressable",
+      "case": "290-dom_app_resultspace_sample_general_a4_gp_selectSearchCol_analysis",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-selectSearchCol-subset": {
+      "status": "unaddressable",
+      "case": "291-dom_app_resultspace_sample_general_a4_gp_selectSearchCol_subset",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-showSearchBox": {
+      "status": "unaddressable",
+      "case": "292-dom_app_resultspace_sample_general_a4_gp_showSearchBox",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-sample_general-a4_gp-searchon": {
+      "status": "unaddressable",
+      "case": "293-dom_app_resultspace_sample_general_a4_gp_searchon",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-quickViews-badge_pca": {
+      "status": "unaddressable",
+      "case": "294-dom_app_dataspace_sample_space_quickViews_badge_pca",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-sample_space-main_scatterOutput-showRegLine": {
+      "status": "unaddressable",
+      "case": "295-dom_app_dataspace_sample_space_main_scatterOutput_showRegLine",
+      "category": "dom-only"
+    },
+    "dom:app-snapshot_name": {
+      "status": "unaddressable",
+      "case": "296-dom_app_snapshot_name",
+      "category": "dom-only"
+    },
+    "dom:app-snapshot_save": {
+      "status": "unaddressable",
+      "case": "297-dom_app_snapshot_save",
+      "category": "dom-only"
+    },
+    "dom:app-snapshot_include_chat": {
+      "status": "unaddressable",
+      "case": "298-dom_app_snapshot_include_chat",
+      "category": "dom-only"
+    },
+    "dom:button:Shortcut": {
+      "status": "unaddressable",
+      "case": "299-dom_button_Shortcut",
+      "category": "dom-only"
+    },
+    "dom:button:Custom": {
+      "status": "unaddressable",
+      "case": "300-dom_button_Custom",
+      "category": "dom-only"
+    },
+    "dom:button:Bees": {
+      "status": "unaddressable",
+      "case": "301-dom_button_Bees",
+      "category": "dom-only"
+    },
+    "dom:button:Curve": {
+      "status": "unaddressable",
+      "case": "302-dom_button_Curve",
+      "category": "dom-only"
+    },
+    "dom:app-download": {
+      "status": "unaddressable",
+      "case": "303-dom_app_download",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_feature-downloadTable-downloadData": {
+      "status": "unaddressable",
+      "case": "304-dom_app_dataspace_tab_feature_downloadTable_downloadData",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_pheno-downloadTable-downloadData": {
+      "status": "unaddressable",
+      "case": "305-dom_app_dataspace_tab_pheno_downloadTable_downloadData",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-feature_general-mtab-downloadData": {
+      "status": "unaddressable",
+      "case": "306-dom_app_resultspace_feature_general_mtab_downloadData",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-tab_expr-downloadTable-downloadData": {
+      "status": "unaddressable",
+      "case": "307-dom_app_dataspace_tab_expr_downloadTable_downloadData",
+      "category": "dom-only"
+    },
+    "dom:app-dataspace-gsList-stab-downloadData": {
+      "status": "unaddressable",
+      "case": "308-dom_app_dataspace_gsList_stab_downloadData",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ora-stab-downloadData": {
+      "status": "unaddressable",
+      "case": "309-dom_app_resultspace_ora_stab_downloadData",
+      "category": "dom-only"
+    },
+    "dom:app-resultspace-ptm-seqtable-downloadData": {
+      "status": "unaddressable",
+      "case": "310-dom_app_resultspace_ptm_seqtable_downloadData",
+      "category": "dom-only"
+    },
+    "gesture:app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output": {
+      "status": "out-of-scope",
+      "case": "311-gesture_app_dataspace_feature_space_main_scatterOutput_plotly_scatter_output",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-tab_feature-table": {
+      "status": "out-of-scope",
+      "case": "312-gesture_app_dataspace_tab_feature_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-sample_space-main_scatterOutput-plotly.scatter.output": {
+      "status": "out-of-scope",
+      "case": "313-gesture_app_dataspace_sample_space_main_scatterOutput_plotly_scatter_output",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-tab_pheno-table": {
+      "status": "out-of-scope",
+      "case": "314-gesture_app_dataspace_tab_pheno_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-tab_expr-table": {
+      "status": "out-of-scope",
+      "case": "315-gesture_app_dataspace_tab_expr_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-gsList-stab-table": {
+      "status": "out-of-scope",
+      "case": "316-gesture_app_dataspace_gsList_stab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-feature_space-main_scatterOutput-testResult": {
+      "status": "out-of-scope",
+      "case": "317-gesture_app_dataspace_feature_space_main_scatterOutput_testResult",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-feature_general-mtab-table": {
+      "status": "out-of-scope",
+      "case": "318-gesture_app_resultspace_feature_general_mtab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-ora-stab-table": {
+      "status": "out-of-scope",
+      "case": "319-gesture_app_resultspace_ora_stab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-ora-overlapTab-table": {
+      "status": "out-of-scope",
+      "case": "320-gesture_app_resultspace_ora_overlapTab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-fgsea-bplot": {
+      "status": "out-of-scope",
+      "case": "321-gesture_app_resultspace_fgsea_bplot",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-fgsea-stab-table": {
+      "status": "out-of-scope",
+      "case": "322-gesture_app_resultspace_fgsea_stab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-rescurve-param-table": {
+      "status": "out-of-scope",
+      "case": "323-gesture_app_resultspace_rescurve_param_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-rescurve-feature-table": {
+      "status": "out-of-scope",
+      "case": "324-gesture_app_resultspace_rescurve_feature_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-stringdb-strtab-table": {
+      "status": "out-of-scope",
+      "case": "325-gesture_app_resultspace_stringdb_strtab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-stringdb-network": {
+      "status": "out-of-scope",
+      "case": "326-gesture_app_resultspace_stringdb_network",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-geneshotTab-plt": {
+      "status": "out-of-scope",
+      "case": "327-gesture_app_resultspace_geneshotTab_plt",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-geneshotTab-autorif-table": {
+      "status": "out-of-scope",
+      "case": "328-gesture_app_resultspace_geneshotTab_autorif_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-sample_general-msatab-table": {
+      "status": "out-of-scope",
+      "case": "329-gesture_app_resultspace_sample_general_msatab_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-dataspace-sample_space-main_scatterOutput-testResult": {
+      "status": "out-of-scope",
+      "case": "330-gesture_app_dataspace_sample_space_main_scatterOutput_testResult",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-feature_general-feature_general_boxplotly-boxplotly": {
+      "status": "out-of-scope",
+      "case": "331-gesture_app_resultspace_feature_general_feature_general_boxplotly_boxplotly",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-ptm-seqtable-table": {
+      "status": "out-of-scope",
+      "case": "332-gesture_app_resultspace_ptm_seqtable_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-ptm-seqtable_rat-table": {
+      "status": "out-of-scope",
+      "case": "333-gesture_app_resultspace_ptm_seqtable_rat_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-ptm-seqtable_fg-table": {
+      "status": "out-of-scope",
+      "case": "334-gesture_app_resultspace_ptm_seqtable_fg_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-ptm-seqtable_bg-table": {
+      "status": "out-of-scope",
+      "case": "335-gesture_app_resultspace_ptm_seqtable_bg_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-resultspace-sample_general-batch_comp-phenotype_table-table": {
+      "status": "out-of-scope",
+      "case": "336-gesture_app_resultspace_sample_general_batch_comp_phenotype_table_table",
+      "category": "out-of-scope"
+    },
+    "gesture:app-tab_saveSS": {
+      "status": "out-of-scope",
+      "case": "337-gesture_app_tab_saveSS",
+      "category": "out-of-scope"
+    }
+  }
+}

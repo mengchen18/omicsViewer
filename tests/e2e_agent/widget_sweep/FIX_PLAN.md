@@ -30,7 +30,7 @@ acceptance matrix, not as residual debt.
 
 ## Phase 0 — turn the sweep into the regression gate (prereq, ~0.5 d)
 
-**WP-0 Sweep as acceptance suite.**
+**WP-0 Sweep as acceptance suite. — DONE (2026-10-12)**
 - Commit `widget_sweep/` (harness + baseline artifacts); add a runner
   `tests/e2e_agent/widget_sweep/run_regression.sh` that boots the app,
   runs `sweep_harness.mjs`, and diffs the status matrix against
@@ -42,6 +42,19 @@ acceptance matrix, not as residual debt.
   intended improvements, review the diff in the PR.
 - Guard: none (it IS the guard). Acceptance: one command, deterministic
   pass on unchanged master.
+
+Implemented as: `run_regression.sh` (orchestrator: NOT_CRAN gate, env
+checks with clean skip, port-7794 hygiene, optional `--install`, auto
+retry of regressed cases in isolation), `check_regression.mjs` (diff
+engine + `--selftest`, failure rules above plus count guards for
+`no-probe`/`rejected`/`unchanged`/`error`), `refresh_baseline.mjs`
+(deliberate baseline refresh from a reviewed results dir), and
+`baseline_summary.json` (337 per-case statuses from the curated run).
+Harness gained two additive knobs: `WIDGET_SWEEP_OUT` (scratch output so
+gate runs never clobber committed evidence) and `WIDGET_SWEEP_ONLY`
+(caseId filter for retries/spot runs). Workflow per WP: run gate → review
+transitions → `refresh_baseline.mjs --results <scratch>/results` only for
+the WP's intended improvements → commit baseline with the code change.
 
 ---
 

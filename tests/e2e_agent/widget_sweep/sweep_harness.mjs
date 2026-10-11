@@ -34,7 +34,11 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(here, '../../..');
 const EXTDATA = path.join(REPO, 'inst/extdata');
 const PORT = 7794;
-const OUT = here;
+// Output redirection: the regression gate (run_regression.sh) sets
+// WIDGET_SWEEP_OUT so a gate run writes to a scratch directory instead of
+// clobbering the committed evidence artifacts (cases/, results/,
+// summary.json, ...). Default: this directory (full-evidence mode).
+const OUT = process.env.WIDGET_SWEEP_OUT || here;
 const CASES = path.join(OUT, 'cases');
 const RESULTS = path.join(OUT, 'results');
 const ART = path.join(OUT, 'artifacts');
@@ -42,6 +46,11 @@ for (const d of [CASES, RESULTS, ART]) fs.mkdirSync(d, { recursive: true });
 
 const EFFECT_WAIT_MS = 30000;   // > 30 s => failed (user rule)
 const POLL_MS = 250;
+// Optional case filter: comma-separated substrings matched against caseId
+// (e.g. WIDGET_SWEEP_ONLY=dataspace.expr_heatmap.row_sort_by,030-dataspace).
+// Used by run_regression.sh for targeted retries and by developers for
+// spot re-runs. Unset / empty = full sweep (the regression-gate default).
+const ONLY = (process.env.WIDGET_SWEEP_ONLY || '').split(',').map(s => s.trim()).filter(Boolean);
 
 // ground-truth ids from demo.RDS (for selection probes)
 const FEATURE_IDS = ['X32.TYW5', 'X52.CNOT1', 'X55.MAP1LC3B.MAP1LC3B2'];
@@ -414,6 +423,7 @@ function pickProbe(binding, current, marker) {
 let caseCounter = 0;
 const slug = s => String(s).replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
 async function runCase(page, caseSpec, consoleBuf) {
+  if (ONLY.length && !ONLY.some(s => String(caseSpec.caseId).includes(s))) return null;
   caseCounter += 1;
   const num = String(caseCounter).padStart(3, '0');
   const name = `${num}-${slug(caseSpec.caseId)}`;
@@ -600,13 +610,14 @@ try {
       const base = (typeof current === 'number' && isFinite(current)) ? current : 0;
       spec.retry = () => ({ patch: { [b.id]: Math.max(0, base + probe.retryDelta) } });
     }
-    bindingResults.push(await runCase(page, spec, consoleBuf));
+    const bres = await runCase(page, spec, consoleBuf);
+    if (bres) bindingResults.push(bres);
   }
   log(`binding cases: ${bindingResults.length} done`);
 
   // ================= 3. semantic tool cases =================
   const semantic = [];
-  const push = async s => { semantic.push(await runCase(page, s, consoleBuf)); };
+  const push = async s => { const res = await runCase(page, s, consoleBuf); if (res) semantic.push(res); };
   await push({ caseId: 'tool:get_omics_viewer_state', category: 'semantic-tool', tool: 'get_omics_viewer_state',
     hookOp: 'overview', request: {}, predicate: null });
   await push({ caseId: 'tool:find_controls(color)', category: 'semantic-tool', tool: 'find_controls',
@@ -708,21 +719,23 @@ try {
   for (const w of domOnly) {
     marker += 1;
     const guesses = w.ident.startsWith('app-') ? guessIds(w.ident) : ['app', 'dataspace.global_search', 'resultspace.global_search'];
-    domResults.push(await runCase(page, {
+    const dres = await runCase(page, {
       caseId: `dom:${w.ident}`, category: 'dom-only', tool: 'set_widgets(attempt)',
       widget: { dom_id: w.ident, description: w.desc },
       guesses, probeValue: w.probeValue, note: w.note
-    }, consoleBuf));
+    }, consoleBuf);
+    if (dres) domResults.push(dres);
   }
   log(`dom-only cases: ${domResults.length} done`);
 
   // ================= 6. out-of-scope gesture surfaces =================
   const oosResults = [];
   for (const g of dom.gestures) {
-    oosResults.push(await runCase(page, {
+    const ores = await runCase(page, {
       caseId: `gesture:${g.id || g.cls.split(' ')[0]}`, category: 'out-of-scope',
       widget: g, note: 'plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)'
-    }, consoleBuf));
+    }, consoleBuf);
+    if (ores) oosResults.push(ores);
   }
 
   // ================= 7. summary =================

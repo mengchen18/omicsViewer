@@ -77,3 +77,55 @@ Any observable UI effect wait exceeding **30 s** ⇒ status `timeout`
 cd tests/e2e_agent/widget_sweep
 node sweep_harness.mjs        # ~20-40 min; kills its own app on exit
 ```
+
+`WIDGET_SWEEP_OUT=<dir>` redirects ALL outputs (cases/, results/,
+summary.json, …) to a scratch directory — used by the regression gate so a
+gated run never clobbers the committed evidence. `WIDGET_SWEEP_ONLY=<ids>`
+(comma-separated caseId substrings) runs a subset — targeted re-runs and
+spot checks; the case set is then partial by design.
+
+## Regression gate (WP-0)
+
+The sweep doubles as the acceptance suite for the fix plan: every work
+package must re-run it and diff the status matrix against the committed
+`baseline_summary.json`.
+
+```bash
+# full gate: boot app -> 337-case sweep (scratch dir) -> diff vs baseline
+NOT_CRAN=true tests/e2e_agent/widget_sweep/run_regression.sh
+
+# useful variants
+NOT_CRAN=true .../run_regression.sh --install   # reinstall pkg from source first
+NOT_CRAN=true .../run_regression.sh --only dataspace.expr_heatmap   # subset, still gated
+NOT_CRAN=true .../run_regression.sh --baseline <file> # gate against a candidate
+                                                    # refreshed baseline
+NOT_CRAN=true .../run_regression.sh --selftest   # offline diff-engine tests, no browser
+```
+
+The gate FAILS on (see `check_regression.mjs`):
+
+- binding `timeout` / `no-ui-effect` / `no-probe` / `rejected` /
+  `unchanged` / `error` count increase over the baseline,
+- dom-only `unaddressable` count increase,
+- any case transitioning `success` → non-success.
+
+It never fails on improvements, removed widgets (warning) or new cases
+(warning; refresh the baseline deliberately). Regressed cases are re-run
+once in isolation (`WIDGET_SWEEP_ONLY`) before failure is declared —
+congestion artifacts (browser main thread blocked by a software-rendered
+redraw) usually do not reproduce from a fresh boot.
+
+**Refreshing the baseline** (only for a WP's intended, reviewed changes —
+never to make a red gate green):
+
+```bash
+# after reviewing the gate's transition report:
+node refresh_baseline.mjs --results <scratch>/results --note "WP-x: ..."
+git add baseline_summary.json   # commit together with the code change
+```
+
+The initial baseline is the curated 2026-10-11 sweep (commit `bd41a0a`):
+statuses reconciled with the live spot-checks in `spotcheck_results.json` /
+`spotcheck2_results.json` — binding 141 success / 11 no-ui-effect / 2
+timeout / 16 no-probe, semantic-tool 18 success, dom-only 122 unaddressable,
+out-of-scope 27.
