@@ -705,6 +705,10 @@ L1_data_space_module <- function(
     s_dyn_heatmap <- iheatmapModule(
       "dynheatmapViewer",
       mat = reactive(hdmat()$expr), pd = reactive(hdmat()$pd), fd = reactive(hdmat()$fd),
+      # WP-A/F3: choices derive from the dataset-level annotation reactives,
+      # NOT hdmat (req()-gated on tab activation) - discovery and validation
+      # stay available while the Dynamic-heatmap tab is inactive
+      choices_pd = pdata, choices_fd = fdata,
       status = reactive(status()$eset_dyn_heatmap), fill.NA = FALSE,
       store = store_dyn_heatmap
     )

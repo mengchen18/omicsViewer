@@ -1,0 +1,135 @@
+{
+  "generated": "2026-10-11T13:59:34.619Z",
+  "results": [
+    {
+      "name": "precondition: Dynamic-heatmap tab inactive at start",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "discovery (inactive): dataspace.dyn_heatmap.annot_col exposes allowed values",
+      "pass": true,
+      "detail": "19 values, e.g. [\"General|All|Cell.line\",\"General|All|MDR\",\"General|All|Doubleing.Time\"]"
+    },
+    {
+      "name": "discovery (inactive): dataspace.dyn_heatmap.annot_row exposes allowed values",
+      "pass": true,
+      "detail": "50 values, e.g. [\"General|All|Gene.name\",\"General|All|Protein.ID\",\"General|All|Intensity\"]"
+    },
+    {
+      "name": "discovery (inactive): dataspace.dyn_heatmap.tooltip_info exposes allowed values",
+      "pass": true,
+      "detail": "50 values, e.g. [\"General|All|Gene.name\",\"General|All|Protein.ID\",\"General|All|Intensity\"]"
+    },
+    {
+      "name": "discovery (inactive): dataspace.dyn_heatmap.col_sort_by exposes allowed values",
+      "pass": true,
+      "detail": "21 values, e.g. [\"hierarchical cluster\",\"none\",\"General|All|Cell.line\"]"
+    },
+    {
+      "name": "discovery (inactive): dataspace.dyn_heatmap.row_sort_by exposes allowed values",
+      "pass": true,
+      "detail": "50 values, e.g. [\"none\",\"hierarchical cluster\",\"General|All|Gene.name\"]"
+    },
+    {
+      "name": "garbage rejects (inactive): dataspace.dyn_heatmap.annot_col",
+      "pass": true,
+      "detail": "Unknown value(s) for dataspace.dyn_heatmap.annot_col: GARBAGE|X|Y. Allowed: General|All|Cell.line, General|All"
+    },
+    {
+      "name": "garbage rejects (inactive): dataspace.dyn_heatmap.annot_row",
+      "pass": true,
+      "detail": "Unknown value(s) for dataspace.dyn_heatmap.annot_row: GARBAGE|X|Y. Allowed: General|All|Gene.name, General|All"
+    },
+    {
+      "name": "garbage rejects (inactive): dataspace.dyn_heatmap.tooltip_info",
+      "pass": true,
+      "detail": "Unknown value(s) for dataspace.dyn_heatmap.tooltip_info: GARBAGE|X|Y. Allowed: General|All|Gene.name, General|"
+    },
+    {
+      "name": "garbage rejects (inactive): dataspace.dyn_heatmap.col_sort_by",
+      "pass": true,
+      "detail": "Unknown value for dataspace.dyn_heatmap.col_sort_by: NOT_A_SORT_MODE. Allowed: hierarchical cluster, none, Gen"
+    },
+    {
+      "name": "garbage rejects (inactive): dataspace.dyn_heatmap.row_sort_by",
+      "pass": true,
+      "detail": "Unknown value for dataspace.dyn_heatmap.row_sort_by: NOT_A_SORT_MODE. Allowed: none, hierarchical cluster, Gen"
+    },
+    {
+      "name": "valid write applies (inactive): dataspace.dyn_heatmap.annot_col",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "valid write reaches UI input (inactive): app-dataspace-dynheatmapViewer-annotCol",
+      "pass": true,
+      "detail": "input now: [\"General|All|Origin\"]"
+    },
+    {
+      "name": "valid write applies (inactive): dataspace.dyn_heatmap.annot_row",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "valid write reaches UI input (inactive): app-dataspace-dynheatmapViewer-annotRow",
+      "pass": true,
+      "detail": "input now: [\"General|All|Gene.name\"]"
+    },
+    {
+      "name": "valid write applies (inactive): dataspace.dyn_heatmap.tooltip_info",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "valid write reaches UI input (inactive): app-dataspace-dynheatmapViewer-tooltipInfo",
+      "pass": true,
+      "detail": "input now: [\"General|All|Gene.name\"]"
+    },
+    {
+      "name": "valid write applies (inactive): dataspace.dyn_heatmap.col_sort_by",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "valid write reaches UI input (inactive): app-dataspace-dynheatmapViewer-colSortBy",
+      "pass": true,
+      "detail": "input now: \"none\""
+    },
+    {
+      "name": "valid write applies (inactive): dataspace.dyn_heatmap.row_sort_by",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "valid write reaches UI input (inactive): app-dataspace-dynheatmapViewer-rowSortBy",
+      "pass": true,
+      "detail": "input now: \"General|All|Gene.name\""
+    },
+    {
+      "name": "value live after activation: app-dataspace-dynheatmapViewer-annotCol",
+      "pass": true,
+      "detail": "input now: [\"General|All|Origin\"]"
+    },
+    {
+      "name": "value live after activation: app-dataspace-dynheatmapViewer-annotRow",
+      "pass": true,
+      "detail": "input now: [\"General|All|Gene.name\"]"
+    },
+    {
+      "name": "value live after activation: app-dataspace-dynheatmapViewer-tooltipInfo",
+      "pass": true,
+      "detail": "input now: [\"General|All|Gene.name\"]"
+    },
+    {
+      "name": "value live after activation: app-dataspace-dynheatmapViewer-colSortBy",
+      "pass": true,
+      "detail": "input now: \"none\""
+    },
+    {
+      "name": "value live after activation: app-dataspace-dynheatmapViewer-rowSortBy",
+      "pass": true,
+      "detail": "input now: \"General|All|Gene.name\""
+    }
+  ]
+}

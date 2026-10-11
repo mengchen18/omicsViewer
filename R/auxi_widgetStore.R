@@ -308,14 +308,36 @@ store_register <- function(store, ...) {
 # (agent_args_sanitize), so the store never sees provider sentinel
 # strings -- only canonical values.
 
-.widget_store_allowed_values <- function(binding, effective) {
+# WP-A/F3: validation-time allowed-values state. A binding that DECLARES
+# a choices provider but receives an empty result (provider cold - the
+# owning panel never initialized, its data is not ready, or a cascade
+# parent is unset) must not degrade to "no constraint": writing such a
+# key is rejected with a self-describing reason instead of being accepted
+# wholesale (F3: values like GARBAGE|X|Y were applied onto the
+# activation-gated dynamic-heatmap selects while the tab was inactive and
+# then diverged from the UI). Static `values` enums and provider-less
+# bindings keep their previous behavior. Every multi_select/mapping
+# binding in the package declares a provider (asserted in the WP-A
+# review), so no legitimate "free" write surface is closed here.
+.widget_store_allowed_state <- function(binding, effective) {
   if (is.function(binding$choices_provider)) {
-    tryCatch(binding$choices_provider(effective), error = function(e) NULL)
-  } else if (!is.null(binding$values)) {
-    binding$values
+    res <- tryCatch(binding$choices_provider(effective),
+                    error = function(e) NULL)
+    if (is.null(res) || length(res) == 0L)
+      return(list(allowed = NULL, unavailable = TRUE))
+    list(allowed = res, unavailable = FALSE)
   } else {
-    NULL
+    list(allowed = binding$values, unavailable = FALSE)
   }
+}
+
+.widget_store_unavailable <- function(binding) {
+  paste0(
+    "Choices are currently unavailable for ", binding$id,
+    ": its choices are not computed yet (the owning panel may be inactive, ",
+    "its data not ready, or a cascade parent unset). Open or activate the ",
+    "owning panel, then query the control again for its current allowed ",
+    "values.")
 }
 
 .widget_store_validate_value <- function(binding, value, effective) {
@@ -334,7 +356,10 @@ store_register <- function(store, ...) {
     if (kind == "select_cascaded" && identical(value, "--select--"))
       return(list(value = value))
     if (kind %in% c("select", "select_cascaded", "tabset", "navbar")) {
-      allowed <- .widget_store_allowed_values(binding, effective)
+      state <- .widget_store_allowed_state(binding, effective)
+      if (state$unavailable)
+        return(list(error = .widget_store_unavailable(binding)))
+      allowed <- state$allowed
       if (!is.null(allowed) && !value %in% allowed) {
         hint <- .agent_suggest_text(value, allowed)
         return(list(error = paste0(
@@ -365,7 +390,12 @@ store_register <- function(store, ...) {
       value <- character(0)
     if (any(!nzchar(value)))
       return(list(error = paste(binding$id, "requires non-empty strings.")))
-    allowed <- .widget_store_allowed_values(binding, effective)
+    state <- .widget_store_allowed_state(binding, effective)
+    allowed <- state$allowed
+    # an empty vector clears the selection and never needs the choice set;
+    # min/max below still bound the empty write exactly as before
+    if (state$unavailable && length(value))
+      return(list(error = .widget_store_unavailable(binding)))
     if (!is.null(allowed)) {
       bad <- setdiff(value, allowed)
       if (length(bad)) {
@@ -426,7 +456,10 @@ store_register <- function(store, ...) {
       return(list(error = paste(
         binding$id,
         "requires mapping values of 1-200 non-whitespace characters.")))
-    allowed <- .widget_store_allowed_values(binding, effective)
+    state <- .widget_store_allowed_state(binding, effective)
+    if (state$unavailable)
+      return(list(error = .widget_store_unavailable(binding)))
+    allowed <- state$allowed
     if (!is.null(allowed)) {
       bad <- setdiff(nms, allowed)
       if (length(bad)) {

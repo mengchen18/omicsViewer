@@ -193,12 +193,25 @@ iheatmapClear <- function(id) {
 #'
 iheatmapModule <- function(
   id, mat, pd, fd, status = reactive(NULL), fill.NA = TRUE,
-  store = NULL
+  store = NULL, choices_pd = NULL, choices_fd = NULL
   ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+  
+  # WP-A/F3 choice sources. The store validators and the selectize
+  # choices-update observers below read THESE reactives, not the display
+  # matrices: the dynamic-heatmap instance's mat/pd/fd args are
+  # req()-gated on tab activation (hdmat), so deriving choices from them
+  # left every allowed value undiscoverable and the validator
+  # unconstrained while the tab was inactive. The dyn instance passes the
+  # dataset-level annotation reactives here; column names are identical
+  # (subsetting keeps colnames), only the precomputed HCL entries still
+  # derive from the display matrix. Default (expr/cor instances): the
+  # module's own pd/fd - byte-identical to the previous behavior.
+  if (is.null(choices_pd)) choices_pd <- pd
+  if (is.null(choices_fd)) choices_fd <- fd
   
   matr <- reactive({
     req(mat())
@@ -240,31 +253,64 @@ iheatmapModule <- function(
     x
     })
   
+  # WP-A/F3: precomputed-dendrogram names for the choices surfaces
+  # (selectize choices-update observers AND the store validators below).
+  # The display matrix can be req()-gated (dynamic-heatmap tab inactive) -
+  # a cold matrix contributes no HCL entries instead of aborting the
+  # caller. Identical to names(rdg())/names(cdg()) when the matrix is
+  # warm (both paste the same "HCL" prefix).
+  .heatmap_hcl_names <- function(which) {
+    m <- tryCatch(mat(), shiny.silent.error = function(e) NULL,
+                  error = function(e) NULL)
+    if (is.null(m)) return(character(0))
+    dl <- attr(m, which)
+    if (is.null(dl) || is.null(names(dl))) return(character(0))
+    paste("HCL", names(dl))
+  }
+  
   gsdf <- reactive({
-    attr(fd(), "GS")
+    attr(choices_fd(), "GS")
   })
   
   fdColWithGS <- reactive({
-    req(fd())
-    c(colnames(fd()), paste0("GS|", levels(gsdf()$gsId)))
+    req(choices_fd())
+    c(colnames(choices_fd()), paste0("GS|", levels(gsdf()$gsId)))
   })
   # ######## update selectize input ########
+  # WP-A: every choices (re-)push preserves the CURRENT selection when it
+  # remains valid - a choice-set change (e.g. HCL entries appearing when
+  # the dynamic heatmap's matrix warms on tab activation) otherwise
+  # re-defaults the selectize, and the UI->store sync then silently
+  # reverts a write that had legitimately landed while the tab was
+  # inactive (the M8 clobber, generalized to every choices surface).
+  .hmap_preserve <- function(cur, cs, dflt) {
+    if (length(cur) && all(cur %in% cs)) cur else dflt
+  }
   observe({ 
-    req(pd())
-    updateSelectInput(session, "annotCol", choices = colnames(pd())) 
+    req(choices_pd())
+    cs <- colnames(choices_pd())
+    updateSelectInput(session, "annotCol", choices = cs,
+      selected = .hmap_preserve(isolate(input$annotCol), cs, character(0))) 
     })
   observe({
-    req(pd())
-    updateSelectizeInput(session, "annotRow", choices = fdColWithGS(), server = TRUE)
+    req(choices_pd())
+    cs <- fdColWithGS()
+    updateSelectizeInput(session, "annotRow", choices = cs,
+      selected = .hmap_preserve(isolate(input$annotRow), cs, character(0)),
+      server = TRUE)
     }) 
   observe({
-    req(pd())
+    req(choices_pd())
+    cs <- c(.heatmap_hcl_names("colDendrogram"),
+           "hierarchical cluster", "none", colnames(choices_pd()))
     updateSelectInput(
-      session, "colSortBy", choices = c(names(cdg()), "hierarchical cluster", "none", colnames(pd()))) 
+      session, "colSortBy", choices = cs,
+      selected = .hmap_preserve(isolate(input$colSortBy), cs, cs[[1]])) 
     })
   .hmap_rowsort_choices <- reactiveVal(NULL)
   observe({
-    cs <- c(names(rdg()), "none", "hierarchical cluster", fdColWithGS())
+    cs <- c(.heatmap_hcl_names("rowDendrogram"), "none",
+            "hierarchical cluster", fdColWithGS())
     # M8: rdg()/fdColWithGS() re-derive on every selection change; pushing
     # the choices again re-set the selectize (and its default) each time,
     # clobbering an explicit "none" pick. Push only when the choice SET
@@ -272,14 +318,29 @@ iheatmapModule <- function(
     if (identical(cs, isolate(.hmap_rowsort_choices())))
       return(NULL)
     .hmap_rowsort_choices(cs)
-    ss <- clsRow()
-    if (ss == "none" && cs[[1]] != "none")
-      ss <- cs[[1]]
-    updateSelectizeInput( session, "rowSortBy", choices = cs, selected = ss, server = TRUE )
+    # WP-A: the display matrix may still be cold (dyn tab inactive) -
+    # push the choices without a default selection then; the default
+    # lands when activation warms the matrix and changes the choice set.
+    # When it does, keep the CURRENT selection if it stays valid (a
+    # landed write must survive activation); only fall back to the
+    # computed default otherwise.
+    ss <- tryCatch(clsRow(), shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    if (is.null(ss))
+      updateSelectizeInput(session, "rowSortBy", choices = cs, server = TRUE)
+    else {
+      if (ss == "none" && cs[[1]] != "none")
+        ss <- cs[[1]]
+      updateSelectizeInput( session, "rowSortBy", choices = cs,
+        selected = .hmap_preserve(isolate(input$rowSortBy), cs, ss),
+        server = TRUE )
+    }
     })
   observe({
-    req(pd())
-    updateSelectInput(session, "tooltipInfo", choices = c(colnames(fd()), colnames(pd())) ) 
+    req(choices_pd())
+    cs <- c(colnames(choices_fd()), colnames(choices_pd()))
+    updateSelectInput(session, "tooltipInfo", choices = cs,
+      selected = .hmap_preserve(isolate(input$tooltipInfo), cs, character(0))) 
     })
   
   # ######## prepare heatmap data ########
@@ -341,21 +402,17 @@ iheatmapModule <- function(
     # inside a choices_provider would abort the whole store_apply
     # transaction (tryCatch(error=) cannot catch it). They mirror exactly
     # what the choices-update observers offer in the UI.
-    .heatmap_hcl_names <- function(which) {
-      if (is.null(mat())) return(character(0))
-      dl <- attr(mat(), which)
-      if (is.null(dl) || is.null(names(dl))) return(character(0))
-      paste("HCL", names(dl))
-    }
     .heatmap_fd_cols <- function() {
-      if (is.null(fd())) return(character(0))
-      gs <- attr(fd(), "GS")
+      fdv <- tryCatch(choices_fd(), shiny.silent.error = function(e) NULL,
+                      error = function(e) NULL)
+      if (is.null(fdv)) return(character(0))
+      gs <- attr(fdv, "GS")
       gsn <- if (is.null(gs)) character(0) else paste0("GS|", levels(gs$gsId))
-      c(colnames(fd()), gsn)
+      c(colnames(fdv), gsn)
     }
     .heatmap_col_choices <- function()
       c(.heatmap_hcl_names("colDendrogram"), "hierarchical cluster", "none",
-        colnames(pd()))
+        colnames(choices_pd()))
     .heatmap_row_choices <- function()
       c(.heatmap_hcl_names("rowDendrogram"), "none", "hierarchical cluster",
         .heatmap_fd_cols())
@@ -399,7 +456,7 @@ iheatmapModule <- function(
       widget_binding("annot_col", "multi_select", label = "Column annotations",
         help = paste("Phenotype annotation columns drawn as color bars",
                      "above the heatmap; empty clears the bars"),
-        choices_provider = function(v) colnames(pd())),
+        choices_provider = function(v) colnames(choices_pd())),
       widget_binding("annot_row", "multi_select", label = "Row annotations",
         help = paste("Feature annotation columns (or GS| gene sets) drawn as",
                      "color bars beside the heatmap; empty clears the bars"),
@@ -407,7 +464,7 @@ iheatmapModule <- function(
       widget_binding("tooltip_info", "multi_select", label = "Tooltips",
         help = paste("Feature and phenotype columns shown in the hover",
                      "tooltip; empty clears the tooltip"),
-        choices_provider = function(v) c(colnames(fd()), colnames(pd())))
+        choices_provider = function(v) c(colnames(choices_fd()), colnames(choices_pd())))
     )
     .heatmap_store_root <- if (is.null(store$parent)) store else store$parent
     .heatmap_store_keys <- c(
@@ -510,7 +567,8 @@ iheatmapModule <- function(
     .hmap_choices <- function(which) {
       tryCatch(isolate({
         if (identical(which, "row")) {
-          cs <- c(names(rdg()), "none", "hierarchical cluster", fdColWithGS())
+          cs <- c(.heatmap_hcl_names("rowDendrogram"), "none",
+                  "hierarchical cluster", fdColWithGS())
           .hmap_rowsort_choices(cs)
           cs
         } else {

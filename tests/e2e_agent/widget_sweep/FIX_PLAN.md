@@ -60,7 +60,7 @@ the WP's intended improvements → commit baseline with the code change.
 
 ## Phase 1 — correctness holes (bug fixes; land on master, cherry-pick to RELEASE_3_22)
 
-### WP-A Close the dyn-heatmap validation/discovery hole (F3) — ~1 d
+### WP-A Close the dyn-heatmap validation/discovery hole (F3) — ~1 d — DONE (2026-10-12)
 
 Root cause: `heatmapshinyApp` choices providers for the dynamic-heatmap
 instance read module reactives that are `req()`-gated on widget
@@ -94,6 +94,30 @@ Acceptance (sweep): the 5 dyn-heatmap `no-probe` cases become probeable
 (`success` or `rejected` with the new reason while inactive + success after
 provider fix); the garbage write from `supplementary_dyn_heatmap.json` now
 rejects; zero regressions elsewhere.
+
+Implemented as: (1) `.widget_store_allowed_state` in
+`R/auxi_widgetStore.R` replaces `.widget_store_allowed_values` at the
+three validation sites (select/select-ish, multi_select, mapping): a
+declared-but-empty provider result now rejects with a self-describing
+reason; static `values` enums and provider-less bindings unchanged;
+empty-vector multi_select clears still accepted (min/max bounds kept);
+review assertion held — every multi_select/mapping binding in the package
+declares a provider. (2) `iheatmapModule` gained `choices_pd`/
+`choices_fd` (default: the module's own pd/fd, so expr/cor are
+byte-identical); the dyn instance passes the dataset-level `pdata`/
+`fdata`; choices-update observers, store providers and the M9 push all
+derive from them; `.heatmap_hcl_names` reads the display matrix
+defensively (cold matrix ⇒ no HCL entries, not an abort). Third finding
+while verifying: choice-set changes on tab activation re-defaulted the
+selectize and the UI→store sync reverted a landed write (M8 clobber
+class) — every choices push now preserves the current selection while it
+stays valid (`.hmap_preserve`). Evidence:
+`tests/e2e_agent/verify_wp_a_dyn_heatmap.mjs` (26/26: discovery healed,
+garbage rejects, valid writes apply + reach the UI while inactive,
+values survive activation). Baseline refreshed surgically (the 5 cases
+no-probe→success; the 4 dyn dom-only inputs deliberately KEPT at
+unaddressable as congestion canaries — see baseline note). Full sweep
+gate PASS, zero regressions.
 
 ### WP-B Fix the table `columns` write anomaly (F4) — ~1 d
 

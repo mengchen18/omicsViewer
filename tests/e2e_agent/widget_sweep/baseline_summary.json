@@ -1,16 +1,16 @@
 {
-  "generated": "2026-10-11T12:27:10.883Z",
-  "note": "initial baseline: curated 2026-10-11 sweep (commit bd41a0a), statuses reconciled with live spot-checks (spotcheck_results.json, spotcheck2_results.json); counts: binding 141 success / 11 no-ui-effect / 2 timeout / 16 no-probe, semantic 18 success, dom-only 122 unaddressable, out-of-scope 27",
+  "generated": "2026-10-11T14:31:59.167Z",
+  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged.",
   "source_results": "/media/chen/Elements/github/omicsViewer/tests/e2e_agent/widget_sweep/results",
   "totals": {
     "cases": 337
   },
   "by_category_status": {
     "binding": {
-      "success": 141,
+      "success": 146,
       "no-ui-effect": 11,
       "timeout": 2,
-      "no-probe": 16
+      "no-probe": 11
     },
     "semantic-tool": {
       "success": 18
@@ -489,7 +489,7 @@
       "category": "binding"
     },
     "dataspace.dyn_heatmap.col_sort_by": {
-      "status": "no-probe",
+      "status": "success",
       "case": "094-dataspace_dyn_heatmap_col_sort_by",
       "category": "binding"
     },
@@ -504,7 +504,7 @@
       "category": "binding"
     },
     "dataspace.dyn_heatmap.row_sort_by": {
-      "status": "no-probe",
+      "status": "success",
       "case": "097-dataspace_dyn_heatmap_row_sort_by",
       "category": "binding"
     },
@@ -519,17 +519,17 @@
       "category": "binding"
     },
     "dataspace.dyn_heatmap.annot_col": {
-      "status": "no-probe",
+      "status": "success",
       "case": "100-dataspace_dyn_heatmap_annot_col",
       "category": "binding"
     },
     "dataspace.dyn_heatmap.annot_row": {
-      "status": "no-probe",
+      "status": "success",
       "case": "101-dataspace_dyn_heatmap_annot_row",
       "category": "binding"
     },
     "dataspace.dyn_heatmap.tooltip_info": {
-      "status": "no-probe",
+      "status": "success",
       "case": "102-dataspace_dyn_heatmap_tooltip_info",
       "category": "binding"
     },
