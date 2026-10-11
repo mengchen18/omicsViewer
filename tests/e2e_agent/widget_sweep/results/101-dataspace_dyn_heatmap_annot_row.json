@@ -1,0 +1,65 @@
+{
+  "case": "101-dataspace_dyn_heatmap_annot_row",
+  "caseId": "dataspace.dyn_heatmap.annot_row",
+  "category": "binding",
+  "bindingId": "dataspace.dyn_heatmap.annot_row",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.annot_row",
+    "kind": "multi_select",
+    "label": "Row annotations",
+    "help": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.annot_row": []
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 304,
+  "note": "REAL DISCOVERY GAP + VALIDATION HOLE (supplementary_dyn_heatmap.json)",
+  "receipt": {
+    "hook_run": 518,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.dyn_heatmap.annot_row",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 518,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.dyn_heatmap.annot_row",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 517,
+        "after": 518
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.dyn_heatmap.annot_row\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.dyn_heatmap.annot_row\":[]}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 248
+}

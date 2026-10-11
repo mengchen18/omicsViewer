@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.regression_line",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.regression_line",
+  "widget": {
+    "binding_id": "resultspace.feature_general.regression_line",
+    "kind": "boolean",
+    "label": "Regression line",
+    "help": "Draw a regression line in the single-feature scatter view",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.regression_line": true
+    }
+  },
+  "fresh_current": false,
+  "probeNote": "boolean flip"
+}

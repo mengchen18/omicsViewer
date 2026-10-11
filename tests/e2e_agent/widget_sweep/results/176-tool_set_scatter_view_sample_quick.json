@@ -1,0 +1,86 @@
+{
+  "case": "176-tool_set_scatter_view_sample_quick",
+  "caseId": "tool:set_scatter_view(sample,quick)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_scatter_view",
+  "widget": {
+    "semantic": "sample-space scatter quick view"
+  },
+  "request": {
+    "space": "sample",
+    "quick_view_id": "pca"
+  },
+  "status": "success",
+  "duration_ms": 629,
+  "note": "",
+  "receipt": {
+    "hook_run": 807,
+    "space": "sample",
+    "mode": "quick",
+    "quick_view_id": "pca",
+    "x_axis": "PCA|All|PC1(10.5%)",
+    "y_axis": "PCA|All|PC2(7.2%)"
+  },
+  "attempts": [
+    {
+      "op": "scatter",
+      "receipt": {
+        "hook_run": 807,
+        "space": "sample",
+        "mode": "quick",
+        "quick_view_id": "pca",
+        "x_axis": "PCA|All|PC1(10.5%)",
+        "y_axis": "PCA|All|PC2(7.2%)"
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-dataspace-eset",
+        "before": "Feature",
+        "after": "Sample"
+      },
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 806,
+        "after": 807
+      },
+      {
+        "input": "app-dataspace-feature_space-a4selector-scorner",
+        "before": "volcano",
+        "after": "None"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter1-analysis",
+        "before": "General",
+        "after": "PCA"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter1-variable",
+        "before": "MDR",
+        "after": "PC1(10.5%)"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter2-analysis",
+        "before": "General",
+        "after": "PCA"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter2-variable",
+        "before": "MDR",
+        "after": "PC2(7.2%)"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"space\":\"feature\",\"x_axis\":\"ttest|RE_vs_ME|mean.diff\",\"y_axis\":\"ttest|RE_vs_ME|pvalue\"}",
+        "after": "{\"space\":\"sample\",\"quick_view_id\":\"pca\"}"
+      }
+    ],
+    "waited_ms": 32
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 575
+}

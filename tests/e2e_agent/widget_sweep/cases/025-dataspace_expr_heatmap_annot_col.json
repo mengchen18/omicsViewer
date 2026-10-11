@@ -1,0 +1,24 @@
+{
+  "caseId": "dataspace.expr_heatmap.annot_col",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.expr_heatmap.annot_col",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.annot_col",
+    "kind": "multi_select",
+    "label": "Column annotations",
+    "help": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.annot_col": [
+        "General|All|Cell.line"
+      ]
+    }
+  },
+  "fresh_current": [],
+  "probeNote": "single allowed entry (General|All|Cell.line)"
+}

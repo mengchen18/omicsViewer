@@ -1,0 +1,73 @@
+{
+  "case": "110-resultspace_feature_general_attr4_color_subset",
+  "caseId": "resultspace.feature_general.attr4.color_subset",
+  "category": "binding",
+  "bindingId": "resultspace.feature_general.attr4.color_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.feature_general.attr4.color_subset",
+    "kind": "select",
+    "label": "Color attribute subcategory",
+    "help": "Second level of the color attribute cascade",
+    "depends_on": "resultspace.feature_general.attr4.color_analysis",
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.feature_general.attr4.color_subset": "All"
+    }
+  },
+  "status": "success",
+  "duration_ms": 438,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 554,
+    "applied": "resultspace.feature_general.attr4.color_subset",
+    "applied_values": {
+      "resultspace.feature_general.attr4.color_subset": "All"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 554,
+        "applied": "resultspace.feature_general.attr4.color_subset",
+        "applied_values": {
+          "resultspace.feature_general.attr4.color_subset": "All"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 553,
+        "after": 554
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.feature_general.attr4.color_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.feature_general.attr4.color_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.feature_general.attr4.color_subset": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 203,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

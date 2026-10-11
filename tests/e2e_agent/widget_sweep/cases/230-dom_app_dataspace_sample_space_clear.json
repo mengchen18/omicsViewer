@@ -1,0 +1,14 @@
+{
+  "caseId": "dom:app-dataspace-sample_space-clear",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "guesses": [
+    "dataspace.sample_space.clear"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": ""
+}

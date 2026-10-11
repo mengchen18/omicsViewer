@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.expr_heatmap.col_sort_by",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.expr_heatmap.col_sort_by",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.col_sort_by",
+    "kind": "select",
+    "label": "Sort columns by",
+    "help": "Column ordering: a precomputed dendrogram (HCL entries), 'hierarchical cluster', 'none', or a phenotype annotation column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.col_sort_by": "none"
+    }
+  },
+  "fresh_current": "hierarchical cluster",
+  "probeNote": "first allowed != current (none)"
+}

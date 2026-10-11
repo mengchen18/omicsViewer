@@ -1,0 +1,62 @@
+{
+  "case": "225-dom_app_dataspace_sample_space_a4selector_showSearchBox",
+  "caseId": "dom:app-dataspace-sample_space-a4selector-showSearchBox",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-a4selector-showSearchBox",
+    "description": "INPUT:checkbox visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 195,
+  "note": "",
+  "receipt": {
+    "hook_run": 860,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.a4selector.showSearchBox",
+        "reason": "Unknown widget id: dataspace.sample_space.a4selector.showSearchBox."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.a4selector.showSearchBox",
+      "receipt": {
+        "hook_run": 860,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.a4selector.showSearchBox",
+            "reason": "Unknown widget id: dataspace.sample_space.a4selector.showSearchBox."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 859,
+        "after": 860
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.a4selector.selectSearchCol.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.a4selector.showSearchBox\":true}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 105
+}

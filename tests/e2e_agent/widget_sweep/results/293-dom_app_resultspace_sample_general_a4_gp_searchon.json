@@ -1,0 +1,62 @@
+{
+  "case": "293-dom_app_resultspace_sample_general_a4_gp_searchon",
+  "caseId": "dom:app-resultspace-sample_general-a4_gp-searchon",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-sample_general-a4_gp-searchon",
+    "description": "SELECT:select-multiple visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 231,
+  "note": "",
+  "receipt": {
+    "hook_run": 938,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.sample_general.a4_gp.searchon",
+        "reason": "Unknown widget id: resultspace.sample_general.a4_gp.searchon. Closest matches: resultspace.sample_general.attr4.scorner, resultspace.sample_general.xax_subset, resultspace.sample_general.attr4.search_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.sample_general.a4_gp.searchon",
+      "receipt": {
+        "hook_run": 938,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.sample_general.a4_gp.searchon",
+            "reason": "Unknown widget id: resultspace.sample_general.a4_gp.searchon. Closest matches: resultspace.sample_general.attr4.scorner, resultspace.sample_general.xax_subset, resultspace.sample_general.attr4.search_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 937,
+        "after": 938
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.sample_general.a4_gp.showSearchBox\":true}}",
+        "after": "{\"patch\":{\"resultspace.sample_general.a4_gp.searchon\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 99
+}

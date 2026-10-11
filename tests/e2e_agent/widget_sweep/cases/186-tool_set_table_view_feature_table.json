@@ -1,0 +1,14 @@
+{
+  "caseId": "tool:set_table_view(feature_table)",
+  "category": "semantic-tool",
+  "tool": "set_table_view",
+  "hookOp": "tableview",
+  "request": {
+    "table": "feature_table",
+    "multi_selection": true,
+    "column_filters": {
+      "General|All|Gene.name": "CNOT"
+    },
+    "page": 2
+  }
+}

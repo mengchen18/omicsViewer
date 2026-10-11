@@ -1,0 +1,9 @@
+{
+  "caseId": "tool:set_omics_viewer_state(analysis_space_tab)",
+  "category": "semantic-tool",
+  "tool": "set_omics_viewer_state",
+  "hookOp": "state",
+  "request": {
+    "analysis_space_tab": "Geneshot"
+  }
+}

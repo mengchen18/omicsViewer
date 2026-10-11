@@ -1,0 +1,25 @@
+{
+  "caseId": "dataspace.sample_space.attr4.search_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.attr4.search_variable",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.search_variable",
+    "kind": "select_cascaded",
+    "label": "Search attribute variable",
+    "help": "Annotation variable mapped to the search aesthetic",
+    "depends_on": [
+      "dataspace.sample_space.attr4.search_analysis",
+      "dataspace.sample_space.attr4.search_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.search_variable": "Cell.line"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Cell.line)"
+}

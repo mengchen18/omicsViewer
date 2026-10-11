@@ -1,0 +1,62 @@
+{
+  "case": "297-dom_app_snapshot_save",
+  "caseId": "dom:app-snapshot_save",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-snapshot_save",
+    "description": "BUTTON:button visible=true"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 233,
+  "note": "",
+  "receipt": {
+    "hook_run": 942,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "snapshot_save",
+        "reason": "Unknown widget id: snapshot_save."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "snapshot_save",
+      "receipt": {
+        "hook_run": 942,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "snapshot_save",
+            "reason": "Unknown widget id: snapshot_save."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 941,
+        "after": 942
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"snapshot_name\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"snapshot_save\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 95
+}

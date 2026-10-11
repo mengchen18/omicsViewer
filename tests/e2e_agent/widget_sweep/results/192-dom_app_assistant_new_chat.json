@@ -1,0 +1,62 @@
+{
+  "case": "192-dom_app_assistant_new_chat",
+  "caseId": "dom:app-assistant-new_chat",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-assistant-new_chat",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 258,
+  "note": "",
+  "receipt": {
+    "hook_run": 823,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "assistant.new_chat",
+        "reason": "Unknown widget id: assistant.new_chat."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "assistant.new_chat",
+      "receipt": {
+        "hook_run": 823,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "assistant.new_chat",
+            "reason": "Unknown widget id: assistant.new_chat."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 822,
+        "after": 823
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"assistant.toggle\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"assistant.new_chat\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 48
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 120
+}

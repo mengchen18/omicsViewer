@@ -1,0 +1,10 @@
+{
+  "caseId": "gesture:app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output",
+  "category": "out-of-scope",
+  "widget": {
+    "id": "app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output",
+    "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+    "visible": true
+  },
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)"
+}

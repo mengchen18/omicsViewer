@@ -1,0 +1,9 @@
+{
+  "caseId": "tool:describe_control(axis_mode)",
+  "category": "semantic-tool",
+  "tool": "describe_control",
+  "hookOp": "capabilities",
+  "request": {
+    "id": "dataspace.feature_space.axis_mode"
+  }
+}

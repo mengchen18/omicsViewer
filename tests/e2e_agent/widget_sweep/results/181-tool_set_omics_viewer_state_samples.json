@@ -1,0 +1,67 @@
+{
+  "case": "181-tool_set_omics_viewer_state_samples",
+  "caseId": "tool:set_omics_viewer_state(samples)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_omics_viewer_state",
+  "widget": null,
+  "request": {
+    "samples": [
+      "X786O_NCI60",
+      "A498_NCI60",
+      "A549_NCI60"
+    ]
+  },
+  "status": "success",
+  "duration_ms": 596,
+  "note": "selection applied via the selection bus (receipt counts: 0); UI effect is plot emphasis / table row highlight, not an input-value change (cf. verify_search_highlight.mjs B5)",
+  "receipt": {
+    "hook_run": 812,
+    "data_space_tab": null,
+    "analysis_space_tab": null,
+    "feature_count": 0,
+    "sample_count": 3,
+    "example_features": [],
+    "example_samples": [
+      "X786O_NCI60",
+      "A498_NCI60",
+      "A549_NCI60"
+    ]
+  },
+  "attempts": [
+    {
+      "op": "state",
+      "receipt": {
+        "hook_run": 812,
+        "data_space_tab": null,
+        "analysis_space_tab": null,
+        "feature_count": 0,
+        "sample_count": 3,
+        "example_features": [],
+        "example_samples": [
+          "X786O_NCI60",
+          "A498_NCI60",
+          "A549_NCI60"
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 811,
+        "after": 812
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"features\":[\"X32.TYW5\",\"X52.CNOT1\",\"X55.MAP1LC3B.MAP1LC3B2\"]}",
+        "after": "{\"samples\":[\"X786O_NCI60\",\"A498_NCI60\",\"A549_NCI60\"]}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 558
+}

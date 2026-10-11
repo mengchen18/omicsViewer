@@ -1,0 +1,10 @@
+{
+  "caseId": "tool:set_table_view(sample_table,clear)",
+  "category": "semantic-tool",
+  "tool": "set_table_view",
+  "hookOp": "tableview",
+  "request": {
+    "table": "sample_table",
+    "clear_filters": true
+  }
+}

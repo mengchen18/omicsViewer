@@ -1,0 +1,2447 @@
+{
+  "shiny": [
+    {
+      "id": "app-selectFile",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select form-control shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-snapshot",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button omicsviewer-tool-btn shiny-bound-input",
+      "visible": true,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-assistant-toggle",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn-info omicsviewer-ai-launcher shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-assistant-new_chat",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn-default btn-xs shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-assistant-settings",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn-default btn-xs shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-assistant-close",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn-default btn-xs shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-assistant-enable_logging",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-agentTestHooks-op",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "state",
+      "optionCount": 10,
+      "sampleOptions": [
+        "state",
+        "scatter",
+        "overview",
+        "widgets",
+        "store",
+        "enrichment",
+        "tableview",
+        "capabilities"
+      ]
+    },
+    {
+      "id": "app-agentTestHooks-payload",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "shiny-input-text form-control shinyjs-resettable shiny-bound-input",
+      "visible": true,
+      "currentValue": "{}",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-agentTestHooks-run",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": true,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-eset",
+      "tag": "UL",
+      "inputType": null,
+      "classes": "nav navbar-nav nav-underline shiny-tab-input shiny-bound-input",
+      "visible": true,
+      "currentValue": "Feature",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-axisMode",
+      "tag": "DIV",
+      "inputType": null,
+      "classes": "radio-group-buttons shiny-bound-input",
+      "visible": true,
+      "currentValue": "quick",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "btn-21211889",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": true,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectColorUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectColorUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectColorUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectShapeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectShapeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectShapeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectSizeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectSizeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectSizeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectTooltipUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectTooltipUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectTooltipUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectSearchCol-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectSearchCol-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-selectSearchCol-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-showSearchBox",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-searchon",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-xcut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "log10(2)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-ycut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "-log10(0.05)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-a4selector-scorner",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "None",
+      "optionCount": 1,
+      "sampleOptions": [
+        "None"
+      ]
+    },
+    {
+      "id": "app-dataspace-feature_space-axisModeTabs",
+      "tag": "UL",
+      "inputType": null,
+      "classes": "nav nav-hidden shiny-tab-input shiny-bound-input",
+      "visible": false,
+      "currentValue": "quick",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-tris_main_scatter1-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-tris_main_scatter1-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-tris_main_scatter1-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-tris_main_scatter2-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-tris_main_scatter2-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-tris_main_scatter2-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-feature_space-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "action-button bttn bttn-minimal bttn-xs bttn-primary bttn-no-outline msc-clear-o",
+      "visible": true,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_feature-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_feature-multisel",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "sw-switchInput shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_feature-addcolPanel",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-axisMode",
+      "tag": "DIV",
+      "inputType": null,
+      "classes": "radio-group-buttons shiny-bound-input",
+      "visible": false,
+      "currentValue": "quick",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "btn-893594663",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectColorUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectColorUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectColorUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectShapeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectShapeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectShapeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectSizeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectSizeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectSizeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectTooltipUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectTooltipUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectTooltipUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectSearchCol-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectSearchCol-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-selectSearchCol-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-showSearchBox",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-searchon",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-xcut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "log10(2)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-ycut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "-log10(0.05)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-a4selector-scorner",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "None",
+      "optionCount": 1,
+      "sampleOptions": [
+        "None"
+      ]
+    },
+    {
+      "id": "app-dataspace-sample_space-axisModeTabs",
+      "tag": "UL",
+      "inputType": null,
+      "classes": "nav nav-hidden shiny-tab-input shiny-bound-input",
+      "visible": false,
+      "currentValue": "quick",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-tris_main_scatter1-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-tris_main_scatter1-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-tris_main_scatter1-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-tris_main_scatter2-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-tris_main_scatter2-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-tris_main_scatter2-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-sample_space-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "action-button bttn bttn-minimal bttn-xs bttn-primary bttn-no-outline msc-clear-o",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_pheno-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_pheno-multisel",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "sw-switchInput shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_pheno-addcolPanel",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "mydropdown2",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-colSortBy",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-clusterColDist",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "Pearson correlation",
+      "optionCount": 8,
+      "sampleOptions": [
+        "Pearson correlation",
+        "Euclidean",
+        "Maximum",
+        "Manhattan",
+        "Canberra",
+        "Binary",
+        "Minkowski",
+        "Spearman correlation"
+      ]
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-clusterColLink",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "ward.D",
+      "optionCount": 8,
+      "sampleOptions": [
+        "ward.D",
+        "ward.D2",
+        "single",
+        "complete",
+        "average",
+        "mcquitty",
+        "median",
+        "centroid"
+      ]
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-rowSortBy",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-clusterRowDist",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "Pearson correlation",
+      "optionCount": 8,
+      "sampleOptions": [
+        "Pearson correlation",
+        "Euclidean",
+        "Maximum",
+        "Manhattan",
+        "Canberra",
+        "Binary",
+        "Minkowski",
+        "Spearman correlation"
+      ]
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-clusterRowLink",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "ward.D",
+      "optionCount": 8,
+      "sampleOptions": [
+        "ward.D",
+        "ward.D2",
+        "single",
+        "complete",
+        "average",
+        "mcquitty",
+        "median",
+        "centroid"
+      ]
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-scale",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "none",
+      "optionCount": 3,
+      "sampleOptions": [
+        "row",
+        "none",
+        "column"
+      ]
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-annotCol",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-annotRow",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-tooltipInfo",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-marginBottom",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "js-range-slider shinyjs-resettable irs-hidden-input shiny-bound-input",
+      "visible": false,
+      "currentValue": 4,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-marginRight",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "js-range-slider shinyjs-resettable irs-hidden-input shiny-bound-input",
+      "visible": false,
+      "currentValue": 4,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-heatmapColors",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "RdYlBu",
+      "optionCount": 8,
+      "sampleOptions": [
+        "BrBG",
+        "PiYG",
+        "PRGn",
+        "PuOr",
+        "RdBu",
+        "RdGy",
+        "RdYlBu",
+        "RdYlGn"
+      ]
+    },
+    {
+      "id": "app-dataspace-corheatmapViewer-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "action-button bttn bttn-minimal bttn-xs bttn-primary bttn-no-outline shiny-bound",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "mydropdown",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-colSortBy",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-clusterColDist",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "Pearson correlation",
+      "optionCount": 8,
+      "sampleOptions": [
+        "Pearson correlation",
+        "Euclidean",
+        "Maximum",
+        "Manhattan",
+        "Canberra",
+        "Binary",
+        "Minkowski",
+        "Spearman correlation"
+      ]
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-clusterColLink",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "ward.D",
+      "optionCount": 8,
+      "sampleOptions": [
+        "ward.D",
+        "ward.D2",
+        "single",
+        "complete",
+        "average",
+        "mcquitty",
+        "median",
+        "centroid"
+      ]
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-rowSortBy",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-clusterRowDist",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "Pearson correlation",
+      "optionCount": 8,
+      "sampleOptions": [
+        "Pearson correlation",
+        "Euclidean",
+        "Maximum",
+        "Manhattan",
+        "Canberra",
+        "Binary",
+        "Minkowski",
+        "Spearman correlation"
+      ]
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-clusterRowLink",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "ward.D",
+      "optionCount": 8,
+      "sampleOptions": [
+        "ward.D",
+        "ward.D2",
+        "single",
+        "complete",
+        "average",
+        "mcquitty",
+        "median",
+        "centroid"
+      ]
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-scale",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "row",
+      "optionCount": 3,
+      "sampleOptions": [
+        "row",
+        "none",
+        "column"
+      ]
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-annotCol",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-annotRow",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-tooltipInfo",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-marginBottom",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "js-range-slider shinyjs-resettable irs-hidden-input shiny-bound-input",
+      "visible": false,
+      "currentValue": 4,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-marginRight",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "js-range-slider shinyjs-resettable irs-hidden-input shiny-bound-input",
+      "visible": false,
+      "currentValue": 4,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-heatmapColors",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "RdYlBu",
+      "optionCount": 8,
+      "sampleOptions": [
+        "BrBG",
+        "PiYG",
+        "PRGn",
+        "PuOr",
+        "RdBu",
+        "RdGy",
+        "RdYlBu",
+        "RdYlGn"
+      ]
+    },
+    {
+      "id": "app-dataspace-heatmapViewer-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "action-button bttn bttn-minimal bttn-xs bttn-primary bttn-no-outline shiny-bound",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "mydropdown3",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-colSortBy",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-clusterColDist",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "Pearson correlation",
+      "optionCount": 8,
+      "sampleOptions": [
+        "Pearson correlation",
+        "Euclidean",
+        "Maximum",
+        "Manhattan",
+        "Canberra",
+        "Binary",
+        "Minkowski",
+        "Spearman correlation"
+      ]
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-clusterColLink",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "ward.D",
+      "optionCount": 8,
+      "sampleOptions": [
+        "ward.D",
+        "ward.D2",
+        "single",
+        "complete",
+        "average",
+        "mcquitty",
+        "median",
+        "centroid"
+      ]
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-rowSortBy",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-clusterRowDist",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "Pearson correlation",
+      "optionCount": 8,
+      "sampleOptions": [
+        "Pearson correlation",
+        "Euclidean",
+        "Maximum",
+        "Manhattan",
+        "Canberra",
+        "Binary",
+        "Minkowski",
+        "Spearman correlation"
+      ]
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-clusterRowLink",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "ward.D",
+      "optionCount": 8,
+      "sampleOptions": [
+        "ward.D",
+        "ward.D2",
+        "single",
+        "complete",
+        "average",
+        "mcquitty",
+        "median",
+        "centroid"
+      ]
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-scale",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "row",
+      "optionCount": 3,
+      "sampleOptions": [
+        "row",
+        "none",
+        "column"
+      ]
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-annotCol",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-annotRow",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-tooltipInfo",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-marginBottom",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "js-range-slider shinyjs-resettable irs-hidden-input shiny-bound-input",
+      "visible": false,
+      "currentValue": 4,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-marginRight",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "js-range-slider shinyjs-resettable irs-hidden-input shiny-bound-input",
+      "visible": false,
+      "currentValue": 4,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-heatmapColors",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "RdYlBu",
+      "optionCount": 8,
+      "sampleOptions": [
+        "BrBG",
+        "PiYG",
+        "PRGn",
+        "PuOr",
+        "RdBu",
+        "RdGy",
+        "RdYlBu",
+        "RdYlGn"
+      ]
+    },
+    {
+      "id": "app-dataspace-dynheatmapViewer-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "action-button bttn bttn-minimal bttn-xs bttn-primary bttn-no-outline shiny-bound",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_expr-clear",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_expr-multisel",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "sw-switchInput shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-tab_expr-addcolPanel",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-quickViews-badge_pca",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-quickViews-badge_cor_MDR",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-quickViews-badge_cor_Doubleing.Time",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-quickViews-badge_volcano_RE_vs_ME",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-quickViews-badge_volcano_RE_vs_LE",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-feature_space-quickViews-badge_volcano_MT_vs_WT",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-analyst",
+      "tag": "UL",
+      "inputType": null,
+      "classes": "nav navbar-nav nav-underline shiny-tab-input shiny-bound-input",
+      "visible": true,
+      "currentValue": "Feature",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-feature_general-tris_feature_general-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-tris_feature_general-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-tris_feature_general-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "btn-627614942",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": true,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectColorUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectColorUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectColorUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectShapeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectShapeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectShapeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectSizeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectSizeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectSizeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectTooltipUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectTooltipUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectTooltipUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectSearchCol-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectSearchCol-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-selectSearchCol-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-showSearchBox",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-searchon",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-xcut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "log10(2)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-ycut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "-log10(0.05)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-feature_general-a4_gf-scorner",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "None",
+      "optionCount": 1,
+      "sampleOptions": [
+        "None"
+      ]
+    },
+    {
+      "id": "app-resultspace-feature_general-internal_radio",
+      "tag": "DIV",
+      "inputType": null,
+      "classes": "radio-group-buttons shiny-bound-input",
+      "visible": true,
+      "currentValue": "Bees",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-ora-tris_ora-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-ora-tris_ora-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-ora-tris_ora-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-fgsea-tris_fgsea-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-fgsea-tris_fgsea-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-fgsea-tris_fgsea-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-stringdb-tax",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "9606",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-stringdb-run",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-stringdb-showLabel",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-ptm-tris_seqlogo-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-ptm-tris_seqlogo-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-ptm-tris_seqlogo-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-geneshotTab-term",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "shiny-input-text form-control shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-geneshotTab-submit",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-geneshotTab-mapIdPanel",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-geneshotTab-geneNameCol-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-geneshotTab-geneNameCol-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-geneshotTab-geneNameCol-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-batch_comp-show_phenotype",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": true,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-sample_general-batch_comp-show_features",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-sample_general-tris_sample_general-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-tris_sample_general-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-tris_sample_general-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "btn-46368303",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectColorUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectColorUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectColorUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectShapeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectShapeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectShapeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectSizeUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectSizeUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectSizeUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectTooltipUI-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectTooltipUI-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectTooltipUI-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectSearchCol-analysis",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectSearchCol-subset",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-selectSearchCol-variable",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "",
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-showSearchBox",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-searchon",
+      "tag": "SELECT",
+      "inputType": "select-multiple",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": [],
+      "optionCount": 0,
+      "sampleOptions": []
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-xcut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "log10(2)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-ycut",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "form-control text-input-icon shiny-bound-input",
+      "visible": false,
+      "currentValue": "-log10(0.05)",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-resultspace-sample_general-a4_gp-scorner",
+      "tag": "SELECT",
+      "inputType": "select-one",
+      "classes": "shiny-input-select shinyjs-resettable selectized shiny-bound-input",
+      "visible": false,
+      "currentValue": "None",
+      "optionCount": 1,
+      "sampleOptions": [
+        "None"
+      ]
+    },
+    {
+      "id": "app-dataspace-sample_space-quickViews-badge_pca",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button btn btn-xs btn-default shiny-bound-input",
+      "visible": false,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-dataspace-sample_space-main_scatterOutput-showRegLine",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": false,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-snapshot_name",
+      "tag": "INPUT",
+      "inputType": "text",
+      "classes": "shiny-input-text form-control shinyjs-resettable shiny-bound-input",
+      "visible": true,
+      "currentValue": "",
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-snapshot_save",
+      "tag": "BUTTON",
+      "inputType": "button",
+      "classes": "btn btn-default action-button shiny-bound-input",
+      "visible": true,
+      "currentValue": null,
+      "optionCount": null,
+      "sampleOptions": null
+    },
+    {
+      "id": "app-snapshot_include_chat",
+      "tag": "INPUT",
+      "inputType": "checkbox",
+      "classes": "shiny-input-checkbox shinyjs-resettable shiny-bound-input",
+      "visible": true,
+      "currentValue": false,
+      "optionCount": null,
+      "sampleOptions": null
+    }
+  ],
+  "dtSearch": [],
+  "dtColFilters": [],
+  "downloads": [
+    {
+      "id": "app-download",
+      "tag": "A",
+      "text": "xlsx",
+      "testid": "app-download-dataset-button",
+      "visible": true
+    },
+    {
+      "id": "app-dataspace-tab_feature-downloadTable-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-tab_pheno-downloadTable-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-feature_general-mtab-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": true
+    },
+    {
+      "id": "app-dataspace-tab_expr-downloadTable-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": true
+    },
+    {
+      "id": "app-dataspace-gsList-stab-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": true
+    },
+    {
+      "id": "app-resultspace-ora-stab-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": true
+    },
+    {
+      "id": "app-resultspace-ptm-seqtable-downloadData",
+      "tag": "A",
+      "text": "Save table",
+      "testid": null,
+      "visible": true
+    }
+  ],
+  "gestures": [
+    {
+      "id": "app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output",
+      "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+      "visible": true
+    },
+    {
+      "id": "app-dataspace-tab_feature-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-sample_space-main_scatterOutput-plotly.scatter.output",
+      "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-tab_pheno-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-tab_expr-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-gsList-stab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-feature_space-main_scatterOutput-testResult",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-feature_general-mtab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": true
+    },
+    {
+      "id": "app-resultspace-ora-stab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-ora-overlapTab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-fgsea-bplot",
+      "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-fgsea-stab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-rescurve-param-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-rescurve-feature-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-stringdb-strtab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-stringdb-network",
+      "cls": "forceNetwork html-widget html-widget-output shiny-report-siz",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-geneshotTab-plt",
+      "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-geneshotTab-autorif-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-sample_general-msatab-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-dataspace-sample_space-main_scatterOutput-testResult",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-feature_general-feature_general_boxplotly-boxplotly",
+      "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+      "visible": true
+    },
+    {
+      "id": "app-resultspace-ptm-seqtable-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": true
+    },
+    {
+      "id": "app-resultspace-ptm-seqtable_rat-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-ptm-seqtable_fg-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-ptm-seqtable_bg-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": false
+    },
+    {
+      "id": "app-resultspace-sample_general-batch_comp-phenotype_table-table",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": true
+    },
+    {
+      "id": "app-tab_saveSS",
+      "cls": "datatables html-widget html-widget-output shiny-report-size ",
+      "visible": true
+    }
+  ],
+  "plainButtons": [
+    {
+      "id": null,
+      "text": "Shortcut",
+      "visible": true
+    },
+    {
+      "id": null,
+      "text": "Custom",
+      "visible": true
+    },
+    {
+      "id": null,
+      "text": "Bees",
+      "visible": true
+    },
+    {
+      "id": null,
+      "text": "Curve",
+      "visible": true
+    }
+  ]
+}

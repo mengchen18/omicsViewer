@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.geneshot.xax_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.geneshot.xax_subset",
+  "widget": {
+    "binding_id": "resultspace.geneshot.xax_subset",
+    "kind": "select",
+    "label": "ID mapper subcategory",
+    "help": "Subcategory within the ID-mapper category",
+    "depends_on": "resultspace.geneshot.xax_analysis",
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.geneshot.xax_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

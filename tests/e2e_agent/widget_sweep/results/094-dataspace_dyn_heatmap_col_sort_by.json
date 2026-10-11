@@ -1,0 +1,65 @@
+{
+  "case": "094-dataspace_dyn_heatmap_col_sort_by",
+  "caseId": "dataspace.dyn_heatmap.col_sort_by",
+  "category": "binding",
+  "bindingId": "dataspace.dyn_heatmap.col_sort_by",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.col_sort_by",
+    "kind": "select",
+    "label": "Sort columns by",
+    "help": "Column ordering: a precomputed dendrogram (HCL entries), 'hierarchical cluster', 'none', or a phenotype annotation column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.col_sort_by": "hierarchical cluster"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 392,
+  "note": "REAL DISCOVERY GAP: capability record exposes NO allowed values while the Dynamic-heatmap tab is inactive (choices provider tab-state-dependent); see supplementary_dyn_heatmap.json - writes then validate PERMISSIVELY (garbage accepted)",
+  "receipt": {
+    "hook_run": 487,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.dyn_heatmap.col_sort_by",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 487,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.dyn_heatmap.col_sort_by",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 486,
+        "after": 487
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.dyn_heatmap.col_sort_by\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.dyn_heatmap.col_sort_by\":\"hierarchical cluster\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 335
+}

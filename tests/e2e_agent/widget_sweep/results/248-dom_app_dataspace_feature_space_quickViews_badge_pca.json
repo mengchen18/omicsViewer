@@ -1,0 +1,62 @@
+{
+  "case": "248-dom_app_dataspace_feature_space_quickViews_badge_pca",
+  "caseId": "dom:app-dataspace-feature_space-quickViews-badge_pca",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-quickViews-badge_pca",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 280,
+  "note": "Quick-view badge: covered semantically by set_scatter_view(quick_view_id)",
+  "receipt": {
+    "hook_run": 889,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.feature_space.quickViews.badge_pca",
+        "reason": "Unknown widget id: dataspace.feature_space.quickViews.badge_pca."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.feature_space.quickViews.badge_pca",
+      "receipt": {
+        "hook_run": 889,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.feature_space.quickViews.badge_pca",
+            "reason": "Unknown widget id: dataspace.feature_space.quickViews.badge_pca."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 888,
+        "after": 889
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.tab_expr.addcolPanel\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.feature_space.quickViews.badge_pca\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 53
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 136
+}

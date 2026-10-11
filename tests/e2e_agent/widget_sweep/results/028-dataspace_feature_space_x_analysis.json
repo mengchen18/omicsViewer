@@ -1,0 +1,87 @@
+{
+  "case": "028-dataspace_feature_space_x_analysis",
+  "caseId": "dataspace.feature_space.x_analysis",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.x_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.x_analysis",
+    "kind": "select",
+    "label": "X-axis analysis",
+    "help": "Analysis category for the X axis",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.x_analysis": "General"
+    }
+  },
+  "status": "timeout",
+  "duration_ms": 198695,
+  "note": "operation-to-observable-effect took 198695ms (> 30 s budget; browser main thread blocked by plot redraw). ",
+  "receipt": {
+    "hook_run": 216,
+    "applied": "dataspace.feature_space.x_analysis",
+    "applied_values": {
+      "dataspace.feature_space.x_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 216,
+        "applied": "dataspace.feature_space.x_analysis",
+        "applied_values": {
+          "dataspace.feature_space.x_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 215,
+        "after": 216
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-analysis",
+        "before": "ttest",
+        "after": "General"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-subset",
+        "before": "RE_vs_ME",
+        "after": "All"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-variable",
+        "before": "mean.diff",
+        "after": "Gene.name"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.x_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.x_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.feature_space.x_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 171,
+  "_status_before_30s_rule": "success"
+}

@@ -1,0 +1,62 @@
+{
+  "case": "194-dom_app_assistant_close",
+  "caseId": "dom:app-assistant-close",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-assistant-close",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 232,
+  "note": "",
+  "receipt": {
+    "hook_run": 825,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "assistant.close",
+        "reason": "Unknown widget id: assistant.close."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "assistant.close",
+      "receipt": {
+        "hook_run": 825,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "assistant.close",
+            "reason": "Unknown widget id: assistant.close."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 824,
+        "after": 825
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"assistant.settings\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"assistant.close\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 100
+}

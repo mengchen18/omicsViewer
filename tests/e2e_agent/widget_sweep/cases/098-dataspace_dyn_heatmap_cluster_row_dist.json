@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.dyn_heatmap.cluster_row_dist",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.dyn_heatmap.cluster_row_dist",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.cluster_row_dist",
+    "kind": "select",
+    "label": "Row distance",
+    "help": "Distance measure for row hierarchical clustering",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.cluster_row_dist": "Euclidean"
+    }
+  },
+  "fresh_current": "Pearson correlation",
+  "probeNote": "first allowed != current (Euclidean)"
+}

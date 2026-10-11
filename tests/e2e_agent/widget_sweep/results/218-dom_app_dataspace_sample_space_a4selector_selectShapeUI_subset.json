@@ -1,0 +1,62 @@
+{
+  "case": "218-dom_app_dataspace_sample_space_a4selector_selectShapeUI_subset",
+  "caseId": "dom:app-dataspace-sample_space-a4selector-selectShapeUI-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-a4selector-selectShapeUI-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 214,
+  "note": "",
+  "receipt": {
+    "hook_run": 853,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.a4selector.selectShapeUI.subset",
+        "reason": "Unknown widget id: dataspace.sample_space.a4selector.selectShapeUI.subset. Closest matches: dataspace.sample_space.attr4.shape_subset, dataspace.sample_space.attr4.search_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.a4selector.selectShapeUI.subset",
+      "receipt": {
+        "hook_run": 853,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.a4selector.selectShapeUI.subset",
+            "reason": "Unknown widget id: dataspace.sample_space.a4selector.selectShapeUI.subset. Closest matches: dataspace.sample_space.attr4.shape_subset, dataspace.sample_space.attr4.search_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 852,
+        "after": 853
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.a4selector.selectShapeUI.analysis\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.a4selector.selectShapeUI.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 122
+}

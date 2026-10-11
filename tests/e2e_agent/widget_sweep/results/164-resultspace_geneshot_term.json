@@ -1,0 +1,76 @@
+{
+  "case": "164-resultspace_geneshot_term",
+  "caseId": "resultspace.geneshot.term",
+  "category": "binding",
+  "bindingId": "resultspace.geneshot.term",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.geneshot.term",
+    "kind": "string",
+    "label": "Search terms",
+    "help": "Semicolon-separated literature search terms for the Geneshot AutoRIF query",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.geneshot.term": "AGENTPROBE-164"
+    }
+  },
+  "status": "success",
+  "duration_ms": 422,
+  "note": "",
+  "receipt": {
+    "hook_run": 773,
+    "applied": "resultspace.geneshot.term",
+    "applied_values": {
+      "resultspace.geneshot.term": "AGENTPROBE-164"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 773,
+        "applied": "resultspace.geneshot.term",
+        "applied_values": {
+          "resultspace.geneshot.term": "AGENTPROBE-164"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 772,
+        "after": 773
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.geneshot.term\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.geneshot.term\":\"AGENTPROBE-164\"}}"
+      },
+      {
+        "input": "app-resultspace-geneshotTab-term",
+        "before": "",
+        "after": "AGENTPROBE-164"
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": {
+    "resultspace.geneshot.term": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 132
+}

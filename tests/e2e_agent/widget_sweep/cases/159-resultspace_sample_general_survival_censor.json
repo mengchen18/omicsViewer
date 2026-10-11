@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.sample_general.survival_censor",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.sample_general.survival_censor",
+  "widget": {
+    "binding_id": "resultspace.sample_general.survival_censor",
+    "kind": "numeric",
+    "label": "Censor time",
+    "help": "Time at which the Kaplan-Meier analysis right-censors observations",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.sample_general.survival_censor": 1
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "current+1 (1); range rejection auto-retried with current-1"
+}

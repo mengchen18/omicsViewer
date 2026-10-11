@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.cor_heatmap.cluster_row_link",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.cor_heatmap.cluster_row_link",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.cluster_row_link",
+    "kind": "select",
+    "label": "Row linkage",
+    "help": "Linkage method for row hierarchical clustering",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.cluster_row_link": "ward.D2"
+    }
+  },
+  "fresh_current": "ward.D",
+  "probeNote": "first allowed != current (ward.D2)"
+}

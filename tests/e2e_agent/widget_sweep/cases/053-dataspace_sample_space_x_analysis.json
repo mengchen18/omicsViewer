@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.sample_space.x_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.x_analysis",
+  "widget": {
+    "binding_id": "dataspace.sample_space.x_analysis",
+    "kind": "select",
+    "label": "X-axis analysis",
+    "help": "Analysis category for the X axis",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.x_analysis": "General"
+    }
+  },
+  "fresh_current": "PCA",
+  "probeNote": "first allowed != current (General)"
+}

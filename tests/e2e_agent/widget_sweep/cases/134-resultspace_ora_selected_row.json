@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.ora.selected_row",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ora.selected_row",
+  "widget": {
+    "binding_id": "resultspace.ora.selected_row",
+    "kind": "select",
+    "label": "Selected pathway",
+    "help": "Gene set whose row is selected in the results table; drives the overlap-genes table below",
+    "depends_on": [],
+    "operation": "set_enrichment_parameters"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ora.selected_row": "tissue.morphogenesis"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (tissue.morphogenesis)"
+}

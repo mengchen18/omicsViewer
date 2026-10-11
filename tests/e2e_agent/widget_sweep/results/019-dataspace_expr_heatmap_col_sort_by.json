@@ -1,0 +1,76 @@
+{
+  "case": "019-dataspace_expr_heatmap_col_sort_by",
+  "caseId": "dataspace.expr_heatmap.col_sort_by",
+  "category": "binding",
+  "bindingId": "dataspace.expr_heatmap.col_sort_by",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.col_sort_by",
+    "kind": "select",
+    "label": "Sort columns by",
+    "help": "Column ordering: a precomputed dendrogram (HCL entries), 'hierarchical cluster', 'none', or a phenotype annotation column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.col_sort_by": "none"
+    }
+  },
+  "status": "success",
+  "duration_ms": 289,
+  "note": "",
+  "receipt": {
+    "hook_run": 180,
+    "applied": "dataspace.expr_heatmap.col_sort_by",
+    "applied_values": {
+      "dataspace.expr_heatmap.col_sort_by": "none"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 180,
+        "applied": "dataspace.expr_heatmap.col_sort_by",
+        "applied_values": {
+          "dataspace.expr_heatmap.col_sort_by": "none"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 179,
+        "after": 180
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-heatmapViewer-colSortBy",
+        "before": "hierarchical cluster",
+        "after": "none"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.expr_heatmap.col_sort_by\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.expr_heatmap.col_sort_by\":\"none\"}}"
+      }
+    ],
+    "waited_ms": 21
+  },
+  "store_readback": {
+    "dataspace.expr_heatmap.col_sort_by": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 112
+}

@@ -1,0 +1,25 @@
+{
+  "caseId": "dataspace.feature_space.attr4.tooltip_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.attr4.tooltip_variable",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.tooltip_variable",
+    "kind": "select_cascaded",
+    "label": "Tooltips attribute variable",
+    "help": "Annotation variable mapped to the tooltips aesthetic",
+    "depends_on": [
+      "dataspace.feature_space.attr4.tooltip_analysis",
+      "dataspace.feature_space.attr4.tooltip_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.tooltip_variable": "PC2(7.2%)"
+    }
+  },
+  "fresh_current": "PC1(10.5%)",
+  "probeNote": "first allowed != current (PC2(7.2%))"
+}

@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.feature_space.axis_mode",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.axis_mode",
+  "widget": {
+    "binding_id": "dataspace.feature_space.axis_mode",
+    "kind": "enum",
+    "label": "Axis mode",
+    "help": "Quick-view badges or custom triselectors",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.axis_mode": "quick"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (quick)"
+}

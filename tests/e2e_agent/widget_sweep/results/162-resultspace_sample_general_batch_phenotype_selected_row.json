@@ -1,0 +1,65 @@
+{
+  "case": "162-resultspace_sample_general_batch_phenotype_selected_row",
+  "caseId": "resultspace.sample_general.batch_phenotype_selected_row",
+  "category": "binding",
+  "bindingId": "resultspace.sample_general.batch_phenotype_selected_row",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.sample_general.batch_phenotype_selected_row",
+    "kind": "select",
+    "label": "Selected phenotype variable",
+    "help": "Phenotype-comparison row selected in the batch results table; drives the sample link",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.sample_general.batch_phenotype_selected_row": null
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 277,
+  "note": "REAL: choices empty in this session state (batch table rows not materialized)",
+  "receipt": {
+    "hook_run": 765,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 765,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 764,
+        "after": 765
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.sample_general.batch_phenotype_selected_row\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.sample_general.batch_phenotype_selected_row\":null}}"
+      }
+    ],
+    "waited_ms": 18
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 237
+}

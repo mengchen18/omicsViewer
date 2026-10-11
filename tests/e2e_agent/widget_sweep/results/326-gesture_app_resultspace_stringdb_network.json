@@ -1,0 +1,20 @@
+{
+  "case": "326-gesture_app_resultspace_stringdb_network",
+  "caseId": "gesture:app-resultspace-stringdb-network",
+  "category": "out-of-scope",
+  "bindingId": null,
+  "widget": {
+    "id": "app-resultspace-stringdb-network",
+    "cls": "forceNetwork html-widget html-widget-output shiny-report-siz",
+    "visible": false
+  },
+  "request": null,
+  "status": "out-of-scope",
+  "duration_ms": null,
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)",
+  "receipt": null,
+  "attempts": [],
+  "ui_effect": null,
+  "store_readback": null,
+  "console_errors": null
+}

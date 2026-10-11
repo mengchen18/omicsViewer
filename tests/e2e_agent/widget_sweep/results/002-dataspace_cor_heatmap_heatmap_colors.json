@@ -1,0 +1,76 @@
+{
+  "case": "002-dataspace_cor_heatmap_heatmap_colors",
+  "caseId": "dataspace.cor_heatmap.heatmap_colors",
+  "category": "binding",
+  "bindingId": "dataspace.cor_heatmap.heatmap_colors",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.heatmap_colors",
+    "kind": "select",
+    "label": "Heatmap color panel",
+    "help": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.heatmap_colors": "BrBG"
+    }
+  },
+  "status": "success",
+  "duration_ms": 309,
+  "note": "",
+  "receipt": {
+    "hook_run": 112,
+    "applied": "dataspace.cor_heatmap.heatmap_colors",
+    "applied_values": {
+      "dataspace.cor_heatmap.heatmap_colors": "BrBG"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 112,
+        "applied": "dataspace.cor_heatmap.heatmap_colors",
+        "applied_values": {
+          "dataspace.cor_heatmap.heatmap_colors": "BrBG"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 111,
+        "after": 112
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-corheatmapViewer-heatmapColors",
+        "before": "RdYlBu",
+        "after": "BrBG"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.cor_heatmap.heatmap_colors\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.cor_heatmap.heatmap_colors\":\"BrBG\"}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.cor_heatmap.heatmap_colors": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 139
+}

@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.sample_space.attr4.scorner",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.attr4.scorner",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.scorner",
+    "kind": "select",
+    "label": "Selected area",
+    "help": "Plot region selected by the cutoffs (corner or volcano mode)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.scorner": "volcano"
+    }
+  },
+  "fresh_current": "None",
+  "probeNote": "first allowed != current (volcano)"
+}

@@ -1,0 +1,62 @@
+{
+  "case": "238-dom_app_dataspace_heatmapViewer_clear",
+  "caseId": "dom:app-dataspace-heatmapViewer-clear",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-heatmapViewer-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 180,
+  "note": "",
+  "receipt": {
+    "hook_run": 877,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.heatmapViewer.clear",
+        "reason": "Unknown widget id: dataspace.heatmapViewer.clear."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.heatmapViewer.clear",
+      "receipt": {
+        "hook_run": 877,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.heatmapViewer.clear",
+            "reason": "Unknown widget id: dataspace.heatmapViewer.clear."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 876,
+        "after": 877
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.heatmapViewer.annotRow\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.heatmapViewer.clear\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 98
+}

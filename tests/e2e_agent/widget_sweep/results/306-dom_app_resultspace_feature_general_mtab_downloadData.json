@@ -1,0 +1,62 @@
+{
+  "case": "306-dom_app_resultspace_feature_general_mtab_downloadData",
+  "caseId": "dom:app-resultspace-feature_general-mtab-downloadData",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-feature_general-mtab-downloadData",
+    "description": "download control (Save table)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 180,
+  "note": "download output - no value semantics",
+  "receipt": {
+    "hook_run": 959,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.feature_general.mtab.downloadData",
+        "reason": "Unknown widget id: resultspace.feature_general.mtab.downloadData. Closest matches: resultspace.feature_general.xax_analysis, resultspace.feature_general.xax_subset, resultspace.feature_general.xax_variable."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.feature_general.mtab.downloadData",
+      "receipt": {
+        "hook_run": 959,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.feature_general.mtab.downloadData",
+            "reason": "Unknown widget id: resultspace.feature_general.mtab.downloadData. Closest matches: resultspace.feature_general.xax_analysis, resultspace.feature_general.xax_subset, resultspace.feature_general.xax_variable."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 958,
+        "after": 959
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.tab_pheno.downloadTable.downloadData\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"resultspace.feature_general.mtab.downloadData\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 41
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 96
+}

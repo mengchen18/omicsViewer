@@ -1,0 +1,62 @@
+{
+  "case": "296-dom_app_snapshot_name",
+  "caseId": "dom:app-snapshot_name",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-snapshot_name",
+    "description": "INPUT:text visible=true"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 221,
+  "note": "",
+  "receipt": {
+    "hook_run": 941,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "snapshot_name",
+        "reason": "Unknown widget id: snapshot_name."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "snapshot_name",
+      "receipt": {
+        "hook_run": 941,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "snapshot_name",
+            "reason": "Unknown widget id: snapshot_name."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 940,
+        "after": 941
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.main_scatterOutput.showRegLine\":true}}",
+        "after": "{\"patch\":{\"snapshot_name\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 113
+}

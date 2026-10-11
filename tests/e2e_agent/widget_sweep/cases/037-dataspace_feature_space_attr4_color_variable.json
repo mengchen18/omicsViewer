@@ -1,0 +1,25 @@
+{
+  "caseId": "dataspace.feature_space.attr4.color_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.attr4.color_variable",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.color_variable",
+    "kind": "select_cascaded",
+    "label": "Color attribute variable",
+    "help": "Annotation variable mapped to the color aesthetic",
+    "depends_on": [
+      "dataspace.feature_space.attr4.color_analysis",
+      "dataspace.feature_space.attr4.color_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.color_variable": "Gene.name"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Gene.name)"
+}

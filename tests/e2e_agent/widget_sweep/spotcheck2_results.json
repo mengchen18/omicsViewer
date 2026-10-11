@@ -1,0 +1,152 @@
+{
+  "before": {
+    "app-dataspace-feature_space-a4selector-selectColorUI-analysis": "General",
+    "app-dataspace-feature_space-a4selector-selectColorUI-subset": "All",
+    "app-dataspace-feature_space-a4selector-selectColorUI-variable": "--select--",
+    ".clientdata_output_app-dataspace-feature_space-a4selector-selectColorUI-groupLabel_hidden": true
+  },
+  "receipt_A": {
+    "applied": "dataspace.feature_space.attr4.color_analysis",
+    "skipped": []
+  },
+  "after_analysis_PCA": {
+    "app-dataspace-feature_space-a4selector-selectColorUI-analysis": "PCA",
+    "app-dataspace-feature_space-a4selector-selectColorUI-subset": "All",
+    "app-dataspace-feature_space-a4selector-selectColorUI-variable": "--select--",
+    ".clientdata_output_app-dataspace-feature_space-a4selector-selectColorUI-groupLabel_hidden": true
+  },
+  "tab_open_table_state": {
+    "app-dataspace-tab_feature-table_state": {
+      "time": 1791718226256,
+      "start": 0,
+      "length": 25,
+      "order": [],
+      "search": {
+        "search": "",
+        "smart": true,
+        "regex": false,
+        "caseInsensitive": true
+      },
+      "columns": [
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        }
+      ]
+    }
+  },
+  "receipt_B": {
+    "applied": [],
+    "skipped": []
+  },
+  "after_columns": {
+    "app-dataspace-tab_feature-table_state": {
+      "time": 1791718226256,
+      "start": 0,
+      "length": 25,
+      "order": [],
+      "search": {
+        "search": "",
+        "smart": true,
+        "regex": false,
+        "caseInsensitive": true
+      },
+      "columns": [
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        }
+      ]
+    }
+  },
+  "after_page": {
+    "app-dataspace-tab_feature-table_state": {
+      "time": 1791718237472,
+      "start": 25,
+      "length": 25,
+      "order": [],
+      "search": {
+        "search": "",
+        "smart": true,
+        "regex": false,
+        "caseInsensitive": true
+      },
+      "columns": [
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "visible": true,
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          }
+        }
+      ],
+      "childRows": []
+    }
+  }
+}

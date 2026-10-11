@@ -1,0 +1,62 @@
+{
+  "case": "308-dom_app_dataspace_gsList_stab_downloadData",
+  "caseId": "dom:app-dataspace-gsList-stab-downloadData",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-gsList-stab-downloadData",
+    "description": "download control (Save table)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 201,
+  "note": "download output - no value semantics",
+  "receipt": {
+    "hook_run": 961,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.gsList.stab.downloadData",
+        "reason": "Unknown widget id: dataspace.gsList.stab.downloadData."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.gsList.stab.downloadData",
+      "receipt": {
+        "hook_run": 961,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.gsList.stab.downloadData",
+            "reason": "Unknown widget id: dataspace.gsList.stab.downloadData."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 960,
+        "after": 961
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.tab_expr.downloadTable.downloadData\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.gsList.stab.downloadData\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 116
+}

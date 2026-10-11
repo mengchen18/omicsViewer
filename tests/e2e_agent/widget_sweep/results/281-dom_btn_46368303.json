@@ -1,0 +1,92 @@
+{
+  "case": "281-dom_btn_46368303",
+  "caseId": "dom:btn-46368303",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "btn-46368303",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 448,
+  "note": "",
+  "receipt": {
+    "hook_run": 926,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.global_search",
+        "reason": "Unknown widget id: resultspace.global_search."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "app",
+      "receipt": {
+        "hook_run": 924,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "app",
+            "reason": "Unknown widget id: app."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "dataspace.global_search",
+      "receipt": {
+        "hook_run": 925,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.global_search",
+            "reason": "Unknown widget id: dataspace.global_search."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "resultspace.global_search",
+      "receipt": {
+        "hook_run": 926,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.global_search",
+            "reason": "Unknown widget id: resultspace.global_search."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 923,
+        "after": 926
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.sample_general.tris_sample_general.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.global_search\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 117
+}

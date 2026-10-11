@@ -1,0 +1,10 @@
+{
+  "caseId": "tool:find_controls(color)",
+  "category": "semantic-tool",
+  "tool": "find_controls",
+  "hookOp": "capabilities",
+  "request": {
+    "query": "color",
+    "max_results": 5
+  }
+}

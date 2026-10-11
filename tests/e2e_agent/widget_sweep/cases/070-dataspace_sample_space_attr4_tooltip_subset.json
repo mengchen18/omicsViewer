@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.sample_space.attr4.tooltip_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.attr4.tooltip_subset",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.tooltip_subset",
+    "kind": "select",
+    "label": "Tooltips attribute subcategory",
+    "help": "Second level of the tooltips attribute cascade",
+    "depends_on": "dataspace.sample_space.attr4.tooltip_analysis",
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.tooltip_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

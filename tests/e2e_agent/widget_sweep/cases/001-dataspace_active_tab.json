@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.active_tab",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.active_tab",
+  "widget": {
+    "binding_id": "dataspace.active_tab",
+    "kind": "navbar",
+    "label": "Data-space tab",
+    "help": "Active tab of the data-space (left) navbar: Feature, Feature table, Sample, Sample table, Cor, Heatmap, Dynamic heatmap, Expression, or GSList",
+    "depends_on": [],
+    "operation": "set_omics_viewer_state"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.active_tab": "Feature"
+    }
+  },
+  "fresh_current": "GSList",
+  "probeNote": "first allowed != current (Feature)"
+}

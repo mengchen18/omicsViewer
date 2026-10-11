@@ -1,0 +1,62 @@
+{
+  "case": "247-dom_app_dataspace_tab_expr_addcolPanel",
+  "caseId": "dom:app-dataspace-tab_expr-addcolPanel",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-tab_expr-addcolPanel",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 219,
+  "note": "",
+  "receipt": {
+    "hook_run": 888,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.tab_expr.addcolPanel",
+        "reason": "Unknown widget id: dataspace.tab_expr.addcolPanel. Closest matches: dataspace.tab_expr.columns, dataspace.tab_expr.page."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.tab_expr.addcolPanel",
+      "receipt": {
+        "hook_run": 888,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.tab_expr.addcolPanel",
+            "reason": "Unknown widget id: dataspace.tab_expr.addcolPanel. Closest matches: dataspace.tab_expr.columns, dataspace.tab_expr.page."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 887,
+        "after": 888
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.tab_expr.clear\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.tab_expr.addcolPanel\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 41
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 122
+}

@@ -1,0 +1,79 @@
+{
+  "case": "065-dataspace_sample_space_attr4_shape_variable",
+  "caseId": "dataspace.sample_space.attr4.shape_variable",
+  "category": "binding",
+  "bindingId": "dataspace.sample_space.attr4.shape_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.shape_variable",
+    "kind": "select_cascaded",
+    "label": "Shape attribute variable",
+    "help": "Annotation variable mapped to the shape aesthetic",
+    "depends_on": [
+      "dataspace.sample_space.attr4.shape_analysis",
+      "dataspace.sample_space.attr4.shape_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.shape_variable": "Cell.line"
+    }
+  },
+  "status": "success",
+  "duration_ms": 491,
+  "note": "",
+  "receipt": {
+    "hook_run": 369,
+    "applied": "dataspace.sample_space.attr4.shape_variable",
+    "applied_values": {
+      "dataspace.sample_space.attr4.shape_variable": "Cell.line"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 369,
+        "applied": "dataspace.sample_space.attr4.shape_variable",
+        "applied_values": {
+          "dataspace.sample_space.attr4.shape_variable": "Cell.line"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 368,
+        "after": 369
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-sample_space-a4selector-selectShapeUI-variable",
+        "before": "--select--",
+        "after": "Cell.line"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.sample_space.attr4.shape_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.sample_space.attr4.shape_variable\":\"Cell.line\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.sample_space.attr4.shape_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 212
+}

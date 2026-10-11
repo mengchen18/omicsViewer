@@ -1,0 +1,28 @@
+{
+  "caseId": "dataspace.tab_feature.columns",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.tab_feature.columns",
+  "widget": {
+    "binding_id": "dataspace.tab_feature.columns",
+    "kind": "multi_select",
+    "label": "Shown columns",
+    "help": "Table columns currently displayed; the Add-column selector appends entries; at least one column must remain selected",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.tab_feature.columns": [
+        "PCA|All|PC1(10.5%)"
+      ]
+    }
+  },
+  "fresh_current": [
+    "General|All|Gene.name",
+    "General|All|Protein.ID",
+    "General|All|Intensity"
+  ],
+  "probeNote": "single allowed entry (PCA|All|PC1(10.5%))"
+}

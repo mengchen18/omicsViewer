@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.attr4.shape_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.attr4.shape_analysis",
+  "widget": {
+    "binding_id": "resultspace.feature_general.attr4.shape_analysis",
+    "kind": "select",
+    "label": "Shape attribute category",
+    "help": "First level of the shape attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.attr4.shape_analysis": "General"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (General)"
+}

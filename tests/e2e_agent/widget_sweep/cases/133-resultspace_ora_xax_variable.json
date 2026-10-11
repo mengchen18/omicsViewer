@@ -1,0 +1,25 @@
+{
+  "caseId": "resultspace.ora.xax_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ora.xax_variable",
+  "widget": {
+    "binding_id": "resultspace.ora.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Collapse variable",
+    "help": "Variable the input features are collapsed on (feature annotation column)",
+    "depends_on": [
+      "resultspace.ora.xax_analysis",
+      "resultspace.ora.xax_subset"
+    ],
+    "operation": "set_enrichment_parameters"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ora.xax_variable": "Gene.name"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Gene.name)"
+}

@@ -1,0 +1,25 @@
+{
+  "caseId": "dataspace.sample_space.x_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.x_variable",
+  "widget": {
+    "binding_id": "dataspace.sample_space.x_variable",
+    "kind": "select_cascaded",
+    "label": "X-axis variable",
+    "help": "Annotation variable plotted on the X axis",
+    "depends_on": [
+      "dataspace.sample_space.x_analysis",
+      "dataspace.sample_space.x_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.x_variable": "MDR"
+    }
+  },
+  "fresh_current": "Cell.line",
+  "probeNote": "first allowed != current (MDR)"
+}

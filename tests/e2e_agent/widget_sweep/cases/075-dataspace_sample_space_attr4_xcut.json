@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.sample_space.attr4.xcut",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.attr4.xcut",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.xcut",
+    "kind": "string",
+    "label": "X cutoff",
+    "help": "X-axis cutoff for area selection; a number or an R expression such as -log10(0.05)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.xcut": "1"
+    }
+  },
+  "fresh_current": "log10(2)",
+  "probeNote": "cutoff probe (valid numeric string)"
+}

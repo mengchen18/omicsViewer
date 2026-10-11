@@ -1,0 +1,90 @@
+{
+  "case": "001-dataspace_active_tab",
+  "caseId": "dataspace.active_tab",
+  "category": "binding",
+  "bindingId": "dataspace.active_tab",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.active_tab",
+    "kind": "navbar",
+    "label": "Data-space tab",
+    "help": "Active tab of the data-space (left) navbar: Feature, Feature table, Sample, Sample table, Cor, Heatmap, Dynamic heatmap, Expression, or GSList",
+    "depends_on": [],
+    "operation": "set_omics_viewer_state"
+  },
+  "request": {
+    "patch": {
+      "dataspace.active_tab": "Feature"
+    }
+  },
+  "status": "success",
+  "duration_ms": 329,
+  "note": "",
+  "receipt": {
+    "hook_run": 108,
+    "applied": "dataspace.active_tab",
+    "applied_values": {
+      "dataspace.active_tab": "Feature"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 108,
+        "applied": "dataspace.active_tab",
+        "applied_values": {
+          "dataspace.active_tab": "Feature"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-dataspace-eset",
+        "before": "GSList",
+        "after": "Feature"
+      },
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 107,
+        "after": 108
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.active_tab\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.active_tab\":\"Feature\"}}"
+      },
+      {
+        "input": "__selectedRows",
+        "before": [
+          {
+            "id": "DataTables_Table_3_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_3",
+            "n": 0
+          }
+        ],
+        "after": []
+      }
+    ],
+    "waited_ms": 23
+  },
+  "store_readback": {
+    "dataspace.active_tab": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 124
+}

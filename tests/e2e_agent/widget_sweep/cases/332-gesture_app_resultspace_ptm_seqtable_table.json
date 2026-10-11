@@ -1,0 +1,10 @@
+{
+  "caseId": "gesture:app-resultspace-ptm-seqtable-table",
+  "category": "out-of-scope",
+  "widget": {
+    "id": "app-resultspace-ptm-seqtable-table",
+    "cls": "datatables html-widget html-widget-output shiny-report-size ",
+    "visible": true
+  },
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)"
+}

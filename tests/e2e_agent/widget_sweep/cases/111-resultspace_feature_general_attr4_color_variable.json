@@ -1,0 +1,25 @@
+{
+  "caseId": "resultspace.feature_general.attr4.color_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.attr4.color_variable",
+  "widget": {
+    "binding_id": "resultspace.feature_general.attr4.color_variable",
+    "kind": "select_cascaded",
+    "label": "Color attribute variable",
+    "help": "Annotation variable mapped to the color aesthetic",
+    "depends_on": [
+      "resultspace.feature_general.attr4.color_analysis",
+      "resultspace.feature_general.attr4.color_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.attr4.color_variable": "Cell.line"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Cell.line)"
+}

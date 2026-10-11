@@ -1,0 +1,76 @@
+{
+  "case": "010-dataspace_cor_heatmap_cluster_row_dist",
+  "caseId": "dataspace.cor_heatmap.cluster_row_dist",
+  "category": "binding",
+  "bindingId": "dataspace.cor_heatmap.cluster_row_dist",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.cluster_row_dist",
+    "kind": "select",
+    "label": "Row distance",
+    "help": "Distance measure for row hierarchical clustering",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.cluster_row_dist": "Euclidean"
+    }
+  },
+  "status": "success",
+  "duration_ms": 288,
+  "note": "",
+  "receipt": {
+    "hook_run": 144,
+    "applied": "dataspace.cor_heatmap.cluster_row_dist",
+    "applied_values": {
+      "dataspace.cor_heatmap.cluster_row_dist": "Euclidean"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 144,
+        "applied": "dataspace.cor_heatmap.cluster_row_dist",
+        "applied_values": {
+          "dataspace.cor_heatmap.cluster_row_dist": "Euclidean"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 143,
+        "after": 144
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-corheatmapViewer-clusterRowDist",
+        "before": "Pearson correlation",
+        "after": "Euclidean"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.cor_heatmap.cluster_row_dist\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.cor_heatmap.cluster_row_dist\":\"Euclidean\"}}"
+      }
+    ],
+    "waited_ms": 21
+  },
+  "store_readback": {
+    "dataspace.cor_heatmap.cluster_row_dist": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 109
+}

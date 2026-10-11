@@ -1,0 +1,80 @@
+{
+  "case": "030-dataspace_feature_space_x_variable",
+  "caseId": "dataspace.feature_space.x_variable",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.x_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.x_variable",
+    "kind": "select_cascaded",
+    "label": "X-axis variable",
+    "help": "Annotation variable plotted on the X axis",
+    "depends_on": [
+      "dataspace.feature_space.x_analysis",
+      "dataspace.feature_space.x_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.x_variable": "Protein.ID"
+    }
+  },
+  "status": "timeout",
+  "duration_ms": 199641,
+  "note": "operation-to-observable-effect took 199641ms (> 30 s budget; browser main thread blocked by plot redraw). ",
+  "receipt": {
+    "hook_run": 225,
+    "applied": "dataspace.feature_space.x_variable",
+    "applied_values": {
+      "dataspace.feature_space.x_variable": "Protein.ID"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 225,
+        "applied": "dataspace.feature_space.x_variable",
+        "applied_values": {
+          "dataspace.feature_space.x_variable": "Protein.ID"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 224,
+        "after": 225
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-variable",
+        "before": "Gene.name",
+        "after": "Protein.ID"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.x_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.x_variable\":\"Protein.ID\"}}"
+      }
+    ],
+    "waited_ms": 23
+  },
+  "store_readback": {
+    "dataspace.feature_space.x_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 190,
+  "_status_before_30s_rule": "success"
+}

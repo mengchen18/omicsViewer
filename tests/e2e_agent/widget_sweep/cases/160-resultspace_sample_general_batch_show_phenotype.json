@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.sample_general.batch_show_phenotype",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.sample_general.batch_show_phenotype",
+  "widget": {
+    "binding_id": "resultspace.sample_general.batch_show_phenotype",
+    "kind": "boolean",
+    "label": "Compare phenotype variables",
+    "help": "Test all phenotype variables between selected and unselected samples",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.sample_general.batch_show_phenotype": false
+    }
+  },
+  "fresh_current": true,
+  "probeNote": "boolean flip"
+}

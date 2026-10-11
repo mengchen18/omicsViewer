@@ -1,0 +1,14 @@
+{
+  "caseId": "dom:app-dataspace-heatmapViewer-clear",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-heatmapViewer-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "guesses": [
+    "dataspace.heatmapViewer.clear"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": ""
+}

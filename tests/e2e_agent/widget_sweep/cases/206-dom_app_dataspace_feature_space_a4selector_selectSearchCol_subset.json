@@ -1,0 +1,14 @@
+{
+  "caseId": "dom:app-dataspace-feature_space-a4selector-selectSearchCol-subset",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-a4selector-selectSearchCol-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "guesses": [
+    "dataspace.feature_space.a4selector.selectSearchCol.subset"
+  ],
+  "probeValue": "x",
+  "note": ""
+}

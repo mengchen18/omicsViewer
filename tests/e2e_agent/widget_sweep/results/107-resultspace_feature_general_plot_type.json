@@ -1,0 +1,76 @@
+{
+  "case": "107-resultspace_feature_general_plot_type",
+  "caseId": "resultspace.feature_general.plot_type",
+  "category": "binding",
+  "bindingId": "resultspace.feature_general.plot_type",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.feature_general.plot_type",
+    "kind": "enum",
+    "label": "Plot type",
+    "help": "Beeswarm/box view or ROC/PR classification curves (categorical link variable with few features)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.feature_general.plot_type": "Curve"
+    }
+  },
+  "status": "success",
+  "duration_ms": 570,
+  "note": "",
+  "receipt": {
+    "hook_run": 542,
+    "applied": "resultspace.feature_general.plot_type",
+    "applied_values": {
+      "resultspace.feature_general.plot_type": "Curve"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 542,
+        "applied": "resultspace.feature_general.plot_type",
+        "applied_values": {
+          "resultspace.feature_general.plot_type": "Curve"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 541,
+        "after": 542
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.feature_general.plot_type\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.feature_general.plot_type\":\"Curve\"}}"
+      },
+      {
+        "input": "app-resultspace-feature_general-internal_radio",
+        "before": "Bees",
+        "after": "Curve"
+      }
+    ],
+    "waited_ms": 41
+  },
+  "store_readback": {
+    "resultspace.feature_general.plot_type": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 272
+}

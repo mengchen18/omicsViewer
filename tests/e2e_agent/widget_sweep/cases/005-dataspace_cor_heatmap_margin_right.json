@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.cor_heatmap.margin_right",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.cor_heatmap.margin_right",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.margin_right",
+    "kind": "integer",
+    "label": "Right margin",
+    "help": "Right plot margin in lines, from 1 through 20",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.margin_right": 5
+    }
+  },
+  "fresh_current": 4,
+  "probeNote": "current+1 (5); range rejection auto-retried with current-1"
+}

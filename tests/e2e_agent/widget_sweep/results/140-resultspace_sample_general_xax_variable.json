@@ -1,0 +1,79 @@
+{
+  "case": "140-resultspace_sample_general_xax_variable",
+  "caseId": "resultspace.sample_general.xax_variable",
+  "category": "binding",
+  "bindingId": "resultspace.sample_general.xax_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.sample_general.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Link variable",
+    "help": "Variable driving the analysis view: numeric gives a beeswarm, categorical a contingency table, Surv a Kaplan-Meier curve",
+    "depends_on": [
+      "resultspace.sample_general.xax_analysis",
+      "resultspace.sample_general.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.sample_general.xax_variable": "Cell.line"
+    }
+  },
+  "status": "success",
+  "duration_ms": 484,
+  "note": "",
+  "receipt": {
+    "hook_run": 675,
+    "applied": "resultspace.sample_general.xax_variable",
+    "applied_values": {
+      "resultspace.sample_general.xax_variable": "Cell.line"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 675,
+        "applied": "resultspace.sample_general.xax_variable",
+        "applied_values": {
+          "resultspace.sample_general.xax_variable": "Cell.line"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 674,
+        "after": 675
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.sample_general.xax_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.sample_general.xax_variable\":\"Cell.line\"}}"
+      },
+      {
+        "input": "app-resultspace-sample_general-tris_sample_general-variable",
+        "before": "--select--",
+        "after": "Cell.line"
+      }
+    ],
+    "waited_ms": 34
+  },
+  "store_readback": {
+    "resultspace.sample_general.xax_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 287
+}

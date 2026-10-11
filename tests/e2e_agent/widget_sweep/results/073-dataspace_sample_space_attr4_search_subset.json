@@ -1,0 +1,73 @@
+{
+  "case": "073-dataspace_sample_space_attr4_search_subset",
+  "caseId": "dataspace.sample_space.attr4.search_subset",
+  "category": "binding",
+  "bindingId": "dataspace.sample_space.attr4.search_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.search_subset",
+    "kind": "select",
+    "label": "Search attribute subcategory",
+    "help": "Second level of the search attribute cascade",
+    "depends_on": "dataspace.sample_space.attr4.search_analysis",
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.search_subset": "All"
+    }
+  },
+  "status": "success",
+  "duration_ms": 571,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 401,
+    "applied": "dataspace.sample_space.attr4.search_subset",
+    "applied_values": {
+      "dataspace.sample_space.attr4.search_subset": "All"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 401,
+        "applied": "dataspace.sample_space.attr4.search_subset",
+        "applied_values": {
+          "dataspace.sample_space.attr4.search_subset": "All"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 400,
+        "after": 401
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.sample_space.attr4.search_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.sample_space.attr4.search_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 30
+  },
+  "store_readback": {
+    "dataspace.sample_space.attr4.search_subset": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 271,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

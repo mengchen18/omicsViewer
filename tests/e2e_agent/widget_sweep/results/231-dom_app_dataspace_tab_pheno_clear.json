@@ -1,0 +1,62 @@
+{
+  "case": "231-dom_app_dataspace_tab_pheno_clear",
+  "caseId": "dom:app-dataspace-tab_pheno-clear",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-tab_pheno-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 182,
+  "note": "",
+  "receipt": {
+    "hook_run": 866,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.tab_pheno.clear",
+        "reason": "Unknown widget id: dataspace.tab_pheno.clear. Closest matches: dataspace.tab_pheno.columns, dataspace.tab_pheno.page."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.tab_pheno.clear",
+      "receipt": {
+        "hook_run": 866,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.tab_pheno.clear",
+            "reason": "Unknown widget id: dataspace.tab_pheno.clear. Closest matches: dataspace.tab_pheno.columns, dataspace.tab_pheno.page."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 865,
+        "after": 866
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.clear\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.tab_pheno.clear\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 45
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 98
+}

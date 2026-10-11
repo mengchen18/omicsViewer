@@ -1,0 +1,62 @@
+{
+  "case": "295-dom_app_dataspace_sample_space_main_scatterOutput_showRegLine",
+  "caseId": "dom:app-dataspace-sample_space-main_scatterOutput-showRegLine",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-main_scatterOutput-showRegLine",
+    "description": "INPUT:checkbox visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 243,
+  "note": "",
+  "receipt": {
+    "hook_run": 940,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.main_scatterOutput.showRegLine",
+        "reason": "Unknown widget id: dataspace.sample_space.main_scatterOutput.showRegLine."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.main_scatterOutput.showRegLine",
+      "receipt": {
+        "hook_run": 940,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.main_scatterOutput.showRegLine",
+            "reason": "Unknown widget id: dataspace.sample_space.main_scatterOutput.showRegLine."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 939,
+        "after": 940
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.quickViews.badge_pca\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.main_scatterOutput.showRegLine\":true}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 113
+}

@@ -1,0 +1,76 @@
+{
+  "case": "052-dataspace_feature_space_attr4_scorner",
+  "caseId": "dataspace.feature_space.attr4.scorner",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.scorner",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.scorner",
+    "kind": "select",
+    "label": "Selected area",
+    "help": "Plot region selected by the cutoffs (corner or volcano mode)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.scorner": "volcano"
+    }
+  },
+  "status": "success",
+  "duration_ms": 557,
+  "note": "",
+  "receipt": {
+    "hook_run": 315,
+    "applied": "dataspace.feature_space.attr4.scorner",
+    "applied_values": {
+      "dataspace.feature_space.attr4.scorner": "volcano"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 315,
+        "applied": "dataspace.feature_space.attr4.scorner",
+        "applied_values": {
+          "dataspace.feature_space.attr4.scorner": "volcano"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 314,
+        "after": 315
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-a4selector-scorner",
+        "before": "None",
+        "after": "volcano"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.scorner\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.scorner\":\"volcano\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.scorner": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 268
+}

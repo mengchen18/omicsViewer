@@ -1,0 +1,62 @@
+{
+  "case": "243-dom_app_dataspace_dynheatmapViewer_annotRow",
+  "caseId": "dom:app-dataspace-dynheatmapViewer-annotRow",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-dynheatmapViewer-annotRow",
+    "description": "SELECT:select-multiple visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 267,
+  "note": "",
+  "receipt": {
+    "hook_run": 884,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.dynheatmapViewer.annotRow",
+        "reason": "Unknown widget id: dataspace.dynheatmapViewer.annotRow. Closest matches: dataspace.dyn_heatmap.annot_row, dataspace.dyn_heatmap.annot_col, dataspace.cor_heatmap.annot_row."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.dynheatmapViewer.annotRow",
+      "receipt": {
+        "hook_run": 884,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.dynheatmapViewer.annotRow",
+            "reason": "Unknown widget id: dataspace.dynheatmapViewer.annotRow. Closest matches: dataspace.dyn_heatmap.annot_row, dataspace.dyn_heatmap.annot_col, dataspace.cor_heatmap.annot_row."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 883,
+        "after": 884
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.dynheatmapViewer.annotCol\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.dynheatmapViewer.annotRow\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 41
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 155
+}

@@ -1,0 +1,10 @@
+{
+  "caseId": "tool:set_table_view(expression_table)",
+  "category": "semantic-tool",
+  "tool": "set_table_view",
+  "hookOp": "tableview",
+  "request": {
+    "table": "expression_table",
+    "multi_selection": false
+  }
+}

@@ -1,0 +1,194 @@
+# Widget sweep — final results
+
+337 result files / 337 case files (see ANALYSIS.md)
+
+| category | status | count |
+|---|---|---|
+| binding | success | 141 |
+| binding | no-ui-effect | 11 |
+| binding | timeout | 2 |
+| binding | no-probe | 16 |
+| semantic-tool | success | 18 |
+| dom-only | unaddressable | 122 |
+| out-of-scope | out-of-scope | 27 |
+
+## non-success cases
+
+- `dataspace.expr_heatmap.row_sort_by` [binding/no-ui-effect] suspected congestion artifact (expr-heatmap re-render of 2702x60 blocks the browser during the poll window); NOT re-verified live - keep for fix-plan 
+- `dataspace.expr_heatmap.annot_row` [binding/no-ui-effect] suspected congestion artifact (expr-heatmap re-render of 2702x60 blocks the browser during the poll window); NOT re-verified live - keep for fix-plan 
+- `dataspace.feature_space.x_analysis` [binding/timeout] operation-to-observable-effect took 198695ms (> 30 s budget; browser main thread blocked by plot redraw). 
+- `dataspace.feature_space.x_subset` [binding/no-probe] no distinct value: under the analysis set by the preceding case there is exactly one valid subset (All) and it is already current - nothing different 
+- `dataspace.feature_space.x_variable` [binding/timeout] operation-to-observable-effect took 199641ms (> 30 s budget; browser main thread blocked by plot redraw). 
+- `dataspace.feature_space.y_subset` [binding/no-probe] no distinct value: single valid subset (All) already current under the analysis set by the preceding case
+- `dataspace.feature_space.attr4.tooltip_subset` [binding/no-probe] no distinct value: single valid subset (All) already current
+- `dataspace.sample_space.x_subset` [binding/no-probe] no distinct value: single valid subset (All) already current
+- `dataspace.sample_space.y_subset` [binding/no-probe] no distinct value: single valid subset (All) already current
+- `dataspace.tab_pheno.columns` [binding/no-ui-effect] ANOMALY: store receipt shows applied with the array mangled to a scalar string and the store read-back is NULL immediately after (possible store/UI ec
+- `dataspace.tab_pheno.page` [binding/no-ui-effect] page write VERIFIED live with the table initialized (spotcheck2 B: start 0->25); the sweep probe was page=1 == displayed page (no-op effect), and the 
+- `dataspace.tab_pheno.column_filters` [binding/no-ui-effect] not re-verified live; DT proxy filter application suspected gated on an initialized table (semantic set_table_view path opens the tab first) | revalid
+- `dataspace.tab_feature.columns` [binding/no-ui-effect] ANOMALY: store receipt shows applied with the array mangled to a scalar string and the store read-back is NULL immediately after (possible store/UI ec
+- `dataspace.tab_expr.columns` [binding/no-ui-effect] ANOMALY: store receipt shows applied with the array mangled to a scalar string and the store read-back is NULL immediately after (possible store/UI ec
+- `dataspace.tab_expr.page` [binding/no-ui-effect] page write VERIFIED live with the table initialized (spotcheck2 B: start 0->25); the sweep probe was page=1 == displayed page (no-op effect), and the 
+- `dataspace.dyn_heatmap.col_sort_by` [binding/no-probe] REAL DISCOVERY GAP: capability record exposes NO allowed values while the Dynamic-heatmap tab is inactive (choices provider tab-state-dependent); see 
+- `dataspace.dyn_heatmap.row_sort_by` [binding/no-probe] REAL DISCOVERY GAP: same tab-state-dependent provider hole (supplementary_dyn_heatmap.json)
+- `dataspace.dyn_heatmap.annot_col` [binding/no-probe] REAL DISCOVERY GAP + VALIDATION HOLE: garbage accepted while tab inactive; store keeps GARBAGE while UI shows [] (divergence)
+- `dataspace.dyn_heatmap.annot_row` [binding/no-probe] REAL DISCOVERY GAP + VALIDATION HOLE (supplementary_dyn_heatmap.json)
+- `dataspace.dyn_heatmap.tooltip_info` [binding/no-probe] REAL DISCOVERY GAP + VALIDATION HOLE (supplementary_dyn_heatmap.json)
+- `resultspace.feature_general.regression_line` [binding/no-ui-effect] revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed. 
+- `resultspace.fgsea.selected_row` [binding/no-ui-effect] REAL: row selection targets a table whose rows are empty until the upstream Run button is pressed (agent cannot press it) | revalidated: only hook-pan
+- `resultspace.stringdb.selected_row` [binding/no-probe] REAL: choices are the STRING results table rows - empty until the Run button is pressed, which no agent tool can do
+- `resultspace.sample_general.survival_censor` [binding/no-ui-effect] REAL: the censor slider input does not exist in the DOM until a survival-type variable is selected upstream (conditional widget); the store write cann
+- `resultspace.sample_general.batch_phenotype_selected_row` [binding/no-probe] REAL: choices empty in this session state (batch table rows not materialized)
+- `resultspace.sample_general.batch_feature_selected_row` [binding/no-probe] REAL: choices empty in this session state
+- `resultspace.ptm.xax_analysis` [binding/no-probe] no distinct value: the only allowed analysis (SeqLogo) is already current
+- `resultspace.ptm.xax_subset` [binding/no-probe] no distinct value: single valid subset already current
+- `resultspace.ptm.xax_variable` [binding/no-probe] no distinct value: single valid variable already current
+- `dom:app-selectFile` [dom-only/unaddressable] 
+- `dom:app-snapshot` [dom-only/unaddressable] 
+- `dom:app-assistant-toggle` [dom-only/unaddressable] 
+- `dom:app-assistant-new_chat` [dom-only/unaddressable] 
+- `dom:app-assistant-settings` [dom-only/unaddressable] 
+- `dom:app-assistant-close` [dom-only/unaddressable] 
+- `dom:app-assistant-enable_logging` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-axisMode` [dom-only/unaddressable] 
+- `dom:btn-21211889` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectColorUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectColorUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectShapeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectShapeUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectSizeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectSizeUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectTooltipUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectSearchCol-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-selectSearchCol-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-showSearchBox` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-a4selector-searchon` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-axisModeTabs` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-clear` [dom-only/unaddressable] 
+- `dom:app-dataspace-tab_feature-clear` [dom-only/unaddressable] 
+- `dom:app-dataspace-tab_feature-addcolPanel` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-axisMode` [dom-only/unaddressable] 
+- `dom:btn-893594663` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectColorUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectColorUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectShapeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectShapeUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectSizeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectSizeUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectTooltipUI-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectTooltipUI-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectSearchCol-analysis` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-selectSearchCol-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-showSearchBox` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-a4selector-searchon` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-axisModeTabs` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-tris_main_scatter1-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-tris_main_scatter2-subset` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-clear` [dom-only/unaddressable] 
+- `dom:app-dataspace-tab_pheno-clear` [dom-only/unaddressable] 
+- `dom:app-dataspace-tab_pheno-addcolPanel` [dom-only/unaddressable] 
+- `dom:mydropdown2` [dom-only/unaddressable] 
+- `dom:app-dataspace-corheatmapViewer-clear` [dom-only/unaddressable] 
+- `dom:mydropdown` [dom-only/unaddressable] 
+- `dom:app-dataspace-heatmapViewer-rowSortBy` [dom-only/unaddressable] 
+- `dom:app-dataspace-heatmapViewer-annotRow` [dom-only/unaddressable] 
+- `dom:app-dataspace-heatmapViewer-clear` [dom-only/unaddressable] 
+- `dom:mydropdown3` [dom-only/unaddressable] 
+- `dom:app-dataspace-dynheatmapViewer-colSortBy` [dom-only/unaddressable] 
+- `dom:app-dataspace-dynheatmapViewer-rowSortBy` [dom-only/unaddressable] 
+- `dom:app-dataspace-dynheatmapViewer-annotCol` [dom-only/unaddressable] 
+- `dom:app-dataspace-dynheatmapViewer-annotRow` [dom-only/unaddressable] 
+- `dom:app-dataspace-dynheatmapViewer-tooltipInfo` [dom-only/unaddressable] 
+- `dom:app-dataspace-dynheatmapViewer-clear` [dom-only/unaddressable] 
+- `dom:app-dataspace-tab_expr-clear` [dom-only/unaddressable] 
+- `dom:app-dataspace-tab_expr-addcolPanel` [dom-only/unaddressable] 
+- `dom:app-dataspace-feature_space-quickViews-badge_pca` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-dataspace-feature_space-quickViews-badge_cor_MDR` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-dataspace-feature_space-quickViews-badge_cor_Doubleing.Time` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-dataspace-feature_space-quickViews-badge_volcano_RE_vs_ME` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-dataspace-feature_space-quickViews-badge_volcano_RE_vs_LE` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-dataspace-feature_space-quickViews-badge_volcano_MT_vs_WT` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-resultspace-feature_general-tris_feature_general-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-tris_feature_general-subset` [dom-only/unaddressable] 
+- `dom:btn-627614942` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectColorUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectColorUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectShapeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectShapeUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectSizeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectSizeUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectTooltipUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectTooltipUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectSearchCol-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-selectSearchCol-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-showSearchBox` [dom-only/unaddressable] 
+- `dom:app-resultspace-feature_general-a4_gf-searchon` [dom-only/unaddressable] 
+- `dom:app-resultspace-ora-tris_ora-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-ora-tris_ora-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-stringdb-run` [dom-only/unaddressable] 
+- `dom:app-resultspace-ptm-tris_seqlogo-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-ptm-tris_seqlogo-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-ptm-tris_seqlogo-variable` [dom-only/unaddressable] 
+- `dom:app-resultspace-geneshotTab-submit` [dom-only/unaddressable] 
+- `dom:app-resultspace-geneshotTab-mapIdPanel` [dom-only/unaddressable] 
+- `dom:app-resultspace-geneshotTab-geneNameCol-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-geneshotTab-geneNameCol-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-tris_sample_general-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-tris_sample_general-subset` [dom-only/unaddressable] 
+- `dom:btn-46368303` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectColorUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectColorUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectShapeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectShapeUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectSizeUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectSizeUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectTooltipUI-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectTooltipUI-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectSearchCol-analysis` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-selectSearchCol-subset` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-showSearchBox` [dom-only/unaddressable] 
+- `dom:app-resultspace-sample_general-a4_gp-searchon` [dom-only/unaddressable] 
+- `dom:app-dataspace-sample_space-quickViews-badge_pca` [dom-only/unaddressable] Quick-view badge: covered semantically by set_scatter_view(quick_view_id)
+- `dom:app-dataspace-sample_space-main_scatterOutput-showRegLine` [dom-only/unaddressable] 
+- `dom:app-snapshot_name` [dom-only/unaddressable] 
+- `dom:app-snapshot_save` [dom-only/unaddressable] 
+- `dom:app-snapshot_include_chat` [dom-only/unaddressable] 
+- `dom:button:Shortcut` [dom-only/unaddressable] 
+- `dom:button:Custom` [dom-only/unaddressable] 
+- `dom:button:Bees` [dom-only/unaddressable] 
+- `dom:button:Curve` [dom-only/unaddressable] 
+- `dom:app-download` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-dataspace-tab_feature-downloadTable-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-dataspace-tab_pheno-downloadTable-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-resultspace-feature_general-mtab-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-dataspace-tab_expr-downloadTable-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-dataspace-gsList-stab-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-resultspace-ora-stab-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `dom:app-resultspace-ptm-seqtable-downloadData` [dom-only/unaddressable] download output - no value semantics
+- `gesture:app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-tab_feature-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-sample_space-main_scatterOutput-plotly.scatter.output` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-tab_pheno-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-tab_expr-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-gsList-stab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-feature_space-main_scatterOutput-testResult` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-feature_general-mtab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-ora-stab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-ora-overlapTab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-fgsea-bplot` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-fgsea-stab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-rescurve-param-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-rescurve-feature-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-stringdb-strtab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-stringdb-network` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-geneshotTab-plt` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-geneshotTab-autorif-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-sample_general-msatab-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-dataspace-sample_space-main_scatterOutput-testResult` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-feature_general-feature_general_boxplotly-boxplotly` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-ptm-seqtable-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-ptm-seqtable_rat-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-ptm-seqtable_fg-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-ptm-seqtable_bg-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-resultspace-sample_general-batch_comp-phenotype_table-table` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)
+- `gesture:app-tab_saveSS` [out-of-scope/out-of-scope] plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)

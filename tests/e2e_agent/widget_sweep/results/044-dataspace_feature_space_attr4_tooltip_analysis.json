@@ -1,0 +1,81 @@
+{
+  "case": "044-dataspace_feature_space_attr4_tooltip_analysis",
+  "caseId": "dataspace.feature_space.attr4.tooltip_analysis",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.tooltip_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.tooltip_analysis",
+    "kind": "select",
+    "label": "Tooltips attribute category",
+    "help": "First level of the tooltips attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.tooltip_analysis": "PCA"
+    }
+  },
+  "status": "success",
+  "duration_ms": 508,
+  "note": "",
+  "receipt": {
+    "hook_run": 282,
+    "applied": "dataspace.feature_space.attr4.tooltip_analysis",
+    "applied_values": {
+      "dataspace.feature_space.attr4.tooltip_analysis": "PCA"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 282,
+        "applied": "dataspace.feature_space.attr4.tooltip_analysis",
+        "applied_values": {
+          "dataspace.feature_space.attr4.tooltip_analysis": "PCA"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 281,
+        "after": 282
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-a4selector-selectTooltipUI-analysis",
+        "before": "General",
+        "after": "PCA"
+      },
+      {
+        "input": "app-dataspace-feature_space-a4selector-selectTooltipUI-variable",
+        "before": "Gene.name",
+        "after": "PC1(10.5%)"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.tooltip_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.tooltip_analysis\":\"PCA\"}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.tooltip_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 227
+}

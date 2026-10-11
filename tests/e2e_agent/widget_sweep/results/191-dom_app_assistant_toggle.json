@@ -1,0 +1,62 @@
+{
+  "case": "191-dom_app_assistant_toggle",
+  "caseId": "dom:app-assistant-toggle",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-assistant-toggle",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 199,
+  "note": "",
+  "receipt": {
+    "hook_run": 822,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "assistant.toggle",
+        "reason": "Unknown widget id: assistant.toggle."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "assistant.toggle",
+      "receipt": {
+        "hook_run": 822,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "assistant.toggle",
+            "reason": "Unknown widget id: assistant.toggle."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 821,
+        "after": 822
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"snapshot\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"assistant.toggle\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 43
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 103
+}

@@ -1,0 +1,62 @@
+{
+  "case": "307-dom_app_dataspace_tab_expr_downloadTable_downloadData",
+  "caseId": "dom:app-dataspace-tab_expr-downloadTable-downloadData",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-tab_expr-downloadTable-downloadData",
+    "description": "download control (Save table)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 175,
+  "note": "download output - no value semantics",
+  "receipt": {
+    "hook_run": 960,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.tab_expr.downloadTable.downloadData",
+        "reason": "Unknown widget id: dataspace.tab_expr.downloadTable.downloadData."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.tab_expr.downloadTable.downloadData",
+      "receipt": {
+        "hook_run": 960,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.tab_expr.downloadTable.downloadData",
+            "reason": "Unknown widget id: dataspace.tab_expr.downloadTable.downloadData."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 959,
+        "after": 960
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.feature_general.mtab.downloadData\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.tab_expr.downloadTable.downloadData\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 39
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 96
+}

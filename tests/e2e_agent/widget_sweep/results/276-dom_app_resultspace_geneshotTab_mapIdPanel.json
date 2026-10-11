@@ -1,0 +1,62 @@
+{
+  "case": "276-dom_app_resultspace_geneshotTab_mapIdPanel",
+  "caseId": "dom:app-resultspace-geneshotTab-mapIdPanel",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-geneshotTab-mapIdPanel",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 191,
+  "note": "",
+  "receipt": {
+    "hook_run": 919,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.geneshotTab.mapIdPanel",
+        "reason": "Unknown widget id: resultspace.geneshotTab.mapIdPanel. Closest matches: resultspace.geneshot.xax_subset, resultspace.geneshot.xax_variable."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.geneshotTab.mapIdPanel",
+      "receipt": {
+        "hook_run": 919,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.geneshotTab.mapIdPanel",
+            "reason": "Unknown widget id: resultspace.geneshotTab.mapIdPanel. Closest matches: resultspace.geneshot.xax_subset, resultspace.geneshot.xax_variable."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 918,
+        "after": 919
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.geneshotTab.submit\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"resultspace.geneshotTab.mapIdPanel\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 112
+}

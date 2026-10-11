@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.feature_space.attr4.tooltip_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.attr4.tooltip_analysis",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.tooltip_analysis",
+    "kind": "select",
+    "label": "Tooltips attribute category",
+    "help": "First level of the tooltips attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.tooltip_analysis": "PCA"
+    }
+  },
+  "fresh_current": "General",
+  "probeNote": "first allowed != current (PCA)"
+}

@@ -1,0 +1,62 @@
+{
+  "case": "210-dom_app_dataspace_feature_space_clear",
+  "caseId": "dom:app-dataspace-feature_space-clear",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-clear",
+    "description": "BUTTON:button visible=true"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 221,
+  "note": "",
+  "receipt": {
+    "hook_run": 843,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.feature_space.clear",
+        "reason": "Unknown widget id: dataspace.feature_space.clear. Closest matches: dataspace.feature_space.x_subset, dataspace.feature_space.x_variable, dataspace.feature_space.y_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.feature_space.clear",
+      "receipt": {
+        "hook_run": 843,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.feature_space.clear",
+            "reason": "Unknown widget id: dataspace.feature_space.clear. Closest matches: dataspace.feature_space.x_subset, dataspace.feature_space.x_variable, dataspace.feature_space.y_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 842,
+        "after": 843
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.feature_space.axisModeTabs\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.feature_space.clear\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 41
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 93
+}

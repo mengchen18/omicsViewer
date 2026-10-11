@@ -1,0 +1,62 @@
+{
+  "case": "250-dom_app_dataspace_feature_space_quickViews_badge_cor_Doubleing_Time",
+  "caseId": "dom:app-dataspace-feature_space-quickViews-badge_cor_Doubleing.Time",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-quickViews-badge_cor_Doubleing.Time",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 222,
+  "note": "Quick-view badge: covered semantically by set_scatter_view(quick_view_id)",
+  "receipt": {
+    "hook_run": 891,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.feature_space.quickViews.badge_cor_Doubleing.Time",
+        "reason": "Unknown widget id: dataspace.feature_space.quickViews.badge_cor_Doubleing.Time."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.feature_space.quickViews.badge_cor_Doubleing.Time",
+      "receipt": {
+        "hook_run": 891,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.feature_space.quickViews.badge_cor_Doubleing.Time",
+            "reason": "Unknown widget id: dataspace.feature_space.quickViews.badge_cor_Doubleing.Time."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 890,
+        "after": 891
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.feature_space.quickViews.badge_cor_MDR\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.feature_space.quickViews.badge_cor_Doubleing.Time\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 94
+}

@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.tab_pheno.page",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.tab_pheno.page",
+  "widget": {
+    "binding_id": "dataspace.tab_pheno.page",
+    "kind": "integer",
+    "label": "Table page",
+    "help": "1-based page of the table currently visible; navigation applies through the table's paging controls",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.tab_pheno.page": 1
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "current+1 (1); range rejection auto-retried with current-1"
+}

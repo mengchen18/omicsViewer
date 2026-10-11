@@ -1,0 +1,24 @@
+{
+  "caseId": "dataspace.tab_pheno.column_filters",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.tab_pheno.column_filters",
+  "widget": {
+    "binding_id": "dataspace.tab_pheno.column_filters",
+    "kind": "mapping",
+    "label": "Column filters",
+    "help": "Per-column search patterns of the top filter boxes, as an object of exact column name to pattern; an empty object clears every filter",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.tab_pheno.column_filters": {
+        "General|All|Cell.line": "AGENTPROBE"
+      }
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "one key probe (General|All|Cell.line)"
+}

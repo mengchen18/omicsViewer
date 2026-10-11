@@ -1,0 +1,14 @@
+{
+  "caseId": "dom:app-resultspace-geneshotTab-mapIdPanel",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-geneshotTab-mapIdPanel",
+    "description": "BUTTON:button visible=false"
+  },
+  "guesses": [
+    "resultspace.geneshotTab.mapIdPanel"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": ""
+}

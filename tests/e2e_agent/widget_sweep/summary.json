@@ -1,0 +1,263 @@
+{
+  "generated": "2026-10-11T13:32:10.711547",
+  "rule": "widget operations whose observable UI effect exceeds 30 s wall clock are timeout (failed); statuses reconciled with live spot-checks (spotcheck_results.json, spotcheck2_results.json)",
+  "totals": {
+    "cases": 337
+  },
+  "by_category_status": {
+    "binding": {
+      "success": 141,
+      "no-ui-effect": 11,
+      "timeout": 2,
+      "no-probe": 16
+    },
+    "semantic-tool": {
+      "success": 18
+    },
+    "dom-only": {
+      "unaddressable": 122
+    },
+    "out-of-scope": {
+      "out-of-scope": 27
+    }
+  },
+  "binding_non_success": [
+    {
+      "case": "022-dataspace_expr_heatmap_row_sort_by",
+      "binding": "dataspace.expr_heatmap.row_sort_by",
+      "status": "no-ui-effect",
+      "note": "suspected congestion artifact (expr-heatmap re-render of 2702x60 blocks the browser during the poll window); NOT re-verified live - keep for fix-plan "
+    },
+    {
+      "case": "026-dataspace_expr_heatmap_annot_row",
+      "binding": "dataspace.expr_heatmap.annot_row",
+      "status": "no-ui-effect",
+      "note": "suspected congestion artifact (expr-heatmap re-render of 2702x60 blocks the browser during the poll window); NOT re-verified live - keep for fix-plan "
+    },
+    {
+      "case": "028-dataspace_feature_space_x_analysis",
+      "binding": "dataspace.feature_space.x_analysis",
+      "status": "timeout",
+      "note": "operation-to-observable-effect took 198695ms (> 30 s budget; browser main thread blocked by plot redraw). "
+    },
+    {
+      "case": "029-dataspace_feature_space_x_subset",
+      "binding": "dataspace.feature_space.x_subset",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "030-dataspace_feature_space_x_variable",
+      "binding": "dataspace.feature_space.x_variable",
+      "status": "timeout",
+      "note": "operation-to-observable-effect took 199641ms (> 30 s budget; browser main thread blocked by plot redraw). "
+    },
+    {
+      "case": "032-dataspace_feature_space_y_subset",
+      "binding": "dataspace.feature_space.y_subset",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "045-dataspace_feature_space_attr4_tooltip_subset",
+      "binding": "dataspace.feature_space.attr4.tooltip_subset",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "054-dataspace_sample_space_x_subset",
+      "binding": "dataspace.sample_space.x_subset",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "057-dataspace_sample_space_y_subset",
+      "binding": "dataspace.sample_space.y_subset",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "079-dataspace_tab_pheno_columns",
+      "binding": "dataspace.tab_pheno.columns",
+      "status": "no-ui-effect",
+      "note": "ANOMALY: store receipt shows applied with the array mangled to a scalar string and the store read-back is NULL immediately after (possible store/UI ec"
+    },
+    {
+      "case": "080-dataspace_tab_pheno_page",
+      "binding": "dataspace.tab_pheno.page",
+      "status": "no-ui-effect",
+      "note": "page write VERIFIED live with the table initialized (spotcheck2 B: start 0->25); the sweep probe was page=1 == displayed page (no-op effect), and the "
+    },
+    {
+      "case": "081-dataspace_tab_pheno_column_filters",
+      "binding": "dataspace.tab_pheno.column_filters",
+      "status": "no-ui-effect",
+      "note": "not re-verified live; DT proxy filter application suspected gated on an initialized table (semantic set_table_view path opens the tab first) | revalid"
+    },
+    {
+      "case": "083-dataspace_tab_feature_columns",
+      "binding": "dataspace.tab_feature.columns",
+      "status": "no-ui-effect",
+      "note": "ANOMALY: store receipt shows applied with the array mangled to a scalar string and the store read-back is NULL immediately after (possible store/UI ec"
+    },
+    {
+      "case": "087-dataspace_tab_expr_columns",
+      "binding": "dataspace.tab_expr.columns",
+      "status": "no-ui-effect",
+      "note": "ANOMALY: store receipt shows applied with the array mangled to a scalar string and the store read-back is NULL immediately after (possible store/UI ec"
+    },
+    {
+      "case": "088-dataspace_tab_expr_page",
+      "binding": "dataspace.tab_expr.page",
+      "status": "no-ui-effect",
+      "note": "page write VERIFIED live with the table initialized (spotcheck2 B: start 0->25); the sweep probe was page=1 == displayed page (no-op effect), and the "
+    },
+    {
+      "case": "094-dataspace_dyn_heatmap_col_sort_by",
+      "binding": "dataspace.dyn_heatmap.col_sort_by",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "097-dataspace_dyn_heatmap_row_sort_by",
+      "binding": "dataspace.dyn_heatmap.row_sort_by",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "100-dataspace_dyn_heatmap_annot_col",
+      "binding": "dataspace.dyn_heatmap.annot_col",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "101-dataspace_dyn_heatmap_annot_row",
+      "binding": "dataspace.dyn_heatmap.annot_row",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "102-dataspace_dyn_heatmap_tooltip_info",
+      "binding": "dataspace.dyn_heatmap.tooltip_info",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "108-resultspace_feature_general_regression_line",
+      "binding": "resultspace.feature_general.regression_line",
+      "status": "no-ui-effect",
+      "note": "revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed. "
+    },
+    {
+      "case": "130-resultspace_fgsea_selected_row",
+      "binding": "resultspace.fgsea.selected_row",
+      "status": "no-ui-effect",
+      "note": "REAL: row selection targets a table whose rows are empty until the upstream Run button is pressed (agent cannot press it) | revalidated: only hook-pan"
+    },
+    {
+      "case": "137-resultspace_stringdb_selected_row",
+      "binding": "resultspace.stringdb.selected_row",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "159-resultspace_sample_general_survival_censor",
+      "binding": "resultspace.sample_general.survival_censor",
+      "status": "no-ui-effect",
+      "note": "REAL: the censor slider input does not exist in the DOM until a survival-type variable is selected upstream (conditional widget); the store write cann"
+    },
+    {
+      "case": "162-resultspace_sample_general_batch_phenotype_selected_row",
+      "binding": "resultspace.sample_general.batch_phenotype_selected_row",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "163-resultspace_sample_general_batch_feature_selected_row",
+      "binding": "resultspace.sample_general.batch_feature_selected_row",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "168-resultspace_ptm_xax_analysis",
+      "binding": "resultspace.ptm.xax_analysis",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "169-resultspace_ptm_xax_subset",
+      "binding": "resultspace.ptm.xax_subset",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    },
+    {
+      "case": "170-resultspace_ptm_xax_variable",
+      "binding": "resultspace.ptm.xax_variable",
+      "status": "no-probe",
+      "note": "no meaningful probe value derivable (kind/choices) in this session state"
+    }
+  ],
+  "semantic_non_success": [],
+  "slowest": [
+    {
+      "case": "030-dataspace_feature_space_x_variable",
+      "ms": 199641,
+      "status": "timeout"
+    },
+    {
+      "case": "028-dataspace_feature_space_x_analysis",
+      "ms": 198695,
+      "status": "timeout"
+    },
+    {
+      "case": "022-dataspace_expr_heatmap_row_sort_by",
+      "ms": 3040,
+      "status": "no-ui-effect"
+    },
+    {
+      "case": "185-tool_set_enrichment_parameters_bogus_pathway",
+      "ms": 2511,
+      "status": "success"
+    },
+    {
+      "case": "023-dataspace_expr_heatmap_cluster_row_dist",
+      "ms": 1636,
+      "status": "success"
+    },
+    {
+      "case": "129-resultspace_fgsea_xax_variable",
+      "ms": 1503,
+      "status": "success"
+    },
+    {
+      "case": "179-tool_set_omics_viewer_state_analysis_space_tab",
+      "ms": 1419,
+      "status": "success"
+    },
+    {
+      "case": "024-dataspace_expr_heatmap_cluster_row_link",
+      "ms": 1166,
+      "status": "success"
+    },
+    {
+      "case": "049-dataspace_feature_space_attr4_search_variable",
+      "ms": 904,
+      "status": "success"
+    },
+    {
+      "case": "103-resultspace_analyst_tab",
+      "ms": 799,
+      "status": "success"
+    },
+    {
+      "case": "085-dataspace_tab_feature_column_filters",
+      "ms": 721,
+      "status": "success"
+    },
+    {
+      "case": "180-tool_set_omics_viewer_state_features",
+      "ms": 704,
+      "status": "success"
+    }
+  ]
+}

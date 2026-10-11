@@ -1,0 +1,94 @@
+{
+  "case": "183-tool_set_enrichment_parameters_ora",
+  "caseId": "tool:set_enrichment_parameters(ora)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_enrichment_parameters",
+  "widget": null,
+  "request": {
+    "method": "ora",
+    "collapse": "General|All|Gene.name"
+  },
+  "status": "success",
+  "duration_ms": 197,
+  "note": "",
+  "receipt": {
+    "hook_run": 814,
+    "method": "ora",
+    "panel_tab": "ORA",
+    "applied": "resultspace.analyst_tab",
+    "applied_values": {
+      "resultspace.analyst_tab": "ORA"
+    },
+    "unchanged": [
+      "resultspace.ora.xax_analysis",
+      "resultspace.ora.xax_subset",
+      "resultspace.ora.xax_variable"
+    ],
+    "rejected": [],
+    "note": "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); re-check the results through the app tables or get_omics_viewer_state."
+  },
+  "attempts": [
+    {
+      "op": "enrichment",
+      "receipt": {
+        "hook_run": 814,
+        "method": "ora",
+        "panel_tab": "ORA",
+        "applied": "resultspace.analyst_tab",
+        "applied_values": {
+          "resultspace.analyst_tab": "ORA"
+        },
+        "unchanged": [
+          "resultspace.ora.xax_analysis",
+          "resultspace.ora.xax_subset",
+          "resultspace.ora.xax_variable"
+        ],
+        "rejected": [],
+        "note": "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); re-check the results through the app tables or get_omics_viewer_state."
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 813,
+        "after": 814
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "state",
+        "after": "enrichment"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"features\":[]}",
+        "after": "{\"method\":\"ora\",\"collapse\":\"General|All|Gene.name\"}"
+      },
+      {
+        "input": "app-resultspace-analyst",
+        "before": "Geneshot",
+        "after": "ORA"
+      },
+      {
+        "input": "__selectedRows",
+        "before": [],
+        "after": [
+          {
+            "id": "DataTables_Table_5_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_5",
+            "n": 1
+          }
+        ]
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 117
+}

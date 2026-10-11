@@ -1,0 +1,87 @@
+{
+  "case": "177-tool_set_scatter_view_sample_axes",
+  "caseId": "tool:set_scatter_view(sample,axes)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_scatter_view",
+  "widget": {
+    "semantic": "sample-space scatter custom axes"
+  },
+  "request": {
+    "space": "sample",
+    "x_axis": "General|All|MDR",
+    "y_axis": "General|All|Doubleing.Time"
+  },
+  "status": "success",
+  "duration_ms": 335,
+  "note": "",
+  "receipt": {
+    "hook_run": 808,
+    "space": "sample",
+    "mode": "custom",
+    "quick_view_id": null,
+    "x_axis": "General|All|MDR",
+    "y_axis": "General|All|Doubleing.Time"
+  },
+  "attempts": [
+    {
+      "op": "scatter",
+      "receipt": {
+        "hook_run": 808,
+        "space": "sample",
+        "mode": "custom",
+        "quick_view_id": null,
+        "x_axis": "General|All|MDR",
+        "y_axis": "General|All|Doubleing.Time"
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 807,
+        "after": 808
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter1-analysis",
+        "before": "PCA",
+        "after": "General"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter1-variable",
+        "before": "PC1(10.5%)",
+        "after": "MDR"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter2-analysis",
+        "before": "PCA",
+        "after": "General"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter2-variable",
+        "before": "PC2(7.2%)",
+        "after": "Doubleing.Time"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"space\":\"sample\",\"quick_view_id\":\"pca\"}",
+        "after": "{\"space\":\"sample\",\"x_axis\":\"General|All|MDR\",\"y_axis\":\"General|All|Doubleing.Time\"}"
+      }
+    ],
+    "waited_ms": 20,
+    "axis_titles": {
+      "before": {
+        "x": "[object Object]",
+        "y": "General|All|Cell.line"
+      },
+      "after": {
+        "x": "[object Object]",
+        "y": "General|All|Cell.line"
+      }
+    }
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 291
+}

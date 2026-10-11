@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.cor_heatmap.row_sort_by",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.cor_heatmap.row_sort_by",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.row_sort_by",
+    "kind": "select",
+    "label": "Sort rows by",
+    "help": "Row ordering: a precomputed dendrogram (HCL entries), 'none', 'hierarchical cluster', a feature annotation column, or a gene set (GS| prefixed)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.row_sort_by": "none"
+    }
+  },
+  "fresh_current": "HCL pearson_ward.D",
+  "probeNote": "first allowed != current (none)"
+}

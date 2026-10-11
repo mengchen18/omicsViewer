@@ -1,0 +1,65 @@
+{
+  "case": "102-dataspace_dyn_heatmap_tooltip_info",
+  "caseId": "dataspace.dyn_heatmap.tooltip_info",
+  "category": "binding",
+  "bindingId": "dataspace.dyn_heatmap.tooltip_info",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.tooltip_info",
+    "kind": "multi_select",
+    "label": "Tooltips",
+    "help": "Feature and phenotype columns shown in the hover tooltip; empty clears the tooltip",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.tooltip_info": []
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 287,
+  "note": "REAL DISCOVERY GAP + VALIDATION HOLE (supplementary_dyn_heatmap.json)",
+  "receipt": {
+    "hook_run": 523,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.dyn_heatmap.tooltip_info",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 523,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.dyn_heatmap.tooltip_info",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 522,
+        "after": 523
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.dyn_heatmap.tooltip_info\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.dyn_heatmap.tooltip_info\":[]}}"
+      }
+    ],
+    "waited_ms": 30
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 232
+}

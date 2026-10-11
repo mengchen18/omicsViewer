@@ -1,0 +1,62 @@
+{
+  "case": "219-dom_app_dataspace_sample_space_a4selector_selectSizeUI_analysis",
+  "caseId": "dom:app-dataspace-sample_space-a4selector-selectSizeUI-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-a4selector-selectSizeUI-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 235,
+  "note": "",
+  "receipt": {
+    "hook_run": 854,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.a4selector.selectSizeUI.analysis",
+        "reason": "Unknown widget id: dataspace.sample_space.a4selector.selectSizeUI.analysis. Closest matches: dataspace.sample_space.attr4.size_analysis, dataspace.sample_space.attr4.tooltip_analysis, dataspace.sample_space.attr4.search_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.a4selector.selectSizeUI.analysis",
+      "receipt": {
+        "hook_run": 854,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.a4selector.selectSizeUI.analysis",
+            "reason": "Unknown widget id: dataspace.sample_space.a4selector.selectSizeUI.analysis. Closest matches: dataspace.sample_space.attr4.size_analysis, dataspace.sample_space.attr4.tooltip_analysis, dataspace.sample_space.attr4.search_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 853,
+        "after": 854
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.a4selector.selectShapeUI.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.a4selector.selectSizeUI.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 44
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 102
+}

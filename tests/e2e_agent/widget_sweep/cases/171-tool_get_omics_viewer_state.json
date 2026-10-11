@@ -1,0 +1,8 @@
+{
+  "caseId": "tool:get_omics_viewer_state",
+  "category": "semantic-tool",
+  "tool": "get_omics_viewer_state",
+  "hookOp": "overview",
+  "request": {},
+  "predicate": null
+}

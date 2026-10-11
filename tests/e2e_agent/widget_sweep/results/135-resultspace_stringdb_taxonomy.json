@@ -1,0 +1,76 @@
+{
+  "case": "135-resultspace_stringdb_taxonomy",
+  "caseId": "resultspace.stringdb.taxonomy",
+  "category": "binding",
+  "bindingId": "resultspace.stringdb.taxonomy",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.stringdb.taxonomy",
+    "kind": "string",
+    "label": "Taxonomy code",
+    "help": "NCBI taxonomy identifier of the organism queried in the STRING database (9606 = human)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.stringdb.taxonomy": "AGENTPROBE-135"
+    }
+  },
+  "status": "success",
+  "duration_ms": 458,
+  "note": "",
+  "receipt": {
+    "hook_run": 654,
+    "applied": "resultspace.stringdb.taxonomy",
+    "applied_values": {
+      "resultspace.stringdb.taxonomy": "AGENTPROBE-135"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 654,
+        "applied": "resultspace.stringdb.taxonomy",
+        "applied_values": {
+          "resultspace.stringdb.taxonomy": "AGENTPROBE-135"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 653,
+        "after": 654
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.stringdb.taxonomy\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.stringdb.taxonomy\":\"AGENTPROBE-135\"}}"
+      },
+      {
+        "input": "app-resultspace-stringdb-tax",
+        "before": "9606",
+        "after": "AGENTPROBE-135"
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": {
+    "resultspace.stringdb.taxonomy": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 132
+}

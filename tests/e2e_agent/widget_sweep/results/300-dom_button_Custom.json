@@ -1,0 +1,87 @@
+{
+  "case": "300-dom_button_Custom",
+  "caseId": "dom:button:Custom",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "button:Custom",
+    "description": "plain button (Custom)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 405,
+  "note": "",
+  "receipt": {
+    "hook_run": 949,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.global_search",
+        "reason": "Unknown widget id: resultspace.global_search."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "app",
+      "receipt": {
+        "hook_run": 947,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "app",
+            "reason": "Unknown widget id: app."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "dataspace.global_search",
+      "receipt": {
+        "hook_run": 948,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.global_search",
+            "reason": "Unknown widget id: dataspace.global_search."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "resultspace.global_search",
+      "receipt": {
+        "hook_run": 949,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.global_search",
+            "reason": "Unknown widget id: resultspace.global_search."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 946,
+        "after": 949
+      }
+    ],
+    "waited_ms": 45
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 120
+}

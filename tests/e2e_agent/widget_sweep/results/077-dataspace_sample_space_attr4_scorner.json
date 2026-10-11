@@ -1,0 +1,76 @@
+{
+  "case": "077-dataspace_sample_space_attr4_scorner",
+  "caseId": "dataspace.sample_space.attr4.scorner",
+  "category": "binding",
+  "bindingId": "dataspace.sample_space.attr4.scorner",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.scorner",
+    "kind": "select",
+    "label": "Selected area",
+    "help": "Plot region selected by the cutoffs (corner or volcano mode)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.scorner": "volcano"
+    }
+  },
+  "status": "success",
+  "duration_ms": 523,
+  "note": "",
+  "receipt": {
+    "hook_run": 417,
+    "applied": "dataspace.sample_space.attr4.scorner",
+    "applied_values": {
+      "dataspace.sample_space.attr4.scorner": "volcano"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 417,
+        "applied": "dataspace.sample_space.attr4.scorner",
+        "applied_values": {
+          "dataspace.sample_space.attr4.scorner": "volcano"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 416,
+        "after": 417
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-sample_space-a4selector-scorner",
+        "before": "None",
+        "after": "volcano"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.sample_space.attr4.scorner\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.sample_space.attr4.scorner\":\"volcano\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.sample_space.attr4.scorner": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 220
+}

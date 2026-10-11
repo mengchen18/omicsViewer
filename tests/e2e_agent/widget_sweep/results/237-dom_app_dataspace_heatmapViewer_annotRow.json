@@ -1,0 +1,62 @@
+{
+  "case": "237-dom_app_dataspace_heatmapViewer_annotRow",
+  "caseId": "dom:app-dataspace-heatmapViewer-annotRow",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-heatmapViewer-annotRow",
+    "description": "SELECT:select-multiple visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 176,
+  "note": "",
+  "receipt": {
+    "hook_run": 876,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.heatmapViewer.annotRow",
+        "reason": "Unknown widget id: dataspace.heatmapViewer.annotRow."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.heatmapViewer.annotRow",
+      "receipt": {
+        "hook_run": 876,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.heatmapViewer.annotRow",
+            "reason": "Unknown widget id: dataspace.heatmapViewer.annotRow."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 875,
+        "after": 876
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.heatmapViewer.rowSortBy\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.heatmapViewer.annotRow\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 97
+}

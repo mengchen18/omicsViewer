@@ -1,0 +1,337 @@
+{
+  "case": "172-tool_find_controls_color",
+  "caseId": "tool:find_controls(color)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "find_controls",
+  "widget": null,
+  "request": {
+    "query": "color",
+    "max_results": 5
+  },
+  "status": "success",
+  "duration_ms": 422,
+  "note": "success: read tool; capability records returned",
+  "receipt": {
+    "hook_run": 803,
+    "query": "color",
+    "capability_count": 182,
+    "match_count": 21,
+    "truncated": true,
+    "capabilities": [
+      {
+        "id": "dataspace.cor_heatmap.heatmap_colors",
+        "panel": "Data space",
+        "label": "Heatmap color panel",
+        "kind": "select",
+        "description": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+        "help_text": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+        "writable": true,
+        "operation": "set_widgets",
+        "allowed_values": [
+          "BrBG",
+          "PiYG",
+          "PRGn",
+          "PuOr",
+          "RdBu",
+          "RdGy",
+          "RdYlBu",
+          "RdYlGn"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "dataspace.cor_heatmap.annot_col",
+        "panel": "Data space",
+        "label": "Column annotations",
+        "kind": "multi_select",
+        "description": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+        "help_text": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+        "writable": true,
+        "operation": "set_widgets",
+        "allowed_values": [
+          "General|All|Cell.line",
+          "General|All|MDR",
+          "General|All|Doubleing.Time",
+          "General|All|Origin",
+          "General|All|TP53.Status",
+          "General|All|Gender",
+          "General|All|numberOfFeatures",
+          "PCA|All|PC1(10.5%)",
+          "PCA|All|PC2(7.2%)",
+          "PCA|All|PC3(5.4%)",
+          "PCA|All|PC4(4.8%)",
+          "PCA|All|PC5(3.6%)",
+          "PCA|All|PC6(2.9%)",
+          "PCA|All|PC7(2.8%)",
+          "PCA|All|PC8(2.5%)",
+          "Surv|all|OS",
+          "Surv|all|DFS",
+          "General|All|Dose",
+          "General|All|Curve"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "dataspace.cor_heatmap.annot_row",
+        "panel": "Data space",
+        "label": "Row annotations",
+        "kind": "multi_select",
+        "description": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+        "help_text": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+        "writable": true,
+        "operation": "set_widgets",
+        "allowed_values": [
+          "General|All|Cell.line",
+          "General|All|MDR",
+          "General|All|Doubleing.Time",
+          "General|All|Origin",
+          "General|All|TP53.Status",
+          "General|All|Gender",
+          "General|All|numberOfFeatures",
+          "PCA|All|PC1(10.5%)",
+          "PCA|All|PC2(7.2%)",
+          "PCA|All|PC3(5.4%)",
+          "PCA|All|PC4(4.8%)",
+          "PCA|All|PC5(3.6%)",
+          "PCA|All|PC6(2.9%)",
+          "PCA|All|PC7(2.8%)",
+          "PCA|All|PC8(2.5%)",
+          "Surv|all|OS",
+          "Surv|all|DFS",
+          "General|All|Dose",
+          "General|All|Curve"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "dataspace.expr_heatmap.heatmap_colors",
+        "panel": "Data space",
+        "label": "Heatmap color panel",
+        "kind": "select",
+        "description": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+        "help_text": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+        "writable": true,
+        "operation": "set_widgets",
+        "allowed_values": [
+          "BrBG",
+          "PiYG",
+          "PRGn",
+          "PuOr",
+          "RdBu",
+          "RdGy",
+          "RdYlBu",
+          "RdYlGn"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "dataspace.expr_heatmap.annot_col",
+        "panel": "Data space",
+        "label": "Column annotations",
+        "kind": "multi_select",
+        "description": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+        "help_text": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+        "writable": true,
+        "operation": "set_widgets",
+        "allowed_values": [
+          "General|All|Cell.line",
+          "General|All|MDR",
+          "General|All|Doubleing.Time",
+          "General|All|Origin",
+          "General|All|TP53.Status",
+          "General|All|Gender",
+          "General|All|numberOfFeatures",
+          "PCA|All|PC1(10.5%)",
+          "PCA|All|PC2(7.2%)",
+          "PCA|All|PC3(5.4%)",
+          "PCA|All|PC4(4.8%)",
+          "PCA|All|PC5(3.6%)",
+          "PCA|All|PC6(2.9%)",
+          "PCA|All|PC7(2.8%)",
+          "PCA|All|PC8(2.5%)",
+          "Surv|all|OS",
+          "Surv|all|DFS",
+          "General|All|Dose",
+          "General|All|Curve"
+        ],
+        "depends_on": []
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "op": "capabilities",
+      "receipt": {
+        "hook_run": 803,
+        "query": "color",
+        "capability_count": 182,
+        "match_count": 21,
+        "truncated": true,
+        "capabilities": [
+          {
+            "id": "dataspace.cor_heatmap.heatmap_colors",
+            "panel": "Data space",
+            "label": "Heatmap color panel",
+            "kind": "select",
+            "description": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+            "help_text": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+            "writable": true,
+            "operation": "set_widgets",
+            "allowed_values": [
+              "BrBG",
+              "PiYG",
+              "PRGn",
+              "PuOr",
+              "RdBu",
+              "RdGy",
+              "RdYlBu",
+              "RdYlGn"
+            ],
+            "depends_on": []
+          },
+          {
+            "id": "dataspace.cor_heatmap.annot_col",
+            "panel": "Data space",
+            "label": "Column annotations",
+            "kind": "multi_select",
+            "description": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+            "help_text": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+            "writable": true,
+            "operation": "set_widgets",
+            "allowed_values": [
+              "General|All|Cell.line",
+              "General|All|MDR",
+              "General|All|Doubleing.Time",
+              "General|All|Origin",
+              "General|All|TP53.Status",
+              "General|All|Gender",
+              "General|All|numberOfFeatures",
+              "PCA|All|PC1(10.5%)",
+              "PCA|All|PC2(7.2%)",
+              "PCA|All|PC3(5.4%)",
+              "PCA|All|PC4(4.8%)",
+              "PCA|All|PC5(3.6%)",
+              "PCA|All|PC6(2.9%)",
+              "PCA|All|PC7(2.8%)",
+              "PCA|All|PC8(2.5%)",
+              "Surv|all|OS",
+              "Surv|all|DFS",
+              "General|All|Dose",
+              "General|All|Curve"
+            ],
+            "depends_on": []
+          },
+          {
+            "id": "dataspace.cor_heatmap.annot_row",
+            "panel": "Data space",
+            "label": "Row annotations",
+            "kind": "multi_select",
+            "description": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+            "help_text": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+            "writable": true,
+            "operation": "set_widgets",
+            "allowed_values": [
+              "General|All|Cell.line",
+              "General|All|MDR",
+              "General|All|Doubleing.Time",
+              "General|All|Origin",
+              "General|All|TP53.Status",
+              "General|All|Gender",
+              "General|All|numberOfFeatures",
+              "PCA|All|PC1(10.5%)",
+              "PCA|All|PC2(7.2%)",
+              "PCA|All|PC3(5.4%)",
+              "PCA|All|PC4(4.8%)",
+              "PCA|All|PC5(3.6%)",
+              "PCA|All|PC6(2.9%)",
+              "PCA|All|PC7(2.8%)",
+              "PCA|All|PC8(2.5%)",
+              "Surv|all|OS",
+              "Surv|all|DFS",
+              "General|All|Dose",
+              "General|All|Curve"
+            ],
+            "depends_on": []
+          },
+          {
+            "id": "dataspace.expr_heatmap.heatmap_colors",
+            "panel": "Data space",
+            "label": "Heatmap color panel",
+            "kind": "select",
+            "description": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+            "help_text": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+            "writable": true,
+            "operation": "set_widgets",
+            "allowed_values": [
+              "BrBG",
+              "PiYG",
+              "PRGn",
+              "PuOr",
+              "RdBu",
+              "RdGy",
+              "RdYlBu",
+              "RdYlGn"
+            ],
+            "depends_on": []
+          },
+          {
+            "id": "dataspace.expr_heatmap.annot_col",
+            "panel": "Data space",
+            "label": "Column annotations",
+            "kind": "multi_select",
+            "description": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+            "help_text": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+            "writable": true,
+            "operation": "set_widgets",
+            "allowed_values": [
+              "General|All|Cell.line",
+              "General|All|MDR",
+              "General|All|Doubleing.Time",
+              "General|All|Origin",
+              "General|All|TP53.Status",
+              "General|All|Gender",
+              "General|All|numberOfFeatures",
+              "PCA|All|PC1(10.5%)",
+              "PCA|All|PC2(7.2%)",
+              "PCA|All|PC3(5.4%)",
+              "PCA|All|PC4(4.8%)",
+              "PCA|All|PC5(3.6%)",
+              "PCA|All|PC6(2.9%)",
+              "PCA|All|PC7(2.8%)",
+              "PCA|All|PC8(2.5%)",
+              "Surv|all|OS",
+              "Surv|all|DFS",
+              "General|All|Dose",
+              "General|All|Curve"
+            ],
+            "depends_on": []
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 802,
+        "after": 803
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "overview",
+        "after": "capabilities"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{}",
+        "after": "{\"query\":\"color\",\"max_results\":5}"
+      }
+    ],
+    "waited_ms": 34
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 369
+}

@@ -1,0 +1,73 @@
+{
+  "case": "132-resultspace_ora_xax_subset",
+  "caseId": "resultspace.ora.xax_subset",
+  "category": "binding",
+  "bindingId": "resultspace.ora.xax_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ora.xax_subset",
+    "kind": "select",
+    "label": "Collapse subcategory",
+    "help": "Subcategory within the collapse category",
+    "depends_on": "resultspace.ora.xax_analysis",
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ora.xax_subset": "All"
+    }
+  },
+  "status": "success",
+  "duration_ms": 425,
+  "note": "class-verified: same triselector group-push mechanism as attr4 (spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI)) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 642,
+    "applied": "resultspace.ora.xax_subset",
+    "applied_values": {
+      "resultspace.ora.xax_subset": "All"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 642,
+        "applied": "resultspace.ora.xax_subset",
+        "applied_values": {
+          "resultspace.ora.xax_subset": "All"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 641,
+        "after": 642
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ora.xax_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ora.xax_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.ora.xax_subset": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 170,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

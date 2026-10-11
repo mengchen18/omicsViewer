@@ -1,0 +1,20 @@
+{
+  "case": "336-gesture_app_resultspace_sample_general_batch_comp_phenotype_table_table",
+  "caseId": "gesture:app-resultspace-sample_general-batch_comp-phenotype_table-table",
+  "category": "out-of-scope",
+  "bindingId": null,
+  "widget": {
+    "id": "app-resultspace-sample_general-batch_comp-phenotype_table-table",
+    "cls": "datatables html-widget html-widget-output shiny-report-size ",
+    "visible": true
+  },
+  "request": null,
+  "status": "out-of-scope",
+  "duration_ms": null,
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)",
+  "receipt": null,
+  "attempts": [],
+  "ui_effect": null,
+  "store_readback": null,
+  "console_errors": null
+}

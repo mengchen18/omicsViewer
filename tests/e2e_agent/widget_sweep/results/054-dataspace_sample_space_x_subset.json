@@ -1,0 +1,65 @@
+{
+  "case": "054-dataspace_sample_space_x_subset",
+  "caseId": "dataspace.sample_space.x_subset",
+  "category": "binding",
+  "bindingId": "dataspace.sample_space.x_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.sample_space.x_subset",
+    "kind": "select",
+    "label": "X-axis subset",
+    "help": "Subset within the X-axis analysis",
+    "depends_on": "dataspace.sample_space.x_analysis",
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.sample_space.x_subset": "All"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 295,
+  "note": "no distinct value: single valid subset (All) already current",
+  "receipt": {
+    "hook_run": 325,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.sample_space.x_subset",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 325,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.sample_space.x_subset",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 324,
+        "after": 325
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.sample_space.x_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.sample_space.x_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 222
+}

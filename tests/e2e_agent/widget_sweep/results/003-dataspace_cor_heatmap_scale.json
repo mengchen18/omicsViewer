@@ -1,0 +1,76 @@
+{
+  "case": "003-dataspace_cor_heatmap_scale",
+  "caseId": "dataspace.cor_heatmap.scale",
+  "category": "binding",
+  "bindingId": "dataspace.cor_heatmap.scale",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.scale",
+    "kind": "select",
+    "label": "Scale on",
+    "help": "Center and scale values by row, by column, or not at all",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.scale": "row"
+    }
+  },
+  "status": "success",
+  "duration_ms": 338,
+  "note": "",
+  "receipt": {
+    "hook_run": 116,
+    "applied": "dataspace.cor_heatmap.scale",
+    "applied_values": {
+      "dataspace.cor_heatmap.scale": "row"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 116,
+        "applied": "dataspace.cor_heatmap.scale",
+        "applied_values": {
+          "dataspace.cor_heatmap.scale": "row"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 115,
+        "after": 116
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-corheatmapViewer-scale",
+        "before": "none",
+        "after": "row"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.cor_heatmap.scale\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.cor_heatmap.scale\":\"row\"}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.cor_heatmap.scale": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 107
+}

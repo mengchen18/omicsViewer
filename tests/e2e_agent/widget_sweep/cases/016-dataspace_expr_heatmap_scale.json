@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.expr_heatmap.scale",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.expr_heatmap.scale",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.scale",
+    "kind": "select",
+    "label": "Scale on",
+    "help": "Center and scale values by row, by column, or not at all",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.scale": "none"
+    }
+  },
+  "fresh_current": "row",
+  "probeNote": "first allowed != current (none)"
+}

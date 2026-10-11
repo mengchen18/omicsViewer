@@ -1,0 +1,217 @@
+{
+  "case": "085-dataspace_tab_feature_column_filters",
+  "caseId": "dataspace.tab_feature.column_filters",
+  "category": "binding",
+  "bindingId": "dataspace.tab_feature.column_filters",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.tab_feature.column_filters",
+    "kind": "mapping",
+    "label": "Column filters",
+    "help": "Per-column search patterns of the top filter boxes, as an object of exact column name to pattern; an empty object clears every filter",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.tab_feature.column_filters": {
+        "General|All|Gene.name": "AGENTPROBE"
+      }
+    }
+  },
+  "status": "success",
+  "duration_ms": 721,
+  "note": "",
+  "receipt": {
+    "hook_run": 449,
+    "applied": "dataspace.tab_feature.column_filters",
+    "applied_values": {
+      "dataspace.tab_feature.column_filters": "AGENTPROBE"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 449,
+        "applied": "dataspace.tab_feature.column_filters",
+        "applied_values": {
+          "dataspace.tab_feature.column_filters": "AGENTPROBE"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 448,
+        "after": 449
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.tab_feature.column_filters\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.tab_feature.column_filters\":{\"General|All|Gene.name\":\"AGENTPROBE\"}}}"
+      },
+      {
+        "input": "app-dataspace-tab_feature-table_rows_current",
+        "before": [
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50
+        ],
+        "after": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25
+        ]
+      },
+      {
+        "input": "app-dataspace-tab_feature-table_state",
+        "before": {
+          "time": 1791717055876,
+          "start": 25,
+          "length": 25,
+          "order": [],
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          },
+          "columns": [
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            }
+          ],
+          "childRows": []
+        },
+        "after": {
+          "time": 1791717056588,
+          "start": 0,
+          "length": 25,
+          "order": [],
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          },
+          "columns": [
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            }
+          ],
+          "childRows": []
+        }
+      }
+    ],
+    "waited_ms": 33
+  },
+  "store_readback": {
+    "dataspace.tab_feature.column_filters": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 305
+}

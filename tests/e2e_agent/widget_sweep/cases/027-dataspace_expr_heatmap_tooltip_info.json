@@ -1,0 +1,24 @@
+{
+  "caseId": "dataspace.expr_heatmap.tooltip_info",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.expr_heatmap.tooltip_info",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.tooltip_info",
+    "kind": "multi_select",
+    "label": "Tooltips",
+    "help": "Feature and phenotype columns shown in the hover tooltip; empty clears the tooltip",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.tooltip_info": [
+        "General|All|Gene.name"
+      ]
+    }
+  },
+  "fresh_current": [],
+  "probeNote": "single allowed entry (General|All|Gene.name)"
+}

@@ -1,0 +1,72 @@
+{
+  "case": "088-dataspace_tab_expr_page",
+  "caseId": "dataspace.tab_expr.page",
+  "category": "binding",
+  "bindingId": "dataspace.tab_expr.page",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.tab_expr.page",
+    "kind": "integer",
+    "label": "Table page",
+    "help": "1-based page of the table currently visible; navigation applies through the table's paging controls",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.tab_expr.page": 2
+    }
+  },
+  "status": "no-ui-effect",
+  "duration_ms": 579,
+  "note": "page write VERIFIED live with the table initialized (spotcheck2 B: start 0->25); the sweep probe was page=1 == displayed page (no-op effect), and the table may not have been initialized at sweep time | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 461,
+    "applied": "dataspace.tab_expr.page",
+    "applied_values": {
+      "dataspace.tab_expr.page": 2
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 461,
+        "applied": "dataspace.tab_expr.page",
+        "applied_values": {
+          "dataspace.tab_expr.page": 2
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 460,
+        "after": 461
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.tab_expr.page\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.tab_expr.page\":2}}"
+      }
+    ],
+    "waited_ms": 49
+  },
+  "store_readback": {
+    "dataspace.tab_expr.page": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 135,
+  "_status_before_revalidation": "success"
+}

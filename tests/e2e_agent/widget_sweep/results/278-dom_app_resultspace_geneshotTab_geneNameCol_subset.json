@@ -1,0 +1,62 @@
+{
+  "case": "278-dom_app_resultspace_geneshotTab_geneNameCol_subset",
+  "caseId": "dom:app-resultspace-geneshotTab-geneNameCol-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-geneshotTab-geneNameCol-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 201,
+  "note": "",
+  "receipt": {
+    "hook_run": 921,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.geneshotTab.geneNameCol.subset",
+        "reason": "Unknown widget id: resultspace.geneshotTab.geneNameCol.subset. Closest matches: resultspace.geneshot.xax_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.geneshotTab.geneNameCol.subset",
+      "receipt": {
+        "hook_run": 921,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.geneshotTab.geneNameCol.subset",
+            "reason": "Unknown widget id: resultspace.geneshotTab.geneNameCol.subset. Closest matches: resultspace.geneshot.xax_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 920,
+        "after": 921
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.geneshotTab.geneNameCol.analysis\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.geneshotTab.geneNameCol.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 108
+}

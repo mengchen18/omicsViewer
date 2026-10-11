@@ -1,0 +1,62 @@
+{
+  "case": "195-dom_app_assistant_enable_logging",
+  "caseId": "dom:app-assistant-enable_logging",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-assistant-enable_logging",
+    "description": "INPUT:checkbox visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 236,
+  "note": "",
+  "receipt": {
+    "hook_run": 826,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "assistant.enable_logging",
+        "reason": "Unknown widget id: assistant.enable_logging."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "assistant.enable_logging",
+      "receipt": {
+        "hook_run": 826,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "assistant.enable_logging",
+            "reason": "Unknown widget id: assistant.enable_logging."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 825,
+        "after": 826
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"assistant.close\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"assistant.enable_logging\":true}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 103
+}

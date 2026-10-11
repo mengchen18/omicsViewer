@@ -1,0 +1,25 @@
+{
+  "caseId": "resultspace.geneshot.xax_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.geneshot.xax_variable",
+  "widget": {
+    "binding_id": "resultspace.geneshot.xax_variable",
+    "kind": "select_cascaded",
+    "label": "ID mapper column",
+    "help": "Feature annotation column Geneshot genes are matched against for the overlap highlight",
+    "depends_on": [
+      "resultspace.geneshot.xax_analysis",
+      "resultspace.geneshot.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.geneshot.xax_variable": "Gene.name"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Gene.name)"
+}

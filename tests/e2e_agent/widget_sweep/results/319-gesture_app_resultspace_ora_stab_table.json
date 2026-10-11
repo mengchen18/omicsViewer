@@ -1,0 +1,20 @@
+{
+  "case": "319-gesture_app_resultspace_ora_stab_table",
+  "caseId": "gesture:app-resultspace-ora-stab-table",
+  "category": "out-of-scope",
+  "bindingId": null,
+  "widget": {
+    "id": "app-resultspace-ora-stab-table",
+    "cls": "datatables html-widget html-widget-output shiny-report-size ",
+    "visible": false
+  },
+  "request": null,
+  "status": "out-of-scope",
+  "duration_ms": null,
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)",
+  "receipt": null,
+  "attempts": [],
+  "ui_effect": null,
+  "store_readback": null,
+  "console_errors": null
+}

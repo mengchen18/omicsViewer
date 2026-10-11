@@ -1,0 +1,73 @@
+{
+  "case": "127-resultspace_fgsea_xax_analysis",
+  "caseId": "resultspace.fgsea.xax_analysis",
+  "category": "binding",
+  "bindingId": "resultspace.fgsea.xax_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.fgsea.xax_analysis",
+    "kind": "select",
+    "label": "Ranking category",
+    "help": "Annotation category of the ranking statistic the enrichment scores are computed from",
+    "depends_on": [],
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.fgsea.xax_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 542,
+  "note": "class-verified: same triselector group-push mechanism as attr4 (spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI)) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 622,
+    "applied": "resultspace.fgsea.xax_analysis",
+    "applied_values": {
+      "resultspace.fgsea.xax_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 622,
+        "applied": "resultspace.fgsea.xax_analysis",
+        "applied_values": {
+          "resultspace.fgsea.xax_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 621,
+        "after": 622
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.fgsea.xax_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.fgsea.xax_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": {
+    "resultspace.fgsea.xax_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 264,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

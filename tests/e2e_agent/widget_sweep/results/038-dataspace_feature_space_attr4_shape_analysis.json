@@ -1,0 +1,73 @@
+{
+  "case": "038-dataspace_feature_space_attr4_shape_analysis",
+  "caseId": "dataspace.feature_space.attr4.shape_analysis",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.shape_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.shape_analysis",
+    "kind": "select",
+    "label": "Shape attribute category",
+    "help": "First level of the shape attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.shape_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 556,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 258,
+    "applied": "dataspace.feature_space.attr4.shape_analysis",
+    "applied_values": {
+      "dataspace.feature_space.attr4.shape_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 258,
+        "applied": "dataspace.feature_space.attr4.shape_analysis",
+        "applied_values": {
+          "dataspace.feature_space.attr4.shape_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 257,
+        "after": 258
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.shape_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.shape_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 30
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.shape_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 287,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

@@ -1,0 +1,62 @@
+{
+  "case": "288-dom_app_resultspace_sample_general_a4_gp_selectTooltipUI_analysis",
+  "caseId": "dom:app-resultspace-sample_general-a4_gp-selectTooltipUI-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-sample_general-a4_gp-selectTooltipUI-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 269,
+  "note": "",
+  "receipt": {
+    "hook_run": 933,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.sample_general.a4_gp.selectTooltipUI.analysis",
+        "reason": "Unknown widget id: resultspace.sample_general.a4_gp.selectTooltipUI.analysis. Closest matches: resultspace.sample_general.attr4.tooltip_analysis, resultspace.sample_general.attr4.color_analysis, resultspace.sample_general.attr4.search_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.sample_general.a4_gp.selectTooltipUI.analysis",
+      "receipt": {
+        "hook_run": 933,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.sample_general.a4_gp.selectTooltipUI.analysis",
+            "reason": "Unknown widget id: resultspace.sample_general.a4_gp.selectTooltipUI.analysis. Closest matches: resultspace.sample_general.attr4.tooltip_analysis, resultspace.sample_general.attr4.color_analysis, resultspace.sample_general.attr4.search_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 932,
+        "after": 933
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.sample_general.a4_gp.selectSizeUI.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.sample_general.a4_gp.selectTooltipUI.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 48
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 126
+}

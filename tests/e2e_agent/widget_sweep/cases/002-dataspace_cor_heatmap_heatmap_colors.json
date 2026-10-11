@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.cor_heatmap.heatmap_colors",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.cor_heatmap.heatmap_colors",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.heatmap_colors",
+    "kind": "select",
+    "label": "Heatmap color panel",
+    "help": "Diverging RColorBrewer palette for the heatmap cells; one of BrBG, PiYG, PRGn, PuOr, RdBu, RdGy, RdYlBu, RdYlGn",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.heatmap_colors": "BrBG"
+    }
+  },
+  "fresh_current": "RdYlBu",
+  "probeNote": "first allowed != current (BrBG)"
+}

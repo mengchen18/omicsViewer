@@ -1,0 +1,92 @@
+{
+  "case": "239-dom_mydropdown3",
+  "caseId": "dom:mydropdown3",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "mydropdown3",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 392,
+  "note": "",
+  "receipt": {
+    "hook_run": 880,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.global_search",
+        "reason": "Unknown widget id: resultspace.global_search."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "app",
+      "receipt": {
+        "hook_run": 878,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "app",
+            "reason": "Unknown widget id: app."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "dataspace.global_search",
+      "receipt": {
+        "hook_run": 879,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.global_search",
+            "reason": "Unknown widget id: dataspace.global_search."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "resultspace.global_search",
+      "receipt": {
+        "hook_run": 880,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.global_search",
+            "reason": "Unknown widget id: resultspace.global_search."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 877,
+        "after": 880
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.heatmapViewer.clear\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"resultspace.global_search\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 56
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 101
+}

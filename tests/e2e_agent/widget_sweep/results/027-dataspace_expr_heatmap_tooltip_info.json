@@ -1,0 +1,80 @@
+{
+  "case": "027-dataspace_expr_heatmap_tooltip_info",
+  "caseId": "dataspace.expr_heatmap.tooltip_info",
+  "category": "binding",
+  "bindingId": "dataspace.expr_heatmap.tooltip_info",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.tooltip_info",
+    "kind": "multi_select",
+    "label": "Tooltips",
+    "help": "Feature and phenotype columns shown in the hover tooltip; empty clears the tooltip",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.tooltip_info": [
+        "General|All|Gene.name"
+      ]
+    }
+  },
+  "status": "success",
+  "duration_ms": 318,
+  "note": "",
+  "receipt": {
+    "hook_run": 212,
+    "applied": "dataspace.expr_heatmap.tooltip_info",
+    "applied_values": {
+      "dataspace.expr_heatmap.tooltip_info": "General|All|Gene.name"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 212,
+        "applied": "dataspace.expr_heatmap.tooltip_info",
+        "applied_values": {
+          "dataspace.expr_heatmap.tooltip_info": "General|All|Gene.name"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 211,
+        "after": 212
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-heatmapViewer-tooltipInfo",
+        "before": [],
+        "after": [
+          "General|All|Gene.name"
+        ]
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.expr_heatmap.tooltip_info\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.expr_heatmap.tooltip_info\":[\"General|All|Gene.name\"]}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.expr_heatmap.tooltip_info": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 141
+}

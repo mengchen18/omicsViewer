@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.sample_general.batch_show_features",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.sample_general.batch_show_features",
+  "widget": {
+    "binding_id": "resultspace.sample_general.batch_show_features",
+    "kind": "boolean",
+    "label": "Compare features",
+    "help": "Test all molecular features between selected and unselected samples",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.sample_general.batch_show_features": true
+    }
+  },
+  "fresh_current": false,
+  "probeNote": "boolean flip"
+}

@@ -1,0 +1,62 @@
+{
+  "case": "261-dom_app_resultspace_feature_general_a4_gf_selectSizeUI_analysis",
+  "caseId": "dom:app-resultspace-feature_general-a4_gf-selectSizeUI-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-feature_general-a4_gf-selectSizeUI-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 256,
+  "note": "",
+  "receipt": {
+    "hook_run": 904,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.feature_general.a4_gf.selectSizeUI.analysis",
+        "reason": "Unknown widget id: resultspace.feature_general.a4_gf.selectSizeUI.analysis. Closest matches: resultspace.feature_general.attr4.size_analysis, resultspace.feature_general.attr4.search_analysis, resultspace.feature_general.attr4.shape_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.feature_general.a4_gf.selectSizeUI.analysis",
+      "receipt": {
+        "hook_run": 904,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.feature_general.a4_gf.selectSizeUI.analysis",
+            "reason": "Unknown widget id: resultspace.feature_general.a4_gf.selectSizeUI.analysis. Closest matches: resultspace.feature_general.attr4.size_analysis, resultspace.feature_general.attr4.search_analysis, resultspace.feature_general.attr4.shape_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 903,
+        "after": 904
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.feature_general.a4_gf.selectShapeUI.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.feature_general.a4_gf.selectSizeUI.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 119
+}

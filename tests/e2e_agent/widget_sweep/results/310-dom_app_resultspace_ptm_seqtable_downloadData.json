@@ -1,0 +1,62 @@
+{
+  "case": "310-dom_app_resultspace_ptm_seqtable_downloadData",
+  "caseId": "dom:app-resultspace-ptm-seqtable-downloadData",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-ptm-seqtable-downloadData",
+    "description": "download control (Save table)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 232,
+  "note": "download output - no value semantics",
+  "receipt": {
+    "hook_run": 963,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.ptm.seqtable.downloadData",
+        "reason": "Unknown widget id: resultspace.ptm.seqtable.downloadData."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.ptm.seqtable.downloadData",
+      "receipt": {
+        "hook_run": 963,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.ptm.seqtable.downloadData",
+            "reason": "Unknown widget id: resultspace.ptm.seqtable.downloadData."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 962,
+        "after": 963
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.ora.stab.downloadData\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"resultspace.ptm.seqtable.downloadData\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 39
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 101
+}

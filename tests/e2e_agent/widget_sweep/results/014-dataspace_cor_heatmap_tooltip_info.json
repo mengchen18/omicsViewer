@@ -1,0 +1,80 @@
+{
+  "case": "014-dataspace_cor_heatmap_tooltip_info",
+  "caseId": "dataspace.cor_heatmap.tooltip_info",
+  "category": "binding",
+  "bindingId": "dataspace.cor_heatmap.tooltip_info",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.tooltip_info",
+    "kind": "multi_select",
+    "label": "Tooltips",
+    "help": "Feature and phenotype columns shown in the hover tooltip; empty clears the tooltip",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.tooltip_info": [
+        "General|All|Cell.line"
+      ]
+    }
+  },
+  "status": "success",
+  "duration_ms": 288,
+  "note": "",
+  "receipt": {
+    "hook_run": 160,
+    "applied": "dataspace.cor_heatmap.tooltip_info",
+    "applied_values": {
+      "dataspace.cor_heatmap.tooltip_info": "General|All|Cell.line"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 160,
+        "applied": "dataspace.cor_heatmap.tooltip_info",
+        "applied_values": {
+          "dataspace.cor_heatmap.tooltip_info": "General|All|Cell.line"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 159,
+        "after": 160
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-corheatmapViewer-tooltipInfo",
+        "before": [],
+        "after": [
+          "General|All|Cell.line"
+        ]
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.cor_heatmap.tooltip_info\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.cor_heatmap.tooltip_info\":[\"General|All|Cell.line\"]}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.cor_heatmap.tooltip_info": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 111
+}

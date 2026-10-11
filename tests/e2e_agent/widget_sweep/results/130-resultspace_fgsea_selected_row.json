@@ -1,0 +1,72 @@
+{
+  "case": "130-resultspace_fgsea_selected_row",
+  "caseId": "resultspace.fgsea.selected_row",
+  "category": "binding",
+  "bindingId": "resultspace.fgsea.selected_row",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.fgsea.selected_row",
+    "kind": "select",
+    "label": "Selected pathway",
+    "help": "Gene set whose row is selected in the results table; highlights its leading edge in the bar plot above",
+    "depends_on": [],
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.fgsea.selected_row": "mitochondrial.translation"
+    }
+  },
+  "status": "no-ui-effect",
+  "duration_ms": 598,
+  "note": "REAL: row selection targets a table whose rows are empty until the upstream Run button is pressed (agent cannot press it) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 634,
+    "applied": "resultspace.fgsea.selected_row",
+    "applied_values": {
+      "resultspace.fgsea.selected_row": "mitochondrial.translation"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 634,
+        "applied": "resultspace.fgsea.selected_row",
+        "applied_values": {
+          "resultspace.fgsea.selected_row": "mitochondrial.translation"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 633,
+        "after": 634
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.fgsea.selected_row\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.fgsea.selected_row\":\"mitochondrial.translation\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": {
+    "resultspace.fgsea.selected_row": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 284,
+  "_status_before_revalidation": "success"
+}

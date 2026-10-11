@@ -1,0 +1,91 @@
+{
+  "case": "174-tool_set_scatter_view_feature_quick",
+  "caseId": "tool:set_scatter_view(feature,quick)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_scatter_view",
+  "widget": {
+    "semantic": "feature-space scatter quick view"
+  },
+  "request": {
+    "space": "feature",
+    "quick_view_id": "volcano_RE_vs_ME"
+  },
+  "status": "success",
+  "duration_ms": 391,
+  "note": "",
+  "receipt": {
+    "hook_run": 805,
+    "space": "feature",
+    "mode": "quick",
+    "quick_view_id": "volcano_RE_vs_ME",
+    "x_axis": "ttest|RE_vs_ME|mean.diff",
+    "y_axis": "ttest|RE_vs_ME|log.fdr"
+  },
+  "attempts": [
+    {
+      "op": "scatter",
+      "receipt": {
+        "hook_run": 805,
+        "space": "feature",
+        "mode": "quick",
+        "quick_view_id": "volcano_RE_vs_ME",
+        "x_axis": "ttest|RE_vs_ME|mean.diff",
+        "y_axis": "ttest|RE_vs_ME|log.fdr"
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 804,
+        "after": 805
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "scatter"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-analysis",
+        "before": "General",
+        "after": "ttest"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-subset",
+        "before": "All",
+        "after": "RE_vs_ME"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter1-variable",
+        "before": "Protein.ID",
+        "after": "mean.diff"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter2-analysis",
+        "before": "General",
+        "after": "ttest"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter2-subset",
+        "before": "All",
+        "after": "RE_vs_ME"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter2-variable",
+        "before": "Protein.ID",
+        "after": "log.fdr"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"id\":\"dataspace.feature_space.axis_mode\"}",
+        "after": "{\"space\":\"feature\",\"quick_view_id\":\"volcano_RE_vs_ME\"}"
+      }
+    ],
+    "waited_ms": 34
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 334
+}

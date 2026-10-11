@@ -1,0 +1,25 @@
+{
+  "caseId": "resultspace.sample_general.xax_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.sample_general.xax_variable",
+  "widget": {
+    "binding_id": "resultspace.sample_general.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Link variable",
+    "help": "Variable driving the analysis view: numeric gives a beeswarm, categorical a contingency table, Surv a Kaplan-Meier curve",
+    "depends_on": [
+      "resultspace.sample_general.xax_analysis",
+      "resultspace.sample_general.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.sample_general.xax_variable": "Cell.line"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Cell.line)"
+}

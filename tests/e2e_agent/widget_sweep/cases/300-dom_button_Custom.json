@@ -1,0 +1,16 @@
+{
+  "caseId": "dom:button:Custom",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "button:Custom",
+    "description": "plain button (Custom)"
+  },
+  "guesses": [
+    "app",
+    "dataspace.global_search",
+    "resultspace.global_search"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": ""
+}

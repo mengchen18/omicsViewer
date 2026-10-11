@@ -1,0 +1,23 @@
+{
+  "caseId": "resultspace.stringdb.selected_row",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.stringdb.selected_row",
+  "widget": {
+    "binding_id": "resultspace.stringdb.selected_row",
+    "kind": "select",
+    "label": "Selected enrichment term",
+    "help": "STRING enrichment term whose row is selected; highlights its genes in the network",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.stringdb.selected_row": null
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

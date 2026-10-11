@@ -1,0 +1,72 @@
+{
+  "case": "108-resultspace_feature_general_regression_line",
+  "caseId": "resultspace.feature_general.regression_line",
+  "category": "binding",
+  "bindingId": "resultspace.feature_general.regression_line",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.feature_general.regression_line",
+    "kind": "boolean",
+    "label": "Regression line",
+    "help": "Draw a regression line in the single-feature scatter view",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.feature_general.regression_line": true
+    }
+  },
+  "status": "no-ui-effect",
+  "duration_ms": 392,
+  "note": "revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed. ",
+  "receipt": {
+    "hook_run": 546,
+    "applied": "resultspace.feature_general.regression_line",
+    "applied_values": {
+      "resultspace.feature_general.regression_line": true
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 546,
+        "applied": "resultspace.feature_general.regression_line",
+        "applied_values": {
+          "resultspace.feature_general.regression_line": true
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 545,
+        "after": 546
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.feature_general.regression_line\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.feature_general.regression_line\":true}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.feature_general.regression_line": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 170,
+  "_status_before_revalidation": "success"
+}

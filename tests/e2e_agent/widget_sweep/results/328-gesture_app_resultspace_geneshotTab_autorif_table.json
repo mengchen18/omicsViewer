@@ -1,0 +1,20 @@
+{
+  "case": "328-gesture_app_resultspace_geneshotTab_autorif_table",
+  "caseId": "gesture:app-resultspace-geneshotTab-autorif-table",
+  "category": "out-of-scope",
+  "bindingId": null,
+  "widget": {
+    "id": "app-resultspace-geneshotTab-autorif-table",
+    "cls": "datatables html-widget html-widget-output shiny-report-size ",
+    "visible": false
+  },
+  "request": null,
+  "status": "out-of-scope",
+  "duration_ms": null,
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)",
+  "receipt": null,
+  "attempts": [],
+  "ui_effect": null,
+  "store_readback": null,
+  "console_errors": null
+}

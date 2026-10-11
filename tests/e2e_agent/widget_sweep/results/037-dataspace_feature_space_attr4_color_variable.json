@@ -1,0 +1,79 @@
+{
+  "case": "037-dataspace_feature_space_attr4_color_variable",
+  "caseId": "dataspace.feature_space.attr4.color_variable",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.color_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.color_variable",
+    "kind": "select_cascaded",
+    "label": "Color attribute variable",
+    "help": "Annotation variable mapped to the color aesthetic",
+    "depends_on": [
+      "dataspace.feature_space.attr4.color_analysis",
+      "dataspace.feature_space.attr4.color_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.color_variable": "Gene.name"
+    }
+  },
+  "status": "success",
+  "duration_ms": 538,
+  "note": "",
+  "receipt": {
+    "hook_run": 254,
+    "applied": "dataspace.feature_space.attr4.color_variable",
+    "applied_values": {
+      "dataspace.feature_space.attr4.color_variable": "Gene.name"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 254,
+        "applied": "dataspace.feature_space.attr4.color_variable",
+        "applied_values": {
+          "dataspace.feature_space.attr4.color_variable": "Gene.name"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 253,
+        "after": 254
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-a4selector-selectColorUI-variable",
+        "before": "--select--",
+        "after": "Gene.name"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.color_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.color_variable\":\"Gene.name\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.color_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 276
+}

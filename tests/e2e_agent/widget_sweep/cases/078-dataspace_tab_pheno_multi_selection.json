@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.tab_pheno.multi_selection",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.tab_pheno.multi_selection",
+  "widget": {
+    "binding_id": "dataspace.tab_pheno.multi_selection",
+    "kind": "boolean",
+    "label": "Multiple selection",
+    "help": "Allow selecting more than one row in the table",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.tab_pheno.multi_selection": true
+    }
+  },
+  "fresh_current": false,
+  "probeNote": "boolean flip"
+}

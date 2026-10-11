@@ -1,0 +1,73 @@
+{
+  "case": "042-dataspace_feature_space_attr4_size_subset",
+  "caseId": "dataspace.feature_space.attr4.size_subset",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.size_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.size_subset",
+    "kind": "select",
+    "label": "Size attribute subcategory",
+    "help": "Second level of the size attribute cascade",
+    "depends_on": "dataspace.feature_space.attr4.size_analysis",
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.size_subset": "All"
+    }
+  },
+  "status": "success",
+  "duration_ms": 555,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 274,
+    "applied": "dataspace.feature_space.attr4.size_subset",
+    "applied_values": {
+      "dataspace.feature_space.attr4.size_subset": "All"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 274,
+        "applied": "dataspace.feature_space.attr4.size_subset",
+        "applied_values": {
+          "dataspace.feature_space.attr4.size_subset": "All"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 273,
+        "after": 274
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.size_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.size_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.size_subset": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 283,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

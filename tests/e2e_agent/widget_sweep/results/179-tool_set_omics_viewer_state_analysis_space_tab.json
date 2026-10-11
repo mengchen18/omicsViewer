@@ -1,0 +1,74 @@
+{
+  "case": "179-tool_set_omics_viewer_state_analysis_space_tab",
+  "caseId": "tool:set_omics_viewer_state(analysis_space_tab)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_omics_viewer_state",
+  "widget": null,
+  "request": {
+    "analysis_space_tab": "Geneshot"
+  },
+  "status": "success",
+  "duration_ms": 1419,
+  "note": "",
+  "receipt": {
+    "hook_run": 810,
+    "data_space_tab": null,
+    "analysis_space_tab": "Geneshot",
+    "feature_count": 0,
+    "sample_count": 0,
+    "example_features": [],
+    "example_samples": []
+  },
+  "attempts": [
+    {
+      "op": "state",
+      "receipt": {
+        "hook_run": 810,
+        "data_space_tab": null,
+        "analysis_space_tab": "Geneshot",
+        "feature_count": 0,
+        "sample_count": 0,
+        "example_features": [],
+        "example_samples": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 809,
+        "after": 810
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"data_space_tab\":\"Heatmap\"}",
+        "after": "{\"analysis_space_tab\":\"Geneshot\"}"
+      },
+      {
+        "input": "app-resultspace-analyst",
+        "before": "Feature",
+        "after": "Geneshot"
+      },
+      {
+        "input": "__selectedRows",
+        "before": [
+          {
+            "id": "DataTables_Table_7_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_7",
+            "n": 0
+          }
+        ],
+        "after": []
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 1379
+}

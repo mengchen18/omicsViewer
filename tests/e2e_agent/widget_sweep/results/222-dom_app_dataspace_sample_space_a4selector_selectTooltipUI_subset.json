@@ -1,0 +1,62 @@
+{
+  "case": "222-dom_app_dataspace_sample_space_a4selector_selectTooltipUI_subset",
+  "caseId": "dom:app-dataspace-sample_space-a4selector-selectTooltipUI-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-a4selector-selectTooltipUI-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 201,
+  "note": "",
+  "receipt": {
+    "hook_run": 857,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.a4selector.selectTooltipUI.subset",
+        "reason": "Unknown widget id: dataspace.sample_space.a4selector.selectTooltipUI.subset. Closest matches: dataspace.sample_space.attr4.tooltip_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.a4selector.selectTooltipUI.subset",
+      "receipt": {
+        "hook_run": 857,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.a4selector.selectTooltipUI.subset",
+            "reason": "Unknown widget id: dataspace.sample_space.a4selector.selectTooltipUI.subset. Closest matches: dataspace.sample_space.attr4.tooltip_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 856,
+        "after": 857
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.a4selector.selectTooltipUI.analysis\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.a4selector.selectTooltipUI.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 114
+}

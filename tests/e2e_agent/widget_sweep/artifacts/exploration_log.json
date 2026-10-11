@@ -1,0 +1,212 @@
+[
+  {
+    "step": "base",
+    "newInputs": 125,
+    "totals": {
+      "inputs": 125,
+      "dtSearch": 0,
+      "downloads": 1,
+      "gestures": 6
+    }
+  },
+  {
+    "step": "tab:Feature",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 125,
+      "dtSearch": 0,
+      "downloads": 1,
+      "gestures": 6
+    }
+  },
+  {
+    "step": "tab:Feature table",
+    "newInputs": 76,
+    "totals": {
+      "inputs": 201,
+      "dtSearch": 0,
+      "downloads": 1,
+      "gestures": 19
+    }
+  },
+  {
+    "step": "tab:Sample",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 201,
+      "dtSearch": 0,
+      "downloads": 2,
+      "gestures": 19
+    }
+  },
+  {
+    "step": "tab:Sample table",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 201,
+      "dtSearch": 0,
+      "downloads": 2,
+      "gestures": 19
+    }
+  },
+  {
+    "step": "tab:Cor",
+    "newInputs": 2,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 4,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:Heatmap",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 4,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:Dynamic heatmap",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 4,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:Expression",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 5,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:GSList",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 6,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:Feature",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 6,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:ORA",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 7,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:fGSEA",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 7,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:Response",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 7,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:StringDB",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 7,
+      "gestures": 21
+    }
+  },
+  {
+    "step": "tab:SeqLogo",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 8,
+      "gestures": 25
+    }
+  },
+  {
+    "step": "tab:Geneshot",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 8,
+      "gestures": 25
+    }
+  },
+  {
+    "step": "tab:Sample",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 8,
+      "gestures": 26
+    }
+  },
+  {
+    "step": "tab:Phenotype variable",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 8,
+      "gestures": 26
+    }
+  },
+  {
+    "step": "tab:Feature differential expression",
+    "newInputs": 0,
+    "totals": {
+      "inputs": 203,
+      "dtSearch": 0,
+      "downloads": 8,
+      "gestures": 26
+    }
+  },
+  {
+    "step": "modal:snapshot",
+    "newInputs": 3,
+    "totals": {
+      "inputs": 206,
+      "dtSearch": 0,
+      "downloads": 8,
+      "gestures": 27
+    }
+  }
+]

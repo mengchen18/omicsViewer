@@ -1,0 +1,79 @@
+{
+  "case": "106-resultspace_feature_general_xax_variable",
+  "caseId": "resultspace.feature_general.xax_variable",
+  "category": "binding",
+  "bindingId": "resultspace.feature_general.xax_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.feature_general.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Link variable",
+    "help": "Variable the selected features are plotted or tested against (phenotype annotation or Feature|Auto| row)",
+    "depends_on": [
+      "resultspace.feature_general.xax_analysis",
+      "resultspace.feature_general.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.feature_general.xax_variable": "Cell.line"
+    }
+  },
+  "status": "success",
+  "duration_ms": 555,
+  "note": "",
+  "receipt": {
+    "hook_run": 538,
+    "applied": "resultspace.feature_general.xax_variable",
+    "applied_values": {
+      "resultspace.feature_general.xax_variable": "Cell.line"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 538,
+        "applied": "resultspace.feature_general.xax_variable",
+        "applied_values": {
+          "resultspace.feature_general.xax_variable": "Cell.line"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 537,
+        "after": 538
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.feature_general.xax_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.feature_general.xax_variable\":\"Cell.line\"}}"
+      },
+      {
+        "input": "app-resultspace-feature_general-tris_feature_general-variable",
+        "before": "--select--",
+        "after": "Cell.line"
+      }
+    ],
+    "waited_ms": 24
+  },
+  "store_readback": {
+    "resultspace.feature_general.xax_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 174
+}

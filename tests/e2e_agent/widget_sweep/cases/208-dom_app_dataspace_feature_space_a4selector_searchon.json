@@ -1,0 +1,14 @@
+{
+  "caseId": "dom:app-dataspace-feature_space-a4selector-searchon",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-a4selector-searchon",
+    "description": "SELECT:select-multiple visible=false"
+  },
+  "guesses": [
+    "dataspace.feature_space.a4selector.searchon"
+  ],
+  "probeValue": "x",
+  "note": ""
+}

@@ -1,0 +1,62 @@
+{
+  "case": "290-dom_app_resultspace_sample_general_a4_gp_selectSearchCol_analysis",
+  "caseId": "dom:app-resultspace-sample_general-a4_gp-selectSearchCol-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-sample_general-a4_gp-selectSearchCol-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 243,
+  "note": "",
+  "receipt": {
+    "hook_run": 935,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.sample_general.a4_gp.selectSearchCol.analysis",
+        "reason": "Unknown widget id: resultspace.sample_general.a4_gp.selectSearchCol.analysis. Closest matches: resultspace.sample_general.attr4.search_analysis, resultspace.sample_general.attr4.color_analysis, resultspace.sample_general.attr4.shape_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.sample_general.a4_gp.selectSearchCol.analysis",
+      "receipt": {
+        "hook_run": 935,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.sample_general.a4_gp.selectSearchCol.analysis",
+            "reason": "Unknown widget id: resultspace.sample_general.a4_gp.selectSearchCol.analysis. Closest matches: resultspace.sample_general.attr4.search_analysis, resultspace.sample_general.attr4.color_analysis, resultspace.sample_general.attr4.shape_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 934,
+        "after": 935
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.sample_general.a4_gp.selectTooltipUI.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.sample_general.a4_gp.selectSearchCol.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 110
+}

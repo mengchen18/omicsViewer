@@ -1,0 +1,13 @@
+{
+  "caseId": "tool:set_scatter_view(sample,quick)",
+  "category": "semantic-tool",
+  "tool": "set_scatter_view",
+  "hookOp": "scatter",
+  "request": {
+    "space": "sample",
+    "quick_view_id": "pca"
+  },
+  "widget": {
+    "semantic": "sample-space scatter quick view"
+  }
+}

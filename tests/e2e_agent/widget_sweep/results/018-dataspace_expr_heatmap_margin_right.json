@@ -1,0 +1,76 @@
+{
+  "case": "018-dataspace_expr_heatmap_margin_right",
+  "caseId": "dataspace.expr_heatmap.margin_right",
+  "category": "binding",
+  "bindingId": "dataspace.expr_heatmap.margin_right",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.margin_right",
+    "kind": "integer",
+    "label": "Right margin",
+    "help": "Right plot margin in lines, from 1 through 20",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.margin_right": 5
+    }
+  },
+  "status": "success",
+  "duration_ms": 287,
+  "note": "",
+  "receipt": {
+    "hook_run": 176,
+    "applied": "dataspace.expr_heatmap.margin_right",
+    "applied_values": {
+      "dataspace.expr_heatmap.margin_right": 5
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 176,
+        "applied": "dataspace.expr_heatmap.margin_right",
+        "applied_values": {
+          "dataspace.expr_heatmap.margin_right": 5
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 175,
+        "after": 176
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-heatmapViewer-marginRight",
+        "before": 4,
+        "after": 5
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.expr_heatmap.margin_right\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.expr_heatmap.margin_right\":5}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.expr_heatmap.margin_right": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 104
+}

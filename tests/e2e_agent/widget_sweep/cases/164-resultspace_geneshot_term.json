@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.geneshot.term",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.geneshot.term",
+  "widget": {
+    "binding_id": "resultspace.geneshot.term",
+    "kind": "string",
+    "label": "Search terms",
+    "help": "Semicolon-separated literature search terms for the Geneshot AutoRIF query",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.geneshot.term": "AGENTPROBE-164"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "distinctive string marker"
+}

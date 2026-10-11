@@ -1,0 +1,79 @@
+{
+  "case": "133-resultspace_ora_xax_variable",
+  "caseId": "resultspace.ora.xax_variable",
+  "category": "binding",
+  "bindingId": "resultspace.ora.xax_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ora.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Collapse variable",
+    "help": "Variable the input features are collapsed on (feature annotation column)",
+    "depends_on": [
+      "resultspace.ora.xax_analysis",
+      "resultspace.ora.xax_subset"
+    ],
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ora.xax_variable": "Gene.name"
+    }
+  },
+  "status": "success",
+  "duration_ms": 472,
+  "note": "",
+  "receipt": {
+    "hook_run": 646,
+    "applied": "resultspace.ora.xax_variable",
+    "applied_values": {
+      "resultspace.ora.xax_variable": "Gene.name"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 646,
+        "applied": "resultspace.ora.xax_variable",
+        "applied_values": {
+          "resultspace.ora.xax_variable": "Gene.name"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 645,
+        "after": 646
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ora.xax_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ora.xax_variable\":\"Gene.name\"}}"
+      },
+      {
+        "input": "app-resultspace-ora-tris_ora-variable",
+        "before": "--select--",
+        "after": "Gene.name"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.ora.xax_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 168
+}

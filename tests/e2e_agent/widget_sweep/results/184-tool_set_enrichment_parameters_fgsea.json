@@ -1,0 +1,120 @@
+{
+  "case": "184-tool_set_enrichment_parameters_fgsea",
+  "caseId": "tool:set_enrichment_parameters(fgsea)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_enrichment_parameters",
+  "widget": null,
+  "request": {
+    "method": "fgsea",
+    "collapse": "ttest|RE_vs_ME|mean.diff"
+  },
+  "status": "success",
+  "duration_ms": 344,
+  "note": "",
+  "receipt": {
+    "hook_run": 815,
+    "method": "fgsea",
+    "panel_tab": "fGSEA",
+    "applied": [
+      "resultspace.fgsea.xax_analysis",
+      "resultspace.analyst_tab",
+      "resultspace.fgsea.xax_subset",
+      "resultspace.fgsea.xax_variable"
+    ],
+    "applied_values": {
+      "resultspace.fgsea.xax_analysis": "ttest",
+      "resultspace.analyst_tab": "fGSEA",
+      "resultspace.fgsea.xax_subset": "RE_vs_ME",
+      "resultspace.fgsea.xax_variable": "mean.diff"
+    },
+    "unchanged": [],
+    "rejected": [],
+    "note": "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); re-check the results through the app tables or get_omics_viewer_state."
+  },
+  "attempts": [
+    {
+      "op": "enrichment",
+      "receipt": {
+        "hook_run": 815,
+        "method": "fgsea",
+        "panel_tab": "fGSEA",
+        "applied": [
+          "resultspace.fgsea.xax_analysis",
+          "resultspace.analyst_tab",
+          "resultspace.fgsea.xax_subset",
+          "resultspace.fgsea.xax_variable"
+        ],
+        "applied_values": {
+          "resultspace.fgsea.xax_analysis": "ttest",
+          "resultspace.analyst_tab": "fGSEA",
+          "resultspace.fgsea.xax_subset": "RE_vs_ME",
+          "resultspace.fgsea.xax_variable": "mean.diff"
+        },
+        "unchanged": [],
+        "rejected": [],
+        "note": "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); re-check the results through the app tables or get_omics_viewer_state."
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 814,
+        "after": 815
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"method\":\"ora\",\"collapse\":\"General|All|Gene.name\"}",
+        "after": "{\"method\":\"fgsea\",\"collapse\":\"ttest|RE_vs_ME|mean.diff\"}"
+      },
+      {
+        "input": "app-resultspace-analyst",
+        "before": "ORA",
+        "after": "fGSEA"
+      },
+      {
+        "input": "app-resultspace-fgsea-tris_fgsea-analysis",
+        "before": "General",
+        "after": "ttest"
+      },
+      {
+        "input": "app-resultspace-fgsea-tris_fgsea-subset",
+        "before": "All",
+        "after": "RE_vs_ME"
+      },
+      {
+        "input": "app-resultspace-fgsea-tris_fgsea-variable",
+        "before": "Intensity",
+        "after": "mean.diff"
+      },
+      {
+        "input": "__selectedRows",
+        "before": [
+          {
+            "id": "DataTables_Table_5_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_5",
+            "n": 1
+          },
+          {
+            "id": "DataTables_Table_8_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_8",
+            "n": 0
+          }
+        ],
+        "after": []
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 260
+}

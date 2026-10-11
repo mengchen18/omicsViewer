@@ -1,0 +1,62 @@
+{
+  "case": "241-dom_app_dataspace_dynheatmapViewer_rowSortBy",
+  "caseId": "dom:app-dataspace-dynheatmapViewer-rowSortBy",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-dynheatmapViewer-rowSortBy",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 237,
+  "note": "",
+  "receipt": {
+    "hook_run": 882,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.dynheatmapViewer.rowSortBy",
+        "reason": "Unknown widget id: dataspace.dynheatmapViewer.rowSortBy. Closest matches: dataspace.dyn_heatmap.row_sort_by, dataspace.dyn_heatmap.col_sort_by, dataspace.cor_heatmap.row_sort_by."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.dynheatmapViewer.rowSortBy",
+      "receipt": {
+        "hook_run": 882,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.dynheatmapViewer.rowSortBy",
+            "reason": "Unknown widget id: dataspace.dynheatmapViewer.rowSortBy. Closest matches: dataspace.dyn_heatmap.row_sort_by, dataspace.dyn_heatmap.col_sort_by, dataspace.cor_heatmap.row_sort_by."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 881,
+        "after": 882
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.dynheatmapViewer.colSortBy\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.dynheatmapViewer.rowSortBy\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 43
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 103
+}

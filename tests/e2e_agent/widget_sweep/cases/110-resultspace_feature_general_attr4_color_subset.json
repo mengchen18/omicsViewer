@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.attr4.color_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.attr4.color_subset",
+  "widget": {
+    "binding_id": "resultspace.feature_general.attr4.color_subset",
+    "kind": "select",
+    "label": "Color attribute subcategory",
+    "help": "Second level of the color attribute cascade",
+    "depends_on": "resultspace.feature_general.attr4.color_analysis",
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.attr4.color_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

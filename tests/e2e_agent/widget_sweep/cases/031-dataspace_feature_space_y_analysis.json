@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.feature_space.y_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.y_analysis",
+  "widget": {
+    "binding_id": "dataspace.feature_space.y_analysis",
+    "kind": "select",
+    "label": "Y-axis analysis",
+    "help": "Analysis category for the Y axis",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.y_analysis": "General"
+    }
+  },
+  "fresh_current": "ttest",
+  "probeNote": "first allowed != current (General)"
+}

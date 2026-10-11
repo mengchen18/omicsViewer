@@ -1,0 +1,76 @@
+{
+  "case": "158-resultspace_sample_general_attr4_scorner",
+  "caseId": "resultspace.sample_general.attr4.scorner",
+  "category": "binding",
+  "bindingId": "resultspace.sample_general.attr4.scorner",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.sample_general.attr4.scorner",
+    "kind": "select",
+    "label": "Selected area",
+    "help": "Plot region selected by the cutoffs (corner or volcano mode)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.sample_general.attr4.scorner": "volcano"
+    }
+  },
+  "status": "success",
+  "duration_ms": 532,
+  "note": "",
+  "receipt": {
+    "hook_run": 747,
+    "applied": "resultspace.sample_general.attr4.scorner",
+    "applied_values": {
+      "resultspace.sample_general.attr4.scorner": "volcano"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 747,
+        "applied": "resultspace.sample_general.attr4.scorner",
+        "applied_values": {
+          "resultspace.sample_general.attr4.scorner": "volcano"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 746,
+        "after": 747
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.sample_general.attr4.scorner\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.sample_general.attr4.scorner\":\"volcano\"}}"
+      },
+      {
+        "input": "app-resultspace-sample_general-a4_gp-scorner",
+        "before": "None",
+        "after": "volcano"
+      }
+    ],
+    "waited_ms": 33
+  },
+  "store_readback": {
+    "resultspace.sample_general.attr4.scorner": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 292
+}

@@ -1,0 +1,62 @@
+{
+  "case": "234-dom_app_dataspace_corheatmapViewer_clear",
+  "caseId": "dom:app-dataspace-corheatmapViewer-clear",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-corheatmapViewer-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 189,
+  "note": "",
+  "receipt": {
+    "hook_run": 871,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.corheatmapViewer.clear",
+        "reason": "Unknown widget id: dataspace.corheatmapViewer.clear."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.corheatmapViewer.clear",
+      "receipt": {
+        "hook_run": 871,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.corheatmapViewer.clear",
+            "reason": "Unknown widget id: dataspace.corheatmapViewer.clear."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 870,
+        "after": 871
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.global_search\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.corheatmapViewer.clear\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 110
+}

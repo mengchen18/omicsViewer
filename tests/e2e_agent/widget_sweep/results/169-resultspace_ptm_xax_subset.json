@@ -1,0 +1,65 @@
+{
+  "case": "169-resultspace_ptm_xax_subset",
+  "caseId": "resultspace.ptm.xax_subset",
+  "category": "binding",
+  "bindingId": "resultspace.ptm.xax_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ptm.xax_subset",
+    "kind": "select",
+    "label": "Sequence subcategory",
+    "help": "Subcategory within the sequence category",
+    "depends_on": "resultspace.ptm.xax_analysis",
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ptm.xax_subset": "All"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 393,
+  "note": "no distinct value: single valid subset already current",
+  "receipt": {
+    "hook_run": 796,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "resultspace.ptm.xax_subset",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 796,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "resultspace.ptm.xax_subset",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 795,
+        "after": 796
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ptm.xax_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ptm.xax_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 336
+}

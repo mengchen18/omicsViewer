@@ -1,0 +1,62 @@
+{
+  "case": "298-dom_app_snapshot_include_chat",
+  "caseId": "dom:app-snapshot_include_chat",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-snapshot_include_chat",
+    "description": "INPUT:checkbox visible=true"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 183,
+  "note": "",
+  "receipt": {
+    "hook_run": 943,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "snapshot_include_chat",
+        "reason": "Unknown widget id: snapshot_include_chat."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "snapshot_include_chat",
+      "receipt": {
+        "hook_run": 943,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "snapshot_include_chat",
+            "reason": "Unknown widget id: snapshot_include_chat."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 942,
+        "after": 943
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"snapshot_save\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"snapshot_include_chat\":true}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 94
+}

@@ -1,0 +1,10 @@
+{
+  "caseId": "tool:set_enrichment_parameters(bogus_pathway)",
+  "category": "semantic-tool",
+  "tool": "set_enrichment_parameters",
+  "hookOp": "enrichment",
+  "request": {
+    "method": "ora",
+    "selected_pathway": "AGENTPROBE_NOT_A_PATHWAY"
+  }
+}

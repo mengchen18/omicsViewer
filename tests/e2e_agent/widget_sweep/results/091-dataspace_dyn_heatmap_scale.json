@@ -1,0 +1,76 @@
+{
+  "case": "091-dataspace_dyn_heatmap_scale",
+  "caseId": "dataspace.dyn_heatmap.scale",
+  "category": "binding",
+  "bindingId": "dataspace.dyn_heatmap.scale",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.scale",
+    "kind": "select",
+    "label": "Scale on",
+    "help": "Center and scale values by row, by column, or not at all",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.scale": "none"
+    }
+  },
+  "status": "success",
+  "duration_ms": 522,
+  "note": "",
+  "receipt": {
+    "hook_run": 473,
+    "applied": "dataspace.dyn_heatmap.scale",
+    "applied_values": {
+      "dataspace.dyn_heatmap.scale": "none"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 473,
+        "applied": "dataspace.dyn_heatmap.scale",
+        "applied_values": {
+          "dataspace.dyn_heatmap.scale": "none"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 472,
+        "after": 473
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-dynheatmapViewer-scale",
+        "before": "row",
+        "after": "none"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.dyn_heatmap.scale\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.dyn_heatmap.scale\":\"none\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.dyn_heatmap.scale": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 226
+}

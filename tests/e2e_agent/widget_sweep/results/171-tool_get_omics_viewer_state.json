@@ -1,0 +1,316 @@
+{
+  "case": "171-tool_get_omics_viewer_state",
+  "caseId": "tool:get_omics_viewer_state",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "get_omics_viewer_state",
+  "widget": null,
+  "request": {},
+  "status": "success",
+  "duration_ms": 367,
+  "note": "success: read tool; meaningful payload returned",
+  "receipt": {
+    "hook_run": 802,
+    "dataset": {
+      "id": "ESVObj.RDS",
+      "class": "ExpressionSet",
+      "dimensions": [
+        2702,
+        60
+      ]
+    },
+    "active_tabs": {
+      "data_space": "Feature",
+      "analysis_space": "Feature"
+    },
+    "selection": {
+      "features": {
+        "count": 0,
+        "ids": [],
+        "truncated": false
+      },
+      "samples": {
+        "count": 0,
+        "ids": [],
+        "truncated": false
+      }
+    },
+    "available_tabs": {
+      "data_space": [
+        "Feature",
+        "Feature table",
+        "Sample",
+        "Sample table",
+        "Cor",
+        "Heatmap",
+        "Dynamic heatmap",
+        "Expression",
+        "GSList"
+      ],
+      "analysis_space": [
+        "Feature",
+        "ORA",
+        "fGSEA",
+        "Response",
+        "StringDB",
+        "SeqLogo",
+        "Geneshot",
+        "Sample"
+      ]
+    },
+    "quick_views": {
+      "feature": [
+        {
+          "id": "pca",
+          "label": "PCA"
+        },
+        {
+          "id": "cor_MDR",
+          "label": "Cor: MDR"
+        },
+        {
+          "id": "cor_Doubleing.Time",
+          "label": "Cor: Doubleing.Time"
+        },
+        {
+          "id": "volcano_RE_vs_ME",
+          "label": "Volcano RE vs ME"
+        },
+        {
+          "id": "volcano_RE_vs_LE",
+          "label": "Volcano RE vs LE"
+        },
+        {
+          "id": "volcano_MT_vs_WT",
+          "label": "Volcano MT vs WT"
+        }
+      ],
+      "sample": [
+        {
+          "id": "pca",
+          "label": "PCA"
+        }
+      ]
+    },
+    "available_sections": [
+      "annotations",
+      "quick_views",
+      "panels",
+      "figure_grammar"
+    ],
+    "state_policy": "widget-only",
+    "scatter_view": {
+      "feature": {
+        "x": {
+          "analysis": "General",
+          "subset": "All",
+          "variable": "Protein.ID",
+          "name": "General|All|Protein.ID"
+        },
+        "y": {
+          "analysis": "General",
+          "subset": "All",
+          "variable": "Protein.ID",
+          "name": "General|All|Protein.ID"
+        },
+        "axis_mode": "quick"
+      },
+      "sample": {
+        "x": {
+          "analysis": "General",
+          "subset": "All",
+          "variable": "MDR",
+          "name": "General|All|MDR"
+        },
+        "y": {
+          "analysis": "General",
+          "subset": "All",
+          "variable": "MDR",
+          "name": "General|All|MDR"
+        },
+        "axis_mode": "quick"
+      }
+    },
+    "capabilities": {
+      "capability_count": 170,
+      "panels": [
+        "Analysis space",
+        "Data space"
+      ],
+      "semantic_tools": [
+        "set_omics_viewer_state",
+        "set_scatter_view",
+        "set_enrichment_parameters",
+        "set_table_view",
+        "create_figure",
+        "update_figure"
+      ]
+    }
+  },
+  "attempts": [
+    {
+      "op": "overview",
+      "receipt": {
+        "hook_run": 802,
+        "dataset": {
+          "id": "ESVObj.RDS",
+          "class": "ExpressionSet",
+          "dimensions": [
+            2702,
+            60
+          ]
+        },
+        "active_tabs": {
+          "data_space": "Feature",
+          "analysis_space": "Feature"
+        },
+        "selection": {
+          "features": {
+            "count": 0,
+            "ids": [],
+            "truncated": false
+          },
+          "samples": {
+            "count": 0,
+            "ids": [],
+            "truncated": false
+          }
+        },
+        "available_tabs": {
+          "data_space": [
+            "Feature",
+            "Feature table",
+            "Sample",
+            "Sample table",
+            "Cor",
+            "Heatmap",
+            "Dynamic heatmap",
+            "Expression",
+            "GSList"
+          ],
+          "analysis_space": [
+            "Feature",
+            "ORA",
+            "fGSEA",
+            "Response",
+            "StringDB",
+            "SeqLogo",
+            "Geneshot",
+            "Sample"
+          ]
+        },
+        "quick_views": {
+          "feature": [
+            {
+              "id": "pca",
+              "label": "PCA"
+            },
+            {
+              "id": "cor_MDR",
+              "label": "Cor: MDR"
+            },
+            {
+              "id": "cor_Doubleing.Time",
+              "label": "Cor: Doubleing.Time"
+            },
+            {
+              "id": "volcano_RE_vs_ME",
+              "label": "Volcano RE vs ME"
+            },
+            {
+              "id": "volcano_RE_vs_LE",
+              "label": "Volcano RE vs LE"
+            },
+            {
+              "id": "volcano_MT_vs_WT",
+              "label": "Volcano MT vs WT"
+            }
+          ],
+          "sample": [
+            {
+              "id": "pca",
+              "label": "PCA"
+            }
+          ]
+        },
+        "available_sections": [
+          "annotations",
+          "quick_views",
+          "panels",
+          "figure_grammar"
+        ],
+        "state_policy": "widget-only",
+        "scatter_view": {
+          "feature": {
+            "x": {
+              "analysis": "General",
+              "subset": "All",
+              "variable": "Protein.ID",
+              "name": "General|All|Protein.ID"
+            },
+            "y": {
+              "analysis": "General",
+              "subset": "All",
+              "variable": "Protein.ID",
+              "name": "General|All|Protein.ID"
+            },
+            "axis_mode": "quick"
+          },
+          "sample": {
+            "x": {
+              "analysis": "General",
+              "subset": "All",
+              "variable": "MDR",
+              "name": "General|All|MDR"
+            },
+            "y": {
+              "analysis": "General",
+              "subset": "All",
+              "variable": "MDR",
+              "name": "General|All|MDR"
+            },
+            "axis_mode": "quick"
+          }
+        },
+        "capabilities": {
+          "capability_count": 170,
+          "panels": [
+            "Analysis space",
+            "Data space"
+          ],
+          "semantic_tools": [
+            "set_omics_viewer_state",
+            "set_scatter_view",
+            "set_enrichment_parameters",
+            "set_table_view",
+            "create_figure",
+            "update_figure"
+          ]
+        }
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 801,
+        "after": 802
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "widgets",
+        "after": "overview"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.ptm.xax_variable\":\"seq.window\"}}",
+        "after": "{}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 283
+}

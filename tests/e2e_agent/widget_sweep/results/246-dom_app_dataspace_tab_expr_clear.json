@@ -1,0 +1,62 @@
+{
+  "case": "246-dom_app_dataspace_tab_expr_clear",
+  "caseId": "dom:app-dataspace-tab_expr-clear",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-tab_expr-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 232,
+  "note": "",
+  "receipt": {
+    "hook_run": 887,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.tab_expr.clear",
+        "reason": "Unknown widget id: dataspace.tab_expr.clear. Closest matches: dataspace.tab_expr.columns, dataspace.tab_expr.page."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.tab_expr.clear",
+      "receipt": {
+        "hook_run": 887,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.tab_expr.clear",
+            "reason": "Unknown widget id: dataspace.tab_expr.clear. Closest matches: dataspace.tab_expr.columns, dataspace.tab_expr.page."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 886,
+        "after": 887
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.dynheatmapViewer.clear\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.tab_expr.clear\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 100
+}

@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.sample_general.attr4.size_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.sample_general.attr4.size_subset",
+  "widget": {
+    "binding_id": "resultspace.sample_general.attr4.size_subset",
+    "kind": "select",
+    "label": "Size attribute subcategory",
+    "help": "Second level of the size attribute cascade",
+    "depends_on": "resultspace.sample_general.attr4.size_analysis",
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.sample_general.attr4.size_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

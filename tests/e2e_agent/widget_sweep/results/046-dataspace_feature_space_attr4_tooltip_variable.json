@@ -1,0 +1,79 @@
+{
+  "case": "046-dataspace_feature_space_attr4_tooltip_variable",
+  "caseId": "dataspace.feature_space.attr4.tooltip_variable",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.tooltip_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.tooltip_variable",
+    "kind": "select_cascaded",
+    "label": "Tooltips attribute variable",
+    "help": "Annotation variable mapped to the tooltips aesthetic",
+    "depends_on": [
+      "dataspace.feature_space.attr4.tooltip_analysis",
+      "dataspace.feature_space.attr4.tooltip_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.tooltip_variable": "PC2(7.2%)"
+    }
+  },
+  "status": "success",
+  "duration_ms": 557,
+  "note": "",
+  "receipt": {
+    "hook_run": 291,
+    "applied": "dataspace.feature_space.attr4.tooltip_variable",
+    "applied_values": {
+      "dataspace.feature_space.attr4.tooltip_variable": "PC2(7.2%)"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 291,
+        "applied": "dataspace.feature_space.attr4.tooltip_variable",
+        "applied_values": {
+          "dataspace.feature_space.attr4.tooltip_variable": "PC2(7.2%)"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 290,
+        "after": 291
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-a4selector-selectTooltipUI-variable",
+        "before": "PC1(10.5%)",
+        "after": "PC2(7.2%)"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.tooltip_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.tooltip_variable\":\"PC2(7.2%)\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.tooltip_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 291
+}

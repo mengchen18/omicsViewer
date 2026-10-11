@@ -1,0 +1,67 @@
+{
+  "case": "180-tool_set_omics_viewer_state_features",
+  "caseId": "tool:set_omics_viewer_state(features)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_omics_viewer_state",
+  "widget": null,
+  "request": {
+    "features": [
+      "X32.TYW5",
+      "X52.CNOT1",
+      "X55.MAP1LC3B.MAP1LC3B2"
+    ]
+  },
+  "status": "success",
+  "duration_ms": 704,
+  "note": "selection applied via the selection bus (receipt counts: 3); UI effect is plot emphasis / table row highlight, not an input-value change (cf. verify_search_highlight.mjs B5)",
+  "receipt": {
+    "hook_run": 811,
+    "data_space_tab": null,
+    "analysis_space_tab": null,
+    "feature_count": 3,
+    "sample_count": 0,
+    "example_features": [
+      "X32.TYW5",
+      "X52.CNOT1",
+      "X55.MAP1LC3B.MAP1LC3B2"
+    ],
+    "example_samples": []
+  },
+  "attempts": [
+    {
+      "op": "state",
+      "receipt": {
+        "hook_run": 811,
+        "data_space_tab": null,
+        "analysis_space_tab": null,
+        "feature_count": 3,
+        "sample_count": 0,
+        "example_features": [
+          "X32.TYW5",
+          "X52.CNOT1",
+          "X55.MAP1LC3B.MAP1LC3B2"
+        ],
+        "example_samples": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 810,
+        "after": 811
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"analysis_space_tab\":\"Geneshot\"}",
+        "after": "{\"features\":[\"X32.TYW5\",\"X52.CNOT1\",\"X55.MAP1LC3B.MAP1LC3B2\"]}"
+      }
+    ],
+    "waited_ms": 18
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 667
+}

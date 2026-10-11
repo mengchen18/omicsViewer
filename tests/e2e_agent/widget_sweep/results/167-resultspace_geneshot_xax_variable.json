@@ -1,0 +1,79 @@
+{
+  "case": "167-resultspace_geneshot_xax_variable",
+  "caseId": "resultspace.geneshot.xax_variable",
+  "category": "binding",
+  "bindingId": "resultspace.geneshot.xax_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.geneshot.xax_variable",
+    "kind": "select_cascaded",
+    "label": "ID mapper column",
+    "help": "Feature annotation column Geneshot genes are matched against for the overlap highlight",
+    "depends_on": [
+      "resultspace.geneshot.xax_analysis",
+      "resultspace.geneshot.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.geneshot.xax_variable": "Gene.name"
+    }
+  },
+  "status": "success",
+  "duration_ms": 505,
+  "note": "",
+  "receipt": {
+    "hook_run": 785,
+    "applied": "resultspace.geneshot.xax_variable",
+    "applied_values": {
+      "resultspace.geneshot.xax_variable": "Gene.name"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 785,
+        "applied": "resultspace.geneshot.xax_variable",
+        "applied_values": {
+          "resultspace.geneshot.xax_variable": "Gene.name"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 784,
+        "after": 785
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.geneshot.xax_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.geneshot.xax_variable\":\"Gene.name\"}}"
+      },
+      {
+        "input": "app-resultspace-geneshotTab-geneNameCol-variable",
+        "before": "--select--",
+        "after": "Gene.name"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.geneshot.xax_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 221
+}

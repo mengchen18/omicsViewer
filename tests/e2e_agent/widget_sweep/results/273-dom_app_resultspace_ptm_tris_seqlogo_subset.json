@@ -1,0 +1,62 @@
+{
+  "case": "273-dom_app_resultspace_ptm_tris_seqlogo_subset",
+  "caseId": "dom:app-resultspace-ptm-tris_seqlogo-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-ptm-tris_seqlogo-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 226,
+  "note": "",
+  "receipt": {
+    "hook_run": 916,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.ptm.tris_seqlogo.subset",
+        "reason": "Unknown widget id: resultspace.ptm.tris_seqlogo.subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.ptm.tris_seqlogo.subset",
+      "receipt": {
+        "hook_run": 916,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.ptm.tris_seqlogo.subset",
+            "reason": "Unknown widget id: resultspace.ptm.tris_seqlogo.subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 915,
+        "after": 916
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.ptm.tris_seqlogo.analysis\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.ptm.tris_seqlogo.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 97
+}

@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.analyst_tab",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.analyst_tab",
+  "widget": {
+    "binding_id": "resultspace.analyst_tab",
+    "kind": "navbar",
+    "label": "Analysis tab",
+    "help": "Active tab of the analysis (result-space) navbar: Feature, ORA, fGSEA, Response, StringDB, SeqLogo, Geneshot, or Sample (dataset-dependent)",
+    "depends_on": [],
+    "operation": "set_omics_viewer_state"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.analyst_tab": "Feature"
+    }
+  },
+  "fresh_current": "Sample",
+  "probeNote": "first allowed != current (Feature)"
+}

@@ -1,0 +1,73 @@
+{
+  "case": "066-dataspace_sample_space_attr4_size_analysis",
+  "caseId": "dataspace.sample_space.attr4.size_analysis",
+  "category": "binding",
+  "bindingId": "dataspace.sample_space.attr4.size_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.size_analysis",
+    "kind": "select",
+    "label": "Size attribute category",
+    "help": "First level of the size attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.size_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 474,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 373,
+    "applied": "dataspace.sample_space.attr4.size_analysis",
+    "applied_values": {
+      "dataspace.sample_space.attr4.size_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 373,
+        "applied": "dataspace.sample_space.attr4.size_analysis",
+        "applied_values": {
+          "dataspace.sample_space.attr4.size_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 372,
+        "after": 373
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.sample_space.attr4.size_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.sample_space.attr4.size_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.sample_space.attr4.size_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 220,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

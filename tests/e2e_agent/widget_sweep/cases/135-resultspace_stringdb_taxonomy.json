@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.stringdb.taxonomy",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.stringdb.taxonomy",
+  "widget": {
+    "binding_id": "resultspace.stringdb.taxonomy",
+    "kind": "string",
+    "label": "Taxonomy code",
+    "help": "NCBI taxonomy identifier of the organism queried in the STRING database (9606 = human)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.stringdb.taxonomy": "AGENTPROBE-135"
+    }
+  },
+  "fresh_current": "9606",
+  "probeNote": "distinctive string marker"
+}

@@ -1,0 +1,73 @@
+{
+  "case": "128-resultspace_fgsea_xax_subset",
+  "caseId": "resultspace.fgsea.xax_subset",
+  "category": "binding",
+  "bindingId": "resultspace.fgsea.xax_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.fgsea.xax_subset",
+    "kind": "select",
+    "label": "Ranking subcategory",
+    "help": "Subcategory within the ranking category",
+    "depends_on": "resultspace.fgsea.xax_analysis",
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.fgsea.xax_subset": "All"
+    }
+  },
+  "status": "success",
+  "duration_ms": 424,
+  "note": "class-verified: same triselector group-push mechanism as attr4 (spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI)) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 626,
+    "applied": "resultspace.fgsea.xax_subset",
+    "applied_values": {
+      "resultspace.fgsea.xax_subset": "All"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 626,
+        "applied": "resultspace.fgsea.xax_subset",
+        "applied_values": {
+          "resultspace.fgsea.xax_subset": "All"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 625,
+        "after": 626
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.fgsea.xax_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.fgsea.xax_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 49
+  },
+  "store_readback": {
+    "resultspace.fgsea.xax_subset": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 131,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

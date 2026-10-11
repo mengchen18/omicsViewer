@@ -1,0 +1,92 @@
+{
+  "case": "299-dom_button_Shortcut",
+  "caseId": "dom:button:Shortcut",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "button:Shortcut",
+    "description": "plain button (Shortcut)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 395,
+  "note": "",
+  "receipt": {
+    "hook_run": 946,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.global_search",
+        "reason": "Unknown widget id: resultspace.global_search."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "app",
+      "receipt": {
+        "hook_run": 944,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "app",
+            "reason": "Unknown widget id: app."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "dataspace.global_search",
+      "receipt": {
+        "hook_run": 945,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.global_search",
+            "reason": "Unknown widget id: dataspace.global_search."
+          }
+        ]
+      }
+    },
+    {
+      "guess": "resultspace.global_search",
+      "receipt": {
+        "hook_run": 946,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.global_search",
+            "reason": "Unknown widget id: resultspace.global_search."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 943,
+        "after": 946
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"snapshot_include_chat\":true}}",
+        "after": "{\"patch\":{\"resultspace.global_search\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 41
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 117
+}

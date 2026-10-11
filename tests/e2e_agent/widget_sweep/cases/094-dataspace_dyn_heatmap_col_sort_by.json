@@ -1,0 +1,23 @@
+{
+  "caseId": "dataspace.dyn_heatmap.col_sort_by",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.dyn_heatmap.col_sort_by",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.col_sort_by",
+    "kind": "select",
+    "label": "Sort columns by",
+    "help": "Column ordering: a precomputed dendrogram (HCL entries), 'hierarchical cluster', 'none', or a phenotype annotation column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.col_sort_by": "hierarchical cluster"
+    }
+  },
+  "fresh_current": "hierarchical cluster",
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

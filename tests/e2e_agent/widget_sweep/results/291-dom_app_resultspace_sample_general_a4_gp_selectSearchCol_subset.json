@@ -1,0 +1,62 @@
+{
+  "case": "291-dom_app_resultspace_sample_general_a4_gp_selectSearchCol_subset",
+  "caseId": "dom:app-resultspace-sample_general-a4_gp-selectSearchCol-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-sample_general-a4_gp-selectSearchCol-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 220,
+  "note": "",
+  "receipt": {
+    "hook_run": 936,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.sample_general.a4_gp.selectSearchCol.subset",
+        "reason": "Unknown widget id: resultspace.sample_general.a4_gp.selectSearchCol.subset. Closest matches: resultspace.sample_general.attr4.search_subset, resultspace.sample_general.attr4.color_subset, resultspace.sample_general.attr4.shape_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.sample_general.a4_gp.selectSearchCol.subset",
+      "receipt": {
+        "hook_run": 936,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.sample_general.a4_gp.selectSearchCol.subset",
+            "reason": "Unknown widget id: resultspace.sample_general.a4_gp.selectSearchCol.subset. Closest matches: resultspace.sample_general.attr4.search_subset, resultspace.sample_general.attr4.color_subset, resultspace.sample_general.attr4.shape_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 935,
+        "after": 936
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.sample_general.a4_gp.selectSearchCol.analysis\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.sample_general.a4_gp.selectSearchCol.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 122
+}

@@ -1,0 +1,23 @@
+{
+  "caseId": "dataspace.dyn_heatmap.tooltip_info",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.dyn_heatmap.tooltip_info",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.tooltip_info",
+    "kind": "multi_select",
+    "label": "Tooltips",
+    "help": "Feature and phenotype columns shown in the hover tooltip; empty clears the tooltip",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.tooltip_info": []
+    }
+  },
+  "fresh_current": [],
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

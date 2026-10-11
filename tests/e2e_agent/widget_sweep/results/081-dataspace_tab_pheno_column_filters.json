@@ -1,0 +1,74 @@
+{
+  "case": "081-dataspace_tab_pheno_column_filters",
+  "caseId": "dataspace.tab_pheno.column_filters",
+  "category": "binding",
+  "bindingId": "dataspace.tab_pheno.column_filters",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.tab_pheno.column_filters",
+    "kind": "mapping",
+    "label": "Column filters",
+    "help": "Per-column search patterns of the top filter boxes, as an object of exact column name to pattern; an empty object clears every filter",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.tab_pheno.column_filters": {
+        "General|All|Cell.line": "AGENTPROBE"
+      }
+    }
+  },
+  "status": "no-ui-effect",
+  "duration_ms": 553,
+  "note": "not re-verified live; DT proxy filter application suspected gated on an initialized table (semantic set_table_view path opens the tab first) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 433,
+    "applied": "dataspace.tab_pheno.column_filters",
+    "applied_values": {
+      "dataspace.tab_pheno.column_filters": "AGENTPROBE"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 433,
+        "applied": "dataspace.tab_pheno.column_filters",
+        "applied_values": {
+          "dataspace.tab_pheno.column_filters": "AGENTPROBE"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 432,
+        "after": 433
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.tab_pheno.column_filters\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.tab_pheno.column_filters\":{\"General|All|Cell.line\":\"AGENTPROBE\"}}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": {
+    "dataspace.tab_pheno.column_filters": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 284,
+  "_status_before_revalidation": "success"
+}

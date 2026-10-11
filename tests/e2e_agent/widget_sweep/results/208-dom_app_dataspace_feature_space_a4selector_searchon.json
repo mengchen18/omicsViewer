@@ -1,0 +1,62 @@
+{
+  "case": "208-dom_app_dataspace_feature_space_a4selector_searchon",
+  "caseId": "dom:app-dataspace-feature_space-a4selector-searchon",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-a4selector-searchon",
+    "description": "SELECT:select-multiple visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 233,
+  "note": "",
+  "receipt": {
+    "hook_run": 841,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.feature_space.a4selector.searchon",
+        "reason": "Unknown widget id: dataspace.feature_space.a4selector.searchon. Closest matches: dataspace.feature_space.attr4.scorner."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.feature_space.a4selector.searchon",
+      "receipt": {
+        "hook_run": 841,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.feature_space.a4selector.searchon",
+            "reason": "Unknown widget id: dataspace.feature_space.a4selector.searchon. Closest matches: dataspace.feature_space.attr4.scorner."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 840,
+        "after": 841
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.feature_space.a4selector.showSearchBox\":true}}",
+        "after": "{\"patch\":{\"dataspace.feature_space.a4selector.searchon\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 43
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 100
+}

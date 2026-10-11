@@ -1,0 +1,73 @@
+{
+  "case": "153-resultspace_sample_general_attr4_search_analysis",
+  "caseId": "resultspace.sample_general.attr4.search_analysis",
+  "category": "binding",
+  "bindingId": "resultspace.sample_general.attr4.search_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.sample_general.attr4.search_analysis",
+    "kind": "select",
+    "label": "Search attribute category",
+    "help": "First level of the search attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.sample_general.attr4.search_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 441,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 727,
+    "applied": "resultspace.sample_general.attr4.search_analysis",
+    "applied_values": {
+      "resultspace.sample_general.attr4.search_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 727,
+        "applied": "resultspace.sample_general.attr4.search_analysis",
+        "applied_values": {
+          "resultspace.sample_general.attr4.search_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 726,
+        "after": 727
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.sample_general.attr4.search_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.sample_general.attr4.search_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.sample_general.attr4.search_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 203,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

@@ -1,0 +1,79 @@
+{
+  "case": "111-resultspace_feature_general_attr4_color_variable",
+  "caseId": "resultspace.feature_general.attr4.color_variable",
+  "category": "binding",
+  "bindingId": "resultspace.feature_general.attr4.color_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.feature_general.attr4.color_variable",
+    "kind": "select_cascaded",
+    "label": "Color attribute variable",
+    "help": "Annotation variable mapped to the color aesthetic",
+    "depends_on": [
+      "resultspace.feature_general.attr4.color_analysis",
+      "resultspace.feature_general.attr4.color_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.feature_general.attr4.color_variable": "Cell.line"
+    }
+  },
+  "status": "success",
+  "duration_ms": 471,
+  "note": "",
+  "receipt": {
+    "hook_run": 558,
+    "applied": "resultspace.feature_general.attr4.color_variable",
+    "applied_values": {
+      "resultspace.feature_general.attr4.color_variable": "Cell.line"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 558,
+        "applied": "resultspace.feature_general.attr4.color_variable",
+        "applied_values": {
+          "resultspace.feature_general.attr4.color_variable": "Cell.line"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 557,
+        "after": 558
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.feature_general.attr4.color_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.feature_general.attr4.color_variable\":\"Cell.line\"}}"
+      },
+      {
+        "input": "app-resultspace-feature_general-a4_gf-selectColorUI-variable",
+        "before": "--select--",
+        "after": "Cell.line"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.feature_general.attr4.color_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 205
+}

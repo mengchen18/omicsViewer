@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.tab_feature.page",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.tab_feature.page",
+  "widget": {
+    "binding_id": "dataspace.tab_feature.page",
+    "kind": "integer",
+    "label": "Table page",
+    "help": "1-based page of the table currently visible; navigation applies through the table's paging controls",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.tab_feature.page": 2
+    }
+  },
+  "fresh_current": 1,
+  "probeNote": "current+1 (2); range rejection auto-retried with current-1"
+}

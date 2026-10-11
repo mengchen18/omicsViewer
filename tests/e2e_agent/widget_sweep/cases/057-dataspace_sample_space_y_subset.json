@@ -1,0 +1,23 @@
+{
+  "caseId": "dataspace.sample_space.y_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.y_subset",
+  "widget": {
+    "binding_id": "dataspace.sample_space.y_subset",
+    "kind": "select",
+    "label": "Y-axis subset",
+    "help": "Subset within the Y-axis analysis",
+    "depends_on": "dataspace.sample_space.y_analysis",
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.y_subset": "All"
+    }
+  },
+  "fresh_current": "All",
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

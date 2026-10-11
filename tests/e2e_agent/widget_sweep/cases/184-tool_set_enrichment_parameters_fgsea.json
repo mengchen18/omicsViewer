@@ -1,0 +1,10 @@
+{
+  "caseId": "tool:set_enrichment_parameters(fgsea)",
+  "category": "semantic-tool",
+  "tool": "set_enrichment_parameters",
+  "hookOp": "enrichment",
+  "request": {
+    "method": "fgsea",
+    "collapse": "ttest|RE_vs_ME|mean.diff"
+  }
+}

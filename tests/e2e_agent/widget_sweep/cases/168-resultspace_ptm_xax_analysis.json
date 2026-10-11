@@ -1,0 +1,23 @@
+{
+  "caseId": "resultspace.ptm.xax_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ptm.xax_analysis",
+  "widget": {
+    "binding_id": "resultspace.ptm.xax_analysis",
+    "kind": "select",
+    "label": "Sequence category",
+    "help": "Annotation category of the sequence-window column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ptm.xax_analysis": "SeqLogo"
+    }
+  },
+  "fresh_current": "SeqLogo",
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

@@ -1,0 +1,20 @@
+{
+  "case": "311-gesture_app_dataspace_feature_space_main_scatterOutput_plotly_scatter_output",
+  "caseId": "gesture:app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output",
+  "category": "out-of-scope",
+  "bindingId": null,
+  "widget": {
+    "id": "app-dataspace-feature_space-main_scatterOutput-plotly.scatter.output",
+    "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+    "visible": true
+  },
+  "request": null,
+  "status": "out-of-scope",
+  "duration_ms": null,
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)",
+  "receipt": null,
+  "attempts": [],
+  "ui_effect": null,
+  "store_readback": null,
+  "console_errors": null
+}

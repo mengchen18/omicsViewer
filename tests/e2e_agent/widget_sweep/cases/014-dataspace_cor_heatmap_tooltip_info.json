@@ -1,0 +1,24 @@
+{
+  "caseId": "dataspace.cor_heatmap.tooltip_info",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.cor_heatmap.tooltip_info",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.tooltip_info",
+    "kind": "multi_select",
+    "label": "Tooltips",
+    "help": "Feature and phenotype columns shown in the hover tooltip; empty clears the tooltip",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.tooltip_info": [
+        "General|All|Cell.line"
+      ]
+    }
+  },
+  "fresh_current": [],
+  "probeNote": "single allowed entry (General|All|Cell.line)"
+}

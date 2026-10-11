@@ -1,0 +1,79 @@
+{
+  "case": "129-resultspace_fgsea_xax_variable",
+  "caseId": "resultspace.fgsea.xax_variable",
+  "category": "binding",
+  "bindingId": "resultspace.fgsea.xax_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.fgsea.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Ranking variable",
+    "help": "Numeric feature annotation the features are ranked by for the enrichment analysis",
+    "depends_on": [
+      "resultspace.fgsea.xax_analysis",
+      "resultspace.fgsea.xax_subset"
+    ],
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.fgsea.xax_variable": "Intensity"
+    }
+  },
+  "status": "success",
+  "duration_ms": 1503,
+  "note": "",
+  "receipt": {
+    "hook_run": 630,
+    "applied": "resultspace.fgsea.xax_variable",
+    "applied_values": {
+      "resultspace.fgsea.xax_variable": "Intensity"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 630,
+        "applied": "resultspace.fgsea.xax_variable",
+        "applied_values": {
+          "resultspace.fgsea.xax_variable": "Intensity"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 629,
+        "after": 630
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.fgsea.xax_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.fgsea.xax_variable\":\"Intensity\"}}"
+      },
+      {
+        "input": "app-resultspace-fgsea-tris_fgsea-variable",
+        "before": "--select--",
+        "after": "Intensity"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.fgsea.xax_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 185
+}

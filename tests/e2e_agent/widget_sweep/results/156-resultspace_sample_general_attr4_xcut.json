@@ -1,0 +1,76 @@
+{
+  "case": "156-resultspace_sample_general_attr4_xcut",
+  "caseId": "resultspace.sample_general.attr4.xcut",
+  "category": "binding",
+  "bindingId": "resultspace.sample_general.attr4.xcut",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.sample_general.attr4.xcut",
+    "kind": "string",
+    "label": "X cutoff",
+    "help": "X-axis cutoff for area selection; a number or an R expression such as -log10(0.05)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.sample_general.attr4.xcut": "1"
+    }
+  },
+  "status": "success",
+  "duration_ms": 572,
+  "note": "",
+  "receipt": {
+    "hook_run": 739,
+    "applied": "resultspace.sample_general.attr4.xcut",
+    "applied_values": {
+      "resultspace.sample_general.attr4.xcut": "1"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 739,
+        "applied": "resultspace.sample_general.attr4.xcut",
+        "applied_values": {
+          "resultspace.sample_general.attr4.xcut": "1"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 738,
+        "after": 739
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.sample_general.attr4.xcut\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.sample_general.attr4.xcut\":\"1\"}}"
+      },
+      {
+        "input": "app-resultspace-sample_general-a4_gp-xcut",
+        "before": "log10(2)",
+        "after": "1"
+      }
+    ],
+    "waited_ms": 35
+  },
+  "store_readback": {
+    "resultspace.sample_general.attr4.xcut": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 316
+}

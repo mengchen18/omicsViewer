@@ -1,0 +1,13 @@
+{
+  "caseId": "tool:set_scatter_view(feature,quick)",
+  "category": "semantic-tool",
+  "tool": "set_scatter_view",
+  "hookOp": "scatter",
+  "request": {
+    "space": "feature",
+    "quick_view_id": "volcano_RE_vs_ME"
+  },
+  "widget": {
+    "semantic": "feature-space scatter quick view"
+  }
+}

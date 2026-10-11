@@ -1,0 +1,73 @@
+{
+  "case": "047-dataspace_feature_space_attr4_search_analysis",
+  "caseId": "dataspace.feature_space.attr4.search_analysis",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.search_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.search_analysis",
+    "kind": "select",
+    "label": "Search attribute category",
+    "help": "First level of the search attribute cascade (annotation category)",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.search_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 408,
+  "note": "spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI) (sweep window starved by browser congestion) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 295,
+    "applied": "dataspace.feature_space.attr4.search_analysis",
+    "applied_values": {
+      "dataspace.feature_space.attr4.search_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 295,
+        "applied": "dataspace.feature_space.attr4.search_analysis",
+        "applied_values": {
+          "dataspace.feature_space.attr4.search_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 294,
+        "after": 295
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.search_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.search_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.feature_space.attr4.search_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 203,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

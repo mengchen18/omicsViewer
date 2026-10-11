@@ -1,0 +1,65 @@
+{
+  "case": "100-dataspace_dyn_heatmap_annot_col",
+  "caseId": "dataspace.dyn_heatmap.annot_col",
+  "category": "binding",
+  "bindingId": "dataspace.dyn_heatmap.annot_col",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.annot_col",
+    "kind": "multi_select",
+    "label": "Column annotations",
+    "help": "Phenotype annotation columns drawn as color bars above the heatmap; empty clears the bars",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.annot_col": []
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 354,
+  "note": "REAL DISCOVERY GAP + VALIDATION HOLE: garbage accepted while tab inactive; store keeps GARBAGE while UI shows [] (divergence)",
+  "receipt": {
+    "hook_run": 513,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.dyn_heatmap.annot_col",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 513,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.dyn_heatmap.annot_col",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 512,
+        "after": 513
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.dyn_heatmap.annot_col\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.dyn_heatmap.annot_col\":[]}}"
+      }
+    ],
+    "waited_ms": 30
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 286
+}

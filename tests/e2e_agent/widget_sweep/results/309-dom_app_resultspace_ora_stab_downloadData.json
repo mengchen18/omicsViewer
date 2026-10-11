@@ -1,0 +1,62 @@
+{
+  "case": "309-dom_app_resultspace_ora_stab_downloadData",
+  "caseId": "dom:app-resultspace-ora-stab-downloadData",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-ora-stab-downloadData",
+    "description": "download control (Save table)"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 228,
+  "note": "download output - no value semantics",
+  "receipt": {
+    "hook_run": 962,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.ora.stab.downloadData",
+        "reason": "Unknown widget id: resultspace.ora.stab.downloadData."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.ora.stab.downloadData",
+      "receipt": {
+        "hook_run": 962,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.ora.stab.downloadData",
+            "reason": "Unknown widget id: resultspace.ora.stab.downloadData."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 961,
+        "after": 962
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.gsList.stab.downloadData\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"resultspace.ora.stab.downloadData\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 39
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 99
+}

@@ -1,0 +1,16 @@
+{
+  "caseId": "dom:button:Bees",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "button:Bees",
+    "description": "plain button (Bees)"
+  },
+  "guesses": [
+    "app",
+    "dataspace.global_search",
+    "resultspace.global_search"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": ""
+}

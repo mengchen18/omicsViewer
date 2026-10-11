@@ -1,0 +1,65 @@
+{
+  "case": "178-tool_set_omics_viewer_state_data_space_tab",
+  "caseId": "tool:set_omics_viewer_state(data_space_tab)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_omics_viewer_state",
+  "widget": null,
+  "request": {
+    "data_space_tab": "Heatmap"
+  },
+  "status": "success",
+  "duration_ms": 247,
+  "note": "",
+  "receipt": {
+    "hook_run": 809,
+    "data_space_tab": "Heatmap",
+    "analysis_space_tab": null,
+    "feature_count": 0,
+    "sample_count": 0,
+    "example_features": [],
+    "example_samples": []
+  },
+  "attempts": [
+    {
+      "op": "state",
+      "receipt": {
+        "hook_run": 809,
+        "data_space_tab": "Heatmap",
+        "analysis_space_tab": null,
+        "feature_count": 0,
+        "sample_count": 0,
+        "example_features": [],
+        "example_samples": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-dataspace-eset",
+        "before": "Sample",
+        "after": "Heatmap"
+      },
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 808,
+        "after": 809
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "scatter",
+        "after": "state"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"space\":\"sample\",\"x_axis\":\"General|All|MDR\",\"y_axis\":\"General|All|Doubleing.Time\"}",
+        "after": "{\"data_space_tab\":\"Heatmap\"}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 209
+}

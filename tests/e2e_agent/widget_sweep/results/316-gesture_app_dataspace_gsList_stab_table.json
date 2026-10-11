@@ -1,0 +1,20 @@
+{
+  "case": "316-gesture_app_dataspace_gsList_stab_table",
+  "caseId": "gesture:app-dataspace-gsList-stab-table",
+  "category": "out-of-scope",
+  "bindingId": null,
+  "widget": {
+    "id": "app-dataspace-gsList-stab-table",
+    "cls": "datatables html-widget html-widget-output shiny-report-size ",
+    "visible": false
+  },
+  "request": null,
+  "status": "out-of-scope",
+  "duration_ms": null,
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)",
+  "receipt": null,
+  "attempts": [],
+  "ui_effect": null,
+  "store_readback": null,
+  "console_errors": null
+}

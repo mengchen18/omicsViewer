@@ -1,0 +1,10 @@
+{
+  "caseId": "gesture:app-resultspace-fgsea-stab-table",
+  "category": "out-of-scope",
+  "widget": {
+    "id": "app-resultspace-fgsea-stab-table",
+    "cls": "datatables html-widget html-widget-output shiny-report-size ",
+    "visible": false
+  },
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)"
+}

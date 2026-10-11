@@ -1,0 +1,24 @@
+{
+  "caseId": "dataspace.expr_heatmap.annot_row",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.expr_heatmap.annot_row",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.annot_row",
+    "kind": "multi_select",
+    "label": "Row annotations",
+    "help": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.annot_row": [
+        "General|All|Gene.name"
+      ]
+    }
+  },
+  "fresh_current": [],
+  "probeNote": "single allowed entry (General|All|Gene.name)"
+}

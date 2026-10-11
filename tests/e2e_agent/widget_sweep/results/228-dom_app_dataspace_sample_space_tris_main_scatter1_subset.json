@@ -1,0 +1,62 @@
+{
+  "case": "228-dom_app_dataspace_sample_space_tris_main_scatter1_subset",
+  "caseId": "dom:app-dataspace-sample_space-tris_main_scatter1-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-tris_main_scatter1-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 208,
+  "note": "",
+  "receipt": {
+    "hook_run": 863,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.tris_main_scatter1.subset",
+        "reason": "Unknown widget id: dataspace.sample_space.tris_main_scatter1.subset. Closest matches: dataspace.sample_space.attr4.shape_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.tris_main_scatter1.subset",
+      "receipt": {
+        "hook_run": 863,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.tris_main_scatter1.subset",
+            "reason": "Unknown widget id: dataspace.sample_space.tris_main_scatter1.subset. Closest matches: dataspace.sample_space.attr4.shape_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 862,
+        "after": 863
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.axisModeTabs\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.tris_main_scatter1.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 43
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 119
+}

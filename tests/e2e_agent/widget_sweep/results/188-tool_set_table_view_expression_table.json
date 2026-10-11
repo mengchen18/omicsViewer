@@ -1,0 +1,286 @@
+{
+  "case": "188-tool_set_table_view_expression_table",
+  "caseId": "tool:set_table_view(expression_table)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "set_table_view",
+  "widget": null,
+  "request": {
+    "table": "expression_table",
+    "multi_selection": false
+  },
+  "status": "success",
+  "duration_ms": 389,
+  "note": "",
+  "receipt": {
+    "hook_run": 819,
+    "table": "expression_table",
+    "panel_tab": "Expression",
+    "applied": [
+      "dataspace.tab_expr.multi_selection",
+      "dataspace.active_tab"
+    ],
+    "applied_values": {
+      "dataspace.tab_expr.multi_selection": false,
+      "dataspace.active_tab": "Expression"
+    },
+    "unchanged": [],
+    "rejected": [],
+    "note": "The table's tab opens with the requested view; filters match substring (case-insensitive) per column and paging starts at 1."
+  },
+  "attempts": [
+    {
+      "op": "tableview",
+      "receipt": {
+        "hook_run": 819,
+        "table": "expression_table",
+        "panel_tab": "Expression",
+        "applied": [
+          "dataspace.tab_expr.multi_selection",
+          "dataspace.active_tab"
+        ],
+        "applied_values": {
+          "dataspace.tab_expr.multi_selection": false,
+          "dataspace.active_tab": "Expression"
+        },
+        "unchanged": [],
+        "rejected": [],
+        "note": "The table's tab opens with the requested view; filters match substring (case-insensitive) per column and paging starts at 1."
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-dataspace-tab_expr-multisel",
+        "before": true,
+        "after": false
+      },
+      {
+        "input": "app-dataspace-eset",
+        "before": "Sample table",
+        "after": "Expression"
+      },
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 818,
+        "after": 819
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"table\":\"sample_table\",\"clear_filters\":true}",
+        "after": "{\"table\":\"expression_table\",\"multi_selection\":false}"
+      },
+      {
+        "input": "app-dataspace-tab_pheno-table_state",
+        "before": {
+          "time": 1791717213107,
+          "start": 0,
+          "length": 25,
+          "order": [],
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          },
+          "columns": [
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            },
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            }
+          ]
+        },
+        "after": {
+          "time": 1791717213400,
+          "start": 0,
+          "length": 25,
+          "order": [],
+          "search": {
+            "search": "",
+            "smart": true,
+            "regex": false,
+            "caseInsensitive": true
+          },
+          "columns": [
+            {
+              "visible": true,
+              "search": {
+                "search": "",
+                "smart": true,
+                "regex": false,
+                "caseInsensitive": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "input": "app-dataspace-tab_pheno-table_search_columns",
+        "before": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "after": [
+          ""
+        ]
+      },
+      {
+        "input": "__selectedRows",
+        "before": [
+          {
+            "id": "DataTables_Table_12_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_12",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_12_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_5_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_5",
+            "n": 1
+          },
+          {
+            "id": "DataTables_Table_8_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_8",
+            "n": 0
+          }
+        ],
+        "after": [
+          {
+            "id": "DataTables_Table_2_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_2",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_2_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_5_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_5",
+            "n": 1
+          },
+          {
+            "id": "DataTables_Table_8_wrapper",
+            "n": 0
+          },
+          {
+            "id": "DataTables_Table_8",
+            "n": 0
+          }
+        ]
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": null,
+  "console_errors": [
+    "[shiny] Error on client while running Shiny app - Selected page is out of range",
+    "Selected page is out of range",
+    "[shiny] Error on client while running Shiny app - Selected page is out of range",
+    "Selected page is out of range"
+  ],
+  "hook_roundtrip_ms": 276
+}

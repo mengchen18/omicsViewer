@@ -1,0 +1,69 @@
+{
+  "case": "173-tool_describe_control_axis_mode",
+  "caseId": "tool:describe_control(axis_mode)",
+  "category": "semantic-tool",
+  "bindingId": null,
+  "tool": "describe_control",
+  "widget": null,
+  "request": {
+    "id": "dataspace.feature_space.axis_mode"
+  },
+  "status": "success",
+  "duration_ms": 371,
+  "note": "success: read tool; capability record returned",
+  "receipt": {
+    "hook_run": 804,
+    "id": "dataspace.feature_space.axis_mode",
+    "panel": "Data space",
+    "label": "Axis mode",
+    "kind": "enum",
+    "description": "Quick-view badges or custom triselectors",
+    "help_text": "Quick-view badges or custom triselectors",
+    "writable": true,
+    "operation": "set_scatter_view",
+    "allowed_values": [
+      "quick",
+      "custom"
+    ],
+    "depends_on": []
+  },
+  "attempts": [
+    {
+      "op": "capabilities",
+      "receipt": {
+        "hook_run": 804,
+        "id": "dataspace.feature_space.axis_mode",
+        "panel": "Data space",
+        "label": "Axis mode",
+        "kind": "enum",
+        "description": "Quick-view badges or custom triselectors",
+        "help_text": "Quick-view badges or custom triselectors",
+        "writable": true,
+        "operation": "set_scatter_view",
+        "allowed_values": [
+          "quick",
+          "custom"
+        ],
+        "depends_on": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 803,
+        "after": 804
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"color\",\"max_results\":5}",
+        "after": "{\"id\":\"dataspace.feature_space.axis_mode\"}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 321
+}

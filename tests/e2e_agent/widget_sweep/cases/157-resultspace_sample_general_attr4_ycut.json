@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.sample_general.attr4.ycut",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.sample_general.attr4.ycut",
+  "widget": {
+    "binding_id": "resultspace.sample_general.attr4.ycut",
+    "kind": "string",
+    "label": "Y cutoff",
+    "help": "Y-axis cutoff for area selection; a number or an R expression such as log10(2)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.sample_general.attr4.ycut": "1"
+    }
+  },
+  "fresh_current": "-log10(0.05)",
+  "probeNote": "cutoff probe (valid numeric string)"
+}

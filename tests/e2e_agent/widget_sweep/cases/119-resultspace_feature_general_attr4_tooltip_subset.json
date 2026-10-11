@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.attr4.tooltip_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.attr4.tooltip_subset",
+  "widget": {
+    "binding_id": "resultspace.feature_general.attr4.tooltip_subset",
+    "kind": "select",
+    "label": "Tooltips attribute subcategory",
+    "help": "Second level of the tooltips attribute cascade",
+    "depends_on": "resultspace.feature_general.attr4.tooltip_analysis",
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.attr4.tooltip_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

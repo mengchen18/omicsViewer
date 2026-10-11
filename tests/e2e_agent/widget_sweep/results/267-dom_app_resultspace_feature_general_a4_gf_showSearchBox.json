@@ -1,0 +1,62 @@
+{
+  "case": "267-dom_app_resultspace_feature_general_a4_gf_showSearchBox",
+  "caseId": "dom:app-resultspace-feature_general-a4_gf-showSearchBox",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-feature_general-a4_gf-showSearchBox",
+    "description": "INPUT:checkbox visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 217,
+  "note": "",
+  "receipt": {
+    "hook_run": 910,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.feature_general.a4_gf.showSearchBox",
+        "reason": "Unknown widget id: resultspace.feature_general.a4_gf.showSearchBox. Closest matches: resultspace.feature_general.attr4.shape_variable, resultspace.feature_general.attr4.size_variable, resultspace.feature_general.attr4.scorner."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.feature_general.a4_gf.showSearchBox",
+      "receipt": {
+        "hook_run": 910,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.feature_general.a4_gf.showSearchBox",
+            "reason": "Unknown widget id: resultspace.feature_general.a4_gf.showSearchBox. Closest matches: resultspace.feature_general.attr4.shape_variable, resultspace.feature_general.attr4.size_variable, resultspace.feature_general.attr4.scorner."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 909,
+        "after": 910
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.feature_general.a4_gf.selectSearchCol.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.feature_general.a4_gf.showSearchBox\":true}}"
+      }
+    ],
+    "waited_ms": 44
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 109
+}

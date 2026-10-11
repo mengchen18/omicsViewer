@@ -1,0 +1,65 @@
+{
+  "case": "137-resultspace_stringdb_selected_row",
+  "caseId": "resultspace.stringdb.selected_row",
+  "category": "binding",
+  "bindingId": "resultspace.stringdb.selected_row",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.stringdb.selected_row",
+    "kind": "select",
+    "label": "Selected enrichment term",
+    "help": "STRING enrichment term whose row is selected; highlights its genes in the network",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.stringdb.selected_row": null
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 280,
+  "note": "REAL: choices are the STRING results table rows - empty until the Run button is pressed, which no agent tool can do",
+  "receipt": {
+    "hook_run": 664,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 664,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 663,
+        "after": 664
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.stringdb.selected_row\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.stringdb.selected_row\":null}}"
+      }
+    ],
+    "waited_ms": 18
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 236
+}

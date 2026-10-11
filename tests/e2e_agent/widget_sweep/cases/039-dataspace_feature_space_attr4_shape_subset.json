@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.feature_space.attr4.shape_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.attr4.shape_subset",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.shape_subset",
+    "kind": "select",
+    "label": "Shape attribute subcategory",
+    "help": "Second level of the shape attribute cascade",
+    "depends_on": "dataspace.feature_space.attr4.shape_analysis",
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.shape_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

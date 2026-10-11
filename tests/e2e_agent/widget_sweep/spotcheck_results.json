@@ -1,0 +1,33 @@
+{
+  "axis_mode_before": {
+    "app-dataspace-feature_space-axisMode": "quick"
+  },
+  "axis_mode_after": {
+    "app-dataspace-feature_space-axisMode": "custom"
+  },
+  "color_before": {
+    "app-dataspace-feature_space-a4selector-selectColorUI-analysis": "General",
+    "app-dataspace-feature_space-a4selector-selectColorUI-subset": "All",
+    "app-dataspace-feature_space-a4selector-selectColorUI-variable": "--select--",
+    ".clientdata_output_app-dataspace-feature_space-a4selector-selectColorUI-groupLabel_hidden": true
+  },
+  "color_after_analysis_only": {
+    "app-dataspace-feature_space-a4selector-selectColorUI-analysis": "General",
+    "app-dataspace-feature_space-a4selector-selectColorUI-subset": "All",
+    "app-dataspace-feature_space-a4selector-selectColorUI-variable": "--select--",
+    ".clientdata_output_app-dataspace-feature_space-a4selector-selectColorUI-groupLabel_hidden": true
+  },
+  "color_after_full_triple": {
+    "app-dataspace-feature_space-a4selector-selectColorUI-analysis": "General",
+    "app-dataspace-feature_space-a4selector-selectColorUI-subset": "All",
+    "app-dataspace-feature_space-a4selector-selectColorUI-variable": "Gene.name",
+    ".clientdata_output_app-dataspace-feature_space-a4selector-selectColorUI-groupLabel_hidden": true
+  },
+  "table_before": {},
+  "table_after_columns": {},
+  "table_after_page": {},
+  "surv_before": {},
+  "surv_after": {},
+  "fg_before": {},
+  "fg_after": {}
+}

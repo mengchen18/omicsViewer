@@ -1,0 +1,86 @@
+{
+  "case": "031-dataspace_feature_space_y_analysis",
+  "caseId": "dataspace.feature_space.y_analysis",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.y_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.y_analysis",
+    "kind": "select",
+    "label": "Y-axis analysis",
+    "help": "Analysis category for the Y axis",
+    "depends_on": [],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.y_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 611,
+  "note": "",
+  "receipt": {
+    "hook_run": 229,
+    "applied": "dataspace.feature_space.y_analysis",
+    "applied_values": {
+      "dataspace.feature_space.y_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 229,
+        "applied": "dataspace.feature_space.y_analysis",
+        "applied_values": {
+          "dataspace.feature_space.y_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 228,
+        "after": 229
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter2-analysis",
+        "before": "ttest",
+        "after": "General"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter2-subset",
+        "before": "RE_vs_ME",
+        "after": "All"
+      },
+      {
+        "input": "app-dataspace-feature_space-tris_main_scatter2-variable",
+        "before": "log.fdr",
+        "after": "Gene.name"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.y_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.y_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 35
+  },
+  "store_readback": {
+    "dataspace.feature_space.y_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 267
+}

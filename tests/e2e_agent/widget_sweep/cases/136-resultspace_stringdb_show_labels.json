@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.stringdb.show_labels",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.stringdb.show_labels",
+  "widget": {
+    "binding_id": "resultspace.stringdb.show_labels",
+    "kind": "boolean",
+    "label": "Show network labels",
+    "help": "Draw gene labels on the interaction network",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.stringdb.show_labels": true
+    }
+  },
+  "fresh_current": false,
+  "probeNote": "boolean flip"
+}

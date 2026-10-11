@@ -1,0 +1,65 @@
+{
+  "case": "168-resultspace_ptm_xax_analysis",
+  "caseId": "resultspace.ptm.xax_analysis",
+  "category": "binding",
+  "bindingId": "resultspace.ptm.xax_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ptm.xax_analysis",
+    "kind": "select",
+    "label": "Sequence category",
+    "help": "Annotation category of the sequence-window column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ptm.xax_analysis": "SeqLogo"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 307,
+  "note": "no distinct value: the only allowed analysis (SeqLogo) is already current",
+  "receipt": {
+    "hook_run": 791,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "resultspace.ptm.xax_analysis",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 791,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "resultspace.ptm.xax_analysis",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 790,
+        "after": 791
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ptm.xax_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ptm.xax_analysis\":\"SeqLogo\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 250
+}

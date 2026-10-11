@@ -1,0 +1,62 @@
+{
+  "case": "245-dom_app_dataspace_dynheatmapViewer_clear",
+  "caseId": "dom:app-dataspace-dynheatmapViewer-clear",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-dynheatmapViewer-clear",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 246,
+  "note": "",
+  "receipt": {
+    "hook_run": 886,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.dynheatmapViewer.clear",
+        "reason": "Unknown widget id: dataspace.dynheatmapViewer.clear."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.dynheatmapViewer.clear",
+      "receipt": {
+        "hook_run": 886,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.dynheatmapViewer.clear",
+            "reason": "Unknown widget id: dataspace.dynheatmapViewer.clear."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 885,
+        "after": 886
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.dynheatmapViewer.tooltipInfo\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.dynheatmapViewer.clear\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 119
+}

@@ -1,0 +1,65 @@
+{
+  "case": "045-dataspace_feature_space_attr4_tooltip_subset",
+  "caseId": "dataspace.feature_space.attr4.tooltip_subset",
+  "category": "binding",
+  "bindingId": "dataspace.feature_space.attr4.tooltip_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.feature_space.attr4.tooltip_subset",
+    "kind": "select",
+    "label": "Tooltips attribute subcategory",
+    "help": "Second level of the tooltips attribute cascade",
+    "depends_on": "dataspace.feature_space.attr4.tooltip_analysis",
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.feature_space.attr4.tooltip_subset": "All"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 223,
+  "note": "no distinct value: single valid subset (All) already current",
+  "receipt": {
+    "hook_run": 288,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.feature_space.attr4.tooltip_subset",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 288,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.feature_space.attr4.tooltip_subset",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 287,
+        "after": 288
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.feature_space.attr4.tooltip_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.feature_space.attr4.tooltip_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 177
+}

@@ -1,0 +1,74 @@
+{
+  "case": "026-dataspace_expr_heatmap_annot_row",
+  "caseId": "dataspace.expr_heatmap.annot_row",
+  "category": "binding",
+  "bindingId": "dataspace.expr_heatmap.annot_row",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.expr_heatmap.annot_row",
+    "kind": "multi_select",
+    "label": "Row annotations",
+    "help": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.expr_heatmap.annot_row": [
+        "General|All|Gene.name"
+      ]
+    }
+  },
+  "status": "no-ui-effect",
+  "duration_ms": 340,
+  "note": "suspected congestion artifact (expr-heatmap re-render of 2702x60 blocks the browser during the poll window); NOT re-verified live - keep for fix-plan review",
+  "receipt": {
+    "hook_run": 208,
+    "applied": "dataspace.expr_heatmap.annot_row",
+    "applied_values": {
+      "dataspace.expr_heatmap.annot_row": "General|All|Gene.name"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 208,
+        "applied": "dataspace.expr_heatmap.annot_row",
+        "applied_values": {
+          "dataspace.expr_heatmap.annot_row": "General|All|Gene.name"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 207,
+        "after": 208
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.expr_heatmap.annot_row\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.expr_heatmap.annot_row\":[\"General|All|Gene.name\"]}}"
+      }
+    ],
+    "waited_ms": 21
+  },
+  "store_readback": {
+    "dataspace.expr_heatmap.annot_row": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 125,
+  "_status_before_revalidation": "success"
+}

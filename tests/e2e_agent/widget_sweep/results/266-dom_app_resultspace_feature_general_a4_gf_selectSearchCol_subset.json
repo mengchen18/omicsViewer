@@ -1,0 +1,62 @@
+{
+  "case": "266-dom_app_resultspace_feature_general_a4_gf_selectSearchCol_subset",
+  "caseId": "dom:app-resultspace-feature_general-a4_gf-selectSearchCol-subset",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-feature_general-a4_gf-selectSearchCol-subset",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 264,
+  "note": "",
+  "receipt": {
+    "hook_run": 909,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.feature_general.a4_gf.selectSearchCol.subset",
+        "reason": "Unknown widget id: resultspace.feature_general.a4_gf.selectSearchCol.subset. Closest matches: resultspace.feature_general.attr4.search_subset, resultspace.feature_general.attr4.color_subset, resultspace.feature_general.attr4.shape_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.feature_general.a4_gf.selectSearchCol.subset",
+      "receipt": {
+        "hook_run": 909,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.feature_general.a4_gf.selectSearchCol.subset",
+            "reason": "Unknown widget id: resultspace.feature_general.a4_gf.selectSearchCol.subset. Closest matches: resultspace.feature_general.attr4.search_subset, resultspace.feature_general.attr4.color_subset, resultspace.feature_general.attr4.shape_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 908,
+        "after": 909
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.feature_general.a4_gf.selectSearchCol.analysis\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.feature_general.a4_gf.selectSearchCol.subset\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 48
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 124
+}

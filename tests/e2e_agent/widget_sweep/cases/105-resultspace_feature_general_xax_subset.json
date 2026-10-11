@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.xax_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.xax_subset",
+  "widget": {
+    "binding_id": "resultspace.feature_general.xax_subset",
+    "kind": "select",
+    "label": "Link variable subcategory",
+    "help": "Subcategory within the link-variable category",
+    "depends_on": "resultspace.feature_general.xax_analysis",
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.xax_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

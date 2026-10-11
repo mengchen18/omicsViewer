@@ -1,0 +1,26 @@
+{
+  "caseId": "resultspace.ptm.xax_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ptm.xax_variable",
+  "widget": {
+    "binding_id": "resultspace.ptm.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Sequence column",
+    "help": "Feature annotation column holding the sequence windows around modification sites",
+    "depends_on": [
+      "resultspace.ptm.xax_analysis",
+      "resultspace.ptm.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ptm.xax_variable": "seq.window"
+    }
+  },
+  "fresh_current": "seq.window",
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

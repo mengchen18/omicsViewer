@@ -1,0 +1,62 @@
+{
+  "case": "227-dom_app_dataspace_sample_space_axisModeTabs",
+  "caseId": "dom:app-dataspace-sample_space-axisModeTabs",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-axisModeTabs",
+    "description": "UL visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 205,
+  "note": "",
+  "receipt": {
+    "hook_run": 862,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.axisModeTabs",
+        "reason": "Unknown widget id: dataspace.sample_space.axisModeTabs. Closest matches: dataspace.sample_space.axis_mode, dataspace.sample_space.x_subset, dataspace.sample_space.y_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.axisModeTabs",
+      "receipt": {
+        "hook_run": 862,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.axisModeTabs",
+            "reason": "Unknown widget id: dataspace.sample_space.axisModeTabs. Closest matches: dataspace.sample_space.axis_mode, dataspace.sample_space.x_subset, dataspace.sample_space.y_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 861,
+        "after": 862
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.sample_space.a4selector.searchon\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.axisModeTabs\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 112
+}

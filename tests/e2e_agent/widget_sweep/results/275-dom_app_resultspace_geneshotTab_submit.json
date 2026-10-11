@@ -1,0 +1,62 @@
+{
+  "case": "275-dom_app_resultspace_geneshotTab_submit",
+  "caseId": "dom:app-resultspace-geneshotTab-submit",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-geneshotTab-submit",
+    "description": "BUTTON:button visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 190,
+  "note": "",
+  "receipt": {
+    "hook_run": 918,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.geneshotTab.submit",
+        "reason": "Unknown widget id: resultspace.geneshotTab.submit. Closest matches: resultspace.geneshot.xax_subset, resultspace.geneshot.term."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.geneshotTab.submit",
+      "receipt": {
+        "hook_run": 918,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.geneshotTab.submit",
+            "reason": "Unknown widget id: resultspace.geneshotTab.submit. Closest matches: resultspace.geneshot.xax_subset, resultspace.geneshot.term."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 917,
+        "after": 918
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.ptm.tris_seqlogo.variable\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.geneshotTab.submit\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 42
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 102
+}

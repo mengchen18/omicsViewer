@@ -1,0 +1,384 @@
+{
+  "dataspace.active_tab": [
+    "app-dataspace-eset",
+    "__selectedRows"
+  ],
+  "dataspace.cor_heatmap.heatmap_colors": [
+    "app-dataspace-corheatmapViewer-heatmapColors"
+  ],
+  "dataspace.cor_heatmap.scale": [
+    "app-dataspace-corheatmapViewer-scale"
+  ],
+  "dataspace.cor_heatmap.margin_bottom": [
+    "app-dataspace-corheatmapViewer-marginBottom"
+  ],
+  "dataspace.cor_heatmap.margin_right": [
+    "app-dataspace-corheatmapViewer-marginRight"
+  ],
+  "dataspace.cor_heatmap.col_sort_by": [
+    "app-dataspace-corheatmapViewer-colSortBy"
+  ],
+  "dataspace.cor_heatmap.cluster_col_dist": [
+    "app-dataspace-corheatmapViewer-clusterColDist"
+  ],
+  "dataspace.cor_heatmap.cluster_col_link": [
+    "app-dataspace-corheatmapViewer-clusterColLink"
+  ],
+  "dataspace.cor_heatmap.row_sort_by": [
+    "app-dataspace-corheatmapViewer-rowSortBy"
+  ],
+  "dataspace.cor_heatmap.cluster_row_dist": [
+    "app-dataspace-corheatmapViewer-clusterRowDist"
+  ],
+  "dataspace.cor_heatmap.cluster_row_link": [
+    "app-dataspace-corheatmapViewer-clusterRowLink"
+  ],
+  "dataspace.cor_heatmap.annot_col": [
+    "app-dataspace-corheatmapViewer-annotCol"
+  ],
+  "dataspace.cor_heatmap.annot_row": [
+    "app-dataspace-corheatmapViewer-annotRow"
+  ],
+  "dataspace.cor_heatmap.tooltip_info": [
+    "app-dataspace-corheatmapViewer-tooltipInfo"
+  ],
+  "dataspace.expr_heatmap.heatmap_colors": [
+    "app-dataspace-heatmapViewer-heatmapColors"
+  ],
+  "dataspace.expr_heatmap.scale": [
+    "app-dataspace-heatmapViewer-scale"
+  ],
+  "dataspace.expr_heatmap.margin_bottom": [
+    "app-dataspace-heatmapViewer-marginBottom"
+  ],
+  "dataspace.expr_heatmap.margin_right": [
+    "app-dataspace-heatmapViewer-marginRight"
+  ],
+  "dataspace.expr_heatmap.col_sort_by": [
+    "app-dataspace-heatmapViewer-colSortBy"
+  ],
+  "dataspace.expr_heatmap.cluster_col_dist": [
+    "app-dataspace-heatmapViewer-clusterColDist"
+  ],
+  "dataspace.expr_heatmap.cluster_col_link": [
+    "app-dataspace-heatmapViewer-clusterColLink"
+  ],
+  "dataspace.expr_heatmap.cluster_row_dist": [
+    "app-dataspace-heatmapViewer-clusterRowDist"
+  ],
+  "dataspace.expr_heatmap.cluster_row_link": [
+    "app-dataspace-heatmapViewer-clusterRowLink"
+  ],
+  "dataspace.expr_heatmap.annot_col": [
+    "app-dataspace-heatmapViewer-annotCol"
+  ],
+  "dataspace.expr_heatmap.tooltip_info": [
+    "app-dataspace-heatmapViewer-tooltipInfo"
+  ],
+  "dataspace.feature_space.x_analysis": [
+    "app-dataspace-feature_space-tris_main_scatter1-analysis",
+    "app-dataspace-feature_space-tris_main_scatter1-subset",
+    "app-dataspace-feature_space-tris_main_scatter1-variable"
+  ],
+  "dataspace.feature_space.x_variable": [
+    "app-dataspace-feature_space-tris_main_scatter1-variable"
+  ],
+  "dataspace.feature_space.y_analysis": [
+    "app-dataspace-feature_space-tris_main_scatter2-analysis",
+    "app-dataspace-feature_space-tris_main_scatter2-subset",
+    "app-dataspace-feature_space-tris_main_scatter2-variable"
+  ],
+  "dataspace.feature_space.y_variable": [
+    "app-dataspace-feature_space-tris_main_scatter2-variable"
+  ],
+  "dataspace.feature_space.attr4.color_variable": [
+    "app-dataspace-feature_space-a4selector-selectColorUI-variable"
+  ],
+  "dataspace.feature_space.attr4.shape_variable": [
+    "app-dataspace-feature_space-a4selector-selectShapeUI-variable"
+  ],
+  "dataspace.feature_space.attr4.size_variable": [
+    "app-dataspace-feature_space-a4selector-selectSizeUI-variable"
+  ],
+  "dataspace.feature_space.attr4.tooltip_analysis": [
+    "app-dataspace-feature_space-a4selector-selectTooltipUI-analysis",
+    "app-dataspace-feature_space-a4selector-selectTooltipUI-variable"
+  ],
+  "dataspace.feature_space.attr4.tooltip_variable": [
+    "app-dataspace-feature_space-a4selector-selectTooltipUI-variable"
+  ],
+  "dataspace.feature_space.attr4.search_variable": [
+    "app-dataspace-feature_space-a4selector-selectSearchCol-variable"
+  ],
+  "dataspace.feature_space.attr4.xcut": [
+    "app-dataspace-feature_space-a4selector-xcut"
+  ],
+  "dataspace.feature_space.attr4.ycut": [
+    "app-dataspace-feature_space-a4selector-ycut"
+  ],
+  "dataspace.feature_space.attr4.scorner": [
+    "app-dataspace-feature_space-a4selector-scorner"
+  ],
+  "dataspace.sample_space.x_analysis": [
+    "app-dataspace-sample_space-tris_main_scatter1-analysis",
+    "app-dataspace-sample_space-tris_main_scatter1-variable"
+  ],
+  "dataspace.sample_space.x_variable": [
+    "app-dataspace-sample_space-tris_main_scatter1-variable"
+  ],
+  "dataspace.sample_space.y_analysis": [
+    "app-dataspace-sample_space-tris_main_scatter2-analysis",
+    "app-dataspace-sample_space-tris_main_scatter2-variable"
+  ],
+  "dataspace.sample_space.y_variable": [
+    "app-dataspace-sample_space-tris_main_scatter2-variable"
+  ],
+  "dataspace.sample_space.attr4.color_variable": [
+    "app-dataspace-sample_space-a4selector-selectColorUI-variable"
+  ],
+  "dataspace.sample_space.attr4.shape_variable": [
+    "app-dataspace-sample_space-a4selector-selectShapeUI-variable"
+  ],
+  "dataspace.sample_space.attr4.size_variable": [
+    "app-dataspace-sample_space-a4selector-selectSizeUI-variable"
+  ],
+  "dataspace.sample_space.attr4.tooltip_variable": [
+    "app-dataspace-sample_space-a4selector-selectTooltipUI-variable"
+  ],
+  "dataspace.sample_space.attr4.search_variable": [
+    "app-dataspace-sample_space-a4selector-selectSearchCol-variable"
+  ],
+  "dataspace.sample_space.attr4.xcut": [
+    "app-dataspace-sample_space-a4selector-xcut"
+  ],
+  "dataspace.sample_space.attr4.ycut": [
+    "app-dataspace-sample_space-a4selector-ycut"
+  ],
+  "dataspace.sample_space.attr4.scorner": [
+    "app-dataspace-sample_space-a4selector-scorner"
+  ],
+  "dataspace.tab_pheno.multi_selection": [
+    "app-dataspace-tab_pheno-multisel"
+  ],
+  "dataspace.tab_feature.multi_selection": [
+    "app-dataspace-tab_feature-multisel"
+  ],
+  "dataspace.tab_feature.page": [
+    "app-dataspace-tab_feature-table_rows_current",
+    "app-dataspace-tab_feature-table_state"
+  ],
+  "dataspace.tab_feature.column_filters": [
+    "app-dataspace-tab_feature-table_rows_current",
+    "app-dataspace-tab_feature-table_state"
+  ],
+  "dataspace.tab_expr.multi_selection": [
+    "app-dataspace-tab_expr-multisel"
+  ],
+  "dataspace.tab_expr.column_filters": [
+    "app-dataspace-tab_expr-table_rows_current",
+    "app-dataspace-tab_expr-table_rows_all",
+    "app-dataspace-tab_expr-table_state",
+    "app-dataspace-tab_expr-table_search_columns"
+  ],
+  "dataspace.dyn_heatmap.heatmap_colors": [
+    "app-dataspace-dynheatmapViewer-heatmapColors"
+  ],
+  "dataspace.dyn_heatmap.scale": [
+    "app-dataspace-dynheatmapViewer-scale"
+  ],
+  "dataspace.dyn_heatmap.margin_bottom": [
+    "app-dataspace-dynheatmapViewer-marginBottom"
+  ],
+  "dataspace.dyn_heatmap.margin_right": [
+    "app-dataspace-dynheatmapViewer-marginRight"
+  ],
+  "dataspace.dyn_heatmap.cluster_col_dist": [
+    "app-dataspace-dynheatmapViewer-clusterColDist"
+  ],
+  "dataspace.dyn_heatmap.cluster_col_link": [
+    "app-dataspace-dynheatmapViewer-clusterColLink"
+  ],
+  "dataspace.dyn_heatmap.cluster_row_dist": [
+    "app-dataspace-dynheatmapViewer-clusterRowDist"
+  ],
+  "dataspace.dyn_heatmap.cluster_row_link": [
+    "app-dataspace-dynheatmapViewer-clusterRowLink"
+  ],
+  "resultspace.analyst_tab": [
+    "app-resultspace-analyst",
+    "__selectedRows"
+  ],
+  "resultspace.feature_general.xax_variable": [
+    "app-resultspace-feature_general-tris_feature_general-variable"
+  ],
+  "resultspace.feature_general.plot_type": [
+    "app-resultspace-feature_general-internal_radio"
+  ],
+  "resultspace.feature_general.attr4.color_variable": [
+    "app-resultspace-feature_general-a4_gf-selectColorUI-variable"
+  ],
+  "resultspace.feature_general.attr4.shape_variable": [
+    "app-resultspace-feature_general-a4_gf-selectShapeUI-variable"
+  ],
+  "resultspace.feature_general.attr4.size_variable": [
+    "app-resultspace-feature_general-a4_gf-selectSizeUI-variable"
+  ],
+  "resultspace.feature_general.attr4.tooltip_variable": [
+    "app-resultspace-feature_general-a4_gf-selectTooltipUI-variable"
+  ],
+  "resultspace.feature_general.attr4.search_variable": [
+    "app-resultspace-feature_general-a4_gf-selectSearchCol-variable"
+  ],
+  "resultspace.feature_general.attr4.xcut": [
+    "app-resultspace-feature_general-a4_gf-xcut"
+  ],
+  "resultspace.feature_general.attr4.ycut": [
+    "app-resultspace-feature_general-a4_gf-ycut"
+  ],
+  "resultspace.feature_general.attr4.scorner": [
+    "app-resultspace-feature_general-a4_gf-scorner"
+  ],
+  "resultspace.fgsea.xax_variable": [
+    "app-resultspace-fgsea-tris_fgsea-variable"
+  ],
+  "resultspace.ora.xax_variable": [
+    "app-resultspace-ora-tris_ora-variable"
+  ],
+  "resultspace.ora.selected_row": [
+    "app-resultspace-ora-stab-table_rows_selected"
+  ],
+  "resultspace.stringdb.taxonomy": [
+    "app-resultspace-stringdb-tax"
+  ],
+  "resultspace.stringdb.show_labels": [
+    "app-resultspace-stringdb-showLabel"
+  ],
+  "resultspace.sample_general.xax_variable": [
+    "app-resultspace-sample_general-tris_sample_general-variable"
+  ],
+  "resultspace.sample_general.attr4.color_variable": [
+    "app-resultspace-sample_general-a4_gp-selectColorUI-variable"
+  ],
+  "resultspace.sample_general.attr4.shape_variable": [
+    "app-resultspace-sample_general-a4_gp-selectShapeUI-variable"
+  ],
+  "resultspace.sample_general.attr4.size_variable": [
+    "app-resultspace-sample_general-a4_gp-selectSizeUI-variable"
+  ],
+  "resultspace.sample_general.attr4.tooltip_variable": [
+    "app-resultspace-sample_general-a4_gp-selectTooltipUI-variable"
+  ],
+  "resultspace.sample_general.attr4.search_variable": [
+    "app-resultspace-sample_general-a4_gp-selectSearchCol-variable"
+  ],
+  "resultspace.sample_general.attr4.xcut": [
+    "app-resultspace-sample_general-a4_gp-xcut"
+  ],
+  "resultspace.sample_general.attr4.ycut": [
+    "app-resultspace-sample_general-a4_gp-ycut"
+  ],
+  "resultspace.sample_general.attr4.scorner": [
+    "app-resultspace-sample_general-a4_gp-scorner"
+  ],
+  "resultspace.sample_general.batch_show_phenotype": [
+    "app-resultspace-sample_general-batch_comp-show_phenotype"
+  ],
+  "resultspace.sample_general.batch_show_features": [
+    "app-resultspace-sample_general-batch_comp-show_features"
+  ],
+  "resultspace.geneshot.term": [
+    "app-resultspace-geneshotTab-term"
+  ],
+  "resultspace.geneshot.xax_variable": [
+    "app-resultspace-geneshotTab-geneNameCol-variable"
+  ],
+  "semantic:tool:set_scatter_view(feature,quick)": [
+    "app-dataspace-feature_space-tris_main_scatter1-analysis",
+    "app-dataspace-feature_space-tris_main_scatter1-subset",
+    "app-dataspace-feature_space-tris_main_scatter1-variable",
+    "app-dataspace-feature_space-tris_main_scatter2-analysis",
+    "app-dataspace-feature_space-tris_main_scatter2-subset",
+    "app-dataspace-feature_space-tris_main_scatter2-variable"
+  ],
+  "semantic:tool:set_scatter_view(feature,axes)": [
+    "app-dataspace-feature_space-tris_main_scatter2-variable",
+    "app-resultspace-feature_general-mtab-table_rows_all",
+    "app-resultspace-feature_general-mtab-table_state",
+    "__selectedRows"
+  ],
+  "semantic:tool:set_scatter_view(sample,quick)": [
+    "app-dataspace-eset",
+    "app-dataspace-feature_space-a4selector-scorner",
+    "app-dataspace-sample_space-tris_main_scatter1-analysis",
+    "app-dataspace-sample_space-tris_main_scatter1-variable",
+    "app-dataspace-sample_space-tris_main_scatter2-analysis",
+    "app-dataspace-sample_space-tris_main_scatter2-variable"
+  ],
+  "semantic:tool:set_scatter_view(sample,axes)": [
+    "app-dataspace-sample_space-tris_main_scatter1-analysis",
+    "app-dataspace-sample_space-tris_main_scatter1-variable",
+    "app-dataspace-sample_space-tris_main_scatter2-analysis",
+    "app-dataspace-sample_space-tris_main_scatter2-variable"
+  ],
+  "semantic:tool:set_omics_viewer_state(data_space_tab)": [
+    "app-dataspace-eset"
+  ],
+  "semantic:tool:set_omics_viewer_state(analysis_space_tab)": [
+    "app-resultspace-analyst",
+    "__selectedRows"
+  ],
+  "semantic:tool:set_enrichment_parameters(ora)": [
+    "app-resultspace-analyst",
+    "__selectedRows"
+  ],
+  "semantic:tool:set_enrichment_parameters(fgsea)": [
+    "app-resultspace-analyst",
+    "app-resultspace-fgsea-tris_fgsea-analysis",
+    "app-resultspace-fgsea-tris_fgsea-subset",
+    "app-resultspace-fgsea-tris_fgsea-variable",
+    "__selectedRows"
+  ],
+  "semantic:tool:set_enrichment_parameters(bogus_pathway)": [
+    "app-resultspace-analyst",
+    "__selectedRows",
+    "plotly_afterplot-app-resultspace-fgsea-plotlybarchart",
+    "app-resultspace-fgsea-stab-table_rows_selected",
+    "app-resultspace-fgsea-stab-table_columns_selected",
+    "app-resultspace-fgsea-stab-table_cells_selected:shiny.matrix",
+    "app-resultspace-fgsea-stab-table_rows_current",
+    "app-resultspace-fgsea-stab-table_rows_all",
+    "app-resultspace-fgsea-stab-table_search",
+    "app-resultspace-fgsea-stab-table_search_columns",
+    "app-resultspace-fgsea-stab-table_cell_clicked"
+  ],
+  "semantic:tool:set_table_view(feature_table)": [
+    "app-dataspace-eset",
+    "app-resultspace-fgsea-stab-table_rows_current",
+    "app-resultspace-fgsea-stab-table_rows_all",
+    "app-resultspace-fgsea-stab-table_state",
+    "__selectedRows"
+  ],
+  "semantic:tool:set_table_view(sample_table,clear)": [
+    "app-dataspace-eset",
+    "app-dataspace-tab_feature-table_rows_current",
+    "app-dataspace-tab_feature-table_rows_all",
+    "app-dataspace-tab_feature-table_state",
+    "app-dataspace-tab_feature-table_search_columns",
+    "__selectedRows",
+    "app-dataspace-tab_pheno-table_rows_selected",
+    "app-dataspace-tab_pheno-table_columns_selected",
+    "app-dataspace-tab_pheno-table_cells_selected:shiny.matrix",
+    "app-dataspace-tab_pheno-table_rows_current",
+    "app-dataspace-tab_pheno-table_rows_all",
+    "app-dataspace-tab_pheno-table_search",
+    "app-dataspace-tab_pheno-table_search_columns",
+    "app-dataspace-tab_pheno-table_cell_clicked"
+  ],
+  "semantic:tool:set_table_view(expression_table)": [
+    "app-dataspace-tab_expr-multisel",
+    "app-dataspace-eset",
+    "app-dataspace-tab_pheno-table_state",
+    "app-dataspace-tab_pheno-table_search_columns",
+    "__selectedRows"
+  ]
+}

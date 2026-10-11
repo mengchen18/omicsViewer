@@ -1,0 +1,34 @@
+{
+  "caseId": "dataspace.tab_pheno.columns",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.tab_pheno.columns",
+  "widget": {
+    "binding_id": "dataspace.tab_pheno.columns",
+    "kind": "multi_select",
+    "label": "Shown columns",
+    "help": "Table columns currently displayed; the Add-column selector appends entries; at least one column must remain selected",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.tab_pheno.columns": [
+        "PCA|All|PC1(10.5%)"
+      ]
+    }
+  },
+  "fresh_current": [
+    "General|All|Cell.line",
+    "General|All|MDR",
+    "General|All|Doubleing.Time",
+    "General|All|Origin",
+    "General|All|TP53.Status",
+    "General|All|Gender",
+    "General|All|numberOfFeatures",
+    "General|All|Dose",
+    "General|All|Curve"
+  ],
+  "probeNote": "single allowed entry (PCA|All|PC1(10.5%))"
+}

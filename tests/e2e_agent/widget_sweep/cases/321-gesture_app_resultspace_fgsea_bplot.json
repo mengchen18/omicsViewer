@@ -1,0 +1,10 @@
+{
+  "caseId": "gesture:app-resultspace-fgsea-bplot",
+  "category": "out-of-scope",
+  "widget": {
+    "id": "app-resultspace-fgsea-bplot",
+    "cls": "plotly html-widget html-widget-output shiny-report-size shin",
+    "visible": false
+  },
+  "note": "plotly/network interactive gesture surface - excluded from testing by instruction (no mouse-gesture mimicry)"
+}

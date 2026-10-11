@@ -1,0 +1,76 @@
+{
+  "case": "006-dataspace_cor_heatmap_col_sort_by",
+  "caseId": "dataspace.cor_heatmap.col_sort_by",
+  "category": "binding",
+  "bindingId": "dataspace.cor_heatmap.col_sort_by",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.cor_heatmap.col_sort_by",
+    "kind": "select",
+    "label": "Sort columns by",
+    "help": "Column ordering: a precomputed dendrogram (HCL entries), 'hierarchical cluster', 'none', or a phenotype annotation column",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.cor_heatmap.col_sort_by": "hierarchical cluster"
+    }
+  },
+  "status": "success",
+  "duration_ms": 305,
+  "note": "",
+  "receipt": {
+    "hook_run": 128,
+    "applied": "dataspace.cor_heatmap.col_sort_by",
+    "applied_values": {
+      "dataspace.cor_heatmap.col_sort_by": "hierarchical cluster"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 128,
+        "applied": "dataspace.cor_heatmap.col_sort_by",
+        "applied_values": {
+          "dataspace.cor_heatmap.col_sort_by": "hierarchical cluster"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 127,
+        "after": 128
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-corheatmapViewer-colSortBy",
+        "before": "HCL pearson_ward.D",
+        "after": "hierarchical cluster"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.cor_heatmap.col_sort_by\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.cor_heatmap.col_sort_by\":\"hierarchical cluster\"}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.cor_heatmap.col_sort_by": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 111
+}

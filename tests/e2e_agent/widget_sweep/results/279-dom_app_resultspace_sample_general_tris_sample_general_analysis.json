@@ -1,0 +1,62 @@
+{
+  "case": "279-dom_app_resultspace_sample_general_tris_sample_general_analysis",
+  "caseId": "dom:app-resultspace-sample_general-tris_sample_general-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-sample_general-tris_sample_general-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 188,
+  "note": "",
+  "receipt": {
+    "hook_run": 922,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "resultspace.sample_general.tris_sample_general.analysis",
+        "reason": "Unknown widget id: resultspace.sample_general.tris_sample_general.analysis. Closest matches: resultspace.sample_general.attr4.shape_analysis, resultspace.sample_general.attr4.size_analysis, resultspace.sample_general.attr4.search_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "resultspace.sample_general.tris_sample_general.analysis",
+      "receipt": {
+        "hook_run": 922,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "resultspace.sample_general.tris_sample_general.analysis",
+            "reason": "Unknown widget id: resultspace.sample_general.tris_sample_general.analysis. Closest matches: resultspace.sample_general.attr4.shape_analysis, resultspace.sample_general.attr4.size_analysis, resultspace.sample_general.attr4.search_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 921,
+        "after": 922
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.geneshotTab.geneNameCol.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"resultspace.sample_general.tris_sample_general.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 101
+}

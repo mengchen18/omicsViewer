@@ -1,0 +1,62 @@
+{
+  "case": "205-dom_app_dataspace_feature_space_a4selector_selectSearchCol_analysis",
+  "caseId": "dom:app-dataspace-feature_space-a4selector-selectSearchCol-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-a4selector-selectSearchCol-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 237,
+  "note": "",
+  "receipt": {
+    "hook_run": 838,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.feature_space.a4selector.selectSearchCol.analysis",
+        "reason": "Unknown widget id: dataspace.feature_space.a4selector.selectSearchCol.analysis. Closest matches: dataspace.feature_space.attr4.search_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.feature_space.a4selector.selectSearchCol.analysis",
+      "receipt": {
+        "hook_run": 838,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.feature_space.a4selector.selectSearchCol.analysis",
+            "reason": "Unknown widget id: dataspace.feature_space.a4selector.selectSearchCol.analysis. Closest matches: dataspace.feature_space.attr4.search_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 837,
+        "after": 838
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.feature_space.a4selector.selectTooltipUI.subset\":\"x\"}}",
+        "after": "{\"patch\":{\"dataspace.feature_space.a4selector.selectSearchCol.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 40
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 105
+}

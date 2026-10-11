@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.xax_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.xax_analysis",
+  "widget": {
+    "binding_id": "resultspace.feature_general.xax_analysis",
+    "kind": "select",
+    "label": "Link variable category",
+    "help": "Annotation category of the variable the selected features are compared across",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.xax_analysis": "General"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (General)"
+}

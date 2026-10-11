@@ -1,0 +1,159 @@
+{
+  "hook_run": 105,
+  "dataset": {
+    "id": "ESVObj.RDS",
+    "class": "ExpressionSet",
+    "dimensions": [
+      2702,
+      60
+    ]
+  },
+  "active_tabs": {
+    "data_space": "GSList",
+    "analysis_space": "Sample"
+  },
+  "selection": {
+    "features": {
+      "count": 107,
+      "ids": [
+        "X274.MYO1C",
+        "X341.AGRN",
+        "X361.PES1",
+        "X408.GAPDHS",
+        "X430.CHD1",
+        "X471.PHYH",
+        "X472.OPLAH",
+        "X487.CASK",
+        "X699.SYNJ1",
+        "X966.ZC3H11A",
+        "X1202.SASH1",
+        "X1219.GLS",
+        "X1220.GLS",
+        "X1297.PAPSS2",
+        "X1302.TRIM16",
+        "X1463.CA2",
+        "X1502.COL4A1",
+        "X1546.NR3C1",
+        "X1560.S100B",
+        "X1671.ANXA2.ANXA2P2"
+      ],
+      "truncated": true
+    },
+    "samples": {
+      "count": 0,
+      "ids": [],
+      "truncated": false
+    }
+  },
+  "available_tabs": {
+    "data_space": [
+      "Feature",
+      "Feature table",
+      "Sample",
+      "Sample table",
+      "Cor",
+      "Heatmap",
+      "Dynamic heatmap",
+      "Expression",
+      "GSList"
+    ],
+    "analysis_space": [
+      "Feature",
+      "ORA",
+      "fGSEA",
+      "Response",
+      "StringDB",
+      "SeqLogo",
+      "Geneshot",
+      "Sample"
+    ]
+  },
+  "quick_views": {
+    "feature": [
+      {
+        "id": "pca",
+        "label": "PCA"
+      },
+      {
+        "id": "cor_MDR",
+        "label": "Cor: MDR"
+      },
+      {
+        "id": "cor_Doubleing.Time",
+        "label": "Cor: Doubleing.Time"
+      },
+      {
+        "id": "volcano_RE_vs_ME",
+        "label": "Volcano RE vs ME"
+      },
+      {
+        "id": "volcano_RE_vs_LE",
+        "label": "Volcano RE vs LE"
+      },
+      {
+        "id": "volcano_MT_vs_WT",
+        "label": "Volcano MT vs WT"
+      }
+    ],
+    "sample": [
+      {
+        "id": "pca",
+        "label": "PCA"
+      }
+    ]
+  },
+  "available_sections": [
+    "annotations",
+    "quick_views",
+    "panels",
+    "figure_grammar"
+  ],
+  "state_policy": "widget-only",
+  "scatter_view": {
+    "feature": {
+      "x": {
+        "analysis": "ttest",
+        "subset": "RE_vs_ME",
+        "variable": "mean.diff",
+        "name": "ttest|RE_vs_ME|mean.diff"
+      },
+      "y": {
+        "analysis": "ttest",
+        "subset": "RE_vs_ME",
+        "variable": "log.fdr",
+        "name": "ttest|RE_vs_ME|log.fdr"
+      },
+      "axis_mode": null
+    },
+    "sample": {
+      "x": {
+        "analysis": "PCA",
+        "subset": "All",
+        "variable": "PC1(10.5%)",
+        "name": "PCA|All|PC1(10.5%)"
+      },
+      "y": {
+        "analysis": "PCA",
+        "subset": "All",
+        "variable": "PC2(7.2%)",
+        "name": "PCA|All|PC2(7.2%)"
+      },
+      "axis_mode": null
+    }
+  },
+  "capabilities": {
+    "capability_count": 170,
+    "panels": [
+      "Analysis space",
+      "Data space"
+    ],
+    "semantic_tools": [
+      "set_omics_viewer_state",
+      "set_scatter_view",
+      "set_enrichment_parameters",
+      "set_table_view",
+      "create_figure",
+      "update_figure"
+    ]
+  }
+}

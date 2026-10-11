@@ -1,0 +1,79 @@
+{
+  "case": "055-dataspace_sample_space_x_variable",
+  "caseId": "dataspace.sample_space.x_variable",
+  "category": "binding",
+  "bindingId": "dataspace.sample_space.x_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.sample_space.x_variable",
+    "kind": "select_cascaded",
+    "label": "X-axis variable",
+    "help": "Annotation variable plotted on the X axis",
+    "depends_on": [
+      "dataspace.sample_space.x_analysis",
+      "dataspace.sample_space.x_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.sample_space.x_variable": "MDR"
+    }
+  },
+  "status": "success",
+  "duration_ms": 471,
+  "note": "",
+  "receipt": {
+    "hook_run": 328,
+    "applied": "dataspace.sample_space.x_variable",
+    "applied_values": {
+      "dataspace.sample_space.x_variable": "MDR"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 328,
+        "applied": "dataspace.sample_space.x_variable",
+        "applied_values": {
+          "dataspace.sample_space.x_variable": "MDR"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 327,
+        "after": 328
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-dataspace-sample_space-tris_main_scatter1-variable",
+        "before": "Cell.line",
+        "after": "MDR"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.sample_space.x_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.sample_space.x_variable\":\"MDR\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "dataspace.sample_space.x_variable": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 220
+}

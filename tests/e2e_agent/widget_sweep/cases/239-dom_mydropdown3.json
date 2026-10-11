@@ -1,0 +1,16 @@
+{
+  "caseId": "dom:mydropdown3",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "mydropdown3",
+    "description": "BUTTON:button visible=false"
+  },
+  "guesses": [
+    "app",
+    "dataspace.global_search",
+    "resultspace.global_search"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": ""
+}

@@ -1,0 +1,22 @@
+{
+  "caseId": "dataspace.sample_space.attr4.color_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.attr4.color_subset",
+  "widget": {
+    "binding_id": "dataspace.sample_space.attr4.color_subset",
+    "kind": "select",
+    "label": "Color attribute subcategory",
+    "help": "Second level of the color attribute cascade",
+    "depends_on": "dataspace.sample_space.attr4.color_analysis",
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.attr4.color_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "tool:set_omics_viewer_state(data_space_tab)",
+  "category": "semantic-tool",
+  "tool": "set_omics_viewer_state",
+  "hookOp": "state",
+  "request": {
+    "data_space_tab": "Heatmap"
+  }
+}

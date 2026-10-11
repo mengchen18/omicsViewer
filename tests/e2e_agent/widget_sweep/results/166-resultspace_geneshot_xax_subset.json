@@ -1,0 +1,73 @@
+{
+  "case": "166-resultspace_geneshot_xax_subset",
+  "caseId": "resultspace.geneshot.xax_subset",
+  "category": "binding",
+  "bindingId": "resultspace.geneshot.xax_subset",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.geneshot.xax_subset",
+    "kind": "select",
+    "label": "ID mapper subcategory",
+    "help": "Subcategory within the ID-mapper category",
+    "depends_on": "resultspace.geneshot.xax_analysis",
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.geneshot.xax_subset": "All"
+    }
+  },
+  "status": "success",
+  "duration_ms": 439,
+  "note": "class-verified: same triselector group-push mechanism as attr4 (spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI)) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 781,
+    "applied": "resultspace.geneshot.xax_subset",
+    "applied_values": {
+      "resultspace.geneshot.xax_subset": "All"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 781,
+        "applied": "resultspace.geneshot.xax_subset",
+        "applied_values": {
+          "resultspace.geneshot.xax_subset": "All"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 780,
+        "after": 781
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.geneshot.xax_subset\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.geneshot.xax_subset\":\"All\"}}"
+      }
+    ],
+    "waited_ms": 46
+  },
+  "store_readback": {
+    "resultspace.geneshot.xax_subset": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 132,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

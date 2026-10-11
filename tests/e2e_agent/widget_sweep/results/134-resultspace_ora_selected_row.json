@@ -1,0 +1,78 @@
+{
+  "case": "134-resultspace_ora_selected_row",
+  "caseId": "resultspace.ora.selected_row",
+  "category": "binding",
+  "bindingId": "resultspace.ora.selected_row",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ora.selected_row",
+    "kind": "select",
+    "label": "Selected pathway",
+    "help": "Gene set whose row is selected in the results table; drives the overlap-genes table below",
+    "depends_on": [],
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ora.selected_row": "tissue.morphogenesis"
+    }
+  },
+  "status": "success",
+  "duration_ms": 570,
+  "note": "",
+  "receipt": {
+    "hook_run": 650,
+    "applied": "resultspace.ora.selected_row",
+    "applied_values": {
+      "resultspace.ora.selected_row": "tissue.morphogenesis"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 650,
+        "applied": "resultspace.ora.selected_row",
+        "applied_values": {
+          "resultspace.ora.selected_row": "tissue.morphogenesis"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 649,
+        "after": 650
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ora.selected_row\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ora.selected_row\":\"tissue.morphogenesis\"}}"
+      },
+      {
+        "input": "app-resultspace-ora-stab-table_rows_selected",
+        "before": [],
+        "after": [
+          1
+        ]
+      }
+    ],
+    "waited_ms": 33
+  },
+  "store_readback": {
+    "resultspace.ora.selected_row": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 297
+}

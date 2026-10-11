@@ -1,0 +1,65 @@
+{
+  "case": "097-dataspace_dyn_heatmap_row_sort_by",
+  "caseId": "dataspace.dyn_heatmap.row_sort_by",
+  "category": "binding",
+  "bindingId": "dataspace.dyn_heatmap.row_sort_by",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.row_sort_by",
+    "kind": "select",
+    "label": "Sort rows by",
+    "help": "Row ordering: a precomputed dendrogram (HCL entries), 'none', 'hierarchical cluster', a feature annotation column, or a gene set (GS| prefixed)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.row_sort_by": "hierarchical cluster"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 382,
+  "note": "REAL DISCOVERY GAP: same tab-state-dependent provider hole (supplementary_dyn_heatmap.json)",
+  "receipt": {
+    "hook_run": 500,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "dataspace.dyn_heatmap.row_sort_by",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 500,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "dataspace.dyn_heatmap.row_sort_by",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 499,
+        "after": 500
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.dyn_heatmap.row_sort_by\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.dyn_heatmap.row_sort_by\":\"hierarchical cluster\"}}"
+      }
+    ],
+    "waited_ms": 31
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 325
+}

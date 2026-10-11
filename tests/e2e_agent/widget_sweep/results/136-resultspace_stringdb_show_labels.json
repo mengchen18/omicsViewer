@@ -1,0 +1,76 @@
+{
+  "case": "136-resultspace_stringdb_show_labels",
+  "caseId": "resultspace.stringdb.show_labels",
+  "category": "binding",
+  "bindingId": "resultspace.stringdb.show_labels",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.stringdb.show_labels",
+    "kind": "boolean",
+    "label": "Show network labels",
+    "help": "Draw gene labels on the interaction network",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.stringdb.show_labels": true
+    }
+  },
+  "status": "success",
+  "duration_ms": 568,
+  "note": "",
+  "receipt": {
+    "hook_run": 658,
+    "applied": "resultspace.stringdb.show_labels",
+    "applied_values": {
+      "resultspace.stringdb.show_labels": true
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 658,
+        "applied": "resultspace.stringdb.show_labels",
+        "applied_values": {
+          "resultspace.stringdb.show_labels": true
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 657,
+        "after": 658
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.stringdb.show_labels\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.stringdb.show_labels\":true}}"
+      },
+      {
+        "input": "app-resultspace-stringdb-showLabel",
+        "before": false,
+        "after": true
+      }
+    ],
+    "waited_ms": 30
+  },
+  "store_readback": {
+    "resultspace.stringdb.show_labels": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 263
+}

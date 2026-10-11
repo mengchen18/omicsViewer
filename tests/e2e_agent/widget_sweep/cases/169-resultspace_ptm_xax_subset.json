@@ -1,0 +1,23 @@
+{
+  "caseId": "resultspace.ptm.xax_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ptm.xax_subset",
+  "widget": {
+    "binding_id": "resultspace.ptm.xax_subset",
+    "kind": "select",
+    "label": "Sequence subcategory",
+    "help": "Subcategory within the sequence category",
+    "depends_on": "resultspace.ptm.xax_analysis",
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ptm.xax_subset": "All"
+    }
+  },
+  "fresh_current": "All",
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

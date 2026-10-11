@@ -1,0 +1,62 @@
+{
+  "case": "213-dom_app_dataspace_sample_space_axisMode",
+  "caseId": "dom:app-dataspace-sample_space-axisMode",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-sample_space-axisMode",
+    "description": "DIV visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 258,
+  "note": "",
+  "receipt": {
+    "hook_run": 846,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.sample_space.axisMode",
+        "reason": "Unknown widget id: dataspace.sample_space.axisMode. Closest matches: dataspace.sample_space.axis_mode, dataspace.feature_space.axis_mode, dataspace.sample_space.x_subset."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.sample_space.axisMode",
+      "receipt": {
+        "hook_run": 846,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.sample_space.axisMode",
+            "reason": "Unknown widget id: dataspace.sample_space.axisMode. Closest matches: dataspace.sample_space.axis_mode, dataspace.feature_space.axis_mode, dataspace.sample_space.x_subset."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 845,
+        "after": 846
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"dataspace.tab_feature.addcolPanel\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.sample_space.axisMode\":\"AGENTPROBE\"}}"
+      }
+    ],
+    "waited_ms": 47
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 121
+}

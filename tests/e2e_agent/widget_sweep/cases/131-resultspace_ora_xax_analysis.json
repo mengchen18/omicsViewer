@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.ora.xax_analysis",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ora.xax_analysis",
+  "widget": {
+    "binding_id": "resultspace.ora.xax_analysis",
+    "kind": "select",
+    "label": "Collapse category",
+    "help": "Annotation category whose values the input features are collapsed on before testing over-representation",
+    "depends_on": [],
+    "operation": "set_enrichment_parameters"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ora.xax_analysis": "General"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (General)"
+}

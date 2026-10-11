@@ -1,0 +1,13 @@
+{
+  "caseId": "tool:set_omics_viewer_state(features)",
+  "category": "semantic-tool",
+  "tool": "set_omics_viewer_state",
+  "hookOp": "state",
+  "request": {
+    "features": [
+      "X32.TYW5",
+      "X52.CNOT1",
+      "X55.MAP1LC3B.MAP1LC3B2"
+    ]
+  }
+}

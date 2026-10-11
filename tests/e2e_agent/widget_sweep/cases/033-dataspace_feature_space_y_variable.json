@@ -1,0 +1,25 @@
+{
+  "caseId": "dataspace.feature_space.y_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.feature_space.y_variable",
+  "widget": {
+    "binding_id": "dataspace.feature_space.y_variable",
+    "kind": "select_cascaded",
+    "label": "Y-axis variable",
+    "help": "Annotation variable plotted on the Y axis",
+    "depends_on": [
+      "dataspace.feature_space.y_analysis",
+      "dataspace.feature_space.y_subset"
+    ],
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.feature_space.y_variable": "Protein.ID"
+    }
+  },
+  "fresh_current": "Gene.name",
+  "probeNote": "first allowed != current (Protein.ID)"
+}

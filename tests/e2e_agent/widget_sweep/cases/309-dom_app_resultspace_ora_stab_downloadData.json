@@ -1,0 +1,14 @@
+{
+  "caseId": "dom:app-resultspace-ora-stab-downloadData",
+  "category": "dom-only",
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-resultspace-ora-stab-downloadData",
+    "description": "download control (Save table)"
+  },
+  "guesses": [
+    "resultspace.ora.stab.downloadData"
+  ],
+  "probeValue": "AGENTPROBE",
+  "note": "download output - no value semantics"
+}

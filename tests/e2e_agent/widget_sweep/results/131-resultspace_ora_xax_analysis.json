@@ -1,0 +1,73 @@
+{
+  "case": "131-resultspace_ora_xax_analysis",
+  "caseId": "resultspace.ora.xax_analysis",
+  "category": "binding",
+  "bindingId": "resultspace.ora.xax_analysis",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ora.xax_analysis",
+    "kind": "select",
+    "label": "Collapse category",
+    "help": "Annotation category whose values the input features are collapsed on before testing over-representation",
+    "depends_on": [],
+    "operation": "set_enrichment_parameters"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ora.xax_analysis": "General"
+    }
+  },
+  "status": "success",
+  "duration_ms": 319,
+  "note": "class-verified: same triselector group-push mechanism as attr4 (spotcheck2 A: single-key triselector group writes verified live (color_analysis General->PCA reached the UI)) | revalidated: only hook-panel noise inputs changed; no real UI input/plot effect observed.",
+  "receipt": {
+    "hook_run": 638,
+    "applied": "resultspace.ora.xax_analysis",
+    "applied_values": {
+      "resultspace.ora.xax_analysis": "General"
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 638,
+        "applied": "resultspace.ora.xax_analysis",
+        "applied_values": {
+          "resultspace.ora.xax_analysis": "General"
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 637,
+        "after": 638
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ora.xax_analysis\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ora.xax_analysis\":\"General\"}}"
+      }
+    ],
+    "waited_ms": 19
+  },
+  "store_readback": {
+    "resultspace.ora.xax_analysis": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 131,
+  "_status_before_revalidation": "success",
+  "verification": "spotcheck"
+}

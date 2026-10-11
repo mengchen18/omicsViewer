@@ -1,0 +1,25 @@
+{
+  "caseId": "resultspace.fgsea.xax_variable",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.fgsea.xax_variable",
+  "widget": {
+    "binding_id": "resultspace.fgsea.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Ranking variable",
+    "help": "Numeric feature annotation the features are ranked by for the enrichment analysis",
+    "depends_on": [
+      "resultspace.fgsea.xax_analysis",
+      "resultspace.fgsea.xax_subset"
+    ],
+    "operation": "set_enrichment_parameters"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.fgsea.xax_variable": "Intensity"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (Intensity)"
+}

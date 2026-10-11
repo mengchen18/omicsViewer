@@ -1,0 +1,23 @@
+{
+  "caseId": "dataspace.dyn_heatmap.annot_row",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.dyn_heatmap.annot_row",
+  "widget": {
+    "binding_id": "dataspace.dyn_heatmap.annot_row",
+    "kind": "multi_select",
+    "label": "Row annotations",
+    "help": "Feature annotation columns (or GS| gene sets) drawn as color bars beside the heatmap; empty clears the bars",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.dyn_heatmap.annot_row": []
+    }
+  },
+  "fresh_current": [],
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

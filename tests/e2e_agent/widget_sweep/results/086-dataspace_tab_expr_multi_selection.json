@@ -1,0 +1,76 @@
+{
+  "case": "086-dataspace_tab_expr_multi_selection",
+  "caseId": "dataspace.tab_expr.multi_selection",
+  "category": "binding",
+  "bindingId": "dataspace.tab_expr.multi_selection",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "dataspace.tab_expr.multi_selection",
+    "kind": "boolean",
+    "label": "Multiple selection",
+    "help": "Allow selecting more than one row in the table",
+    "depends_on": [],
+    "operation": "set_table_view"
+  },
+  "request": {
+    "patch": {
+      "dataspace.tab_expr.multi_selection": true
+    }
+  },
+  "status": "success",
+  "duration_ms": 466,
+  "note": "",
+  "receipt": {
+    "hook_run": 453,
+    "applied": "dataspace.tab_expr.multi_selection",
+    "applied_values": {
+      "dataspace.tab_expr.multi_selection": true
+    },
+    "unchanged": [],
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 453,
+        "applied": "dataspace.tab_expr.multi_selection",
+        "applied_values": {
+          "dataspace.tab_expr.multi_selection": true
+        },
+        "unchanged": [],
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-dataspace-tab_expr-multisel",
+        "before": false,
+        "after": true
+      },
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 452,
+        "after": 453
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"dataspace.tab_expr.multi_selection\",\"max_results\":50}",
+        "after": "{\"patch\":{\"dataspace.tab_expr.multi_selection\":true}}"
+      }
+    ],
+    "waited_ms": 20
+  },
+  "store_readback": {
+    "dataspace.tab_expr.multi_selection": null
+  },
+  "console_errors": [],
+  "hook_roundtrip_ms": 201
+}

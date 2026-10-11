@@ -1,0 +1,23 @@
+{
+  "caseId": "dataspace.sample_space.x_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "dataspace.sample_space.x_subset",
+  "widget": {
+    "binding_id": "dataspace.sample_space.x_subset",
+    "kind": "select",
+    "label": "X-axis subset",
+    "help": "Subset within the X-axis analysis",
+    "depends_on": "dataspace.sample_space.x_analysis",
+    "operation": "set_scatter_view"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "dataspace.sample_space.x_subset": "All"
+    }
+  },
+  "fresh_current": "All",
+  "probeNote": "no probe derivable (kind/choices)",
+  "skipReason": "no probe"
+}

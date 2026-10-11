@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.feature_general.plot_type",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.feature_general.plot_type",
+  "widget": {
+    "binding_id": "resultspace.feature_general.plot_type",
+    "kind": "enum",
+    "label": "Plot type",
+    "help": "Beeswarm/box view or ROC/PR classification curves (categorical link variable with few features)",
+    "depends_on": [],
+    "operation": "set_widgets"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.feature_general.plot_type": "Curve"
+    }
+  },
+  "fresh_current": "Bees",
+  "probeNote": "first allowed != current (Curve)"
+}

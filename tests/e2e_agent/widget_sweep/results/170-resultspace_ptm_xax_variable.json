@@ -1,0 +1,68 @@
+{
+  "case": "170-resultspace_ptm_xax_variable",
+  "caseId": "resultspace.ptm.xax_variable",
+  "category": "binding",
+  "bindingId": "resultspace.ptm.xax_variable",
+  "tool": "set_widgets",
+  "widget": {
+    "binding_id": "resultspace.ptm.xax_variable",
+    "kind": "select_cascaded",
+    "label": "Sequence column",
+    "help": "Feature annotation column holding the sequence windows around modification sites",
+    "depends_on": [
+      "resultspace.ptm.xax_analysis",
+      "resultspace.ptm.xax_subset"
+    ],
+    "operation": "set_widgets"
+  },
+  "request": {
+    "patch": {
+      "resultspace.ptm.xax_variable": "seq.window"
+    }
+  },
+  "status": "no-probe",
+  "duration_ms": 281,
+  "note": "no distinct value: single valid variable already current",
+  "receipt": {
+    "hook_run": 801,
+    "applied": [],
+    "applied_values": {},
+    "unchanged": "resultspace.ptm.xax_variable",
+    "rejected": []
+  },
+  "attempts": [
+    {
+      "op": "widgets",
+      "receipt": {
+        "hook_run": 801,
+        "applied": [],
+        "applied_values": {},
+        "unchanged": "resultspace.ptm.xax_variable",
+        "rejected": []
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 800,
+        "after": 801
+      },
+      {
+        "input": "app-agentTestHooks-op",
+        "before": "capabilities",
+        "after": "widgets"
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"query\":\"resultspace.ptm.xax_variable\",\"max_results\":50}",
+        "after": "{\"patch\":{\"resultspace.ptm.xax_variable\":\"seq.window\"}}"
+      }
+    ],
+    "waited_ms": 18
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 237
+}

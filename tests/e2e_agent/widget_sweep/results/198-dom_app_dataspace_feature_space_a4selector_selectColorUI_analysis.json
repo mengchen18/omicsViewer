@@ -1,0 +1,62 @@
+{
+  "case": "198-dom_app_dataspace_feature_space_a4selector_selectColorUI_analysis",
+  "caseId": "dom:app-dataspace-feature_space-a4selector-selectColorUI-analysis",
+  "category": "dom-only",
+  "bindingId": null,
+  "tool": "set_widgets(attempt)",
+  "widget": {
+    "dom_id": "app-dataspace-feature_space-a4selector-selectColorUI-analysis",
+    "description": "SELECT:select-one visible=false"
+  },
+  "request": null,
+  "status": "unaddressable",
+  "duration_ms": 208,
+  "note": "",
+  "receipt": {
+    "hook_run": 831,
+    "applied": [],
+    "applied_values": [],
+    "unchanged": [],
+    "rejected": [
+      {
+        "id": "dataspace.feature_space.a4selector.selectColorUI.analysis",
+        "reason": "Unknown widget id: dataspace.feature_space.a4selector.selectColorUI.analysis. Closest matches: dataspace.feature_space.attr4.color_analysis, dataspace.feature_space.attr4.tooltip_analysis, dataspace.feature_space.attr4.search_analysis."
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "guess": "dataspace.feature_space.a4selector.selectColorUI.analysis",
+      "receipt": {
+        "hook_run": 831,
+        "applied": [],
+        "applied_values": [],
+        "unchanged": [],
+        "rejected": [
+          {
+            "id": "dataspace.feature_space.a4selector.selectColorUI.analysis",
+            "reason": "Unknown widget id: dataspace.feature_space.a4selector.selectColorUI.analysis. Closest matches: dataspace.feature_space.attr4.color_analysis, dataspace.feature_space.attr4.tooltip_analysis, dataspace.feature_space.attr4.search_analysis."
+          }
+        ]
+      }
+    }
+  ],
+  "ui_effect": {
+    "changed_inputs": [
+      {
+        "input": "app-agentTestHooks-run:shiny.action",
+        "before": 830,
+        "after": 831
+      },
+      {
+        "input": "app-agentTestHooks-payload",
+        "before": "{\"patch\":{\"resultspace.global_search\":\"AGENTPROBE\"}}",
+        "after": "{\"patch\":{\"dataspace.feature_space.a4selector.selectColorUI.analysis\":\"x\"}}"
+      }
+    ],
+    "waited_ms": 48
+  },
+  "store_readback": null,
+  "console_errors": [],
+  "hook_roundtrip_ms": 118
+}

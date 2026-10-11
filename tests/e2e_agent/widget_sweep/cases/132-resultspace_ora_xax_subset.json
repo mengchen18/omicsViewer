@@ -1,0 +1,22 @@
+{
+  "caseId": "resultspace.ora.xax_subset",
+  "category": "binding",
+  "tool": "set_widgets",
+  "bindingId": "resultspace.ora.xax_subset",
+  "widget": {
+    "binding_id": "resultspace.ora.xax_subset",
+    "kind": "select",
+    "label": "Collapse subcategory",
+    "help": "Subcategory within the collapse category",
+    "depends_on": "resultspace.ora.xax_analysis",
+    "operation": "set_enrichment_parameters"
+  },
+  "hookOp": "widgets",
+  "request": {
+    "patch": {
+      "resultspace.ora.xax_subset": "All"
+    }
+  },
+  "fresh_current": null,
+  "probeNote": "first allowed != current (All)"
+}
