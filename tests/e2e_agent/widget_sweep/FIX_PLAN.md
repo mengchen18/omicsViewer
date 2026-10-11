@@ -119,7 +119,7 @@ no-probe→success; the 4 dyn dom-only inputs deliberately KEPT at
 unaddressable as congestion canaries — see baseline note). Full sweep
 gate PASS, zero regressions.
 
-### WP-B Fix the table `columns` write anomaly (F4) — ~1 d
+### WP-B Fix the table `columns` write anomaly (F4) — ~1 d — DONE (2026-10-12, NO product code change)
 
 Root cause (hypothesis to confirm first, ~2 h): the sweep sent a 1-element
 array; `agent_args_sanitize` canonicalizes it to a scalar (by design); the
@@ -131,6 +131,32 @@ push arms `scn(okcols)` but the load-time sync observer
 stale `scn()` back over the fresh store value before the pushed table
 re-render acknowledges — the pending/ack window is not armed for columns
 the way page/filters are via the proxy.
+
+**Outcome (see `wp_b_finding.md` for the full evidence): all three F4
+claims dissolved under direct verification; the write path is fully
+functional; the plan's two hypotheses are disproven.** (1) The "scalar
+mangle" is display-only: sanitize canonicalizes homogeneous arrays to
+atomic vectors — for 1-element arrays the result IS the ordinary length-1
+R character vector (no scalar type exists) — and the hook serializes
+receipts with toJSON(auto_unbox=TRUE), rendering length-1 vectors as bare
+JSON strings; the validator already accepts both wire shapes; zero store
+corruption (browser-verified: read-back exact, table renders exactly the
+written set). (2) The "read-back NULL" was a HARNESS bug — sweep_harness.mjs
+read `snap.values` from runHook's `{result, ms}` wrapper, so every applied
+case in every run read back null (159/159 in the WP-A full run); fixed in
+the harness. (3) The "no-ui-effect" is the input-diff probe's observation
+limit: columns writes act through a table RE-RENDER (output-level),
+invisible to $inputValues diffing — and spotcheck2's "no effect" was a
+rejected write (`'featureId'` is not a tab_feature column). The suspected
+push/ack echo race is disproven: after every write the store equals the
+written set once the echo settles (16/16 checks ×2 runs,
+`verify_wp_b_table_columns.mjs`), including after re-renders, page pushes
+that follow columns re-renders, and deferred renders on tab open.
+Isolation re-runs ×3 + full run: columns cases deterministically show
+zero non-hook input changes (not flapping, not failing) — the curated
+no-ui-effect statuses remain correct as the documented residue. Sweep
+methodology note recorded for future WPs: re-render-type bindings need a
+DOM/output-level probe before believing no-ui-effect.
 
 Change:
 - Reproduce deterministically (extend `spotcheck2.mjs` into a unit test

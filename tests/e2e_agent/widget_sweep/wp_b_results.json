@@ -1,0 +1,85 @@
+{
+  "generated": "2026-10-11T15:22:27.212Z",
+  "results": [
+    {
+      "name": "open Sample table tab",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "table rendered with headers",
+      "pass": true,
+      "detail": "9 headers"
+    },
+    {
+      "name": "2-element write applied",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "read-back equals written set (after echo settles)",
+      "pass": true,
+      "detail": "store: [\"General|All|Cell.line\",\"General|All|MDR\"]"
+    },
+    {
+      "name": "DOM headers equal written set",
+      "pass": true,
+      "detail": "headers: [\"General|All|Cell.line\",\"General|All|MDR\"]"
+    },
+    {
+      "name": "1-element write applied",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "read-back equals written value (1 element)",
+      "pass": true,
+      "detail": "store: \"General|All|Origin\" (JSON scalar display of a length-1 R vector is expected)"
+    },
+    {
+      "name": "DOM headers equal written value (1 element)",
+      "pass": true,
+      "detail": "headers: [\"General|All|Origin\"]"
+    },
+    {
+      "name": "page push lands after columns re-render",
+      "pass": true,
+      "detail": "start: 25"
+    },
+    {
+      "name": "invalid column rejects",
+      "pass": true,
+      "detail": "Unknown value(s) for dataspace.tab_pheno.columns: NOPE|X|Y. Allowed: General|All|Cell.line"
+    },
+    {
+      "name": "store unchanged after rejection",
+      "pass": true,
+      "detail": "store: \"General|All|Origin\""
+    },
+    {
+      "name": "precondition: Expression table not rendered yet",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "write to uninitialized table applied in store",
+      "pass": true,
+      "detail": "store: [\"feature\",\"X786O_NCI60\"]"
+    },
+    {
+      "name": "open Expression tab",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "stored column set renders when the tab opens (deferred effect)",
+      "pass": true,
+      "detail": "headers: [\"feature\",\"X786O_NCI60\"]"
+    },
+    {
+      "name": "store still equals written set after render echo",
+      "pass": true,
+      "detail": "store: [\"feature\",\"X786O_NCI60\"]"
+    }
+  ]
+}

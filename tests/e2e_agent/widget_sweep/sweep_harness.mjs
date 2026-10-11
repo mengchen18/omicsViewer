@@ -490,10 +490,13 @@ async function runCase(page, caseSpec, consoleBuf) {
     };
     if (caseSpec.checkAxes) result.ui_effect.axis_titles = { before: axesBefore, after: axesAfter };
 
-    // store read-back for binding cases
+    // store read-back for binding cases. WP-B/F4 note: runHook returns
+    // {result, ms}; reading snap.values here (not snap.result.values) made
+    // EVERY read-back NULL - the "store read-back is NULL" evidence in the
+    // original F4 analysis was this harness bug, not a store anomaly.
     if (caseSpec.category === 'binding' && (receipt.applied || []).length) {
       const snap = await runHook(page, 'store', {});
-      result.store_readback = { [caseSpec.bindingId]: (snap.values || {})[caseSpec.bindingId] ?? null };
+      result.store_readback = { [caseSpec.bindingId]: ((snap.result || {}).values || {})[caseSpec.bindingId] ?? null };
     }
     result.console_errors = consoleBuf.slice(0, 5);
 
