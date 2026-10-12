@@ -1,0 +1,46 @@
+{
+  "generated": "2026-10-12T10:03:21.772Z",
+  "tabbed": false,
+  "cases": [
+    {
+      "case": "022",
+      "binding": "dataspace.expr_heatmap.row_sort_by",
+      "input": "app-dataspace-heatmapViewer-rowSortBy",
+      "written": "General|All|Gene.name",
+      "applied": "dataspace.expr_heatmap.row_sort_by",
+      "rejected": [],
+      "input_before": "",
+      "time_to_effect_ms": 0,
+      "effect_observed": true,
+      "store_readback": "General|All|Gene.name",
+      "heartbeat": {
+        "ticks": 41,
+        "stalls": [
+          1196
+        ],
+        "totalBlockedMs": 1196
+      },
+      "total_case_ms": 3664
+    },
+    {
+      "case": "026",
+      "binding": "dataspace.expr_heatmap.annot_row",
+      "input": "app-dataspace-heatmapViewer-annotRow",
+      "written": [
+        "General|All|Gene.name"
+      ],
+      "applied": "dataspace.expr_heatmap.annot_row",
+      "rejected": [],
+      "input_before": [],
+      "time_to_effect_ms": 64,
+      "effect_observed": true,
+      "store_readback": "General|All|Gene.name",
+      "heartbeat": {
+        "ticks": 6,
+        "stalls": [],
+        "totalBlockedMs": 0
+      },
+      "total_case_ms": 311
+    }
+  ]
+}

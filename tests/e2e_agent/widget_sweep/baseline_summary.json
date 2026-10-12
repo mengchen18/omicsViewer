@@ -1,6 +1,6 @@
 {
   "generated": "2026-10-11T14:31:59.167Z",
-  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged.",
+  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue.",
   "source_results": "/media/chen/Elements/github/omicsViewer/tests/e2e_agent/widget_sweep/results",
   "totals": {
     "cases": 337

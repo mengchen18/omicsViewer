@@ -175,13 +175,27 @@ Guards (first): `test_tableWidgetState`, `test_widgetStore`,
 Acceptance: sweep cases `dataspace.tab_*.columns` → `success` with
 non-noise UI diff; read-back equals written value.
 
-### WP-B2 expr-heatmap congestion follow-up (F6) — ~0.5 d
+### WP-B2 expr-heatmap congestion follow-up (F6) — ~0.5 d — DONE (2026-10-12, NO code change: pass branch)
 
 - Re-run cases 022/026 (`row_sort_by`, `annot_row`) live in isolation
   (spotcheck3). If they pass: mark harness congestion artifact in the
   baseline notes, no code change. If they reproduce: same provider/push
   analysis as WP-A/WP-B applied to the expr-heatmap instance.
 Acceptance: both cases green or a filed bug with reproduction.
+
+Outcome: both cases GREEN in every isolation run — 6/6 spotcheck3 runs
+(built for this WP; the plan's named tool did not exist) plus an
+in-harness isolation run (13/13 expr_heatmap success, 022 at 3.0 s and
+026 at 0.3 s case wall time). Effects land within the hook roundtrip
+(<~150 ms); the 2702×60 re-render stalls the main thread only ~1.2 s;
+store read-backs exact; no echo clobber. Root cause of the original
+no-ui-effect grades: the harness's waitUiEffect returns on the FIRST
+input diff — always the hook's own controls (~20 ms) — so the real
+observation window was ~20 ms, not 30 s (committed evidence:
+waited_ms 21-22). Curated statuses kept as documented residue; full
+evidence + methodology consequences in wp_b2_finding.md; baseline note
+field updated. Unit suites recorded: renderStability 46/46,
+snapshotRoundTrip 63/63.
 
 ---
 
