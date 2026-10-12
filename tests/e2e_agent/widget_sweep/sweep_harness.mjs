@@ -702,6 +702,114 @@ try {
     hookOp: 'tableview', request: { table: 'sample_table', clear_filters: true } });
   await push({ caseId: 'tool:set_table_view(expression_table)', category: 'semantic-tool', tool: 'set_table_view',
     hookOp: 'tableview', request: { table: 'expression_table', multi_selection: false } });
+
+  // ============ 3b. WP-E chained semantic case: stringdb run -> select row
+  // (F5 dead-end chain): resultspace.stringdb.selected_row is only
+  // operable AFTER a successful run whose gene set has STRING
+  // interactions. The generic binding case cannot probe it (choices are
+  // empty pre-run); this case proves the WHOLE chain with real
+  // preconditions: STRING-connected features selected, tab opened (the
+  // enrichment computes lazily and the table must initialize), run via
+  // run_control, choices materialized, selected_row written through
+  // set_widgets, and the table row actually selected (DOM-level proof).
+  {
+    const CHAIN_FEATURES = ['X1452.EGFR', 'X1477.MYC', 'X1570.TP53',
+                           'X2033.BRAF', 'X2371.CCND1'];
+    const SR = 'resultspace.stringdb.selected_row';
+    const t0c = Date.now();
+    const cres = {
+      case: '', caseId: 'tool:stringdb_chain_run_then_select',
+      category: 'semantic-tool',
+      tool: 'set_omics_viewer_state + run_control + set_widgets',
+      widget: { chain: 'select STRING-connected features -> run -> set selected_row' },
+      request: { features: CHAIN_FEATURES, run: 'resultspace.stringdb.run', set: SR },
+      status: null, duration_ms: null, note: '', receipt: null, attempts: [],
+      ui_effect: null, store_readback: null, console_errors: [] };
+    const step = async (op, payload) => (await runHook(page, op, payload)).result;
+    try {
+      await page.evaluate(() => {
+        // the result-space navbar (and its StringDB tab) materializes
+        // after the dataset settles; poll briefly for the anchor
+        const a = Array.from(document.querySelectorAll('a[data-toggle="tab"]'))
+          .find(x => x.offsetParent !== null && /StringDB/i.test(x.innerText));
+        if (a) a.click();
+      });
+      await new Promise(s => setTimeout(s, 1500));
+      const st = await step('state', { features: CHAIN_FEATURES });
+      // earlier sweep cases probe the taxonomy binding with a marker
+      // string (AGENTPROBE-*); restore a valid NCBI taxid before the
+      // run or the STRING API answers for an unknown species (empty
+      // results) - exactly what a well-behaved model would do after
+      // reading the current taxonomy value
+      const tax = await step('widgets', {
+        patch: { 'resultspace.stringdb.taxonomy': '9606' } });
+      const run = await step('runcontrol', { action_id: 'resultspace.stringdb.run' });
+      cres.attempts.push({
+        feature_count: st?.feature_count ?? st?.selection?.features?.count ?? null,
+        taxonomy: tax?.applied ?? null,
+        run: { ran: run?.ran, epoch: run?.epoch, error: run?.error } });
+      if (!run || !run.ran || run.error)
+        throw new Error(`run_control failed: ${JSON.stringify(run?.error || run)}`);
+      let terms = null;
+      // two run attempts x 30 s: the STRING enrichment endpoint is a real
+      // external API and can transiently fail/timeout; a second signal
+      // bump re-fires the lazy eventReactive chain
+      for (let attempt = 0; attempt < 2 && !(terms && terms.length); attempt++) {
+        if (attempt > 0) {
+          const rerun = await step('runcontrol', { action_id: 'resultspace.stringdb.run' });
+          cres.attempts.push({ rerun: { ran: rerun?.ran, epoch: rerun?.epoch } });
+        }
+        for (let i = 0; i < 15; i++) {
+          await new Promise(s => setTimeout(s, 2000));
+          const rec = await step('capabilities', { query: SR, max_results: 3 });
+          const r = (rec.capabilities || []).find(c => c.id === SR);
+          terms = r?.allowed_values || [];
+          if (terms.length) break;
+        }
+      }
+      if (!terms.length) {
+        const notif = await page.evaluate(() =>
+          Array.from(document.querySelectorAll('.shiny-notification'))
+            .map(n => n.innerText.slice(0, 80)));
+        throw new Error(`enrichment terms did not materialize (60 s x 2 runs);` +
+          ` notifications: ${JSON.stringify(notif)}`);
+      }
+      const term = terms[0];
+      const set = await step('widgets', { patch: { [SR]: [term] } });
+      cres.receipt = set;
+      cres.store_readback = { [SR]: term };
+      const appliedOK = set.applied === SR ||
+        (Array.isArray(set.applied) ? set.applied.includes(SR)
+                                    : String(set.applied || '').includes(SR));
+      let rowSelected = false;
+      for (let i = 0; i < 15 && !rowSelected; i++) {
+        await new Promise(s => setTimeout(s, 1000));
+        rowSelected = await page.evaluate(() => {
+          for (const t of Array.from(document.querySelectorAll('table.dataTable'))) {
+            let el = t;
+            while (el && !(el.id && /stringdb/.test(el.id))) el = el.parentElement;
+            if (el && t.offsetParent !== null &&
+                t.querySelectorAll('tbody tr.selected').length) return true;
+          }
+          return false;
+        });
+      }
+      cres.ui_effect = { strtab_row_selected: rowSelected, term };
+      cres.status = appliedOK && rowSelected ? 'success' : 'error';
+      if (cres.status !== 'success')
+        cres.note = `applied=${JSON.stringify(set.applied)} rowSelected=${rowSelected}`;
+    } catch (e) {
+      cres.status = 'error';
+      cres.note = String(e.message || e).slice(0, 200);
+    }
+    cres.duration_ms = Date.now() - t0c;
+    caseCounter += 1;
+    cres.case = `${String(caseCounter).padStart(3, '0')}-${slug(cres.caseId)}`;
+    fs.writeFileSync(path.join(RESULTS, `${cres.case}.json`), JSON.stringify(cres, null, 2));
+    console.log(`  ${cres.case} [${cres.status}] ${cres.duration_ms}ms`);
+    semantic.push(cres);
+  }
+
   log(`semantic tool cases: ${semantic.length} done`);
 
   // ================= 4. empirical binding -> DOM input mapping =================

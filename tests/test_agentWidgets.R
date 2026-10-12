@@ -575,8 +575,9 @@ shiny::testServer(app_fg, {
       paste0("attr4.", outer(c("color", "shape", "size", "tooltip", "search"),
                              c("_analysis", "_subset", "_variable"),
                              FUN = paste0)),
+      "attr4.search_value",
       "attr4.xcut", "attr4.ycut", "attr4.scorner")))),
-    "feature_general registers 23 user-editable keys (5 own + 18 attr4)"
+    "feature_general registers 24 user-editable keys (5 own + 18 attr4 + WP-D search_value)"
   )
   # user pick through the triselector cascade syncs into the store
   session$setInputs(`fg-tris_feature_general-analysis` = "General")
@@ -688,11 +689,12 @@ shiny::testServer(app_sg, {
       paste0("attr4.", outer(c("color", "shape", "size", "tooltip", "search"),
                              c("_analysis", "_subset", "_variable"),
                              FUN = paste0)),
+      "attr4.search_value",
       "attr4.xcut", "attr4.ycut", "attr4.scorner",
       "survival_censor",
       "batch_show_phenotype", "batch_show_features",
       "batch_phenotype_selected_row", "batch_feature_selected_row")))),
-    "sample_general registers 26 keys (3 own + 18 attr4 + survival censor + 4 batch)"
+    "sample_general registers 27 keys (3 own + 18 attr4 + WP-D search_value + survival censor + 4 batch)"
   )
   session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
   session$setInputs(`sg-tris_sample_general-subset` = "All")

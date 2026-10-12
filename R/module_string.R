@@ -371,7 +371,11 @@ string_module <- function(
     store = store, store_key = "selected_row",
     store_label = "Selected enrichment term",
     store_help = paste("STRING enrichment term whose row is selected;",
-                       "highlights its genes in the network")
+                       "highlights its genes in the network.",
+                       "PRECONDITION: requires a successful Run first -",
+                       "features selected (max 300) whose identifiers have",
+                       "STRING interactions; the choices are the computed",
+                       "enrichment terms")
   )
 
   observe({

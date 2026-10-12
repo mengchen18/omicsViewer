@@ -545,7 +545,12 @@ batch_comparison_module <- function(
       store = store, store_key = "batch_phenotype_selected_row",
       store_label = "Selected phenotype variable",
       store_help = paste("Phenotype-comparison row selected in the batch",
-                         "results table; drives the sample link")
+                         "results table; drives the sample link.",
+                         "PRECONDITION: requires the Compare-phenotype toggle",
+                         "on, a sample selection defining two groups, and",
+                         "the batch panel visible - the comparison computes",
+                         "only then, and the row choices are its computed",
+                         "rows")
     )
 
     # Render features table and capture selection
@@ -563,7 +568,12 @@ batch_comparison_module <- function(
       store = store, store_key = "batch_feature_selected_row",
       store_label = "Selected feature",
       store_help = paste("Feature-comparison row selected in the batch",
-                         "results table; drives the sample link")
+                         "results table; drives the sample link.",
+                         "PRECONDITION: requires the Compare-features toggle",
+                         "on, a sample selection defining two groups, and",
+                         "the batch panel visible - the comparison computes",
+                         "only then, and the row choices are its computed",
+                         "rows")
     )
 
     # Track the last selected row from either table

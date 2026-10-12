@@ -320,7 +320,7 @@ refreshed surgically to 341 cases; guards identical (widgetStore 69,
 snapshotRoundTrip 63, scatterSelection 40, renderStability 46, plus
 attr4SearchHighlight 10, attr4TooltipDefault 23, triselectorCascade 10).
 
-### WP-E Dead-end chains & conditional widgets (F5) — ~1 d
+### WP-E Dead-end chains & conditional widgets (F5) — ~1 d — DONE (2026-10-12, one acceptance number deviates — see below)
 
 - `selected_row` (stringdb): unblocked by WP-C (choices materialize after
   `run`). Add a sweep case: run → then set selected_row → success.
@@ -334,6 +334,30 @@ attr4SearchHighlight 10, attr4TooltipDefault 23, triselectorCascade 10).
 Acceptance: stringdb selected_row end-to-end success; censor write
 succeeds once precondition met (new sweep/semantic case); remaining
 no-probe count = 8 benign.
+
+Outcome: stringdb chain MET end-to-end (the WP-C finding was only part
+of the story: the demo's probe genes simply have NO STRING interactions
+at any score - header-only API responses, curl/httr-verified; with a
+STRING-connected 5-gene selection the full chain works: run_control →
+50 terms materialize (lazily pulled by the capability queries) → table
+373 entries → selected_row write applied + tr.selected=1 + read-back
+exact; new sweep semantic case tool:stringdb_chain_run_then_select,
+success in 6.2 s both standalone and in-sweep once the case restores the
+taxonomy the sweep's own taxonomy-binding probe had poisoned with an
+AGENTPROBE marker). Batch *_selected_row: structurally conditional
+(computed results; show toggle + sample groups + panel visibility - no
+WP-A-style provider fix applicable) → PRECONDITION notes + probe chain
+proven (16 rows computed, choices materialize, write selects the row).
+survival_censor: PRECONDITION note + TWO REAL BUGS fixed - the R-M7
+push observer recorded .sv_desired AFTER the checkpoint gate (a push
+landing before the view renders was dropped; now recorded first), and
+probe-side key-shadowing; write now lands (slider 990→106, store agrees;
+the S4 testServer case stays green). Acceptance arithmetic DEVIATES:
+no-probe = 11 = 8 benign (F7) + 3 F5-conditional, not 8 - the three
+legs' choices cannot exist at binding-case time (the binding loop runs
+before any run/semantic case), so their mechanical statuses stay
+no-probe; each is individually justified (PRECONDITION record + verified
+chain). Full accounting in wp_e_finding.md; flagged for Chen.
 
 ---
 

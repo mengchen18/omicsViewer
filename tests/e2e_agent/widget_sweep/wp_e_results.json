@@ -1,0 +1,95 @@
+{
+  "generated": "2026-10-12T14:25:01.316Z",
+  "results": [
+    {
+      "name": "capability record carries the PRECONDITION note: resultspace.stringdb.selected_row",
+      "pass": true,
+      "detail": "STRING enrichment term whose row is selected; highlights its genes in the network. PRECOND"
+    },
+    {
+      "name": "capability record carries the PRECONDITION note: resultspace.sample_general.batch_phenotype_selected_row",
+      "pass": true,
+      "detail": "Phenotype-comparison row selected in the batch results table; drives the sample link. PREC"
+    },
+    {
+      "name": "capability record carries the PRECONDITION note: resultspace.sample_general.batch_feature_selected_row",
+      "pass": true,
+      "detail": "Feature-comparison row selected in the batch results table; drives the sample link. PRECON"
+    },
+    {
+      "name": "capability record carries the PRECONDITION note: resultspace.sample_general.survival_censor",
+      "pass": true,
+      "detail": "Time at which the Kaplan-Meier analysis right-censors observations. PRECONDITION: requires"
+    },
+    {
+      "name": "precondition: 5 STRING-connected features selected",
+      "pass": true,
+      "detail": "5"
+    },
+    {
+      "name": "precondition: selected_row choices empty before the run",
+      "pass": true,
+      "detail": "0"
+    },
+    {
+      "name": "run_control drove resultspace.stringdb.run",
+      "pass": true,
+      "detail": "epoch 1"
+    },
+    {
+      "name": "selected_row choices MATERIALIZED (F5 unblocked)",
+      "pass": true,
+      "detail": "50 terms, first: \"GO:0009416\""
+    },
+    {
+      "name": "open StringDB tab (result space, after the run)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "enrichment table POPULATED after the run",
+      "pass": true,
+      "detail": "rows: 10 | info: Showing 1 to 10 of 373 entries"
+    },
+    {
+      "name": "selected_row WRITE applies and the table row is SELECTED (end-to-end)",
+      "pass": true,
+      "detail": "applied: \"resultspace.stringdb.selected_row\" | tr.selected: 1 | read-back: \"GO:0009416\""
+    },
+    {
+      "name": "open Sample tab (result space, scoped)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch phenotype table computes with preconditions met",
+      "pass": true,
+      "detail": "rows: 8 | info: Showing 1 to 8 of 16 entries"
+    },
+    {
+      "name": "batch_phenotype_selected_row choices materialize",
+      "pass": true,
+      "detail": "16 rows, first: \"General|All|Dose\""
+    },
+    {
+      "name": "batch_phenotype_selected_row write selects the row",
+      "pass": true,
+      "detail": "applied: \"resultspace.sample_general.batch_phenotype_selected_row\" | tr.selected: 1"
+    },
+    {
+      "name": "cascade write to the Surv column applies (3 keys)",
+      "pass": true,
+      "detail": "applied: [\"resultspace.sample_general.xax_analysis\",\"resultspace.sample_general.xax_subset\",\"resultspace.sample_general.xax_variable\"]"
+    },
+    {
+      "name": "survival view renders the censor slider after the Surv column is set",
+      "pass": true,
+      "detail": "{\"key\":\"app-resultspace-sample_general-sample_general_surv-censor\",\"value\":990}"
+    },
+    {
+      "name": "censor WRITE lands once the precondition is met (slider + store agree)",
+      "pass": true,
+      "detail": "applied: \"resultspace.sample_general.survival_censor\" | slider: 990 -> 106 | store: 106 (write 20 clamps into the rendered time range, R-M7)"
+    }
+  ]
+}

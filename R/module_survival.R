@@ -125,7 +125,11 @@ survival_module <- function(
       store,
       widget_binding("survival_censor", "numeric", label = "Censor time",
         help = paste("Time at which the Kaplan-Meier analysis",
-                     "right-censors observations"),
+                     "right-censors observations. PRECONDITION: requires a",
+                     "survival-type (Surv) sample variable selected as the",
+                     "x-axis variable - the censor slider exists only in the",
+                     "survival view; a write that lands before the view",
+                     "renders is applied when it does"),
         choices_provider = NULL)
     )
     .sv_root_store <- if (is.null(store$parent)) store else store$parent
@@ -150,15 +154,18 @@ survival_module <- function(
       if (is.null(cv) ||
           is.null(.sv_root_store$pending[[paste0(store$prefix, ".survival_censor")]]))
         return(NULL)
-      ck <- tryCatch(reactive_checkpoint(), shiny.silent.error = function(e) FALSE,
-                     error = function(e) FALSE)
-      if (!isTRUE(ck)) return(NULL)
+      # WP-E/F5: record the desired value FIRST - BEFORE the checkpoint
+      # gate - so a push that lands before the survival view renders still
+      # applies when the view renders it (R-M7's stated contract; the
+      # gate used to sit above the recording and dropped such pushes:
+      # observed live as the slider rebuilding at the range max)
       rg <- .sv_range()
       if (!is.null(rg))
         cv <- min(max(cv, rg[1]), rg[2])
-      # record the desired value FIRST so a push that lands before the
-      # slider exists still applies when the view renders it (R-M7)
       .sv_desired(cv)
+      ck <- tryCatch(reactive_checkpoint(), shiny.silent.error = function(e) FALSE,
+                     error = function(e) FALSE)
+      if (!isTRUE(ck)) return(NULL)
       updateSliderInput(session, "censor", value = cv)
     }))
   }
