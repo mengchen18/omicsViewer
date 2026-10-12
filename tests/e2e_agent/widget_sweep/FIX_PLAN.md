@@ -363,7 +363,24 @@ chain). Full accounting in wp_e_finding.md; flagged for Chen.
 
 ## Phase 3 — performance guardrail (F2)
 
-### WP-F Categorical scatter-axis freeze — ~2 d
+### WP-F Categorical scatter-axis freeze — ~2 d — CANCELLED by Chen (2026-10-12), DO NOT RESURRECT
+
+**Chen reviewed the proposed fix and rejected it: the bounded index-axis
+rendering (numeric index + hover tooltips above ~500 uniques) loses
+categorical label fidelity for real users who legitimately want category
+labels on the x/y axis. The 2702-category freeze is ACCEPTED AS-IS rather
+than papered over. No app render change, no agent-side cardinality
+guard.** The finding itself (F2) remains factually true — a character
+axis with ~2702 unique values blocks the browser main thread ~200 s
+under software rendering, for humans and the agent alike — and the
+curated sweep baseline keeps the two `timeout` statuses as the honest
+record of that behavior.
+
+(Original, now-void text: two layers — module_scatter.R render fix
+rendering high-cardinality axes as a bounded numeric index axis with
+label-carrying tooltips; and an agent-side early guard rejecting axis
+writes over a cardinality cutoff. Not implemented; module_scatter.R and
+the scatter validators were never modified.)
 
 Root cause: a character axis with 2 702 unique values forces plotly to lay
 out 2 702 category labels; software rendering blocks the main thread

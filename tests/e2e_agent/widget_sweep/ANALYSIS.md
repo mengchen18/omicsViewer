@@ -56,6 +56,11 @@ of 2 702 categories, software rendering). Both `x_analysis` and
 `x_variable` cases timed out (198 s / 199 s). A model that points an
 axis at e.g. `Gene.name` effectively freezes the app for minutes.
 Numeric axis switches are fast (<3 s). → `results/028-*, 030-*`.
+**Dispositions: the planned remediation (WP-F: bounded index-axis
+rendering above a cutoff + agent-side cardinality rejection) was
+CANCELLED by Chen on 2026-10-12 — the index-axis substitution loses
+categorical label fidelity for human users, and the freeze is accepted
+as-is. Do not resurrect WP-F; see FIX_PLAN.md.**
 
 **F3 — dyn-heatmap discovery + validation hole (real, proven).**
 While the Dynamic-heatmap tab is inactive:
