@@ -274,7 +274,7 @@ not materialize — that investigation is exactly WP-E's `*_selected_row`
 scope. Golden fixtures updated deliberately (exactly two allowlists
 gained "run_control").
 
-### WP-D Bind the four `searchon` gene-highlight pickers — ~1 d
+### WP-D Bind the four `searchon` gene-highlight pickers — ~1 d — DONE (2026-10-12)
 
 The flagship demo gap (`verify_search_highlight.mjs` B4).
 - Register `search_value` as a `multi_select` binding under each attr4
@@ -299,6 +299,26 @@ Guards: `test_widgetStore`, `test_snapshotRoundTrip`,
 search_value through set_widgets → ring trace appears).
 Acceptance: sweep adds 4 `binding` cases for `attr4.search_value`, all
 `success`; `verify_search_highlight` 16/16.
+
+Implemented as planned, plus two joint-patch discoveries: (1) the choices
+provider derives from the EFFECTIVE view when the same transaction
+installs the Search column (the triselector recommits asynchronously,
+one observer flush later — varSelector is a pure function of the triple
+and the data, so `depends_on = search_variable` + an effective-view
+fallback makes a single 4-key patch valid); (2) a late-bind re-assert
+re-applies a search_value push whose updateSelectInput fired before the
+conditional searchon input existed (dropped by the client). The choices
+observer gained selection precedence (legacy restore > store value >
+preserved current selection — the WP-A re-default lesson). Legacy
+status path (params$status$searchValue → pre_search) kept: old
+snapshots migrate into the store key through the input round trip.
+Evidence: verify_search_highlight 16/16 (per-check output incl. joint
+patch phase C: 4/4 applied, read-back c("CNOT1"), ring trace at the
+gene coordinates); sweep gate PASS zero regressions with the 4 new
+binding cases success (binding 146→150 curated; raw 163), baseline
+refreshed surgically to 341 cases; guards identical (widgetStore 69,
+snapshotRoundTrip 63, scatterSelection 40, renderStability 46, plus
+attr4SearchHighlight 10, attr4TooltipDefault 23, triselectorCascade 10).
 
 ### WP-E Dead-end chains & conditional widgets (F5) — ~1 d
 

@@ -1,0 +1,85 @@
+{
+  "generated": "2026-10-12T12:57:57.290Z",
+  "results": [
+    {
+      "name": "A1 user: volcano quick view renders (mean.diff vs log.fdr)",
+      "pass": true,
+      "detail": "{\"x\":\"ttest|RE_vs_ME|mean.diff\",\"y\":\"ttest|RE_vs_ME|log.fdr\"}"
+    },
+    {
+      "name": "A2 user: gear box (attr4 dropdown) opens",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A3 user: Search column cascade set to General|All|Gene.name",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A4 user: gene picker appears with the column values as choices",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A5 user: gene highlighted with an open-ring trace at its position",
+      "pass": true,
+      "detail": "[{\"name\":\"Gene.name\",\"mode\":\"markers\",\"x\":[0.07339119367098679],\"y\":[0.3245538363446643]}]"
+    },
+    {
+      "name": "B1 agent: set_scatter_view -> volcano quick view",
+      "pass": true,
+      "detail": "feature: ttest|RE_vs_ME|mean.diff vs ttest|RE_vs_ME|log.fdr"
+    },
+    {
+      "name": "B2 agent: set_widgets applies the Search cascade (3 keys)",
+      "pass": true,
+      "detail": "applied: dataspace.feature_space.attr4.search_analysis, dataspace.feature_space.attr4.search_subset, dataspace.feature_space.attr4.search_variable"
+    },
+    {
+      "name": "B2b agent: store push updates the UI triselector and reveals the gene picker",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "B3 agent: find_controls(\"highlight\")/(\"gene name\") find the picker record",
+      "pass": true,
+      "detail": "highlight: 7 matches; gene name: 0 matches; picker record found: true"
+    },
+    {
+      "name": "B3b agent: the picker record exposes the column values as choices",
+      "pass": true,
+      "detail": "50 allowed (discovery head-bounded), includes CNOT1: true"
+    },
+    {
+      "name": "B4 agent: set_widgets applies attr4.search_value with the gene",
+      "pass": true,
+      "detail": "applied: dataspace.feature_space.attr4.search_value"
+    },
+    {
+      "name": "B4b agent: ring highlight trace appears on the plot",
+      "pass": true,
+      "detail": "[{\"name\":\"Gene.name\",\"mode\":\"markers\",\"x\":[0.07339119367098679],\"y\":[0.3245538363446643]}]"
+    },
+    {
+      "name": "B5 agent: selection works AND the ring highlight stays",
+      "pass": true,
+      "detail": "selected=1, highlight traces=1"
+    },
+    {
+      "name": "C1 agent: one joint patch applies cascade + search_value (4 keys)",
+      "pass": true,
+      "detail": "applied 4/4"
+    },
+    {
+      "name": "C2 agent: store read-back equals the written set after the echo settles",
+      "pass": true,
+      "detail": "read-back: \"CNOT1\""
+    },
+    {
+      "name": "C3 agent: open-ring trace at the gene coordinates (joint patch)",
+      "pass": true,
+      "detail": "[{\"name\":\"Gene.name\",\"mode\":\"markers\",\"x\":[0.07339119367098679],\"y\":[0.3245538363446643]}]"
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 {
-  "generated": "2026-10-12T11:59:22.827Z",
-  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue. WP-C (2026-10-12): 10 module action buttons move from dom-only to the new action category (9 success with handler-ran epoch proof; resultspace.stringdb.run availability-rejected in sweep order - feature_space.clear clears the selection first - and fully green with features selected in verify_wp_c_actions.mjs, 23/23; see wp_c_finding.md).",
+  "generated": "2026-10-12T12:56:54.955Z",
+  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue. WP-C (2026-10-12): 10 module action buttons move from dom-only to the new action category (9 success with handler-ran epoch proof; resultspace.stringdb.run availability-rejected in sweep order - feature_space.clear clears the selection first - and fully green with features selected in verify_wp_c_actions.mjs, 23/23; see wp_c_finding.md). WP-D (2026-10-12): 4 attr4.search_value bindings added (all success; depends_on search_variable orders joint patches and materializes choices). verify_search_highlight 16/16 incl. the joint-patch phase C.",
   "source_results": "/media/chen/Elements/github/omicsViewer/tests/e2e_agent/widget_sweep/results",
   "totals": {
-    "cases": 337
+    "cases": 341
   },
   "by_category_status": {
     "binding": {
-      "success": 146,
+      "success": 150,
       "no-ui-effect": 11,
       "timeout": 2,
       "no-probe": 11
@@ -1711,6 +1711,26 @@
       "status": "success",
       "case": "180-resultspace_geneshot_submit",
       "category": "action"
+    },
+    "dataspace.feature_space.attr4.search_value": {
+      "status": "success",
+      "case": "050-dataspace_feature_space_attr4_search_value",
+      "category": "binding"
+    },
+    "dataspace.sample_space.attr4.search_value": {
+      "status": "success",
+      "case": "076-dataspace_sample_space_attr4_search_value",
+      "category": "binding"
+    },
+    "resultspace.feature_general.attr4.search_value": {
+      "status": "success",
+      "case": "126-resultspace_feature_general_attr4_search_value",
+      "category": "binding"
+    },
+    "resultspace.sample_general.attr4.search_value": {
+      "status": "success",
+      "case": "159-resultspace_sample_general_attr4_search_value",
+      "category": "binding"
     }
   }
 }

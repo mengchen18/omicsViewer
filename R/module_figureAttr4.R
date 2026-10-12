@@ -122,11 +122,12 @@ attr4selector_module <- function(
   # its child view and the keys register under <prefix>.attr4.*. The five
   # triselector cascades (color/shape/size/tooltip/search) are driven by
   # store_watch selectors; cutoffs and the selected area sync/push through
-  # the standard observers. The search-value select (searchon) is NOT
-  # registered either: its highlight (searchValue) is carried by
-  # params$status -> snapshot restore -> pre_search instead of a store
-  # key, keeping the control-plane surface unchanged; the widget wiring
-  # itself lives below (observeEvent(input$searchon)).
+  # the standard observers. WP-D: the search-value select (searchon) is
+  # NOW a binding too (search_value, multi_select, values of the selected
+  # Search column). LEGACY path kept for pre-WP-D snapshots: the highlight
+  # also rides params$status$searchValue -> reactive_status -> pre_search
+  # -> the choices observer below, which migrates old snapshots into the
+  # store key through the input -> store_sync_from_ui round trip.
   # ------------------------------------------------------------------
   store4 <- NULL
   if (!is.null(store)) {
@@ -205,6 +206,18 @@ attr4selector_module <- function(
       )
     }), recursive = FALSE)
     .a4_binds <- c(.a4_binds, list(
+      # WP-D: the gene/value highlight picker under the Search cascade.
+      # depends_on the cascade's variable key so a joint patch (column +
+      # values) validates the values against the column the SAME patch is
+      # installing, and so the sweep/cascade write order materializes the
+      # choices (head(50) in discovery; full membership at validation).
+      widget_binding("search_value", "multi_select",
+        label = "Search highlight values",
+        help = paste("Values of the selected Search column to draw as",
+                     "open-ring highlights on the figure; set the Search",
+                     "column first; empty clears the highlight"),
+        depends_on = "search_variable",
+        choices_provider = function(v) .a4_search_values(v)),
       widget_binding("xcut", "string", label = "X cutoff",
         help = paste("X-axis cutoff for area selection; a number or an R",
                      "expression such as -log10(0.05)")),
@@ -358,7 +371,8 @@ attr4selector_module <- function(
         return(NULL)
       .a4_seeded <<- TRUE
       store_seed(store4, list(xcut = input$xcut, ycut = input$ycut,
-                              scorner = input$scorner))
+                              scorner = input$scorner,
+                              search_value = input$searchon %||% character(0)))
     }))
 
     # Store -> UI push for external writes only; the cascades re-derive from
@@ -366,7 +380,7 @@ attr4selector_module <- function(
     .a4_epoch <- store_epoch(store4)
     .a4_keep(observe({
       .a4_epoch()
-      vals <- store_read(store4, c("xcut", "ycut", "scorner"))
+      vals <- store_read(store4, c("xcut", "ycut", "scorner", "search_value"))
       pending <- .a4_root_store$pending
       if (!is.null(vals[[.a4_key("scorner")]]) &&
           !is.null(pending[[.a4_key("scorner")]]))
@@ -374,15 +388,85 @@ attr4selector_module <- function(
       for (k in c("xcut", "ycut"))
         if (!is.null(vals[[.a4_key(k)]]) && !is.null(pending[[.a4_key(k)]]))
           updateTextInputIcon(session, k, value = vals[[.a4_key(k)]])
+      # WP-D search_value: choices ride along (selectize drops a selected
+      # value that is not among the loaded options - the M9 lesson). The
+      # searchon input lives inside a conditionalPanel that may not exist
+      # yet when a joint patch (column + values) lands; the late-bind
+      # re-assert below re-applies such pushes once the input appears.
+      if (!is.null(vals[[.a4_key("search_value")]]) &&
+          !is.null(pending[[.a4_key("search_value")]]))
+        updateSelectInput(session, "searchon",
+          choices = .a4_search_values(),
+          selected = vals[[.a4_key("search_value")]])
     }))
+    # Late-bind re-assert: the searchon input reports its (empty) initial
+    # value exactly when the conditional panel renders; an external
+    # search_value push that fired before that moment was dropped by the
+    # client, so re-apply it while its pending entry is still armed.
+    .a4_keep(observeEvent(input$searchon, {
+      pend <- .a4_root_store$pending[[.a4_key("search_value")]]
+      if (!is.null(pend) && length(pend$value))
+        updateSelectInput(session, "searchon",
+          choices = isolate(.a4_search_values()), selected = pend$value)
+    }, ignoreInit = TRUE))
   }
 
 
   vv <- reactive( varSelector(searchOnCol(), expr = reactive_expr(), meta = reactive_meta()) )
 
+  # WP-D: defensive choice source for the store's search_value provider
+  # (discovery: head(50); validation: full membership). No req(): a
+  # shiny.validation condition inside a choices_provider would abort the
+  # whole store_apply transaction. Joint-patch support: when the SAME
+  # transaction is installing the Search column, the triselector has not
+  # recommitted yet (its observers flush asynchronously), so the values
+  # are derived from the EFFECTIVE view instead - varSelector is a pure
+  # function of the triple and the data.
+  .a4_search_values <- function(v = NULL) {
+    tr <- tryCatch(searchOnCol(),
+                   shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    committed <- if (is.null(tr) || is.null(tr$variable) ||
+                     !nzchar(tr$variable %||% "")) NULL else tr
+    eff <- NULL
+    if (!is.null(store4) && !is.null(v)) {
+      ev <- v[[.a4_key("search_variable")]]
+      if (!is.null(ev) && nzchar(ev) &&
+          (is.null(committed) || !identical(committed$variable, ev)))
+        eff <- list(analysis = v[[.a4_key("search_analysis")]],
+                    subset = v[[.a4_key("search_subset")]],
+                    variable = ev)
+    }
+    out <- tryCatch(
+      varSelector(
+        if (!is.null(eff)) eff else committed,
+        expr = reactive_expr(), meta = reactive_meta()),
+      shiny.silent.error = function(e) NULL,
+      error = function(e) NULL)
+    if (is.null(out)) character(0) else as.character(out)
+  }
+
   pre_search <- reactiveVal()
-  observe({    
-    updateSelectInput(session, "searchon", choices = vv(), selected = pre_search())
+  observe({
+    vals <- vv()
+    # Selection precedence for the choices (re-)push: legacy restore
+    # (pre_search) > store value (an external search_value write, incl.
+    # pushes that fired before the conditional searchon input existed and
+    # were dropped by the client) > the current valid selection (preserve
+    # across choice re-derivations - the WP-A re-default lesson).
+    sel <- pre_search()
+    if (is.null(sel) || !length(sel) || !all(sel %in% vals)) {
+      sel <- NULL
+      if (!is.null(store4)) {
+        sv <- isolate(store_read(store4, "search_value")[[1]])
+        if (!is.null(sv)) sel <- sv[sv %in% vals]
+      }
+      if (is.null(sel) || !length(sel)) {
+        cur <- isolate(input$searchon %||% character(0))
+        sel <- cur[cur %in% vals]
+      }
+    }
+    updateSelectInput(session, "searchon", choices = vals, selected = sel)
   })
   observe(
     updateCheckboxInput(session, "showSearchBox", value = !is.null(vv()))
@@ -533,6 +617,11 @@ attr4selector_module <- function(
   observeEvent(input$searchon, {
     v <- input$searchon
     searchValue(if (!is.null(v) && length(v) > 0L && any(nzchar(v))) v else NULL)
+    # WP-D UI -> store: the input is acknowledgement-aware, so pushed
+    # values ack their pending entries instead of counting as overrides
+    if (!is.null(store4))
+      store_sync_from_ui(store4, "search_value",
+                         if (length(v)) v else character(0))
   }, ignoreInit = TRUE)
 
   observe({    
@@ -541,6 +630,10 @@ attr4selector_module <- function(
       searchValue(NULL)
       pre_search(NULL)
       params$highlight <- NULL
+      # no Search column: any held highlight values are meaningless - clear
+      # the store key so discovery never reports stale highlights
+      if (!is.null(store4))
+        store_sync_from_ui(store4, "search_value", character(0))
     }
     })
   observe({    

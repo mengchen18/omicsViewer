@@ -21,19 +21,26 @@
 //                       B2 set the Search cascade columns  (works - the
 //                          store pushes reach the UI triselectors and the
 //                          searchon box is revealed)
-//                       B3 discover "highlight" through find_controls
-//                          (what the model can learn)
-//                       B4 try to fill the GENE NAME through set_widgets
-//                          (rejected - searchon is not a store widget)
-//                       B5 contrast: set_omics_viewer_state CAN select
-//                          the feature, but that is a selection, not the
-//                          ring highlight.
+//                       B3 discover "highlight"/"gene name" through
+//                          find_controls (WP-D: the picker record is
+//                          discoverable)
+//                       B4 fill the GENE NAME through set_widgets on
+//                          attr4.search_value (WP-D: applies)
+//                       B5 both planes operable: selection AND the ring
+//                          highlight.
+//
+//   [C] AGENT JOINT PATCH (WP-D acceptance) - one set_widgets call
+//                       carrying the Search cascade AND search_value in a
+//                       single transaction (depends_on ordering); asserts
+//                       store read-back equality after the echo settles
+//                       and the open-ring trace at the gene coordinates.
 //
 // Run:  node verify_search_highlight.mjs     (from tests/e2e_agent/)
 
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -311,43 +318,106 @@ try {
   const b3h = await runHook(page2, 'capabilities', { query: 'highlight' });
   const b3g = await runHook(page2, 'capabilities', { query: 'gene name' });
   const ids = (res) => (res.capabilities || []).map(c => c.id);
-  record('B3 agent: find_controls("highlight") finds the search cascade only',
-    !b3h.hook_error, `${b3h.match_count} matches: ${ids(b3h).join(', ')}`);
-  record('B3b agent: find_controls("gene name") finds nothing about a value box',
-    !b3g.hook_error && b3g.match_count >= 0,
-    `${b3g.match_count} matches: ${ids(b3g).join(', ')}`);
+  const pickerFound = ids(b3h).some(id => /attr4\.search_value$/.test(id)) ||
+                      ids(b3g).some(id => /attr4\.search_value$/.test(id));
+  record('B3 agent: find_controls("highlight")/("gene name") find the picker record',
+    !b3h.hook_error && !b3g.hook_error && pickerFound,
+    `highlight: ${b3h.match_count} matches; gene name: ${b3g.match_count} matches; picker record found: ${pickerFound}`);
+  const b3vals = await runHook(page2, 'capabilities',
+    { query: 'dataspace.feature_space.attr4.search_value', max_results: 3 });
+  const b3rec = (b3vals.capabilities || []).find(c =>
+    c.id === 'dataspace.feature_space.attr4.search_value');
+  record('B3b agent: the picker record exposes the column values as choices',
+    !!b3rec && (b3rec.allowed_values || []).length > 0 &&
+      (b3rec.allowed_values || []).includes(GENE),
+    `${(b3rec?.allowed_values || []).length} allowed (discovery head-bounded), includes ${GENE}: ${(b3rec?.allowed_values || []).includes(GENE)}`);
 
-  // B4: try to fill the gene name through set_widgets - the natural ids
-  // a model would try after B2/B3 - and assert the rejection
-  const guesses = [
-    'dataspace.feature_space.attr4.searchon',
-    'dataspace.feature_space.attr4.search_value',
-    'dataspace.feature_space.attr4.highlight'
-  ];
-  let allRejected = true;
-  for (const id of guesses) {
-    const res = await runHook(page2, 'widgets', { patch: { [id]: [GENE] } });
-    const rej = (res.rejected || [])[0];
-    const ok = !!rej && rej.id === id &&
-      /Unknown widget id/.test(rej.reason || '');
-    allRejected = allRejected && ok;
-    if (!ok) console.log('   guess not rejected as expected:', id, JSON.stringify(res).slice(0, 200));
-  }
-  record('B4 agent: set_widgets CANNOT fill the gene name (all plausible ids rejected)',
-    allRejected, `tried: ${guesses.join(', ')}`);
-  const noTrace = (await highlightTraces(page2)).length === 0;
-  record('B4b agent: no highlight trace appears on the plot', noTrace);
+  // B4 (WP-D): fill the gene name through set_widgets on search_value
+  const b4 = await runHook(page2, 'widgets', { patch: {
+    'dataspace.feature_space.attr4.search_value': [GENE] } });
+  // auto_unbox: single-key receipts serialize `applied` as a scalar string
+  const appliedList = x => typeof x === 'string' ? [x] : (x || []);
+  const b4ok = appliedList(b4.applied).includes('dataspace.feature_space.attr4.search_value') &&
+    (b4.rejected || []).length === 0;
+  record('B4 agent: set_widgets applies attr4.search_value with the gene', b4ok,
+    b4.hook_error || `applied: ${appliedList(b4.applied).join(', ')}`);
+  // ...and the ring trace actually renders on the plot
+  await page2.waitForFunction(() => {
+    const els = Array.from(document.querySelectorAll('.js-plotly-plot'))
+      .filter(e => e.offsetParent !== null && e.data);
+    for (const gd of els) {
+      if ((gd.data || []).some(t =>
+        t.marker && String(t.marker.symbol) === 'circle-open')) return true;
+    }
+    return false;
+  }, null, { timeout: 60000 });
+  const b4traces = await highlightTraces(page2);
+  record('B4b agent: ring highlight trace appears on the plot',
+    b4traces.length === 1 && b4traces[0].x.length === 1 &&
+    Math.abs(b4traces[0].x[0] - EXPECT.x) < 1e-4,
+    JSON.stringify(b4traces));
 
-  // B5: contrast - the agent CAN select the feature (semantic selection),
-  // but that is the table/selection plane, not the ring highlight
+  // B5: both planes operable: semantic selection AND the ring highlight
   const b5 = await runHook(page2, 'state', { features: ['X52.CNOT1'] });
   const ov = await runHook(page2, 'overview', {});
   const selCount = ov.selection && ov.selection.features &&
     ov.selection.features.count;
   const b5traces = await highlightTraces(page2);
-  record('B5 agent contrast: selection works, ring highlight does not',
-    !b5.hook_error && selCount === 1 && b5traces.length === 0,
+  record('B5 agent: selection works AND the ring highlight stays',
+    !b5.hook_error && selCount === 1 && b5traces.length === 1,
     `selected=${selCount}, highlight traces=${b5traces.length}`);
+
+  // ============================================================
+  // [C] AGENT JOINT PATCH - WP-D acceptance: one set_widgets call
+  // carrying the Search cascade AND search_value together
+  // ============================================================
+  console.log('\n--- [C] agent joint patch (WP-D) ---');
+  const page3 = await ctx.newPage();
+  await page3.goto(`http://127.0.0.1:${PORT}/`, { timeout: 90000 });
+  await page3.waitForFunction(() =>
+    Shiny.shinyapp.$inputValues['app-dataspace-eset'] &&
+    document.querySelector('#app-contents').offsetParent !== null, null, { timeout: 90000 });
+  await page3.evaluate(sel => {
+    document.querySelector(sel).style.display = 'block';
+  }, HOOK.box);
+  await runHook(page3, 'scatter', { space: 'feature', quick_view_id: 'volcano_RE_vs_ME' });
+  const c2 = await runHook(page3, 'widgets', { patch: {
+    'dataspace.feature_space.attr4.search_analysis': 'General',
+    'dataspace.feature_space.attr4.search_subset': 'All',
+    'dataspace.feature_space.attr4.search_variable': 'Gene.name',
+    'dataspace.feature_space.attr4.search_value': [GENE]
+  }});
+  const cOK = !c2.hook_error &&
+    appliedList(c2.applied).length === 4 && (c2.rejected || []).length === 0;
+  record('C1 agent: one joint patch applies cascade + search_value (4 keys)', cOK,
+    c2.hook_error || `applied ${appliedList(c2.applied).length}/4`);
+  // store read-back equals the written set after the echo settles
+  await page3.waitForFunction(id =>
+    (Shiny.shinyapp.$inputValues[`${id}-searchon`] || []).includes('CNOT1'),
+    A4, { timeout: 60000 });
+  const snapC = await runHook(page3, 'store', {});
+  const rb = snapC.values && snapC.values['dataspace.feature_space.attr4.search_value'];
+  // auto_unbox: a length-1 character vector serializes as a bare JSON
+  // string - both wire shapes represent the same R value c("CNOT1")
+  record('C2 agent: store read-back equals the written set after the echo settles',
+    rb === GENE || (Array.isArray(rb) && rb.length === 1 && rb[0] === GENE),
+    `read-back: ${JSON.stringify(rb)}`);
+  // and the ring trace renders at the gene's coordinates
+  await page3.waitForFunction(() => {
+    const els = Array.from(document.querySelectorAll('.js-plotly-plot'))
+      .filter(e => e.offsetParent !== null && e.data);
+    for (const gd of els) {
+      if ((gd.data || []).some(t =>
+        t.marker && String(t.marker.symbol) === 'circle-open')) return true;
+    }
+    return false;
+  }, null, { timeout: 60000 });
+  const cTraces = await highlightTraces(page3);
+  record('C3 agent: open-ring trace at the gene coordinates (joint patch)',
+    cTraces.length === 1 && cTraces[0].x.length === 1 &&
+    Math.abs(cTraces[0].x[0] - EXPECT.x) < 1e-4 &&
+    Math.abs(cTraces[0].y[0] - EXPECT.y) < 1e-4,
+    JSON.stringify(cTraces));
 
   await browser.close();
 } catch (e) {
@@ -357,5 +427,8 @@ try {
 
 const failed = results.filter(x => !x.pass);
 console.log(`\n${results.length - failed.length}/${results.length} passed`);
+// durable evidence (WP-D convention: widget_sweep/ carries the artifacts)
+fs.writeFileSync(path.join(here, 'widget_sweep', 'search_highlight_results.json'),
+  JSON.stringify({ generated: new Date().toISOString(), results }, null, 2));
 if (failed.length) exitCode = 1;
 process.exit(exitCode);
