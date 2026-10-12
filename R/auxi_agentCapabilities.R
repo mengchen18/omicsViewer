@@ -136,7 +136,11 @@ agent_tool_capabilities <- function() {
     writable = t$tier %in% c("semantic", "generic"),
     operation = t$id,
     allowed_values = NULL,
-    depends_on = NULL
+    depends_on = NULL,
+    tab = t$panel,
+    effect = paste0("Invokes the ", t$label,
+                    " assistant tool (", t$panel, ")."),
+    group = NULL
   ))
 }
 
@@ -169,6 +173,51 @@ agent_tool_capabilities <- function() {
   "set_widgets"
 }
 
+# WP-G1: owning navbar tab label for a canonical id (longest-prefix
+# lookup in the one static table AGENT_TAB_LABELS).
+.agent_widget_tab_label <- function(id) {
+  parts <- strsplit(id, ".", fixed = TRUE)[[1]]
+  for (i in rev(seq_along(parts))) {
+    p <- paste(parts[seq_len(i)], collapse = ".")
+    lab <- AGENT_TAB_LABELS[p]   # [ not [[ : unknown prefixes give NA
+    if (!is.na(lab)) return(unname(lab))
+  }
+  parts[[1]]
+}
+
+# WP-G1: one sentence - what changes when you set this control.
+.agent_widget_effect <- function(kind, label, tab, operation, id = "") {
+  what <- switch(kind,
+    navbar = , tabset = paste0("switches the ", tab, " view to the chosen tab"),
+    action = paste0("runs the '", label, "' command (the ", tab,
+                    " button equivalent)"),
+    multi_select = paste0("selects the ", tolower(label),
+                          " entries drawn on the ", tab, " panel"),
+    mapping = paste0("sets the per-key ", tolower(label),
+                     " patterns on the ", tab, " panel"),
+    boolean = , checkbox = paste0("toggles ", tolower(label),
+                                  " on the ", tab, " panel"),
+    numeric = , integer = , slider = paste0("sets ", tolower(label),
+                                            " on the ", tab, " panel"),
+    select_cascaded = , select = paste0("sets ", tolower(label),
+                                        " on the ", tab, " panel"),
+    paste0("sets ", tolower(label %||% id), " on the ", tab, " panel"))
+  paste0("Setting this ", what, "; applied through ", operation, ".")
+}
+
+# WP-G1: cascade group / role for *_analysis / *_subset / *_variable ids
+# (attr4 groups carry their aesthetic name: color, shape, ..., search).
+.agent_widget_group <- function(id) {
+  m <- regmatches(id, regexpr("(_analysis|_subset|_variable)$", id))
+  if (!length(m)) return(NULL)
+  role <- sub("^_", "", m)
+  stem <- sub("(_analysis|_subset|_variable)$", "", id)
+  stem <- sub("^.*\\.", "", stem)
+  # axis cascades (x_/y_/xax_) describe the axis they configure
+  if (stem %in% c("x", "y")) stem <- paste0(stem, " axis")
+  list(group = stem, role = role)
+}
+
 #' Generate every capability record
 #'
 #' Widget records come from the agent-visible store registry (labels, help
@@ -186,6 +235,7 @@ agent_capability_records <- function(store = NULL) {
   if (!is.null(store)) {
     for (r in store_registry_view(store)) {
       help <- r$help %||% ""
+      tab <- .agent_widget_tab_label(r$id)
       out[[length(out) + 1L]] <- list(
         id = r$id,
         panel = .agent_widget_panel_label(r$id),
@@ -196,7 +246,12 @@ agent_capability_records <- function(store = NULL) {
         writable = TRUE,
         operation = .agent_widget_operation(r$id),
         allowed_values = r$allowed_values,
-        depends_on = r$depends_on
+        depends_on = r$depends_on,
+        tab = tab,
+        effect = .agent_widget_effect(r$kind,
+          if (nzchar(r$label %||% "")) r$label else r$id, tab,
+          .agent_widget_operation(r$id), r$id),
+        group = .agent_widget_group(r$id)
       )
     }
     # WP-C action records: button-like commands from the store's action
@@ -209,6 +264,7 @@ agent_capability_records <- function(store = NULL) {
       if (isTRUE(a$requires_confirm))
         help <- paste(help, "Requires explicit confirmation",
                       "(params {\"confirm\": true}).")
+      tab <- .agent_widget_tab_label(a$id)
       out[[length(out) + 1L]] <- list(
         id = paste0("action:", a$id),
         panel = .agent_widget_panel_label(a$id),
@@ -222,9 +278,34 @@ agent_capability_records <- function(store = NULL) {
         depends_on = NULL,
         input_id = a$input_id,
         requires_confirm = a$requires_confirm,
-        available = a$available
+        available = a$available,
+        tab = tab,
+        effect = .agent_widget_effect("action",
+          if (nzchar(a$label %||% "")) a$label else a$id, tab,
+          "run_control", a$id),
+        group = NULL
       )
     }
+  }
+  # WP-G1: panel records from the modules' sr-only prose - find_controls
+  # can then return a real explanation of what each panel does
+  for (p in AGENT_PANEL_PROSE) {
+    out[[length(out) + 1L]] <- list(
+      id = paste0("panel:", p$title),
+      panel = p$space,
+      label = p$title,
+      kind = "panel",
+      description = p$prose,
+      help_text = p$prose,
+      writable = FALSE,
+      operation = "describe",
+      allowed_values = NULL,
+      depends_on = NULL,
+      tab = p$tab,
+      effect = paste0("Describes what the ", p$tab,
+                      " panel shows and how to use it (read-only)."),
+      group = NULL
+    )
   }
   c(out, agent_tool_capabilities())
 }
@@ -254,16 +335,39 @@ agent_capability_search <- function(store = NULL, query, max_results = 20L) {
 
   records <- agent_capability_records(store)
   ql <- tolower(query)
-  hit <- function(r) {
-    hay <- tolower(c(r$id, r$label, r$panel, r$operation,
-                     r$description %||% "", r$help_text %||% ""))
-    any(grepl(ql, hay, fixed = TRUE))
-  }
+  hay_of <- function(r)
+    tolower(c(r$id, r$label, r$panel, r$operation,
+              r$description %||% "", r$help_text %||% ""))
+  hit <- function(r)
+    any(grepl(ql, hay_of(r), fixed = TRUE))
   hits <- Filter(hit, records)
+  fuzzy <- FALSE
+  if (!length(hits)) {
+    # WP-G1 bounded fuzzy fallback: approximate (agrep) matching on the
+    # query's words, ONLY when the literal pass found nothing - a typo
+    # like "higlight" or "genname" still returns the real records.
+    fuzzy <- TRUE
+    qwords <- strsplit(ql, "[^a-z0-9]+")[[1]]
+    qwords <- qwords[nzchar(qwords)]
+    if (length(qwords))
+      hits <- Filter(function(r) {
+        hwords <- unique(unlist(strsplit(
+          strsplit(paste(hay_of(r), collapse = " "), "[^a-z0-9]+")[[1]],
+          "\\s+")))
+        hwords <- hwords[nzchar(hwords)]
+        any(vapply(qwords, function(qw)
+          any(vapply(hwords, function(hw)
+            grepl(qw, hw, fixed = TRUE) ||
+              (nchar(qw) >= 4L && nchar(hw) >= 4L &&
+                 agrepl(qw, hw, max.distance = 0.2)),
+            logical(1))), logical(1)))
+      }, records)
+  }
   list(
     query = query,
     capability_count = length(records),
     match_count = length(hits),
+    fuzzy = fuzzy,
     truncated = length(hits) > max_results,
     capabilities = if (length(hits))
       utils::head(hits, max_results) else list()

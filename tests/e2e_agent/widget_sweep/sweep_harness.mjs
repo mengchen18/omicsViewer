@@ -810,6 +810,41 @@ try {
     semantic.push(cres);
   }
 
+  // ============ 3c. WP-G1 discovery cases: find_controls surface.
+  // Discovery failures were the original complaint (B3/B3b of
+  // verify_search_highlight): find_controls("highlight") must return the
+  // Search cascade + the gene picker; find_controls("gene name") must
+  // return something. Custom status logic - the generic semantic rule
+  // would grade any non-error receipt as success regardless of matches.
+  const discoveryCase = async (caseId, query, okIds, okLabelRe) => {
+    const t0d = Date.now();
+    const res = (await runHook(page, 'capabilities', { query, max_results: 50 })).result;
+    const caps = res.capabilities || [];
+    const ids = caps.map(c => c.id);
+    const idOK = okIds.every(re => ids.some(id => re.test(id)));
+    const labelOK = !okLabelRe || caps.some(c => okLabelRe.test(c.label || ''));
+    const dres = {
+      case: '', caseId, category: 'semantic-tool', tool: 'find_controls',
+      widget: { query }, request: { query, max_results: 50 },
+      status: (!res.hook_error && caps.length > 0 && idOK && labelOK)
+        ? 'success' : 'error',
+      duration_ms: Date.now() - t0d,
+      note: `matches=${caps.length} first=${ids[0] || '(none)'}` +
+        (idOK ? '' : ` MISSING expected ${okIds.map(r => r.source).join(',')}`),
+      receipt: { match_count: res.match_count, capability_count: res.capability_count,
+                 fuzzy: res.fuzzy, matched_ids: ids.slice(0, 12) },
+      attempts: [], ui_effect: null, store_readback: null, console_errors: [] };
+    caseCounter += 1;
+    dres.case = `${String(caseCounter).padStart(3, '0')}-${slug(caseId)}`;
+    fs.writeFileSync(path.join(RESULTS, `${dres.case}.json`), JSON.stringify(dres, null, 2));
+    console.log(`  ${dres.case} [${dres.status}] ${dres.duration_ms}ms`);
+    semantic.push(dres);
+  };
+  await discoveryCase('tool:find_controls(highlight)', 'highlight',
+    [/attr4\.search_variable$/, /attr4\.search_value$/], /Search/);
+  await discoveryCase('tool:find_controls(gene name)', 'gene name',
+    [/attr4\.search_value$/], null);
+
   log(`semantic tool cases: ${semantic.length} done`);
 
   // ================= 4. empirical binding -> DOM input mapping =================

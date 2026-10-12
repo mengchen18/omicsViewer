@@ -9,6 +9,8 @@ agent_capability_search <- omicsViewer:::agent_capability_search
 agent_capability_get <- omicsViewer:::agent_capability_get
 agent_capability_summary <- omicsViewer:::agent_capability_summary
 agent_tool_capabilities <- omicsViewer:::agent_tool_capabilities
+# WP-G1: the static panel-record tier (sr-only module prose)
+panel_record_count <- function() length(omicsViewer:::AGENT_PANEL_PROSE)
 agent_normalize_enrichment_update <- omicsViewer:::agent_normalize_enrichment_update
 agent_normalize_table_view_update <- omicsViewer:::agent_normalize_table_view_update
 agent_compact_state <- omicsViewer:::agent_compact_state
@@ -54,8 +56,21 @@ ok(
   "widget records are generated from agent-visible bindings only"
 )
 ok(
-  identical(length(records), 3L + length(agent_tool_capabilities())),
-  "records = widget records + every tool record"
+  # WP-G1: every widget record carries the tab (owning navbar tab) and
+  # effect (one-sentence what-changes) fields; cascade ids carry group
+  all(vapply(records, function(r)
+    identical(r$kind, "tool_read") ||
+      (nzchar(r$tab %||% "") && nzchar(r$effect %||% "")), logical(1))) &&
+    !is.null(Filter(function(r)
+      identical(r$id, "dataspace.feature_space.x_analysis"), records)[[1]]$group),
+  "WP-G1: all records carry tab/effect; cascades carry group"
+)
+ok(
+  # WP-G1 deliberate: records = widgets + 17 PANEL records (sr-only prose)
+  # + tools - the panel tier is the designed growth, nothing else moved
+  identical(length(records),
+            3L + panel_record_count() + length(agent_tool_capabilities())),
+  "records = widget records + panel records + every tool record"
 )
 ora_rec <- Filter(function(r) identical(r$id, "resultspace.ora.xax_analysis"),
                   records)[[1]]
@@ -78,9 +93,13 @@ ok(
   "data-space table widgets map to set_table_view"
 )
 ok(
+  # WP-G1 deliberate: a NULL store yields the panel + tool records (the
+  # panel tier is static, independent of any widget store)
   identical(agent_capability_records(NULL) |> length(),
-            length(agent_tool_capabilities())),
-  "NULL store yields the tool records only"
+            panel_record_count() + length(agent_tool_capabilities())) &&
+    all(vapply(agent_capability_records(NULL), function(r)
+      nzchar(r$tab %||% "") && nzchar(r$effect %||% ""), logical(1))),
+  "NULL store yields the panel + tool records, all carrying tab/effect"
 )
 ok(
   identical(setequal(
@@ -97,7 +116,11 @@ ok(
 ## ---------------------------------------------------------- searching ----
 res <- agent_capability_search(s, "enrichment")
 ok(
-  identical(res$capability_count, 3L + length(agent_tool_capabilities())) &&
+  # WP-G1 deliberate: capability_count grew by the 17 static panel
+  # records (several panel prose paragraphs mention enrichment); the
+  # FIRST match is still the widget record, and matched ids are unchanged
+  identical(res$capability_count,
+            3L + panel_record_count() + length(agent_tool_capabilities())) &&
     res$match_count >= 2L &&
     identical(vapply(res$capabilities, function(r) r$id, character(1))[1],
               "resultspace.ora.xax_analysis"),

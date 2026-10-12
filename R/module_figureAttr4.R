@@ -182,25 +182,35 @@ attr4selector_module <- function(
   if (!is.null(store4)) {
     .a4_groups <- c(color = "Color", shape = "Shape", size = "Size",
                     tooltip = "Tooltips", search = "Search")
+    # WP-G1 discovery enrichment: the search cascade feeds the gene
+    # highlight picker - its help says so, so find_controls("highlight")
+    # / ("gene") return the cascade with a real explanation
+    .a4_group_help <- c(
+      color = "mapped to the point colour aesthetic",
+      shape = "mapped to the point shape aesthetic",
+      size = "mapped to the point size aesthetic",
+      tooltip = "shown in the hover tooltip",
+      search = paste("whose values the gene highlight picker circles",
+                     "as open-ring markers on the figure"))
     .a4_binds <- unlist(lapply(names(.a4_groups), function(g) {
       ka <- paste0(g, "_analysis"); ks <- paste0(g, "_subset"); kv <- paste0(g, "_variable")
       lab <- .a4_groups[[g]]
+      gh <- .a4_group_help[[g]]
       list(
         widget_binding(ka, "select",
           label = paste(lab, "attribute category"),
           help = paste0("First level of the ", tolower(lab),
-                        " attribute cascade (annotation category)"),
+                        " attribute cascade (annotation category) ", gh),
           choices_provider = function(v) .a4_lv1()),
         widget_binding(ks, "select",
           label = paste(lab, "attribute subcategory"),
           help = paste0("Second level of the ", tolower(lab),
-                        " attribute cascade"),
+                        " attribute cascade ", gh),
           depends_on = ka,
           choices_provider = function(v) .a4_lv2(v[[.a4_key(ka)]])),
         widget_binding(kv, "select_cascaded",
           label = paste(lab, "attribute variable"),
-          help = paste0("Annotation variable mapped to the ", tolower(lab),
-                        " aesthetic"),
+          help = paste0("Annotation variable ", gh),
           depends_on = c(ka, ks),
           choices_provider = function(v) .a4_lv3(v[[.a4_key(ka)]], v[[.a4_key(ks)]]))
       )

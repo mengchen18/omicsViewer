@@ -1,9 +1,9 @@
 {
-  "generated": "2026-10-12T15:37:35.226Z",
-  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue. WP-C (2026-10-12): 10 module action buttons move from dom-only to the new action category (9 success with handler-ran epoch proof; resultspace.stringdb.run availability-rejected in sweep order - feature_space.clear clears the selection first - and fully green with features selected in verify_wp_c_actions.mjs, 23/23; see wp_c_finding.md). WP-D (2026-10-12): 4 attr4.search_value bindings added (all success; depends_on search_variable orders joint patches and materializes choices). verify_search_highlight 16/16 incl. the joint-patch phase C. WP-E (2026-10-12): +1 semantic chain case (tool:stringdb_chain_run_then_select, success - select STRING-connected features, restore taxonomy, run_control, 50 terms materialize, selected_row set + DOM row selected). No-probe stays 11 = 8 benign (F7) + 3 F5-conditional (stringdb/batch selected_rows; each PRECONDITION-documented in its capability record and end-to-end probe-verified, verify_wp_e.mjs 18/18) - see wp_e_finding.md.",
+  "generated": "2026-10-12T16:36:49.807Z",
+  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue. WP-C (2026-10-12): 10 module action buttons move from dom-only to the new action category (9 success with handler-ran epoch proof; resultspace.stringdb.run availability-rejected in sweep order - feature_space.clear clears the selection first - and fully green with features selected in verify_wp_c_actions.mjs, 23/23; see wp_c_finding.md). WP-D (2026-10-12): 4 attr4.search_value bindings added (all success; depends_on search_variable orders joint patches and materializes choices). verify_search_highlight 16/16 incl. the joint-patch phase C. WP-E (2026-10-12): +1 semantic chain case (tool:stringdb_chain_run_then_select, success - select STRING-connected features, restore taxonomy, run_control, 50 terms materialize, selected_row set + DOM row selected). No-probe stays 11 = 8 benign (F7) + 3 F5-conditional (stringdb/batch selected_rows; each PRECONDITION-documented in its capability record and end-to-end probe-verified, verify_wp_e.mjs 18/18) - see wp_e_finding.md. WP-G1 (2026-10-12): +2 discovery semantic cases (find_controls highlight / gene name, success); every capability record now carries tab/effect (+group on cascades); 17 panel records from the sr-only prose; fuzzy search fallback.",
   "source_results": "/media/chen/Elements/github/omicsViewer/tests/e2e_agent/widget_sweep/results",
   "totals": {
-    "cases": 342
+    "cases": 344
   },
   "by_category_status": {
     "binding": {
@@ -13,7 +13,7 @@
       "no-probe": 11
     },
     "semantic-tool": {
-      "success": 19
+      "success": 21
     },
     "dom-only": {
       "unaddressable": 112
@@ -1735,6 +1735,16 @@
     "tool:stringdb_chain_run_then_select": {
       "status": "success",
       "case": "203-tool_stringdb_chain_run_then_select",
+      "category": "semantic-tool"
+    },
+    "tool:find_controls(highlight)": {
+      "status": "success",
+      "case": "204-tool_find_controls_highlight",
+      "category": "semantic-tool"
+    },
+    "tool:find_controls(gene name)": {
+      "status": "success",
+      "case": "205-tool_find_controls_gene_name",
       "category": "semantic-tool"
     }
   }
