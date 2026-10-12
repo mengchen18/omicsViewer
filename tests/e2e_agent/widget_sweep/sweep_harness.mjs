@@ -446,6 +446,16 @@ async function runCase(page, caseSpec, consoleBuf) {
     fs.writeFileSync(path.join(RESULTS, `${name}.json`), JSON.stringify(result, null, 2));
     return result;
   }
+  // WP-G2: permanently excluded controls (snapshot lifecycle, dataset
+  // selector) - enumerated for a complete inventory, never driven
+  if (caseSpec.excludedByPolicy) {
+    result.status = 'excluded-by-policy';
+    result.note = caseSpec.note || 'permanently excluded by policy';
+    result.duration_ms = 0;
+    fs.writeFileSync(path.join(RESULTS, `${name}.json`), JSON.stringify(result, null, 2));
+    console.log(`  ${name} [${result.status}] 0ms`);
+    return result;
+  }
   const t0 = Date.now();
   try {
     const before = await snapshotInputs(page);
@@ -875,10 +885,28 @@ try {
   const actionDomIds = new Set((store.actions || [])
     .filter(a => a.input_id)
     .map(a => String(a.input_id).startsWith('app-') ? a.input_id : 'app-' + a.input_id));
+  // WP-G2 permanent exclusion list (settled policies 1+2, 2026-10-11):
+  // the snapshot lifecycle and the dataset selector are PERMANENTLY
+  // outside the assistant surface. They are still enumerated (the
+  // inventory stays complete) but never tested: their cases carry the
+  // explicit excluded-by-policy status so the matrix counts them as
+  // by-design instead of unaddressable debt. Downloads stay unaddressable
+  // (cancelled by Chen - nothing is built for them, not even a stub).
+  const EXCLUDED_BY_POLICY = new Set([
+    'app-snapshot', 'app-snapshot_name', 'app-snapshot_save',
+    'app-snapshot_delete', 'app-snapshot_include_chat', 'app-selectFile'
+  ]);
   const addDomOnly = (ident, desc, probeValue, note) => domOnly.push({ ident, desc, probeValue, note });
   for (const e of dom.shiny) {
     if (mappedInputs.has(e.id)) continue;
     if (actionDomIds.has(e.id)) continue;
+    if (EXCLUDED_BY_POLICY.has(e.id)) {
+      addDomOnly(e.id,
+        `${e.tag}${e.inputType ? ':' + e.inputType : ''} visible=${e.visible}`,
+        null,
+        'excluded-by-policy: snapshot lifecycle / dataset switching are user-only (settled policies 1+2)');
+      continue;
+    }
     if (/agentTestHooks/.test(e.id)) continue; // test infrastructure, not user-facing
     const covered = /-select-(analysis|subset|variable)$/.test(e.id) && /tab_(pheno|feature|expr)/.test(e.id);
     const badge = /quickViews-badge_/.test(e.id);
@@ -913,9 +941,12 @@ try {
     marker += 1;
     const guesses = w.ident.startsWith('app-') ? guessIds(w.ident) : ['app', 'dataspace.global_search', 'resultspace.global_search'];
     const dres = await runCase(page, {
-      caseId: `dom:${w.ident}`, category: 'dom-only', tool: 'set_widgets(attempt)',
+      caseId: `dom:${w.ident}`, category: 'dom-only',
+      tool: (w.note && w.note.startsWith('excluded-by-policy'))
+        ? 'set_widgets(excluded)' : 'set_widgets(attempt)',
       widget: { dom_id: w.ident, description: w.desc },
-      guesses, probeValue: w.probeValue, note: w.note
+      guesses, probeValue: w.probeValue, note: w.note,
+      excludedByPolicy: !!(w.note && w.note.startsWith('excluded-by-policy'))
     }, consoleBuf);
     if (dres) domResults.push(dres);
   }

@@ -46,7 +46,10 @@ const regressionsFile = flag('--write-regressions', null);
 // statuses whose count must never exceed the baseline, per category
 const COUNT_GUARD = {
   binding: ['timeout', 'no-ui-effect', 'no-probe', 'rejected', 'unchanged', 'error'],
-  'dom-only': ['unaddressable', 'no-effect', 'unchanged', 'error'],
+  // WP-G2: excluded-by-policy is the settled-status home of the snapshot
+  // lifecycle + dataset selector cases; count increases beyond the
+  // baseline fail (nothing may join the exclusion list silently)
+  'dom-only': ['unaddressable', 'no-effect', 'unchanged', 'error', 'excluded-by-policy'],
   'semantic-tool': ['no-ui-effect', 'error'],
   // WP-C action cases: 'rejected' is a legitimate outcome (availability
   // gating with a self-describing reason, e.g. 'set a search term first');

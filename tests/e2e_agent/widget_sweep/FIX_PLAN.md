@@ -433,7 +433,7 @@ Acceptance: new sweep discovery cases: find_controls("highlight") returns
 the search cascade + picker; find_controls("gene name") non-zero; all
 records carry tab/effect fields (assert in a unit test).
 
-### WP-G2 Downloads only (destructive actions and dataset switching are settled: permanently out)
+### WP-G2 Downloads only (destructive actions and dataset switching are settled: permanently out) — DONE (2026-10-12: exclusion list only; downloads cancelled by Chen, nothing built)
 
 - Downloads (`export_data` tool returning a file into the chat via
   shinychat attachment / download link message): optional, deferred, and
@@ -485,6 +485,19 @@ permanently covered semantically by `set_scatter_view`), add-column
 triselector inputs + attr4 component selects (documented as
 covered-semantically by their parent bindings), DT pagination/sort
 controls (covered by page/columns bindings).
+
+Implemented (2026-10-12): the exclusion list ONLY. The 5 snapshot-
+lifecycle + dataset-selector dom-only cases now carry the explicit
+`excluded-by-policy` status in the harness (still enumerated for a
+complete inventory, never driven - no set_widgets attempts against
+them), check_regression guards that status's count (nothing may join
+the list silently), and the baseline flips the 5 cases unaddressable →
+excluded-by-policy (dom-only 112 → 107 unaddressable + 5 excluded).
+Downloads: CANCELLED by Chen — no tool, no stub, no flag, no capability
+records; their 8 dom-only cases remain plain unaddressable (the
+optional residue). The snapshot lifecycle and dataset selector remain
+permanently excluded from the action tier (never registered, never
+stubbed).
 
 Every number above is produced mechanically by re-running
 `sweep_harness.mjs` — no manual claims.
