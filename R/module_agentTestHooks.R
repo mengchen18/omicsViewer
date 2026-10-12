@@ -42,6 +42,7 @@ agent_test_hooks_ui <- function(id) {
         "scatter" = "scatter",
         "overview" = "overview",
         "widgets" = "widgets",
+        "runcontrol" = "runcontrol",
         "store" = "store",
         "enrichment" = "enrichment",
         "tableview" = "tableview",
@@ -157,9 +158,24 @@ agent_test_hooks_module <- function(id, apply_state, apply_scatter_view,
         } else if (identical(op, "store")) {
           if (is.null(store))
             stop("Widget store unavailable in this session.")
-          # full canonical snapshot (values + epochs); used by the S4
-          # snapshot round-trip acceptance tests
-          shiny::isolate(store_snapshot(store))
+          # full canonical snapshot (values + epochs + action epochs);
+          # used by the S4 snapshot round-trip acceptance tests and by
+          # the WP-C action side-effect assertions (epoch bump = the
+          # handler ran)
+          shiny::isolate({
+            snap <- store_snapshot(store)
+            snap$action_registry <- store_action_view(store)
+            snap
+          })
+        } else if (identical(op, "runcontrol")) {
+          if (is.null(store))
+            stop("Widget store unavailable in this session.")
+          # mirrors the run_control tool: same agent_action_apply
+          # pathway, same receipts
+          shiny::isolate(agent_action_apply(
+            store,
+            action_id = parsed$action_id,
+            params = parsed$params))
         } else if (identical(op, "scatter")) {
           do.call(
             apply_scatter_view,

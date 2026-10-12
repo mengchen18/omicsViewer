@@ -959,6 +959,57 @@ agent_tool_registry <- function(state, feature_data, sample_data,
     )
   )
 
+  # ----------------------------------------------------------------
+  # WP-C action tier: run_control runs button-like commands (search,
+  # run, clear) registered on the store's action registry. The exact
+  # server pathway the UI buttons use; policy-excluded controls
+  # (snapshot lifecycle, dataset selector) are rejected by name.
+  # ----------------------------------------------------------------
+  run_control_tool <- agent_tool(
+    function(action_id, params = NULL, `_intent`) {
+      result <- shiny::isolate(shiny::withReactiveDomain(
+        session_domain,
+        agent_action_apply(store, action_id = action_id, params = params)))
+      .ai_tool_result(
+        result,
+        title = if (length(result$ran)) "Ran control action" else
+          "Control action rejected",
+        label = if (length(result$ran))
+          paste(result$ran, "(run #", result$epoch, ")") else
+          paste(action_id, "- rejected"),
+        preview = if (is.null(result$error)) paste(
+          "ran:", result$ran, "| epoch:", result$epoch) else
+          substr(result$error, 1L, 200L)
+      )
+    },
+    name = "run_control",
+    description = paste(
+      "Run a button-like control action (search, run, clear) after an explicit user request.",
+      "action_id is the canonical action id exactly as printed by find_controls (records of",
+      "kind 'action', prefixed 'action:'). params is an optional JSON object string; actions",
+      "whose description says they require confirmation must receive",
+      "{\"confirm\": true}. Unknown ids are rejected with closest-match suggestions.",
+      "Snapshot save/restore/delete and dataset switching are permanently outside this tool."
+    ),
+    arguments = list(
+      action_id = ellmer::type_string(paste(
+        "Canonical action id from find_controls, e.g.",
+        "action:dataspace.tab_pheno.clear")),
+      params = ellmer::type_string(paste(
+        "Optional JSON object string of action parameters; confirmation",
+        "gating reads {\"confirm\": true}"), required = FALSE),
+      `_intent` = ellmer::type_string(
+        "Short user-facing reason for running this action.")
+    ),
+    annotations = ellmer::tool_annotations(
+      title = "Running control actions",
+      read_only_hint = FALSE,
+      destructive_hint = FALSE,
+      idempotent_hint = FALSE,
+      open_world_hint = FALSE
+    )
+  )
+
   list(
     register = function(client) {
       client$register_tool(get_state_tool)
@@ -970,6 +1021,7 @@ agent_tool_registry <- function(state, feature_data, sample_data,
         client$register_tool(find_controls_tool)
         client$register_tool(describe_control_tool)
         client$register_tool(set_widgets_tool)
+        client$register_tool(run_control_tool)
         if (!is.null(apply_enrichment))
           client$register_tool(set_enrichment_tool)
         if (!is.null(apply_table_view))
@@ -986,6 +1038,7 @@ agent_tool_registry <- function(state, feature_data, sample_data,
       set_scatter = set_scatter_tool, find_controls = find_controls_tool,
       describe_control = describe_control_tool,
       set_widgets = set_widgets_tool,
+      run_control = run_control_tool,
       set_enrichment = set_enrichment_tool,
       set_table_view = set_table_view_tool,
       create_figure = create_figure_tool, get_figure = get_figure_tool,

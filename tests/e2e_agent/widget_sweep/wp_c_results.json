@@ -1,0 +1,120 @@
+{
+  "generated": "2026-10-12T11:22:50.971Z",
+  "results": [
+    {
+      "name": "action registry: 10 actions discovered",
+      "pass": true,
+      "detail": "10: dataspace.cor_heatmap.clear, dataspace.expr_heatmap.clear, dataspace.feature_space.clear, dataspace.sample_space.clear, dataspace.tab_pheno.clear, dataspace.tab_feature.clear, dataspace.tab_expr.clear, dataspace.dyn_heatmap.clear, resultspace.stringdb.run, resultspace.geneshot.submit"
+    },
+    {
+      "name": "capability records: action records discoverable via find_controls",
+      "pass": true,
+      "detail": "10 records"
+    },
+    {
+      "name": "describe-style record for geneshot.submit",
+      "pass": true,
+      "detail": "\"Search related genes\""
+    },
+    {
+      "name": "precondition: 3 features selected",
+      "pass": true,
+      "detail": "{\"features\":3,\"samples\":0}"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.tab_pheno.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.tab_feature.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.tab_expr.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.cor_heatmap.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.expr_heatmap.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.dyn_heatmap.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.feature_space.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "action runs (handler body ran): dataspace.sample_space.clear",
+      "pass": true,
+      "detail": "epoch 0 -> 1"
+    },
+    {
+      "name": "side effect: feature_space.clear cleared the selection",
+      "pass": true,
+      "detail": "{\"features\":0,\"samples\":0}"
+    },
+    {
+      "name": "geneshot.submit ran via run_control",
+      "pass": true,
+      "detail": "epoch 1"
+    },
+    {
+      "name": "geneshot chain: result table POPULATED after the run",
+      "pass": true,
+      "detail": "entries: 519 | info: Showing 1 to 10 of 519 entries"
+    },
+    {
+      "name": "precondition: 3 features selected before stringdb run",
+      "pass": true,
+      "detail": "{\"features\":3,\"samples\":0}"
+    },
+    {
+      "name": "precondition: stringdb.selected_row has no choices before the run",
+      "pass": true,
+      "detail": "before: []"
+    },
+    {
+      "name": "stringdb.run ran via run_control",
+      "pass": true,
+      "detail": "epoch 1"
+    },
+    {
+      "name": "stringdb chain: run_control drove the Run button (network rendered)",
+      "pass": true,
+      "detail": "the primary output of the Run button is live"
+    },
+    {
+      "name": "unknown id rejected with suggestions",
+      "pass": true,
+      "detail": "Unknown action id: dataspace.tab_pheno.columns. Closest matches: dataspace.tab_pheno.clear."
+    },
+    {
+      "name": "snapshot/dataset control rejected as permanently excluded: snapshot_save",
+      "pass": true,
+      "detail": "'snapshot_save' is permanently excluded from the assistant surface by policy: the snapshot"
+    },
+    {
+      "name": "snapshot/dataset control rejected as permanently excluded: app-snapshot_delete",
+      "pass": true,
+      "detail": "'app-snapshot_delete' is permanently excluded from the assistant surface by policy: the sn"
+    },
+    {
+      "name": "snapshot/dataset control rejected as permanently excluded: app-selectFile",
+      "pass": true,
+      "detail": "'app-selectFile' is permanently excluded from the assistant surface by policy: the snapsho"
+    }
+  ]
+}

@@ -201,7 +201,7 @@ snapshotRoundTrip 63/63.
 
 ## Phase 2 — the action tier: make every button operable (F1 core)
 
-### WP-C `action` bindings + `run_control` tool — ~3-4 d
+### WP-C `action` bindings + `run_control` tool — ~3-4 d — DONE (2026-10-12)
 
 Root cause: the store is value-based by design (13 kinds); Shiny
 `actionButton`s are event sources with no canonical representation, so 10
@@ -256,6 +256,23 @@ existing per-button observable: geneshot search runs → table populates →
 `run_control` on unknown id → suggestion-bearing rejection (new semantic
 case); `run_control` on a snapshot-lifecycle id → rejected as
 "permanently excluded" (policy assertion case).
+
+Implemented as planned (evidence: wp_c_finding.md +
+verify_wp_c_actions.mjs 23/23 + test_agentActions.R 49/49). All 10
+widget instances (8 button kinds × module instantiation) run through
+run_control with handler-ran epoch proof; geneshot chain fully green
+(519 real entries); unknown-id and policy rejections as specified.
+Sweep: new action category (9 success, 1 availability-rejected in sweep
+order — stringdb.run with the selection cleared by feature_space.clear
+earlier in the loop; fully green with features selected), the 10 buttons
+leave dom-only (122→112), gate PASS zero regressions, baseline refreshed
+surgically. ONE pre-existing issue surfaced and FILED (not WP-C-caused,
+A/B-proven against the stashed pre-WP-C module): the stringdb ENRICHMENT
+table does not populate in this environment even from the real button
+(network renders; enrichment empty), so stringdb selected_row choices do
+not materialize — that investigation is exactly WP-E's `*_selected_row`
+scope. Golden fixtures updated deliberately (exactly two allowlists
+gained "run_control").
 
 ### WP-D Bind the four `searchon` gene-highlight pickers — ~1 d
 

@@ -20,6 +20,10 @@
 \alias{store_restore}
 \alias{store_registry_view}
 \alias{store_describe}
+\alias{widget_action}
+\alias{store_register_action}
+\alias{store_action_view}
+\alias{store_action_run}
 \title{Internal universal widget-control-plane store (S1)}
 \usage{
 widget_store_new()
@@ -79,16 +83,36 @@ store_restore(store, snapshot, replace = TRUE)
 store_registry_view(store, prefix = NULL)
 
 store_describe(store, id)
+
+widget_action(
+  id,
+  label = "",
+  help = "",
+  handler,
+  destructive = FALSE,
+  requires_confirm = FALSE,
+  availability = function() TRUE,
+  input_id = NULL
+)
+
+store_register_action(store, ...)
+
+store_action_view(store, prefix = NULL)
+
+store_action_run(
+  store,
+  id,
+  origin = c("agent", "user", "system"),
+  params = NULL
+)
 }
 \arguments{
 \item{store}{Store (or child view).}
 
-\item{prefix}{Optional id prefix filter (component match: an id is kept
-when it equals \code{prefix} or starts with \code{"prefix."}, so a
-\code{dataspace} section matches \code{dataspace.*} but not
-\code{dataspace2.*}).}
+\item{prefix}{Optional canonical id prefix filter (component match,
+like \code{\link{store_registry_view}}).}
 
-\item{id}{Canonical id.}
+\item{id}{Canonical or module-local action id.}
 
 \item{kind}{Widget kind; selects the value validator.
 \code{multi_select} is the multi-selection counterpart of
@@ -99,9 +123,9 @@ keys to short string patterns (e.g. DataTable column filters); an
 empty mapping clears all entries and keys validate against the
 choices provider.}
 
-\item{label}{Short human/model-facing label.}
+\item{label}{Short human label.}
 
-\item{help}{One-sentence help text shared by tooltips and the registry.}
+\item{help}{One-sentence description of what running it does.}
 
 \item{depends_on}{Canonical ids this widget's choices depend on (for
 cascaded selects); used to order transactional writes.}
@@ -132,15 +156,13 @@ not invoked by the S1 core.}
 
 \item{getter}{Optional getter function (S2 session glue).}
 
-\item{...}{Binding records from \code{\link{widget_binding}}.}
+\item{...}{\code{\link{widget_action}} records.}
 
 \item{ids}{Optional ids to read; default all.}
 
 \item{patch}{Named list of module-local id -> widget-reported value.}
 
-\item{origin}{One of \code{"agent"}, \code{"restore"}, \code{"system"}.
-Agent-origin writes require agent-writable (user-editable) widgets;
-restore-origin writes may also set internal state.}
+\item{origin}{Who is running the action.}
 
 \item{strict}{TRUE (default): any invalid value aborts the whole
 transaction. FALSE: invalid values are rejected per key (recorded in
@@ -178,6 +200,26 @@ hold their observers elsewhere.}
 
 \item{replace}{Logical; reset keys not carried by the snapshot to their
 defaults (default TRUE).}
+
+\item{handler}{Function of one argument (the optional params list)
+performing the command; module glue wraps it in
+\code{shiny::withReactiveDomain} so it works from any caller.}
+
+\item{destructive}{Package-author decision; destructive actions can
+never be run through the agent surface.}
+
+\item{requires_confirm}{When TRUE, agent runs must pass
+\code{params = list(confirm = TRUE)} explicitly.}
+
+\item{availability}{Function returning TRUE when runnable, or a
+character reason string when not.}
+
+\item{input_id}{Optional module-local Shiny input id of the button
+(from \code{session$ns}); lets discovery map the action back to its
+DOM control.}
+
+\item{params}{Optional named list passed to the handler; confirm
+gating reads \code{params$confirm}.}
 }
 \value{
 An environment-based store holding bindings, values (each key
@@ -216,7 +258,10 @@ A reactive expression yielding the current stored value.
 A reactive expression yielding the (scoped) epoch.
 
 A plain list with \code{values} and \code{epochs} for every
-  registered id (including internal state).
+  registered id (including internal state) plus \code{actions}: the
+  last-run epoch of every registered action (WP-C). Actions are
+  event sources, not values - the snapshot never carries parameters
+  or results, and \code{\link{store_restore}} never replays them.
 
 Invisible receipt from \code{\link{store_apply}} plus
   \code{unknown_ids}, (per-key) \code{rejected}, and \code{reset}
@@ -227,6 +272,16 @@ A list of records: id, kind, label, help, depends_on, and the
 
 The registry record, or NULL when the id is unknown or not
   agent-visible (never leaked to the model).
+
+An action record.
+
+The store, invisibly.
+
+A list of records: id, label, help, input_id,
+  requires_confirm, available (TRUE or a reason string),
+  last_run_epoch.
+
+Invisible receipt: ran id, epoch, origin.
 }
 \description{
 Canonical widget store implementing the universal control plane designed
@@ -310,6 +365,20 @@ Implements the context-hygiene principle: only user-editable widgets
 appear. Internal state and anything the user cannot change never enters
 model-facing context. The WP9 capability registry is generated from
 these records.
+
+Ids are prefixed from child views exactly like widget bindings and
+share the binding namespace (an id may not be both). Purely additive:
+value validation, epochs and pending entries are untouched. Snapshot
+lifecycle buttons and the dataset selector are never registered here.
+
+Destructive actions are NEVER returned (settled policy 1); the
+availability probe runs isolated and defensively.
+
+Runs the handler (in the domain captured by the module glue), then
+records the run: the per-action epoch counter increments and the last
+run info (origin, UTC timestamp) is stored - this is the only state
+actions contribute to snapshots, and \code{\link{store_restore}}
+never replays them.
 }
 \details{
 \enumerate{

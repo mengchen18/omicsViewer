@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-11T14:31:59.167Z",
-  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue.",
+  "generated": "2026-10-12T11:59:22.827Z",
+  "note": "WP-A refresh (2026-10-12): the 5 dyn-heatmap activation-gated bindings no-probe -> success (choices providers now dataset-backed; validator rejects cold providers). The 4 dom-only dynheatmap inputs are deliberately KEPT at unaddressable: they leave the dom-only inventory exactly when the corresponding binding case succeeds in the same run, so keeping them makes their reappearance (congestion) a no-op instead of a spurious count regression. All other curated statuses unchanged. WP-B2 (2026-10-12): curated no-ui-effect for dataspace.expr_heatmap.row_sort_by/.annot_row verified as harness measurement artifacts (writes work; effect lands within the hook roundtrip; re-render stalls ~1.2 s) - see wp_b2_finding.md; statuses kept as documented residue. WP-C (2026-10-12): 10 module action buttons move from dom-only to the new action category (9 success with handler-ran epoch proof; resultspace.stringdb.run availability-rejected in sweep order - feature_space.clear clears the selection first - and fully green with features selected in verify_wp_c_actions.mjs, 23/23; see wp_c_finding.md).",
   "source_results": "/media/chen/Elements/github/omicsViewer/tests/e2e_agent/widget_sweep/results",
   "totals": {
     "cases": 337
@@ -16,10 +16,14 @@
       "success": 18
     },
     "dom-only": {
-      "unaddressable": 122
+      "unaddressable": 112
     },
     "out-of-scope": {
       "out-of-scope": 27
+    },
+    "action": {
+      "success": 9,
+      "rejected": 1
     }
   },
   "cases": {
@@ -1068,16 +1072,6 @@
       "case": "209-dom_app_dataspace_feature_space_axisModeTabs",
       "category": "dom-only"
     },
-    "dom:app-dataspace-feature_space-clear": {
-      "status": "unaddressable",
-      "case": "210-dom_app_dataspace_feature_space_clear",
-      "category": "dom-only"
-    },
-    "dom:app-dataspace-tab_feature-clear": {
-      "status": "unaddressable",
-      "case": "211-dom_app_dataspace_tab_feature_clear",
-      "category": "dom-only"
-    },
     "dom:app-dataspace-tab_feature-addcolPanel": {
       "status": "unaddressable",
       "case": "212-dom_app_dataspace_tab_feature_addcolPanel",
@@ -1168,16 +1162,6 @@
       "case": "229-dom_app_dataspace_sample_space_tris_main_scatter2_subset",
       "category": "dom-only"
     },
-    "dom:app-dataspace-sample_space-clear": {
-      "status": "unaddressable",
-      "case": "230-dom_app_dataspace_sample_space_clear",
-      "category": "dom-only"
-    },
-    "dom:app-dataspace-tab_pheno-clear": {
-      "status": "unaddressable",
-      "case": "231-dom_app_dataspace_tab_pheno_clear",
-      "category": "dom-only"
-    },
     "dom:app-dataspace-tab_pheno-addcolPanel": {
       "status": "unaddressable",
       "case": "232-dom_app_dataspace_tab_pheno_addcolPanel",
@@ -1186,11 +1170,6 @@
     "dom:mydropdown2": {
       "status": "unaddressable",
       "case": "233-dom_mydropdown2",
-      "category": "dom-only"
-    },
-    "dom:app-dataspace-corheatmapViewer-clear": {
-      "status": "unaddressable",
-      "case": "234-dom_app_dataspace_corheatmapViewer_clear",
       "category": "dom-only"
     },
     "dom:mydropdown": {
@@ -1206,11 +1185,6 @@
     "dom:app-dataspace-heatmapViewer-annotRow": {
       "status": "unaddressable",
       "case": "237-dom_app_dataspace_heatmapViewer_annotRow",
-      "category": "dom-only"
-    },
-    "dom:app-dataspace-heatmapViewer-clear": {
-      "status": "unaddressable",
-      "case": "238-dom_app_dataspace_heatmapViewer_clear",
       "category": "dom-only"
     },
     "dom:mydropdown3": {
@@ -1241,16 +1215,6 @@
     "dom:app-dataspace-dynheatmapViewer-tooltipInfo": {
       "status": "unaddressable",
       "case": "244-dom_app_dataspace_dynheatmapViewer_tooltipInfo",
-      "category": "dom-only"
-    },
-    "dom:app-dataspace-dynheatmapViewer-clear": {
-      "status": "unaddressable",
-      "case": "245-dom_app_dataspace_dynheatmapViewer_clear",
-      "category": "dom-only"
-    },
-    "dom:app-dataspace-tab_expr-clear": {
-      "status": "unaddressable",
-      "case": "246-dom_app_dataspace_tab_expr_clear",
       "category": "dom-only"
     },
     "dom:app-dataspace-tab_expr-addcolPanel": {
@@ -1373,11 +1337,6 @@
       "case": "270-dom_app_resultspace_ora_tris_ora_subset",
       "category": "dom-only"
     },
-    "dom:app-resultspace-stringdb-run": {
-      "status": "unaddressable",
-      "case": "271-dom_app_resultspace_stringdb_run",
-      "category": "dom-only"
-    },
     "dom:app-resultspace-ptm-tris_seqlogo-analysis": {
       "status": "unaddressable",
       "case": "272-dom_app_resultspace_ptm_tris_seqlogo_analysis",
@@ -1391,11 +1350,6 @@
     "dom:app-resultspace-ptm-tris_seqlogo-variable": {
       "status": "unaddressable",
       "case": "274-dom_app_resultspace_ptm_tris_seqlogo_variable",
-      "category": "dom-only"
-    },
-    "dom:app-resultspace-geneshotTab-submit": {
-      "status": "unaddressable",
-      "case": "275-dom_app_resultspace_geneshotTab_submit",
       "category": "dom-only"
     },
     "dom:app-resultspace-geneshotTab-mapIdPanel": {
@@ -1707,6 +1661,56 @@
       "status": "out-of-scope",
       "case": "337-gesture_app_tab_saveSS",
       "category": "out-of-scope"
+    },
+    "dataspace.cor_heatmap.clear": {
+      "status": "success",
+      "case": "171-dataspace_cor_heatmap_clear",
+      "category": "action"
+    },
+    "dataspace.expr_heatmap.clear": {
+      "status": "success",
+      "case": "172-dataspace_expr_heatmap_clear",
+      "category": "action"
+    },
+    "dataspace.feature_space.clear": {
+      "status": "success",
+      "case": "173-dataspace_feature_space_clear",
+      "category": "action"
+    },
+    "dataspace.sample_space.clear": {
+      "status": "success",
+      "case": "174-dataspace_sample_space_clear",
+      "category": "action"
+    },
+    "dataspace.tab_pheno.clear": {
+      "status": "success",
+      "case": "175-dataspace_tab_pheno_clear",
+      "category": "action"
+    },
+    "dataspace.tab_feature.clear": {
+      "status": "success",
+      "case": "176-dataspace_tab_feature_clear",
+      "category": "action"
+    },
+    "dataspace.tab_expr.clear": {
+      "status": "success",
+      "case": "177-dataspace_tab_expr_clear",
+      "category": "action"
+    },
+    "dataspace.dyn_heatmap.clear": {
+      "status": "success",
+      "case": "178-dataspace_dyn_heatmap_clear",
+      "category": "action"
+    },
+    "resultspace.stringdb.run": {
+      "status": "rejected",
+      "case": "179-resultspace_stringdb_run",
+      "category": "action"
+    },
+    "resultspace.geneshot.submit": {
+      "status": "success",
+      "case": "180-resultspace_geneshot_submit",
+      "category": "action"
     }
   }
 }

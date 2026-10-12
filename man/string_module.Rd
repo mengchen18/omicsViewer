@@ -33,7 +33,8 @@ Default: \code{reactive(FALSE)}.}
 \code{resultspace.stringdb}. When given, the taxonomy input, the
 labels checkbox, and the enrichment-table row selection (which
 highlights network nodes) register on the store; when NULL the legacy
-status-restore path is kept. The Run button is deliberately not
+status-restore path is kept. The Run button registers on the WP-C
+action tier (run_control) instead of as a widget value.
 registered: it is a stateless command (an API query trigger), not a
 widget value.\code{reactive(NULL)}.}
 }

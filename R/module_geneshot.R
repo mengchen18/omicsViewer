@@ -146,7 +146,8 @@ geneshot_ui <- function(id) {
 #'   \code{resultspace.geneshot}. When given, the search-term input and
 #'   the ID-mapper cascade register on the store; when NULL the legacy
 #'   status-restore path is kept. The Search button is deliberately not
-#'   registered: it is a stateless command, not a widget value.
+#'   registers on the store; the Search button registers on the WP-C
+#'   action tier (run_control) instead - it is a command, not a value.
 #'
 geneshot_module <- function(
   id, pdata, fdata, expr, feature_selected, sample_selected, object,
@@ -223,6 +224,24 @@ geneshot_module <- function(
         depends_on = c("xax_analysis", "xax_subset"),
         choices_provider = function(v) .gs_ts3(v[[kg1]], v[[kg2]]))
     )
+    # WP-C action tier: the Search button registers as an action; the
+    # named handler is defined with rif below and resolved from this
+    # scope at call time.
+    store_register_action(
+      store,
+      widget_action("submit", label = "Search related genes",
+        help = paste("Run the Geneshot AutoRIF literature query for the",
+                     "current search terms; the result table populates the",
+                     "panel"),
+        input_id = ns("submit"),
+        availability = function()
+          if (is.null(shiny::isolate(input$term)) ||
+              !nzchar(trimws(shiny::isolate(input$term))))
+            "set a search term first (resultspace.geneshot.term)"
+          else TRUE,
+        handler = function(params)
+          shiny::withReactiveDomain(session, .geneshot_submit()))
+    )
     v1 <- triselector_module(
       "geneNameCol", reactive_x = triset, label = "Map ID",
       reactive_selector1 = store_watch(store, "xax_analysis"),
@@ -271,7 +290,9 @@ geneshot_module <- function(
 
   
   rif <- reactiveVal()
-  observeEvent(input$submit, {
+  # WP-C action tier: named local function so the button and the
+  # registered action drive one code path
+  .geneshot_submit <- function() {
     # Validate input terms
     if (is.null(input$term) || nchar(trimws(input$term)) == 0) {
       showNotification(
@@ -347,7 +368,8 @@ geneshot_module <- function(
       type = "message",
       duration = 3
     )
-  })
+  }
+  observeEvent(input$submit, .geneshot_submit())
 
   outliersLabs <- reactive( rif()$outliers )
   

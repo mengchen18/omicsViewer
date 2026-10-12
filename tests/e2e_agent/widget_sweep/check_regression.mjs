@@ -47,7 +47,11 @@ const regressionsFile = flag('--write-regressions', null);
 const COUNT_GUARD = {
   binding: ['timeout', 'no-ui-effect', 'no-probe', 'rejected', 'unchanged', 'error'],
   'dom-only': ['unaddressable', 'no-effect', 'unchanged', 'error'],
-  'semantic-tool': ['no-ui-effect', 'error']
+  'semantic-tool': ['no-ui-effect', 'error'],
+  // WP-C action cases: 'rejected' is a legitimate outcome (availability
+  // gating with a self-describing reason, e.g. 'set a search term first');
+  // only harness/infra failures guard the count
+  action: ['error', 'timeout', 'unchanged']
 };
 
 // Runtime-generated ids (Shiny auto ids like btn-394616653 on id-less

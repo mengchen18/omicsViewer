@@ -182,7 +182,7 @@ shiny::testServer(
     expected_tools <- c(
       "get_omics_viewer_state", "search_annotations", "summarize_annotation",
       "set_omics_viewer_state", "set_scatter_view", "create_figure", "get_figure", "update_figure",
-      "find_controls", "describe_control", "set_widgets",
+      "find_controls", "describe_control", "set_widgets", "run_control",
       "set_enrichment_parameters", "set_table_view"
     )
     ok(

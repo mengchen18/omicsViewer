@@ -58,6 +58,9 @@ widget_store_new <- function() {
   store$pending <- list()       # canonical id -> list(value, epoch)
   store$origins <- list()       # canonical id -> last write origin
   store$defaults <- list()      # canonical id -> seeded widget default
+  store$actions <- list()       # WP-C: canonical id -> action record (event-style controls)
+  store$action_epochs <- list() # WP-C: canonical id -> integer run counter
+  store$action_runs <- list()   # WP-C: canonical id -> last run info (origin, timestamp)
   store$global_epoch <- 0L
   store$epoch_rv <- shiny::reactiveVal(0L)  # reactive transaction counter
   store$reset_generation <- 0L
@@ -1034,14 +1037,18 @@ store_epoch <- function(store) {
 #' Serialise the full store state
 #'
 #' @return A plain list with \code{values} and \code{epochs} for every
-#'   registered id (including internal state).
+#'   registered id (including internal state) plus \code{actions}: the
+#'   last-run epoch of every registered action (WP-C). Actions are
+#'   event sources, not values - the snapshot never carries parameters
+#'   or results, and \code{\link{store_restore}} never replays them.
 #' @keywords internal
 #' @rdname widgetStoreHelpers
 store_snapshot <- function(store) {
   if (!is.null(store$parent)) store <- store$parent
   list(
     values = store_read(store),
-    epochs = as.list(store$epochs)
+    epochs = as.list(store$epochs),
+    actions = as.list(store$action_epochs %||% list())
   )
 }
 
@@ -1186,4 +1193,203 @@ store_describe <- function(store, id) {
   view <- Filter(function(r) identical(r$id, key),
                  store_registry_view(store))
   if (length(view)) view[[1]] else NULL
+}
+
+############################################################################
+### [7] action registry (WP-C: event-style controls)
+############################################################################
+
+# The store is value-based by design; Shiny actionButtons are event
+# sources with no canonical value representation. The action registry is
+# the additive answer: modules register named commands (search, run,
+# clear) whose handlers are the SAME local functions the buttons'
+# observeEvent bodies call, so the assistant tier and the UI drive one
+# code path. Ids share the binding namespace convention
+# (e.g. resultspace.geneshot.submit); destructive actions may be
+# registered by package authors but are never agent-runnable and never
+# enter agent-facing views (settled policy: the snapshot lifecycle and
+# the dataset selector are PERMANENTLY excluded from this tier and are
+# not registered anywhere).
+
+#' Declare an action (event-style control)
+#'
+#' @param id Module-local action id (dotted; prefixed to the canonical
+#'   namespace by \code{\link{store_register_action}}).
+#' @param label Short human label.
+#' @param help One-sentence description of what running it does.
+#' @param handler Function of one argument (the optional params list)
+#'   performing the command; module glue wraps it in
+#'   \code{shiny::withReactiveDomain} so it works from any caller.
+#' @param destructive Package-author decision; destructive actions can
+#'   never be run through the agent surface.
+#' @param requires_confirm When TRUE, agent runs must pass
+#'   \code{params = list(confirm = TRUE)} explicitly.
+#' @param availability Function returning TRUE when runnable, or a
+#'   character reason string when not.
+#' @param input_id Optional module-local Shiny input id of the button
+#'   (from \code{session$ns}); lets discovery map the action back to its
+#'   DOM control.
+#' @return An action record.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+widget_action <- function(id, label = "", help = "", handler,
+                          destructive = FALSE, requires_confirm = FALSE,
+                          availability = function() TRUE,
+                          input_id = NULL) {
+  if (!is.character(id) || length(id) != 1L || !nzchar(id) ||
+      !grepl(.widget_store_id_pattern, id))
+    stop("Action id must be a non-empty dotted identifier: ", id)
+  label <- trimws(as.character(label)[1])
+  help <- trimws(as.character(help)[1])
+  if (nchar(help) > 400L)
+    stop("Action help text must be at most 400 characters.")
+  if (!is.function(handler))
+    stop("Action handler must be a function.")
+  if (!is.function(availability))
+    stop("Action availability must be a function.")
+  for (f in c(destructive, requires_confirm)) {
+    if (!is.logical(f) || length(f) != 1L || is.na(f))
+      stop("Action flags must be TRUE or FALSE.")
+  }
+  if (!is.null(input_id)) {
+    input_id <- as.character(input_id)[1]
+    if (!nzchar(input_id)) input_id <- NULL
+  }
+  list(id = id, label = label, help = help, handler = handler,
+       destructive = isTRUE(destructive),
+       requires_confirm = isTRUE(requires_confirm),
+       availability = availability, input_id = input_id)
+}
+
+#' Register actions on the store
+#'
+#' Ids are prefixed from child views exactly like widget bindings and
+#' share the binding namespace (an id may not be both). Purely additive:
+#' value validation, epochs and pending entries are untouched. Snapshot
+#' lifecycle buttons and the dataset selector are never registered here.
+#'
+#' @param store Store (or child view).
+#' @param ... \code{\link{widget_action}} records.
+#' @return The store, invisibly.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_register_action <- function(store, ...) {
+  actions <- list(...)
+  if (!length(actions))
+    return(invisible(store))
+  if (is.null(store$parent)) {
+    prefix <- NULL
+  } else {
+    prefix <- store$prefix
+    store <- store$parent
+  }
+  if (is.null(store$actions)) {
+    store$actions <- list()
+    store$action_epochs <- list()
+    store$action_runs <- list()
+  }
+  for (a in actions) {
+    if (!is.list(a) || is.null(a$id) || is.null(a$handler))
+      stop("Only widget_action() records can be registered.")
+    id <- if (is.null(prefix)) a$id else paste(prefix, a$id, sep = ".")
+    a$id <- id
+    if (id %in% names(store$bindings))
+      stop("Id already registered as a widget binding: ", id)
+    if (id %in% names(store$actions))
+      stop("Action already registered: ", id)
+    store$actions[[id]] <- a
+    store$action_epochs[[id]] <- 0L
+  }
+  invisible(store)
+}
+
+#' Agent-facing view of registered actions
+#'
+#' Destructive actions are NEVER returned (settled policy 1); the
+#' availability probe runs isolated and defensively.
+#'
+#' @param store Store (or child view).
+#' @param prefix Optional canonical id prefix filter (component match,
+#'   like \code{\link{store_registry_view}}).
+#' @return A list of records: id, label, help, input_id,
+#'   requires_confirm, available (TRUE or a reason string),
+#'   last_run_epoch.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_action_view <- function(store, prefix = NULL) {
+  if (!is.null(store$parent)) {
+    if (!is.null(prefix))
+      prefix <- paste(store$prefix, prefix, sep = ".")
+    store <- store$parent
+  }
+  out <- list()
+  for (id in names(store$actions %||% list())) {
+    a <- store$actions[[id]]
+    if (isTRUE(a$destructive)) next
+    if (!is.null(prefix) && !identical(id, prefix) &&
+        !startsWith(id, paste0(prefix, "."))) next
+    avail <- tryCatch(
+      shiny::isolate(a$availability()),
+      error = function(e)
+        paste("availability check failed:", conditionMessage(e)))
+    out[[length(out) + 1L]] <- list(
+      id = id, label = a$label, help = a$help, input_id = a$input_id,
+      requires_confirm = a$requires_confirm,
+      available = if (isTRUE(avail)) TRUE else
+        (if (is.character(avail) && length(avail) == 1L) avail else
+          "unavailable"),
+      last_run_epoch = store$action_epochs[[id]] %||% 0L)
+  }
+  out
+}
+
+#' Run a registered action
+#'
+#' Runs the handler (in the domain captured by the module glue), then
+#' records the run: the per-action epoch counter increments and the last
+#' run info (origin, UTC timestamp) is stored - this is the only state
+#' actions contribute to snapshots, and \code{\link{store_restore}}
+#' never replays them.
+#'
+#' @param store Store (or child view).
+#' @param id Canonical or module-local action id.
+#' @param origin Who is running the action.
+#' @param params Optional named list passed to the handler; confirm
+#'   gating reads \code{params$confirm}.
+#' @return Invisible receipt: ran id, epoch, origin.
+#' @keywords internal
+#' @rdname widgetStoreHelpers
+store_action_run <- function(store, id, origin = c("agent", "user", "system"),
+                             params = NULL) {
+  origin <- match.arg(origin)
+  # capability records print ids as "action:<canonical id>"; accept that
+  # form verbatim (find_controls output can be passed straight through)
+  id <- sub("^action:", "", trimws(as.character(id)[1]))
+  key <- .widget_store_key(store, id)
+  if (!is.null(store$parent)) store <- store$parent
+  a <- store$actions[[key]]
+  if (is.null(a))
+    stop("Unknown action id: ", id, ".",
+         .agent_suggest_text(id, names(store$actions %||% list())))
+  if (isTRUE(a$destructive) && identical(origin, "agent"))
+    stop("Action is marked destructive and cannot be run by the agent: ",
+         key)
+  if (isTRUE(a$requires_confirm) && !isTRUE(params$confirm %||% FALSE))
+    stop("Action requires explicit confirmation: run it again with ",
+         "params {\"confirm\": true}.")
+  avail <- tryCatch(
+    shiny::isolate(a$availability()),
+    error = function(e)
+      paste("availability check failed:", conditionMessage(e)))
+  if (!isTRUE(avail))
+    stop("Action is not currently available: ", key, ": ",
+         if (is.character(avail) && length(avail) == 1L && nzchar(avail))
+           avail else "unavailable")
+  a$handler(params %||% list())
+  store$action_epochs[[key]] <- (store$action_epochs[[key]] %||% 0L) + 1L
+  store$action_runs[[key]] <- list(
+    epoch = store$action_epochs[[key]], origin = origin,
+    timestamp = format(Sys.time(), tz = "UTC", usetz = TRUE))
+  invisible(list(ran = key, epoch = store$action_epochs[[key]],
+                 origin = origin))
 }

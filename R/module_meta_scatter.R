@@ -276,6 +276,18 @@ meta_scatter_module <- function(
         help = "Quick-view badges or custom triselectors",
         values = c("quick", "custom"))
     )
+    # WP-C action tier: the Clear-selection button registers as an
+    # action; the named handler is defined with clear_counter below and
+    # resolved from this scope at call time.
+    store_register_action(
+      store,
+      widget_action("clear", label = "Clear figure selection",
+        help = paste("Clear this scatter's point/area selection and report",
+                     "the clear to the selection bus"),
+        input_id = ns("clear"),
+        handler = function(params)
+          shiny::withReactiveDomain(session, .scatter_clear_click()))
+    )
 
     # Reactive axis watchers: the canonical, atomic view of the current
     # axes (used by the volcano detection below). Created once; each call
@@ -590,11 +602,11 @@ meta_scatter_module <- function(
       ))
     }))
 
-    # Track clear button clicks
+    # Track clear button clicks. WP-C action tier: named local function
+    # so the button and the registered action drive one code path.
     clear_counter <- reactiveVal(0)
-    observeEvent(input$clear, {
-      clear_counter(clear_counter() + 1)
-    })
+    .scatter_clear_click <- function() clear_counter(clear_counter() + 1L)
+    observeEvent(input$clear, .scatter_clear_click())
 
     # Rectangle for corner selection (volcano plot)
     rectval <- reactive({

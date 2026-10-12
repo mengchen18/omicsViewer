@@ -106,6 +106,13 @@ NULL
     label = "Set widgets",
     help_text = paste("Apply a JSON-object patch of canonical widget ids to",
                       "values for controls the semantic tools do not cover.")
+  ),
+  list(
+    id = "run_control", panel = "Controls", tier = "generic",
+    label = "Run a control action",
+    help_text = paste("Run a button-like control action (search, run,",
+                      "clear) by canonical action id. Discover ids with",
+                      "find_controls (records of kind 'action').")
   )
 )
 
@@ -190,6 +197,32 @@ agent_capability_records <- function(store = NULL) {
         operation = .agent_widget_operation(r$id),
         allowed_values = r$allowed_values,
         depends_on = r$depends_on
+      )
+    }
+    # WP-C action records: button-like commands from the store's action
+    # registry (destructive actions never appear - settled policy 1).
+    # The record id carries the "action:" prefix so find_controls output
+    # can be passed straight to run_control; input_id maps the record
+    # back to its DOM button for inventory tooling.
+    for (a in store_action_view(store)) {
+      help <- a$help %||% ""
+      if (isTRUE(a$requires_confirm))
+        help <- paste(help, "Requires explicit confirmation",
+                      "(params {\"confirm\": true}).")
+      out[[length(out) + 1L]] <- list(
+        id = paste0("action:", a$id),
+        panel = .agent_widget_panel_label(a$id),
+        label = if (nzchar(a$label %||% "")) a$label else a$id,
+        kind = "action",
+        description = help,
+        help_text = help,
+        writable = TRUE,
+        operation = "run_control",
+        allowed_values = NULL,
+        depends_on = NULL,
+        input_id = a$input_id,
+        requires_confirm = a$requires_confirm,
+        available = a$available
       )
     }
   }

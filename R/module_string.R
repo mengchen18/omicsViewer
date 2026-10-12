@@ -91,7 +91,8 @@ string_ui <- function(id) {
 #'   \code{resultspace.stringdb}. When given, the taxonomy input, the
 #'   labels checkbox, and the enrichment-table row selection (which
 #'   highlights network nodes) register on the store; when NULL the legacy
-#'   status-restore path is kept. The Run button is deliberately not
+#'   status-restore path is kept. The Run button registers on the WP-C
+#'   action tier (run_control) instead of as a widget value.
 #'   registered: it is a stateless command (an API query trigger), not a
 #'   widget value.\code{reactive(NULL)}.
 #'
@@ -160,6 +161,24 @@ string_module <- function(
       widget_binding("show_labels", "boolean", label = "Show network labels",
         help = "Draw gene labels on the interaction network")
     )
+    # WP-C action tier: the Run button registers as an action; the named
+    # handler is defined with nk below and resolved from this scope at
+    # call time.
+    store_register_action(
+      store,
+      widget_action("run", label = "Run STRING network query",
+        help = paste("Query the STRING database for interactions among the",
+                     "currently selected features and render the network"),
+        input_id = ns("run"),
+        availability = function()
+          if (length(shiny::isolate(tryCatch(reactive_ids(),
+                                            error = function(e) NULL))))
+            TRUE
+          else "select features first (set_omics_viewer_state features)"
+          ,
+        handler = function(params)
+          shiny::withReactiveDomain(session, .string_run()))
+    )
     .str_root_store <- if (is.null(store$parent)) store else store$parent
     .str_keep(observeEvent(input$tax, {
       # R-L3: a cleared taxonomy syncs too (the store kept the stale value)
@@ -205,7 +224,15 @@ string_module <- function(
   })
   
   nk <- reactiveVal()
-  observeEvent( input$run, {
+  # WP-C action tier: both the Run button and the registered action bump
+  # one run signal; the network query body and the enrichment eventReactive
+  # both listen to it, so the action fires the SAME two consumers a button
+  # click fires.
+  .run_signal <- reactiveVal(0L)
+  .string_run <- function() .run_signal(.run_signal() + 1L)
+  observeEvent(input$run, .string_run())
+
+  .string_run_body <- function() {
     # Validate inputs before API call
     ids <- reactive_ids()
     validation <- validate_character_vector(
@@ -266,10 +293,11 @@ string_module <- function(
       }
     }
     nk(r)
-  })
+  }
+  observeEvent(.run_signal(), .string_run_body(), ignoreInit = TRUE)
   
   gs <- reactiveVal()
-  gs <- eventReactive( input$run, {
+  gs <- eventReactive( .run_signal(), {
     req(!overflow())
     show_modal_spinner(text = "Querying STRING enrichment database ...")
     # R-L3: any error (or early return) below must still take the modal down

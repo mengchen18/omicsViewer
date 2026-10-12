@@ -49,7 +49,8 @@ state for session restoration. Optional. Default: \code{reactive(NULL)}.}
 \code{resultspace.geneshot}. When given, the search-term input and
 the ID-mapper cascade register on the store; when NULL the legacy
 status-restore path is kept. The Search button is deliberately not
-registered: it is a stateless command, not a widget value.}
+registers on the store; the Search button registers on the WP-C
+action tier (run_control) instead - it is a command, not a value.}
 }
 \value{
 A reactive expression returning a list with module state for session saving.

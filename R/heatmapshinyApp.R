@@ -466,6 +466,15 @@ iheatmapModule <- function(
                      "tooltip; empty clears the tooltip"),
         choices_provider = function(v) c(colnames(choices_fd()), colnames(choices_pd())))
     )
+    store_register_action(
+      store,
+      widget_action("clear", label = "Clear heatmap selection",
+        help = paste("Clear the heatmap's clicked/brushed cell selection",
+                     "and report the clear to the selection bus"),
+        input_id = ns("clear"),
+        handler = function(params)
+          shiny::withReactiveDomain(session, .heatmap_clear_selection()))
+    )
     .heatmap_store_root <- if (is.null(store$parent)) store else store$parent
     .heatmap_store_keys <- c(
       heatmap_colors = "heatmapColors", scale = "scale",
@@ -1256,11 +1265,14 @@ iheatmapModule <- function(
   # selection bus. The counter carries the user click explicitly - same
   # pattern as the scatter's origin = "clear" report.
   clearSignal <- reactiveVal(0L)
-  observeEvent(input$clear, {
+  # WP-C action tier: named local function so the button and the
+  # registered action drive one code path
+  .heatmap_clear_selection <- function() {
     clearSignal(clearSignal() + 1L)
     selVal$clicked <- NULL#
     selVal$selected <- list(col = NULL, row = NULL)
-  })
+  }
+  observeEvent(input$clear, .heatmap_clear_selection())
   observeEvent(list(clickedName(), brushedValues()), {
     selVal$clicked <- clickedName()# l[v_scatter()$clicked]
     selVal$selected <- brushedValues()#l[v_scatter()$selected]

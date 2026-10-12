@@ -119,8 +119,12 @@ dataTable_module <- function(
   
   notNullAndPosLength <- function(x) !is.null(x) && length(x) > 0
 
+  # WP-C action tier: the Clear button's body is a named local function
+  # so the button and the registered action drive one code path.
+  .dt_clear_selection <- function() selectedRowOrCol(TRUE)
+
   observeEvent( reactive_data(), selectedRowOrCol(TRUE) )
-  observeEvent( input$clear, selectedRowOrCol(TRUE) )
+  observeEvent( input$clear, .dt_clear_selection() )
   observe( selectedRowOrCol( tab_rows() ) )
 
   rdd <- reactive({
@@ -214,6 +218,15 @@ dataTable_module <- function(
                      "as an object of exact column name to pattern; an",
                      "empty object clears every filter"),
         choices_provider = function(v) .dt_col_choices())
+    )
+    store_register_action(
+      store,
+      widget_action("clear", label = "Clear table selection",
+        help = paste("Show all rows again: clears the table's row mirror",
+                     "so the panel stops subsetting to selected rows"),
+        input_id = ns("clear"),
+        handler = function(params)
+          shiny::withReactiveDomain(session, .dt_clear_selection()))
     )
     # DT proxy operations defer until flush end (after output re-renders),
     # so a columns push followed by a filters push lands on the new table.

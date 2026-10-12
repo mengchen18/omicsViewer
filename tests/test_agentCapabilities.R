@@ -89,9 +89,9 @@ ok(
     c("get_omics_viewer_state", "search_annotations", "summarize_annotation",
       "set_omics_viewer_state", "set_scatter_view", "set_enrichment_parameters",
       "set_table_view", "create_figure", "update_figure", "find_controls",
-      "describe_control", "set_widgets")),
+      "describe_control", "set_widgets", "run_control")),
     TRUE),
-  "tool records cover the full assistant allowlist incl. WP8/WP9 tools"
+  "tool records cover the full assistant allowlist incl. WP8/WP9 tools + WP-C run_control"
 )
 
 ## ---------------------------------------------------------- searching ----

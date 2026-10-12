@@ -350,7 +350,8 @@ async function fetchStore(page) {
   // dedupe by id
   const byId = new Map();
   for (const rec of records) byId.set(rec.id, rec);
-  return { snapshot, records: [...byId.values()] };
+  return { snapshot, records: [...byId.values()],
+           actions: snapshot.action_registry || [] };
 }
 
 // topological order: dependencies first
@@ -506,7 +507,24 @@ async function runCase(page, caseSpec, consoleBuf) {
     const uiChanged = eff.changed.length > 0 ||
       (caseSpec.predicate ? await caseSpec.predicate() : false) ||
       (caseSpec.checkAxes && axesBefore && axesAfter && JSON.stringify(axesBefore) !== JSON.stringify(axesAfter));
-    if (eff.timedOut && !uiChanged) result.status = 'timeout';
+    if (caseSpec.category === 'action') {
+      // WP-C: primary evidence is store-level - the per-action epoch bump
+      // is recorded only after the handler body returned - never the
+      // input diff (hook churn / re-render blindness do not apply)
+      const snapAfter = await runHook(page, 'store', {});
+      const after = ((snapAfter.result || {}).actions || {})[caseSpec.actionId] ?? -1;
+      result.store_readback = { [caseSpec.actionId]: after };
+      if (receipt.error) {
+        result.status = 'rejected';
+        result.note = String(receipt.error).slice(0, 200);
+      } else if ((receipt.ran || []).length && after > (caseSpec.epochBefore ?? -1)) {
+        result.status = 'success';
+        result.note = `handler ran (epoch ${caseSpec.epochBefore ?? -1} -> ${after})`;
+      } else {
+        result.status = 'error';
+        result.note = 'action did not run (no epoch bump)';
+      }
+    } else if (eff.timedOut && !uiChanged) result.status = 'timeout';
     else if (hookMs > EFFECT_WAIT_MS) { result.status = 'timeout'; result.note = `tool round-trip itself took ${hookMs}ms (> 30 s budget)`; }
     else if (caseSpec.category === 'semantic-tool') {
       if (receipt.hook_error) { result.status = 'rejected'; result.note = receipt.hook_error; }
@@ -618,6 +636,28 @@ try {
   }
   log(`binding cases: ${bindingResults.length} done`);
 
+  // ================= 2b. action cases (WP-C run_control tier) =================
+  // Every registered action runs through the runcontrol hook == the
+  // exact run_control tool pathway. Status is decided on the store-level
+  // epoch bump (proof the handler body ran), never on input diffs.
+  const actionResults = [];
+  for (const a of (store.actions || [])) {
+    const snap = await runHook(page, 'store', {});
+    const epochBefore = ((snap.result || {}).actions || {})[a.id] ?? -1;
+    const ares = await runCase(page, {
+      caseId: a.id, category: 'action', tool: 'run_control',
+      actionId: a.id,
+      widget: { action_id: a.id, label: a.label, help: a.help,
+                input_id: a.input_id, requires_confirm: a.requires_confirm,
+                available: a.available },
+      hookOp: 'runcontrol',
+      request: { action_id: a.id },
+      epochBefore
+    }, consoleBuf);
+    if (ares) actionResults.push(ares);
+  }
+  log(`action cases: ${actionResults.length} done`);
+
   // ================= 3. semantic tool cases =================
   const semantic = [];
   const push = async s => { const res = await runCase(page, s, consoleBuf); if (res) semantic.push(res); };
@@ -686,9 +726,16 @@ try {
     return [...out].slice(0, 3);
   };
   const domOnly = [];
+  // WP-C: buttons that back registered actions are covered by the action
+  // tier - they leave the dom-only inventory (mapped through input_id,
+  // which carries the full dom id including any app- prefix)
+  const actionDomIds = new Set((store.actions || [])
+    .filter(a => a.input_id)
+    .map(a => String(a.input_id).startsWith('app-') ? a.input_id : 'app-' + a.input_id));
   const addDomOnly = (ident, desc, probeValue, note) => domOnly.push({ ident, desc, probeValue, note });
   for (const e of dom.shiny) {
     if (mappedInputs.has(e.id)) continue;
+    if (actionDomIds.has(e.id)) continue;
     if (/agentTestHooks/.test(e.id)) continue; // test infrastructure, not user-facing
     const covered = /-select-(analysis|subset|variable)$/.test(e.id) && /tab_(pheno|feature|expr)/.test(e.id);
     const badge = /quickViews-badge_/.test(e.id);
@@ -742,7 +789,7 @@ try {
   }
 
   // ================= 7. summary =================
-  const all = [...bindingResults, ...semantic, ...domResults, ...oosResults];
+  const all = [...bindingResults, ...actionResults, ...semantic, ...domResults, ...oosResults];
   const byCat = {};
   for (const res of all) {
     byCat[res.category] = byCat[res.category] || {};
