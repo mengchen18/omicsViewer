@@ -530,6 +530,24 @@ agent_where_normalize <- function(where, mappings = NULL) {
 # Interpret a canonical filter against the built plotting data. Returns a
 # settled logical vector (no NAs): rows with NA values never match a
 # comparison — is_na/not_na are the explicit way to match them.
+#
+# WP-3 (F6): filter errors carry the available-column vocabulary so a
+# miss costs one retry, not a guessing game. The annotation catalog
+# labels the id columns featureId/sampleId while the figure grammar
+# reserves __feature_id__/__sample_id__ — accept both spellings when
+# resolving filter columns (the reserved name stays canonical in the
+# echoed result).
+.agent_available_columns_note <- function(cols, max = 12L) {
+  cols <- as.character(cols)
+  if (!length(cols))
+    return(" No columns are available in this figure's data.")
+  shown <- utils::head(cols, max)
+  more <- length(cols) - length(shown)
+  paste0(
+    " Available columns: ", paste(shown, collapse = ", "),
+    if (more > 0L) paste0(" (+", more, " more)"), ".")
+}
+
 agent_where_eval <- function(where, data) {
   if (is.null(where)) return(rep(TRUE, nrow(data)))
   hit <- .agent_where_eval_node(where, data)
@@ -547,9 +565,17 @@ agent_where_eval <- function(where, data) {
   }
 
   column <- .agent_figure_scalar(node$column, max_chars = 500L, arg = "filter.column")
+  if (!is.null(column) && !column %in% colnames(data)) {
+    alias <- switch(column,
+                    featureId = "__feature_id__",
+                    sampleId = "__sample_id__")
+    if (!is.null(alias) && alias %in% colnames(data))
+      column <- alias
+  }
   if (is.null(column) || !column %in% colnames(data))
     stop("Figure filter column is unavailable: ", column, ".",
-         .agent_suggest_text(column, colnames(data)))
+         .agent_suggest_text(column, colnames(data)),
+         .agent_available_columns_note(colnames(data)))
   vals <- data[[column]]
   op <- node$op
 

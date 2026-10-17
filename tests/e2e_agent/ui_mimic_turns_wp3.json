@@ -1,0 +1,4 @@
+[
+  { "id": "wp3-t1-volcano", "prompt": "Make a volcano plot for the RE vs ME comparison." },
+  { "id": "wp3-t2-highlight", "prompt": "On that volcano plot, highlight and label only the genes EGFR, MYC, TP53 and BRAF; keep the other points dimmed in the background." }
+]

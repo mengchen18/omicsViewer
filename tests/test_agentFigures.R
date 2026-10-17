@@ -928,6 +928,42 @@ ok(
   ),
   "unknown where operator is rejected with a suggestion"
 )
+
+# ---- WP-3 (F6): filter errors carry the column vocabulary ----
+figdat <- data.frame(`__feature_id__` = paste0("F", 1:10), score = 1:10,
+                     category = rep(c("kinase", "phosphatase"), 5),
+                     check.names = FALSE)
+ok(
+  ut_fails(
+    agent_where_eval(list(column = "featureIdzz", op = ">", value = 5), figdat),
+    "Available columns: __feature_id__, score, category"
+  ),
+  "filter miss lists the available columns (WP-3)"
+)
+wide_dat <- cbind(figdat,
+  setNames(as.data.frame(matrix(0, 10, 20)), paste0("col", 1:20)))
+ok(
+  ut_fails(
+    agent_where_eval(list(column = "nope", op = ">", value = 5), wide_dat),
+    "(+11 more)."
+  ),
+  "available-column note is bounded to 12 columns with a +N marker"
+)
+f1_hits <- rep(FALSE, 10); f1_hits[c(1, 10)] <- TRUE  # F1 and F10
+ok(
+  ut_cmp_identical(
+    agent_where_eval(
+      list(column = "featureId", op = "starts_with", text = "F1"), figdat),
+    f1_hits),
+  "featureId resolves to the reserved __feature_id__ filter column (F6 alias)"
+)
+ok(
+  ut_cmp_identical(
+    agent_where_eval(
+      list(column = "__feature_id__", op = "starts_with", text = "F1"), figdat),
+    f1_hits),
+  "reserved __feature_id__ filter spelling still canonical"
+)
 wall <- agent_where_normalize(list(all = list(
   list(column = "score", op = "abs>=", value = 2),
   list(any = list(

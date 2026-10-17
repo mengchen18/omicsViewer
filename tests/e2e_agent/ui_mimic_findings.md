@@ -99,11 +99,22 @@ burn 5–10 retries. Candidate: literal matches rank before fuzzy ones
 and truncation keeps the literal head; OR fuzzy only when the query has
 no id-separator characters.
 
-### F6 — figure filter errors don't list usable columns
+### F6 — figure filter errors don't list usable columns — FIXED (WP-3)
 `update_figure` failed with *"Figure filter column is unavailable:
 featureId"*; the model self-recovered by retrying with Gene.name, but
 the error should name the figure's available columns (same
 self-describing-rejection policy as WP-A).
+
+**Resolution 2026-10-17 (WP-3).** The filter-miss error now appends a
+bounded available-column note (first 12 columns + "+N more") via
+`.agent_available_columns_note()`; and `featureId`/`sampleId` resolve
+to the reserved `__feature_id__`/`__sample_id__` columns when present
+(the annotation catalog labels id columns featureId/sampleId, the
+figure grammar reserves the dunder spelling — both now work, the
+reserved name stays canonical). Live validation (`wp3_validation`):
+the highlight-genes turn used the canonical `__feature_id__` spelling
+from the figure grammar with ZERO failed filter calls (was 1); the
+vocabulary note + alias are defense in depth for models that guess.
 
 ### F7 — long silent chains, no progress feedback
 Median provider request 12.6 s (max 42 s); one user turn chained 33
