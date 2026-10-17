@@ -188,7 +188,11 @@ try {
     }
 
     // settle: streaming / in-flight request / stable text
+    // WP-8: also sample the progress line (DOM-only status under the
+    // composer) - the acceptance metric is the longest user-invisible
+    // quiet stretch, and the line is what makes chains visible
     let prev = '', stableRounds = 0, figureReady = false;
+    rec.progress = { visible_rounds: 0, samples: [] };
     const deadline = Date.now() + (turn.budget_ms || 300000);
     while (Date.now() < deadline) {
       await new Promise(s => setTimeout(s, 3000));
@@ -197,11 +201,25 @@ try {
         figures: document.querySelectorAll('.omicsviewer-ai-figure img').length,
         figLoaded: Array.from(document.querySelectorAll('.omicsviewer-ai-figure img'))
           .every(i => i.complete && i.naturalWidth > 0),
+        progressShown: (() => {
+          const l = document.getElementById('app-assistant-progress');
+          return !!(l && getComputedStyle(l).display !== 'none');
+        })(),
+        progressText: (() => {
+          const l = document.getElementById('app-assistant-progress');
+          return l ? l.textContent : '';
+        })(),
         streaming: (() => {
           const b = document.querySelector('[class*="cancel"]');
           return !!(b && b.offsetParent !== null && !b.disabled);
         })()
       }));
+      if (st.progressShown) {
+        rec.progress.visible_rounds++;
+        if (!rec.progress.samples.includes(st.progressText) &&
+            rec.progress.samples.length < 12)
+          rec.progress.samples.push(st.progressText);
+      }
       if (st.figures > 0 && st.figLoaded) figureReady = true;
       if (st.streaming || logRequestInFlight()) { stableRounds = 0; prev = st.text; continue; }
       if (st.text === prev && st.text.length > 200) {

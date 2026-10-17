@@ -1134,6 +1134,39 @@ try {
   await runHook(p1, 'state', { data_space_tab: 'Feature' });
   await waitTab(p1, 'Feature');
 
+  // ---- 4i. WP-8 (F7): progress line client contract -------------------
+  // The server publishes per-turn activity through
+  // omicsviewerAssistantProgress messages; the env-gated JS hook lets the
+  // browser suite drive the exact render path without a provider stream.
+  record('WP8 progress hook exposed',
+    await p1.evaluate(() => typeof window.__omicsviewerAiProgress === 'object'));
+  record('WP8 progress line hidden while idle',
+    await p1.evaluate(() => {
+      const l = document.getElementById('app-assistant-progress');
+      return !l || getComputedStyle(l).display === 'none';
+    }));
+  const stepTxt = await p1.evaluate(() => {
+    window.__omicsviewerAiProgress.update({ state: 'working', phase: 'tool', step: 3, tool: 'set_enrichment_parameters' });
+    const l = document.getElementById('app-assistant-progress');
+    return l ? l.textContent : null;
+  });
+  record('WP8 tool step renders as Working - step N: tool',
+    /Working .*step 3.*set_enrichment_parameters/.test(stepTxt || ''), stepTxt);
+  const modelTxt = await p1.evaluate(() => {
+    window.__omicsviewerAiProgress.update({ state: 'working', phase: 'model' });
+    const l = document.getElementById('app-assistant-progress');
+    return l ? { txt: l.textContent, shown: getComputedStyle(l).display !== 'none' } : null;
+  });
+  record('WP8 model phase renders the responding notice',
+    !!(modelTxt && modelTxt.shown && /model is responding/.test(modelTxt.txt)),
+    JSON.stringify(modelTxt));
+  record('WP8 idle hides the progress line',
+    await p1.evaluate(() => {
+      window.__omicsviewerAiProgress.update({ state: 'idle' });
+      const l = document.getElementById('app-assistant-progress');
+      return !l || getComputedStyle(l).display === 'none';
+    }));
+
   // ---- 5. cross-session isolation -------------------------------------
   const s2 = await openSession(browser);
   const p2 = s2.page;

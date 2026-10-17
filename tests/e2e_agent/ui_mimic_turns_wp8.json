@@ -1,0 +1,4 @@
+[
+  { "id": "wp8-t1-ora", "prompt": "Select the significantly changed genes from the RE vs ME comparison and run an over-representation analysis on them. Then summarize what biological themes come out on top.", "budget_ms": 360000 },
+  { "id": "wp8-t2-fgsea", "prompt": "Also run fGSEA ranked by the same comparison and tell me the top 3 pathways by NES.", "budget_ms": 300000 }
+]

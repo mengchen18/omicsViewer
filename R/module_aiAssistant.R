@@ -68,6 +68,8 @@ NULL
     "After applying any change, report in one sentence what changed (tool, target, new value); never describe a change as done unless the tool result confirms it.",
     "Exact-ID contract: never guess IDs, tab labels, column names, or widget values; use values returned by tools. When a call is rejected, retry ONCE with the suggested closest matches or a search - then stop and report the mismatch instead of fabricating success.",
     "",
+    "[PACE] Prefer at most about 6 tool calls per user request. If a task needs more, complete the core step, report what you found and what remains, and let the user confirm before long continuations.",
+    "",
     "[FIGURES] Use create_figure and update_figure with declarative specifications; templates (volcano/scatter/boxplot/histogram) with a few exact column names are the preferred path, the full spec only for advanced multi-layer figures.",
     "Layers accept structured filters (e.g. {column, op, value}) and constant hex colors; scale sets explicit per-category colors; theme_options tunes legend, label rotation, and grid - request the figure_grammar section for the exact forms.",
     "",
@@ -186,6 +188,30 @@ ai_assistant_ui <- function(id) {
       }
       .omicsviewer-ai-delivery-notice button {
         flex: none;
+      }
+      .omicsviewer-ai-progress {
+        padding: 5px 12px 7px 12px;
+        border-top: 1px solid #edeff1;
+        background: #fff;
+        color: #556;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 26px;
+      }
+      .omicsviewer-ai-progress::before {
+        content: '';
+        flex: none;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 2px solid #c9d2dd;
+        border-top-color: #4a7ab5;
+        animation: omicsviewer-ai-spin 0.9s linear infinite;
+      }
+      @keyframes omicsviewer-ai-spin {
+        to { transform: rotate(360deg); }
       }
       .omicsviewer-ai-panel {
         position: fixed;
@@ -316,6 +342,17 @@ ai_assistant_ui <- function(id) {
         div(
           class = "omicsviewer-ai-body",
           uiOutput(ns("body"))
+        ),
+        # WP-8 (F7): progress line under the composer. Driven purely by
+        # omicsviewerAssistantProgress custom messages from the server
+        # (submit / model request / tool call events); DOM-only, no
+        # shinychat internals touched.
+        div(
+          id = ns("progress"),
+          class = "omicsviewer-ai-progress",
+          role = "status", `aria-live` = "polite",
+          `data-testid` = paste0(id, "-progress"),
+          style = "display:none;"
         )
       )
     ),
@@ -496,6 +533,38 @@ ai_assistant_ui <- function(id) {
       "    visible: function() { return !!notice; },",
       "    text: function() { return pendingText; }",
       "  };") else NULL,
+      "})();"
+    ), collapse = "\n"))),
+    tags$script(HTML(paste(c(
+      "// WP-8 (F7) progress line: the server publishes the assistant's",
+      "// per-turn activity (submit / model request / tool call) through",
+      "// omicsviewerAssistantProgress messages; the line under the composer",
+      "// renders them so multi-step chains are never silently busy. Pure",
+      "// DOM - no shinychat internals.",
+      "(function() {",
+      "  var panel = document.getElementById(", .agent_js_string(panel_id), ");",
+      "  if (!panel) return;",
+      "  var line = document.getElementById(", .agent_js_string(ns("progress")), ");",
+      "  if (!line) return;",
+      "  var render = function(m) {",
+      "    if (m && m.state === 'working') {",
+      "      var txt;",
+      "      if (m.step > 0)",
+      "        txt = 'Working \u2014 step ' + m.step + ': ' + (m.tool || 'tool call');",
+      "      else if (m.phase === 'model')",
+      "        txt = 'Working \u2014 the model is responding...';",
+      "      else",
+      "        txt = 'Working \u2014 waiting for the model...';",
+      "      line.textContent = txt;",
+      "      line.style.display = 'flex';",
+      "    } else {",
+      "      line.style.display = 'none';",
+      "    }",
+      "  };",
+      "  if (window.Shiny && Shiny.addCustomMessageHandler)",
+      "    Shiny.addCustomMessageHandler('omicsviewerAssistantProgress', render);",
+      if (agent_test_hooks_enabled()) c(
+      "  window.__omicsviewerAiProgress = { update: render };") else NULL,
       "})();"
     ), collapse = "\n")))
   )
@@ -709,12 +778,32 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         logger = logger
       )
 
+      # WP-8 (F7): per-turn progress publisher. The step counter resets on
+      # every user submission and counts TOOL CALLS within that turn; the
+      # client renders the messages under the composer. sendCustomMessage
+      # is websocket-level (no reactive context needed) - the same path
+      # WP-5's stuck notifications already use from later() callbacks.
+      .ai_progress_step <- 0L
+      .ai_progress <- function(state = c("working", "idle"), phase = NULL,
+                               step = NULL, tool = NULL) {
+        tryCatch(
+          session$sendCustomMessage(
+            "omicsviewerAssistantProgress",
+            list(state = state, phase = phase, step = step, tool = tool)),
+          error = function(e) NULL
+        )
+      }
+
       .ai_register_tools <- function(provider_config) {
         client <- .ai_make_client(provider_config)
         tool_registry$register(client)
         client$on_request_start(function(turns) {
           request_count <<- request_count + 1L
           logger$current_request_index <- request_count
+          # WP-8: provider requests are the longest user-invisible stretch
+          # (median 12.6 s) - the progress line must say the model is busy
+          # before anything can go quiet
+          .ai_progress("working", phase = "model")
           agent_logger_event(
             logger,
             "provider_request_start",
@@ -864,6 +953,11 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           )
         })
         client$on_tool_request(function(request) {
+          # WP-8: count and publish each tool call as one visible step of
+          # the current user turn
+          .ai_progress_step <<- .ai_progress_step + 1L
+          .ai_progress("working", phase = "tool",
+                       step = .ai_progress_step, tool = request@name)
           agent_logger_event(
             logger,
             "tool_request",
@@ -923,6 +1017,10 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       }
       observeEvent(input$chat_user_input, {
         now <- unclass(Sys.time())
+        # WP-8: a new user turn resets the step counter and lights the
+        # progress line immediately (the provider request can take 10-40 s)
+        .ai_progress_step <<- 0L
+        .ai_progress("working", phase = "submit")
         # WP-6: ack EVERY submission to the client delivery watchdog
         # (outside the 1/s log rate limit); the notice only appears when
         # this never arrives - i.e. the client-side discard from WP-4.
@@ -1000,6 +1098,10 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
           return(invisible(NULL))
         }
         agent_logger_event(logger, "chat_retry_submitted", list(chars = nchar(text)))
+        # WP-8: the retried submission is a fresh user turn for the
+        # progress line, too
+        .ai_progress_step <<- 0L
+        .ai_progress("working", phase = "submit")
         tryCatch(
           chat_object$update_user_input(value = text, submit = TRUE, focus = TRUE),
           error = function(e) {
@@ -1524,6 +1626,10 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         if (identical(status_value, isolate(last_logged_stream_status())))
           return(NULL)
         last_logged_stream_status(status_value)
+        # WP-8: the line clears whenever the stream is at rest (settle,
+        # cancel, failure) - including the governed aborts above
+        if (!identical(status_value, "streaming"))
+          .ai_progress("idle")
         agent_logger_event(logger, "stream_status", list(status = status_value))
       })
 
