@@ -38,7 +38,9 @@ NULL
     id = "search_annotations", panel = "Annotations", tier = "read",
     label = "Search annotations",
     help_text = paste("Case-insensitive literal search over feature/sample IDs,",
-                      "annotation column names, and bounded matching values.")
+                      "annotation column names, and bounded matching values.",
+                      "An empty query lists the annotation catalog grouped by",
+                      "Category|Subcategory prefix before searching.")
   ),
   list(
     id = "summarize_annotation", panel = "Annotations", tier = "read",

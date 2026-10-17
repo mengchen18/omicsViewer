@@ -222,6 +222,27 @@ shiny::testServer(
       ut_cmp_identical(search_result@extra$data$matching_ids, "Gene1"),
       "search tool returns bounded matching IDs"
     )
+    catalog_result <- tools$search_annotations(
+      space = "feature", query = "", `_intent` = "unit test"
+    )
+    ok(
+      ut_cmp_identical(catalog_result@extra$data$query, ""),
+      "empty query through the tool seam returns the catalog"
+    )
+    ok(
+      ut_cmp_identical(
+        "score" %in% vapply(
+          catalog_result@extra$data$feature$categories,
+          function(g) g$prefix, character(1)),
+        TRUE),
+      "catalog via tool seam groups columns by annotation prefix"
+    )
+    ok(
+      ut_cmp_identical(
+        catalog_result@extra$display$value_preview,
+        "4 categories"),
+      "catalog receipt preview counts categories"
+    )
     summary_result <- tools$summarize_annotation(
       space = "sample", column = "group", max_values = 2L,
       `_intent` = "unit test"

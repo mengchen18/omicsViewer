@@ -1,0 +1,4 @@
+[
+  { "id": "wp1-t1-pca-group", "prompt": "Show a PCA scatter plot of the samples, colored by group." },
+  { "id": "wp1-t2-color-tp53", "prompt": "Now color the same plot by TP53 status instead." }
+]

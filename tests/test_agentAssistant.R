@@ -421,6 +421,87 @@ ok(
   "annotation value search does not confuse values with IDs"
 )
 
+# ---- WP-1 (F3): empty query returns the category catalog ----
+cat_query <- agent_search_annotations("feature", "", fd, pd)
+ok(ut_cmp_identical(cat_query$query, ""), "empty query takes the catalog path")
+ok(
+  ut_cmp_identical(
+    setequal(names(cat_query), c("query", "hint", "feature", "sample")),
+    TRUE),
+  "empty-query catalog carries both spaces plus a hint"
+)
+ws_query <- agent_search_annotations("sample", "   ", fd, pd)
+ok(
+  ut_cmp_identical(ws_query$query, ""),
+  "whitespace-only query trims to the catalog path"
+)
+feature_cats <- ws_query$feature$categories
+sample_cats <- ws_query$sample$categories
+ok(
+  ut_cmp_identical(
+    sort(vapply(feature_cats, function(g) g$prefix, character(1))),
+    c("category", "ttest|A_vs_B")),
+  "catalog groups feature columns by Category|Subcategory prefix"
+)
+ok(
+  ut_cmp_identical(
+    vapply(feature_cats, function(g) g$n_columns, integer(1))[
+      match("ttest|A_vs_B", vapply(feature_cats, function(g) g$prefix, character(1)))],
+    1L),
+  "prefixed category counts its member columns"
+)
+ok(
+  ut_cmp_identical(
+    sample_cats[[match("group", vapply(sample_cats, function(g) g$prefix, character(1)))]]$example_types,
+    "categorical"),
+  "catalog type hint marks phenotype columns categorical"
+)
+ok(
+  ut_cmp_identical(
+    sample_cats[[match("batch", vapply(sample_cats, function(g) g$prefix, character(1)))]]$example_types,
+    "numeric"),
+  "catalog type hint marks numeric columns numeric"
+)
+# Byte bound: a wide fixture (40 categories x 5 columns) must stay under
+# the ~4 KB digest budget by degrading tail categories to counts only.
+wide_names <- unlist(lapply(seq_len(40), function(i)
+  sprintf("analysis%d|set%d|col%d", i, i, seq_len(5))))
+wide_fd <- as.data.frame(
+  setNames(rep(list(c(1, 2, 3)), length(wide_names)), wide_names),
+  check.names = FALSE)
+rownames(wide_fd) <- c("Gene1", "Gene2", "Gene3")
+cat_wide <- agent_search_annotations("feature", "", wide_fd, pd)
+ok(
+  ut_cmp_identical(cat_wide$feature$category_count, 40L),
+  "wide fixture reports every category"
+)
+cat_wide_json <- jsonlite::toJSON(
+  omicsViewer:::agent_json_prep(cat_wide), auto_unbox = TRUE, null = "null")
+ok(
+  ut_cmp_identical(nchar(cat_wide_json, type = "bytes") <= 4096L, TRUE),
+  "catalog digest stays within the ~4 KB byte budget"
+)
+ok(
+  ut_cmp_identical(
+    any(vapply(cat_wide$feature$categories,
+               function(g) is.null(g$example_columns), logical(1))),
+    TRUE),
+  "over-budget tail categories degrade to counts only"
+)
+ok(
+  ut_cmp_identical(
+    any(grepl("counts only", cat_wide$feature$note, fixed = TRUE)),
+    TRUE),
+  "degraded catalog explains how to recover column details"
+)
+ok(
+  ut_cmp_identical(
+    "ttest|A_vs_B|log.fdr" %in% agent_search_annotations(
+      "feature", "log.fdr", fd, pd)$matching_columns,
+    TRUE),
+  "non-empty literal search behavior is unchanged"
+)
+
 summary <- agent_summarize_annotation(
   space = "feature", column = "ttest|A_vs_B|log.fdr", feature_data = fd, sample_data = pd
 )

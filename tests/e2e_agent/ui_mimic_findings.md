@@ -44,7 +44,7 @@ after stubbing (probe input path), deferring stubbing to the next
 request start, and adding a client-side "message not delivered" notice
 when no stream starts within ~10 s.
 
-### F3 — no cheap column enumeration ("colored by group" flail)
+### F3 — no cheap column enumeration ("colored by group" flail) — FIXED (WP-1)
 Every session burned 5–8 tool calls guessing synonyms (group, genotype,
 condition, class, cell, type...) because `search_annotations` matches
 only literal substrings and `get_omics_viewer_state(annotations)` is
@@ -53,6 +53,19 @@ by luck (state catalog excerpt) — batch1 t2 never recovered and the PCA
 never happened. Fix: allow an empty/broad `search_annotations` query to
 return a grouped catalog (category → count + example columns), bounded
 to fit the tool budget; mention it in the tool help.
+
+**Resolution 2026-10-17 (WP-1).** `agent_annotation_category_catalog()`
+groups columns by `Category|Subcategory` prefix (unprefixed columns
+stand as their own single-column group), bounded to ~4 KB by degrading
+tail categories to counts-only; empty/whitespace query on
+`search_annotations` returns it (tool description + capability record
+updated). Live validation (`wp1_validation`, `wp1_validation_b` in
+~/.omicsviewer-llm-eval/): both sessions enumerated in 2
+search_annotations calls (1 blind synonym miss → empty-query catalog →
+straight to `General|All|Origin`); the catalog digest is 3,489 bytes
+for demo.RDS (21 feature + 3 sample categories); PCA scatter turns
+settled in 98 s / 54 s and the app scatter switched via
+`set_scatter_view(sample, pca)`.
 
 ### F4 — panel result tables are unreadable
 After a successful fGSEA run the assistant cannot report the top-3 NES
@@ -66,6 +79,16 @@ get_omics_viewer_state (top rows of ORA/fGSEA tables) or a read tool.
 The model's opening move ("enumerate the controls") is rejected with
 "A non-empty capability search query is required" in every session.
 Allow empty query → top-level groups (WP-G1 records already carry them).
+
+**Observation 2026-10-17 (wp1_validation_b, feeds WP-2):** beyond the
+empty-query rejection, the fuzzy path drowns precise queries —
+`find_controls("dataspace.sample_space.color")` returned 207/214
+fuzzy matches with the 3 literal color widgets buried past truncation;
+nearby queries hit 11–19 KB byte-truncated results. The model burned 8
+retries hunting the sample-scatter color widget and never set the
+color. WP-2's digest fixes enumeration; consider also rank-then-truncate
+(literal matches first) as a WP-2 amendment — needs Chen's call since
+the plan freezes non-empty behavior.
 
 ### F6 — figure filter errors don't list usable columns
 `update_figure` failed with *"Figure filter column is unavailable:

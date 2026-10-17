@@ -93,21 +93,32 @@ agent_tool_registry <- function(state, feature_data, sample_data,
         sample_data = isolate(sample_data()),
         max_results = max_results
       )
+      is_catalog <- !nzchar(result$query)
       .ai_tool_result(
         result,
-        title = "Searched annotations",
-        label = paste(result$space, ":", result$query),
-        preview = paste(result$matching_id_count, "matching IDs")
+        title = if (is_catalog) "Annotation catalog" else "Searched annotations",
+        label = if (is_catalog)
+          "column categories by annotation prefix"
+        else
+          paste(result$space, ":", result$query),
+        preview = if (is_catalog)
+          paste(
+            result$feature$category_count + result$sample$category_count,
+            "categories")
+        else
+          paste(result$matching_id_count, "matching IDs")
       )
     },
     name = "search_annotations",
     description = paste(
       "Search feature/sample IDs, annotation column names, and bounded matching values.",
-      "Returns at most 50 IDs. Use this before selecting IDs or discussing annotation names."
+      "Returns at most 50 IDs. Use this before selecting IDs or discussing annotation names.",
+      "Pass an empty query to list the annotation catalog grouped by",
+      "Category|Subcategory prefix before searching."
     ),
     arguments = list(
       space = ellmer::type_enum(c("feature", "sample"), "Annotation space to search."),
-      query = ellmer::type_string("Case-insensitive literal query (1-128 characters)."),
+      query = ellmer::type_string("Case-insensitive literal query (1-128 characters); an empty string returns the annotation catalog grouped by Category|Subcategory prefix."),
       max_results = ellmer::type_integer("Maximum IDs to return, from 1 through 50.", required = FALSE),
       `_intent` = ellmer::type_string("Short user-facing reason for this search.")
     ),

@@ -15,6 +15,7 @@
 \alias{agent_scatter_view_from_store}
 \alias{agent_compact_state}
 \alias{agent_annotation_catalog}
+\alias{agent_annotation_category_catalog}
 \alias{agent_search_annotations}
 \alias{agent_summarize_annotation}
 \alias{agent_normalize_state_update}
@@ -65,6 +66,13 @@ agent_compact_state(
 )
 
 agent_annotation_catalog(feature_data, sample_data)
+
+agent_annotation_category_catalog(
+  feature_data,
+  sample_data,
+  max_examples = 8L,
+  budget_bytes = 4096L
+)
 
 agent_search_annotations(
   space,
@@ -170,9 +178,15 @@ contents).}
 
 \item{sample_data}{Sample metadata.}
 
+\item{max_examples}{Maximum example columns per group.}
+
+\item{budget_bytes}{Approximate serialized-size budget in bytes
+shared by the two spaces.}
+
 \item{space}{Feature or sample scatter space.}
 
-\item{query}{Case-insensitive query. Matching is literal, not regular-expression.}
+\item{query}{Case-insensitive query. Matching is literal, not regular-expression.
+An empty query returns the category catalog instead of searching.}
 
 \item{max_results}{Maximum number of row IDs to return.}
 
@@ -257,6 +271,9 @@ A JSON-like list containing the overview (identifiers, active
 A named list containing dimensions, row ID labels, and column-level
   type/missingness/cardinality summaries.
 
+A named list with one entry per space; each space lists its
+  column groups with counts and bounded examples.
+
 A JSON-like search result bounded by \code{max_results}. It never
   returns an entire annotation table or expression matrix.
 
@@ -334,6 +351,16 @@ widget-store scatter view, the \code{available_sections} menu, and the
 state policy. Full-detail sections (annotation catalog, complete
 quick-view records, bounded panel state, figure grammar) are returned by
 the same call only when requested through \code{sections}.
+
+A compact vocabulary digest: instead of the full per-column catalog
+(whose serialized form can exceed the tool-output byte budget on wide
+datasets), columns are grouped by their \code{Category|Subcategory}
+prefix. Each group reports its column count and up to
+\code{max_examples} example columns with a numeric/categorical type
+hint. Groups that no longer fit the byte budget degrade to counts
+only; a space-level note then tells the model how to recover the
+details. Columns without a pipe stand as their own single-column
+group (classic phenotype columns such as \code{group}).
 
 Belt-and-braces guardrail: API keys never legitimately enter chat turns
 (configuration happens in a modal), but anything key-shaped is replaced

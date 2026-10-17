@@ -651,10 +651,113 @@ agent_annotation_catalog <- function(feature_data, sample_data) {
   )
 }
 
+#' Group annotation columns by Category|Subcategory prefix
+#'
+#' A compact vocabulary digest: instead of the full per-column catalog
+#' (whose serialized form can exceed the tool-output byte budget on wide
+#' datasets), columns are grouped by their \code{Category|Subcategory}
+#' prefix. Each group reports its column count and up to
+#' \code{max_examples} example columns with a numeric/categorical type
+#' hint. Groups that no longer fit the byte budget degrade to counts
+#' only; a space-level note then tells the model how to recover the
+#' details. Columns without a pipe stand as their own single-column
+#' group (classic phenotype columns such as \code{group}).
+#'
+#' @param feature_data Feature metadata data.frame.
+#' @param sample_data Sample metadata data.frame.
+#' @param max_examples Maximum example columns per group.
+#' @param budget_bytes Approximate serialized-size budget in bytes
+#'   shared by the two spaces.
+#' @return A named list with one entry per space; each space lists its
+#'   column groups with counts and bounded examples.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_annotation_category_catalog <- function(feature_data, sample_data,
+                                              max_examples = 8L,
+                                              budget_bytes = 4096L) {
+  .entry_bytes <- function(entry) {
+    nchar(
+      jsonlite::toJSON(
+        agent_json_prep(entry), auto_unbox = TRUE, null = "null"),
+      type = "bytes")
+  }
+  .type_hint <- function(values) {
+    if (is.numeric(values)) "numeric" else if (is.list(values)) "list" else "categorical"
+  }
+  .prefix <- function(nm) {
+    parts <- strsplit(nm, "|", fixed = TRUE)[[1]]
+    if (length(parts) >= 2L)
+      paste(utils::head(parts, -1L), collapse = "|")
+    else
+      nm
+  }
+  space_one <- function(x, row_label, budget) {
+    if (is.null(x)) {
+      return(list(row_label = row_label, rows = 0L, column_count = 0L,
+                  category_count = 0L, categories = list()))
+    }
+    all_columns <- colnames(x)
+    prefixes <- vapply(all_columns, .prefix, character(1), USE.NAMES = FALSE)
+    groups <- unique(prefixes)  # first-appearance order keeps output stable
+    entries <- lapply(groups, function(p) {
+      members <- all_columns[prefixes == p]
+      examples <- utils::head(members, max_examples)
+      list(
+        prefix = p,
+        n_columns = length(members),
+        example_columns = examples,
+        example_types = vapply(
+          examples, function(nm) .type_hint(x[[nm]]),
+          character(1), USE.NAMES = FALSE)
+      )
+    })
+    # Degrade tail groups to counts only (then drop them) until the
+    # serialized form fits the budget.
+    used <- vapply(entries, .entry_bytes, numeric(1), USE.NAMES = FALSE)
+    degraded <- FALSE
+    dropped <- FALSE
+    i <- length(entries)
+    while (sum(used) > budget && i >= 1L) {
+      if (length(entries[[i]]$example_columns)) {
+        entries[[i]] <- list(prefix = entries[[i]]$prefix,
+                             n_columns = entries[[i]]$n_columns)
+        used[i] <- .entry_bytes(entries[[i]])
+        degraded <- TRUE
+      } else {
+        entries[[i]] <- NULL
+        used <- used[-i]
+        dropped <- TRUE
+      }
+      i <- i - 1L
+    }
+    out <- list(
+      row_label = row_label,
+      rows = nrow(x),
+      column_count = length(all_columns),
+      category_count = length(groups),
+      categories_truncated = dropped,
+      categories = entries
+    )
+    if (degraded || dropped)
+      out$note <- paste("Some categories list column counts only;",
+                        "search_annotations with the prefix as query lists",
+                        "their columns.")
+    out
+  }
+  budget <- max(512L, suppressWarnings(as.integer(budget_bytes)[1]))
+  if (is.na(budget)) budget <- 4096L
+  half <- max(256L, budget %/% 2L)
+  list(
+    feature = space_one(feature_data, "featureId", half),
+    sample = space_one(sample_data, "sampleId", half)
+  )
+}
+
 #' Search annotation IDs, column names, and bounded matching values
 #'
 #' @param space Either feature or sample.
 #' @param query Case-insensitive query. Matching is literal, not regular-expression.
+#'   An empty query returns the category catalog instead of searching.
 #' @param feature_data Feature metadata.
 #' @param sample_data Sample metadata.
 #' @param max_results Maximum number of row IDs to return.
@@ -667,8 +770,21 @@ agent_search_annotations <- function(space, query, feature_data, sample_data,
                                      max_results = 20L) {
   space <- match.arg(space, c("feature", "sample"))
   query <- .agent_trim_scalar(query, arg = "query")
-  if (!nzchar(query))
-    stop("Search query must not be empty.")
+  if (!nzchar(query)) {
+    # WP-1 (F3): an empty query is the enumeration path — return the
+    # category digest instead of erroring, so the model can SEE the
+    # column vocabulary before guessing synonyms.
+    out <- agent_annotation_category_catalog(
+      feature_data = feature_data, sample_data = sample_data)
+    out$query <- ""
+    out$hint <- paste(
+      "Empty query: this is the annotation catalog grouped by",
+      "Category|Subcategory prefix; columns are named",
+      "Category|Subcategory|Variable. Call search_annotations again with a",
+      "literal term (or one of the prefixes above) for matches, or",
+      "summarize_annotation for one column's values.")
+    return(out)
+  }
   if (nchar(query) > 128)
     stop("Search query must be at most 128 characters.")
 
