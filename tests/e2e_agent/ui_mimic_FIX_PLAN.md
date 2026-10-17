@@ -1,5 +1,12 @@
 # UI-mimic findings — remediation plan (F2–F8)
 
+> **STATUS 2026-10-18 (WP-9 close-out): COMPLETE.** All WPs shipped on
+> branch `llm-ui-hardening` — per-WP resolution records with live
+> validation numbers live in `ui_mimic_findings.md` (F1–F8 all
+> resolved); full replay 23/23 turns ok, sweep gate PASS. See the
+> "Program close-out" section there for the final guard board and
+> deviations.
+
 Source of truth for the findings: `tests/e2e_agent/ui_mimic_findings.md`
 (2026-10-17 evaluation; evidence in `~/.omicsviewer-llm-eval/`). F1 is
 already fixed (commit `2d4601f`, isolate in `apply_agent_scatter_view`).

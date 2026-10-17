@@ -1,3 +1,36 @@
+Changes in version 2.1.80 (UNRELEASED - version decision pending, see
+ui_mimic_findings.md close-out; patch bump within 2.1.x vs 2.2.0 is
+Chen's call)
+UI-mimic hardening program (F1-F8, 2026-10, branch llm-ui-hardening):
+ - F1: set_scatter_view isolate fix - semantic scatter writes work on
+   fresh sessions (was dead 3/3 with a misleading rejection)
+ - F2/WP-4+5: stub-drop root cause found (client-side discard during
+   an active stream; the abort-settle amplifier) with permanent
+   transport flight recorders (chat_submit_seen, janitor_run),
+   stuck-stream detection and loud notifications - silent message
+   loss is now visible and diagnosed
+ - F8/WP-6: composer delivery watchdog - undelivered submissions
+   become visible after 10 s with a server-owned Retry that re-drives
+   the submission through shinychat's own update_user_input
+ - F3/WP-1: search_annotations with an empty query returns a bounded
+   annotation category catalog (~3.5 KB for demo.RDS) - column
+   enumeration went from 5-8 blind synonym calls to 1-2
+ - F5/WP-2 (+amendments): find_controls empty query returns the
+   per-tab capability digest; fuzzy hits rank by matched-word count;
+   byte-shaped payloads never trip the codec truncation marker
+ - F6/WP-3: figure filter errors list the figure's available columns
+   and featureId/sampleId resolve to the reserved id columns
+ - F4/WP-7: new panel_results state section - the head of the ORA/
+   fGSEA result tables (key columns, rounded, ~3 KB) is readable by
+   the assistant after a run; uncomputed panels return explicit
+   not_run notes; result tables never leak into snapshots
+ - F7/WP-8: progress line under the composer (submission / model
+   responding / step N: tool, per-turn counter) + soft [PACE] tool-
+   call guidance in the system prompt
+ - WP-9: full guard board green (Tier A 120/120, new
+   test_agentPanelResults 26, sweep gate PASS 344 after the gene-
+   picker vocabulary repair of a pre-existing e8554e7 regression)
+
 Changes in version 2.1.79
 widget-sweep remediation program (WP-0..WP-G2, 2026-10):
  - WP-0: the exhaustive 337-case agent widget sweep doubled as the

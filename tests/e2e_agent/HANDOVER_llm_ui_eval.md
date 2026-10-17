@@ -1,5 +1,11 @@
 # HANDOVER — LLM-assistant UI-mimic evaluation & hardening program
 
+> **STATUS 2026-10-18: PROGRAM COMPLETE (WP-1..WP-9 all shipped on
+> `llm-ui-hardening`).** See the "Program close-out" section of
+> `ui_mimic_findings.md` for the final guard board, replay numbers and
+> deviations. This handover remains the reference for harness usage
+> and session gotchas.
+
 Written 2026-10-17 at the end of the evaluation session. Read together
 with `tests/e2e_agent/ui_mimic_findings.md` (evidence) and
 `tests/e2e_agent/ui_mimic_FIX_PLAN.md` (the remediation plan to execute).

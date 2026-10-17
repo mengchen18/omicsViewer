@@ -1,0 +1,18 @@
+[
+  {
+    "id": "b4-pca-color",
+    "prompt": "Show a PCA scatter plot of the samples on the left panel, colored by group."
+  },
+  {
+    "id": "b4-heatmap-full",
+    "prompt": "Set the expression heatmap row clustering to ward.D2 and the row distance to correlation."
+  },
+  {
+    "id": "b4-fgsea-read",
+    "prompt": "Run fGSEA on the RE vs ME comparison and tell me the top 3 pathways by normalized enrichment score."
+  },
+  {
+    "id": "b4-highlight-app",
+    "prompt": "Highlight the genes EGFR and MYC on the current scatter plot in the app itself."
+  }
+]

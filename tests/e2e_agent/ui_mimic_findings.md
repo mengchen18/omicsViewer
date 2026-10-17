@@ -30,7 +30,7 @@ real UI effects (quick-view badge action + `attr4.color_variable`).
 
 ## Open findings (priority order)
 
-### F2 — silent message drop (top bug) — ROOT CAUSE FOUND (WP-4)
+### F2 — silent message drop (top bug) — CONTAINED (WP-4/5/6: root cause + detect/notify + visible retry)
 In 3 of 4 multi-turn sessions the chat wedges exactly after the WP13
 janitor's `history_stubbed` events: the user's next message renders a
 bubble client-side (shinychat optimistic render) but NEVER reaches the
@@ -86,6 +86,20 @@ limit aborts produced zero false stuck events; the 2 client-side
 drops per repro run are unchanged BY DESIGN until WP-6 makes them
 visible + retryable.
 
+**Program close-out (WP-9 replay, 2026-10-18):** the full batch1–4
+replays (replay_batch1..4 in ~/.omicsviewer-llm-eval/) show the F2
+class contained: 0 `chat_stuck_detected` events, 0 permanently-wedged
+sessions, every session ran to its last turn (the baselines died
+mid-session in batch2/batch4), and the single driver-flagged
+submission (replay_batch1 t1 — the driver's known false negative on
+slow first tokens, handover quirk 3) round-tripped on its one retry.
+23/23 turns delivered, 0 timeouts (baseline: t7-figure TIMEOUT,
+b2-down-enriched DROP). Known residue: the client-side discard while
+a stream is active still needs the user to notice the WP-6 notice and
+press Retry (by design — no auto re-drive); provider-side 500s
+(bigmodel 网络错误) end a turn visibly with the error text in the
+transcript.
+
 ### F3 — no cheap column enumeration ("colored by group" flail) — FIXED (WP-1)
 Every session burned 5–8 tool calls guessing synonyms (group, genotype,
 condition, class, cell, type...) because `search_annotations` matches
@@ -109,13 +123,42 @@ for demo.RDS (21 feature + 3 sample categories); PCA scatter turns
 settled in 98 s / 54 s and the app scatter switched via
 `set_scatter_view(sample, pca)`.
 
-### F4 — panel result tables are unreadable
+### F4 — panel result tables are unreadable — FIXED (WP-7)
 After a successful fGSEA run the assistant cannot report the top-3 NES
 pathways: no tool exposes enrichment/table results (it checked state,
 widgets, controls, actions — then gave an exemplary honest refusal:
 "I won't guess or reconstruct them"). Same class: DT column sort is
-gesture-only. Fix: bounded `panel_results` section for
-get_omics_viewer_state (top rows of ORA/fGSEA tables) or a read tool.
+gesture-only.
+
+**Resolution 2026-10-17 (WP-7).** New `panel_results` section for
+`get_omics_viewer_state`: the ORA/fGSEA modules expose their current
+result tables as attributes on their module returns (the data-space
+quickViews pattern; fgsea behind the same R-H3 visibility gate the
+outputs use, so the computation never becomes eager), the L1
+result-space module builds a bounded `read_enrichment_results()`
+reader, and `agent_enrichment_table_excerpt()` byte-shapes the payload
+(key columns first — pathway, NES/p-value — values rounded, list
+columns dropped, ~3 KB cap with `columns_available` when truncation
+drops columns). Uncomputed panels return explicit `not_run` notes
+pointing at `set_enrichment_parameters`; snapshot/state surfaces never
+see raw tables (attributes are dropped by `as.list()`/sanitize).
+System prompt, tool description, capability records and the ORA/fGSEA
+panel prose now teach the path; column sorting stays click-only.
+Guards: new tests/test_agentPanelResults.R (26), Tier A 115/115 with
+panel_results cases (excerpt rows match the browser's own fGSEA
+table), agentAssistant/aiAssistantTools/agentCapabilities/
+agentContracts/agentToolSeam/agentWidgets/ora/snapshotRoundTrip green.
+Live (`wp7_validation`): the fGSEA top-3-by-NES turn = 4 tool calls,
+76 s, three REAL rows (cell.cell.adhesion NES 2.11 / size 72,
+cell.junction.assembly, angiogenesis) matching the app's table
+(verified against an independent fgsea run — fgseaMultilevel
+stochasticity explains ±0.03 NES between runs); the follow-up quoted
+real padj/size numbers "directly from the fGSEA result table". The
+honest-refusal class is extinct for enrichment tables; replay batch4
+b4-fgsea-read: 246 s → 87 s with the correct search →
+set_enrichment_parameters → panel_results chain (one provider-side
+500 cut that live run short — provider flake, same prompt clean in
+wp7_validation).
 
 ### F5 — find_controls rejects empty queries — DIGEST SHIPPED (WP-2)
 The model's opening move ("enumerate the controls") is rejected with
@@ -175,11 +218,34 @@ the highlight-genes turn used the canonical `__feature_id__` spelling
 from the figure grammar with ZERO failed filter calls (was 1); the
 vocabulary note + alias are defense in depth for models that guess.
 
-### F7 — long silent chains, no progress feedback
+### F7 — long silent chains, no progress feedback — FIXED (WP-8)
 Median provider request 12.6 s (max 42 s); one user turn chained 33
 requests over 4+ minutes with nothing user-visible between tool calls
 (ORA pipeline). Recommendation: interim streaming progress notes or a
 soft per-turn tool-call budget with a checkpoint question.
+
+**Resolution 2026-10-17 (WP-8).** Two shipped pieces: (1) a DOM-only
+progress line under the composer, driven by
+`omicsviewerAssistantProgress` custom messages published from the
+events the module already logs — submission ("Working — waiting for
+the model..."), provider request start ("Working — the model is
+responding..."), every tool call ("Working — step N: <tool>", per-turn
+counter reset on each user submission), and stream settle (line
+hides, including governed aborts). No shinychat internals touched.
+(2) a soft budget in the system prompt ([PACE]: prefer about 6 tool
+calls per user request; report progress and confirm before long
+continuations) — deliberately no hard cap (ORA-class pipelines are
+legitimate long chains). Browser-verified 10/10
+(`verify_wp8_progress.mjs`: submit→model→idle message sequence
+against a dead endpoint, step rendering, hook-driven idle clear);
+Tier A 120/120. Live (`wp8_validation`): open-ended ORA turn 17 tool
+calls / 238 s with the line visible 48 of 79 poll rounds ('step 11:
+find_controls' sampled mid-chain) and every ≥15 s gap carrying a
+visible Working notice; fGSEA follow-up 4 calls / 64 s. Replay
+tool-call counts on the baseline's heaviest turns: batch1 t5-ora
+26→5, batch4 pca-color 31→7, batch1 t2-pca 12→1 (soft budget +
+WP-1/2 discovery cuts the flail, not a cap — chains that legitimately
+need more calls still run).
 
 ### F8 — composer can swallow the FIRST submission too — FIXED (WP-6)
 minirepro turn 1 waited >25 s before the message registered (retry
@@ -222,3 +288,52 @@ Enter.
   clustering, PCA+coloring (post-F1).
 - Sanitizer seam: glm's literal `"null"`/`"{}"` strings never reached a
   validator (set_scatter_view "null" axes sanitized correctly).
+
+## Program close-out (WP-9, 2026-10-18)
+
+All findings F1–F8 resolved. Branch `llm-ui-hardening`, one commit per
+WP: WP-1 57fafeb (F3 catalog), WP-2 8b807bf + amendment 0bafe8c +
+follow-up e8554e7 (F5 digest/ranking/byte-shaping), WP-3 593e338
+(F6 column vocabulary), WP-4 afc6226 (F2 repro + flight recorders),
+WP-5 680bcdf (F2 detect + notify), WP-6 54ef9b6 (F8 composer
+watchdog), WP-7 75f153a (F4 panel_results), WP-8 87445ec (F7 progress
+line + soft budget), WP-9 5efa0f3 (sweep-gate repair) + this
+validation.
+
+**Full replay outcome (replay_batch1..4, 23 turns):** ok 23/23
+(baseline: 18 delivered, 1 TIMEOUT, 1 permanent DROP, 2 sessions
+died mid-run). Duration per turn comparable or better (b4-fgsea-read
+246→87 s, t6-heatmap 210→57 s, b3-fgsea 135→78 s); tool-call counts
+on the baseline's heaviest turns drop 2–5× (26→5, 31→7, 12→1) with no hard cap; the progress line was
+live during chains (ui_mimic now records progress.visible_rounds and
+samples per turn).
+
+**Guard board at close (all green, counts vs 2026-10-17 plan):**
+agentAssistant 111 (99+), aiAssistantTools 53 (48+),
+agentCapabilities 62 (47+), agentContracts 7, agentWidgets 104,
+agentFigures 137 (133+, WP-3), agentToolSeam 48, agentActions 49,
+agentUiEffects/Tier A 120/120 (113/112+), new test_agentPanelResults
+26, widgetStore 69, snapshotRoundTrip 63, renderStability 46,
+scatterSelection 40, quickViews 24, scatterDefaults 22, shinyAuxi 10,
+appState 51, ora 37; **sweep gate PASS (344 cases)** after the WP-9
+gene-picker vocabulary repair (pre-existing e8554e7 regression,
+bisected with a two-build probe; content-only fix, no baseline
+refresh).
+
+**Deviations & notes for review:**
+- The [PACE] soft budget under-delivers on exploratory turns that
+drill find_controls (wp8_validation t1: 17 calls — 7 of them
+find_controls hunting a selection control). No hard cap per plan;
+revisit only if live use shows users bothered by it.
+- The F2 client-side discard class is contained, not eliminated:
+during an active stream an Enter still needs the user to notice the
+WP-6 notice + Retry. A queue/drain would need shinychat changes
+upstream.
+- Provider-side 500s (bigmodel) end turns visibly; the model does not
+retry them (it reports the error) — acceptable.
+- ui_mimic driver's 25 s bubble check false-negatives on slow first
+tokens and re-delivers; both deliveries reach the server when idle
+(the duplicate is absorbed or runs twice — harmless for evaluation,
+noted in handover quirk 3).
+- Version/NEWS decision left to Chen (suggested: patch bump within
+  1.15.x or 2.2.0 given the feature additions).
