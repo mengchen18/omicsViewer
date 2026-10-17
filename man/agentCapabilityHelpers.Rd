@@ -4,6 +4,7 @@
 \alias{agentCapabilityHelpers}
 \alias{agent_tool_capabilities}
 \alias{agent_capability_records}
+\alias{agent_capability_digest}
 \alias{agent_capability_search}
 \alias{agent_capability_get}
 \alias{agent_capability_summary}
@@ -15,6 +16,8 @@
 agent_tool_capabilities()
 
 agent_capability_records(store = NULL)
+
+agent_capability_digest(store = NULL, max_tabs = 24L)
 
 agent_capability_search(store = NULL, query, max_results = 20L)
 
@@ -31,7 +34,9 @@ agent_normalize_table_view_update(update)
 \arguments{
 \item{store}{Canonical widget store (or child view).}
 
-\item{query}{Non-empty search query (1-128 characters).}
+\item{max_tabs}{Maximum tab entries returned.}
+
+\item{query}{Search query (1-128 characters); empty returns the digest.}
 
 \item{max_results}{Maximum records returned (1-50).}
 
@@ -50,8 +55,12 @@ A list of tool records.
 
 A list of capability records.
 
+\code{digest}, \code{query}, \code{hint}, \code{tab_count},
+  \code{tabs_truncated}, and \code{tabs} entries.
+
 \code{query}, \code{capability_count}, \code{match_count},
-  \code{truncated}, and \code{capabilities} records.
+  \code{fuzzy}, \code{truncated}, and \code{capabilities} records;
+  the digest shape for an empty query.
 
 The matching capability record.
 
@@ -81,9 +90,16 @@ text, allowed values, dependencies); tool records from
 \code{\link{agent_tool_capabilities}}. Together they answer "what can
 you change in this app?" without any hand-maintained list.
 
+WP-2 (F5): the enumeration digest returned when a capability search
+carries no query. One entry per owning tab with its control count,
+action count, the cascade groups present, and the assistant tools
+covering it - enough for the model to plan a follow-up query by
+widget meaning without burning rejected calls.
+
 Case-insensitive literal substring match over ids, labels, panels,
 operations, help text, and descriptions. Bounded result set; the counts
-keep the model informed about truncation.
+keep the model informed about truncation. An empty query returns the
+tab digest instead of searching.
 
 Accepts a widget canonical id, a semantic tool name, or the
 \code{"tool:"}-prefixed record id; unknown ids are rejected with

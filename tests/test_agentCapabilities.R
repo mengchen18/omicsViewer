@@ -132,16 +132,26 @@ ok(
   "search respects max_results and reports truncation"
 )
 ok(
-  ut_cmp_error(agent_capability_search(s, NULL),
-               "non-empty capability search query"),
-  "absent queries are rejected (sentinels are neutralized at the WP15 seam)"
+  # WP-2 deliberate change: an empty/absent query is now the enumeration
+  # path - it returns the tab digest instead of erroring (F5: the model's
+  # opening "enumerate the controls" move was rejected in every session).
+  # The sentinel property itself is unchanged: the literal "null" still
+  # sanitizes to NULL at the WP15 seam (asserted below) and now enumerates
+  # instead of erroring - a bounded, read-only response.
+  (function(x) isTRUE(x$digest) && identical(x$query, "") &&
+     length(x$tabs) > 0L)(agent_capability_search(s, NULL)),
+  "absent queries return the capability digest (WP-2 enumeration path)"
+)
+ok(
+  (function(x) isTRUE(x$digest))(agent_capability_search(s, "   ")),
+  "whitespace-only queries trim to the digest path"
 )
 ok(
   ut_cmp_identical(
     is.null(omicsViewer:::agent_args_sanitize(list(query = "null"))$query),
     TRUE
   ),
-  "the literal 'null' sentinel never reaches capability-search validators"
+  "the literal 'null' sentinel still sanitizes to NULL at the seam"
 )
 ok(
   ut_cmp_error(agent_capability_search(s, "x", max_results = 0L),
@@ -152,6 +162,42 @@ empty <- agent_capability_search(s, "zzzznope")
 ok(
   identical(empty$match_count, 0L) && identical(empty$capabilities, list()),
   "zero-hit searches return an empty bounded result, not an error"
+)
+
+## ------------------------------------------- WP-2 (F5) digest shape ----
+dig <- agent_capability_search(s, "")
+dig_tabs <- vapply(dig$tabs, function(t) t$tab, character(1))
+ok(
+  isTRUE(dig$digest) && identical(dig$tab_count, length(unique(vapply(
+    agent_capability_records(s), function(r) r$tab %||% "(unassigned)",
+    character(1))))) && !isTRUE(dig$tabs_truncated),
+  "empty query returns a digest covering every owning tab"
+)
+ok(
+  length(dig_tabs) >= 6L,
+  "digest lists at least the six top tabs/panels (acceptance)"
+)
+feat_tab <- dig$tabs[[match("Feature", dig_tabs)]]
+ok(
+  identical(feat_tab$controls, 1L) && identical(feat_tab$actions, 0L) &&
+    identical(feat_tab$cascade_groups, "x axis") &&
+    (feat_tab$panels %||% 0L) >= 1L,
+  "digest counts controls, panels, and cascade groups per tab"
+)
+ok(
+  length(grep("find_controls", dig$hint)) > 0L,
+  "digest hint teaches meaning-based follow-up queries"
+)
+ok(
+  any(vapply(dig$tabs, function(t) length(t$tools) > 0L, logical(1))),
+  "digest lists assistant tools under their panels"
+)
+null_dig <- agent_capability_search(s, NULL)
+ok(
+  # sentinel consequence, deliberately changed with WP-2: the sanitized
+  # NULL enumerates instead of erroring (bounded, read-only)
+  isTRUE(null_dig$digest),
+  "sanitized NULL query enumerates the digest (WP-2 deliberate)"
 )
 
 ## -------------------------------------------------------- describing ----

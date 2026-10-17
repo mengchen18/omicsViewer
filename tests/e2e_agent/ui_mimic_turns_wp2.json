@@ -1,0 +1,4 @@
+[
+  { "id": "wp2-t1-enumerate", "prompt": "What kinds of things can you control in this app? Give me a short tour of the panels and controls you have access to." },
+  { "id": "wp2-t2-drill", "prompt": "Show me what you can change about the heatmap clustering." }
+]

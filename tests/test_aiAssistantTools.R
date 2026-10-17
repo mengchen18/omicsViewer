@@ -360,6 +360,20 @@ shiny::testServer(
                    logical(1))),
       "capability search matches widget capabilities by meaning"
     )
+    cap_digest <- tools$find_controls(
+      query = "", `_intent` = "unit test"
+    )
+    ok(
+      isTRUE(cap_digest@extra$data$digest) &&
+        length(cap_digest@extra$data$tabs) >= 6L,
+      "empty find_controls query returns the tab digest (WP-2)"
+    )
+    ok(
+      ut_cmp_identical(
+        cap_digest@extra$display$value_preview,
+        paste(cap_digest@extra$data$tab_count, "tabs")),
+      "digest receipt preview counts tabs"
+    )
     cap_get <- tools$describe_control(
       id = "set_table_view", `_intent` = "unit test"
     )

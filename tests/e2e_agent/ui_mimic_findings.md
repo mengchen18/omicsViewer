@@ -75,20 +75,29 @@ widgets, controls, actions — then gave an exemplary honest refusal:
 gesture-only. Fix: bounded `panel_results` section for
 get_omics_viewer_state (top rows of ORA/fGSEA tables) or a read tool.
 
-### F5 — find_controls rejects empty queries
+### F5 — find_controls rejects empty queries — DIGEST SHIPPED (WP-2)
 The model's opening move ("enumerate the controls") is rejected with
 "A non-empty capability search query is required" in every session.
 Allow empty query → top-level groups (WP-G1 records already carry them).
 
-**Observation 2026-10-17 (wp1_validation_b, feeds WP-2):** beyond the
-empty-query rejection, the fuzzy path drowns precise queries —
-`find_controls("dataspace.sample_space.color")` returned 207/214
-fuzzy matches with the 3 literal color widgets buried past truncation;
-nearby queries hit 11–19 KB byte-truncated results. The model burned 8
-retries hunting the sample-scatter color widget and never set the
-color. WP-2's digest fixes enumeration; consider also rank-then-truncate
-(literal matches first) as a WP-2 amendment — needs Chen's call since
-the plan freezes non-empty behavior.
+**Resolution 2026-10-17 (WP-2).** `agent_capability_digest()` groups
+all records by owning tab with control/action/panel counts, cascade
+groups, and covering tools; empty/whitespace/NULL query on
+`find_controls`/`agent_capability_search` returns it (tool description,
+query-arg description, and capability help_text updated). The sentinel
+consequence changed deliberately: sanitized NULL now enumerates instead
+of erroring (bounded, read-only). Live validation (`wp2_validation`):
+the enumeration opener used ONE find_controls call (empty query →
+digest) and produced an accurate panel tour in 53 s.
+
+**Still open (amendment, needs Chen's call — plan freezes non-empty
+behavior):** fuzzy matching drowns precise queries — live evidence
+(wp1_validation_b, wp2_validation t2): `find_controls("heatmap
+clustering")` → 38 KB truncated result; `"dataspace.sample_space.color"`
+→ 207/214 fuzzy matches with the 3 literal matches buried; drill-downs
+burn 5–10 retries. Candidate: literal matches rank before fuzzy ones
+and truncation keeps the literal head; OR fuzzy only when the query has
+no id-separator characters.
 
 ### F6 — figure filter errors don't list usable columns
 `update_figure` failed with *"Figure filter column is unavailable:

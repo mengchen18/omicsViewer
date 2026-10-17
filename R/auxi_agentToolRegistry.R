@@ -276,13 +276,21 @@ agent_tool_registry <- function(state, feature_data, sample_data,
       if (!.agent_param_absent(query)) {
         result <- shiny::isolate(shiny::withReactiveDomain(
           session_domain, agent_capability_search(store, query, max_results)))
-        ids <- vapply(result$capabilities, function(r) r$id, character(1))
-        if (!length(ids)) ids <- "(no matches)"
-        .ai_tool_result(
-          result, title = "Searched UI controls",
-          label = paste0(result$query, " : ", result$match_count,
-                         " of ", result$capability_count),
-          preview = paste(utils::head(ids, 5), collapse = ", "))
+        if (isTRUE(result$digest)) {
+          .ai_tool_result(
+            result, title = "Capability digest",
+            label = "tabs with controls, actions, and tools",
+            preview = paste(result$tab_count, "tabs")
+          )
+        } else {
+          ids <- vapply(result$capabilities, function(r) r$id, character(1))
+          if (!length(ids)) ids <- "(no matches)"
+          .ai_tool_result(
+            result, title = "Searched UI controls",
+            label = paste0(result$query, " : ", result$match_count,
+                           " of ", result$capability_count),
+            preview = paste(utils::head(ids, 5), collapse = ", "))
+        }
       } else {
         result <- shiny::isolate(shiny::withReactiveDomain(
           session_domain, agent_widget_list(store, prefix)))
@@ -301,13 +309,14 @@ agent_tool_registry <- function(state, feature_data, sample_data,
       "Find interface controls you can read or control - by meaning (query) or by canonical id prefix (prefix); pass exactly one.",
       "query searches everything: semantic tools (scatter, enrichment, tables, figures) and every user-editable widget,",
       "matching ids, labels, help text, and panels case-insensitively (at most 50 records).",
+      "An empty query returns a grouped digest of tabs with control, action, and tool counts instead of searching.",
       "prefix lists the user-editable widgets whose canonical id starts with it (e.g. 'dataspace' or 'dataspace.expr_heatmap'),",
       "with kinds, allowed values, and current values.",
       "Use this before set_widgets and to answer questions about available controls; describe_control(id) returns one record in full."
     ),
     arguments = list(
       query = ellmer::type_string(
-        "Case-insensitive search query (1-128 characters); mutually exclusive with prefix.",
+        "Case-insensitive search query (1-128 characters); an empty string returns the capability digest grouped by tab. Mutually exclusive with prefix.",
         required = FALSE),
       prefix = ellmer::type_string(
         "Canonical widget id prefix to list widgets under (e.g. 'dataspace'); mutually exclusive with query.",

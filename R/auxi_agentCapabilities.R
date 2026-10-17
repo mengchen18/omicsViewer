@@ -94,7 +94,9 @@ NULL
     help_text = paste("Find controllable interface controls by meaning (query:",
                       "semantic tools, figures, and every user-editable widget",
                       "with panel and help text) or by canonical id prefix",
-                      "(widget kinds, allowed values, current values).")
+                      "(widget kinds, allowed values, current values).",
+                      "An empty query returns the capability digest",
+                      "grouped by owning tab.")
   ),
   list(
     id = "describe_control", panel = "Controls", tier = "discovery",
@@ -312,23 +314,78 @@ agent_capability_records <- function(store = NULL) {
   c(out, agent_tool_capabilities())
 }
 
+#' Summarize the capability surface grouped by owning tab
+#'
+#' WP-2 (F5): the enumeration digest returned when a capability search
+#' carries no query. One entry per owning tab with its control count,
+#' action count, the cascade groups present, and the assistant tools
+#' covering it - enough for the model to plan a follow-up query by
+#' widget meaning without burning rejected calls.
+#'
+#' @param store Canonical widget store (or child view); may be NULL.
+#' @param max_tabs Maximum tab entries returned.
+#' @return \code{digest}, \code{query}, \code{hint}, \code{tab_count},
+#'   \code{tabs_truncated}, and \code{tabs} entries.
+#' @keywords internal
+#' @rdname agentCapabilityHelpers
+agent_capability_digest <- function(store = NULL, max_tabs = 24L) {
+  records <- agent_capability_records(store)
+  tab_of <- vapply(records, function(r) r$tab %||% "(unassigned)", character(1))
+  tabs <- unique(tab_of)
+  entries <- lapply(utils::head(tabs, max_tabs), function(tb) {
+    sel <- tab_of == tb
+    recs <- records[sel]
+    is_action <- vapply(recs, function(r) startsWith(r$id, "action:"), logical(1))
+    is_tool <- vapply(recs, function(r) startsWith(r$id, "tool:"), logical(1))
+    is_panel <- vapply(recs, function(r) startsWith(r$id, "panel:"), logical(1))
+    groups <- unique(unlist(lapply(recs, function(r) r$group$group)))
+    groups <- utils::head(sort(groups[!is.na(groups)]), 12L)
+    out <- list(
+      tab = tb,
+      controls = sum(!is_action & !is_tool & !is_panel),
+      actions = sum(is_action)
+    )
+    if (any(is_panel)) out$panels <- sum(is_panel)
+    if (length(groups)) out$cascade_groups <- groups
+    tools <- unique(vapply(recs[is_tool], function(r) r$operation, character(1)))
+    if (length(tools)) out$tools <- tools
+    out
+  })
+  list(
+    digest = TRUE,
+    query = "",
+    hint = paste("Empty query: this is the capability digest grouped by",
+                 "owning tab. Query by widget meaning next, e.g.",
+                 "find_controls(query = 'heatmap clustering') or",
+                 "find_controls(query = 'scatter color');",
+                 "describe_control(id) explains one control in full;",
+                 "run_control executes actions; find_controls(prefix =",
+                 "'dataspace') lists raw widget ids under one section."),
+    tab_count = length(tabs),
+    tabs_truncated = length(tabs) > max_tabs,
+    tabs = entries
+  )
+}
+
 #' Search capabilities by meaning
 #'
 #' Case-insensitive literal substring match over ids, labels, panels,
 #' operations, help text, and descriptions. Bounded result set; the counts
-#' keep the model informed about truncation.
+#' keep the model informed about truncation. An empty query returns the
+#' tab digest instead of searching.
 #'
 #' @param store Canonical widget store (or child view); may be NULL.
-#' @param query Non-empty search query (1-128 characters).
+#' @param query Search query (1-128 characters); empty returns the digest.
 #' @param max_results Maximum records returned (1-50).
 #' @return \code{query}, \code{capability_count}, \code{match_count},
-#'   \code{truncated}, and \code{capabilities} records.
+#'   \code{fuzzy}, \code{truncated}, and \code{capabilities} records;
+#'   the digest shape for an empty query.
 #' @keywords internal
 #' @rdname agentCapabilityHelpers
 agent_capability_search <- function(store = NULL, query, max_results = 20L) {
   query <- .agent_trim_scalar(query)
   if (!nzchar(query))
-    stop("A non-empty capability search query is required.")
+    return(agent_capability_digest(store))
   if (nchar(query) > 128L)
     stop("Capability search query must be at most 128 characters.")
   max_results <- suppressWarnings(as.integer(max_results)[1])
