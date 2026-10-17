@@ -200,6 +200,76 @@ ok(
   "sanitized NULL query enumerates the digest (WP-2 deliberate)"
 )
 
+## ----------------------------- WP-2 amendment: ranked + byte-shaped ----
+# Live evidence (wp1_validation_b, wp2_validation): fuzzy OR-matching
+# over common tokens returned 207/214 records in registry order with
+# the true matches buried, and 8-38 KB payloads hit the codec's opaque
+# truncation marker. The amendment ranks fuzzy hits by matched-word
+# count, slims oversized payloads, and hints at prefix/meaning queries
+# for id-shaped misses. Matching semantics are unchanged.
+rank_store <- widget_store_new()
+rank_ds <- widget_store_child(rank_store, "dataspace")
+rank_binds <- list(
+  widget_binding("sample_space.attr4.color_analysis", "select", label = "Color",
+    help = "color the sample scatter points by a sample group",
+    choices_provider = function(v) c("General")),
+  widget_binding("sample_space.attr4.color_subset", "select", label = "Color",
+    help = "color subset", choices_provider = function(v) c("All")),
+  widget_binding("sample_space.attr4.color_variable", "select", label = "Color",
+    help = "color variable", choices_provider = function(v) c("group"))
+)
+for (i in 1:40) rank_binds[[length(rank_binds) + 1L]] <- widget_binding(
+  sprintf("noise%d.widget%d", i, i), "numeric", label = sprintf("Noise %d", i),
+  help = sprintf("a dataspace sample control number %d", i))
+do.call(store_register, c(list(rank_ds), rank_binds))
+rank_res <- agent_capability_search(
+  rank_store, "dataspace.sample_space.color", max_results = 20L)
+rank_ids <- vapply(rank_res$capabilities, function(r) r$id, character(1))
+ok(
+  isTRUE(rank_res$fuzzy) &&
+    setequal(rank_ids[1:3], c("dataspace.sample_space.attr4.color_analysis",
+                             "dataspace.sample_space.attr4.color_subset",
+                             "dataspace.sample_space.attr4.color_variable")),
+  "amendment: multi-word fuzzy hits rank the true matches first"
+)
+ok(
+  rank_res$match_count > length(rank_res$capabilities) &&
+    isTRUE(rank_res$truncated),
+  "amendment: match_count keeps the full total under truncation"
+)
+ok(
+  isTRUE(rank_res$slim_records) &&
+    !is.null(rank_res$capabilities[[1]]$operation) &&
+    is.null(rank_res$capabilities[[1]]$help_text),
+  "amendment: oversized payloads slim to id/panel/label/operation/kind/tab"
+)
+ok(
+  nchar(jsonlite::toJSON(omicsViewer:::agent_json_prep(rank_res),
+                         auto_unbox = TRUE, null = "null"), type = "bytes") <= 8192L,
+  "amendment: search results always fit the tool-output budget"
+)
+ok(
+  any(grepl("prefix", rank_res$hint %||% "", fixed = TRUE)),
+  "amendment: id-shaped fuzzy misses get a prefix/meaning hint"
+)
+small_res <- agent_capability_search(s, "collapse", max_results = 20L)
+ok(
+  !is.null(small_res$capabilities[[1]]$help_text) &&
+    is.null(small_res$slim_records),
+  "amendment: small literal results keep full records unchanged"
+)
+typo_res <- agent_capability_search(s, "colaps")
+ok(
+  isTRUE(typo_res$fuzzy) && length(typo_res$capabilities) >= 1L,
+  "amendment: typo fuzzy fallback still returns real records"
+)
+literal_res <- agent_capability_search(s, "enrichment")
+ok(
+  identical(vapply(literal_res$capabilities, function(r) r$id, character(1))[1],
+            "resultspace.ora.xax_analysis"),
+  "amendment: literal-pass order is unchanged (registry order)"
+)
+
 ## -------------------------------------------------------- describing ----
 d <- agent_capability_get(s, "resultspace.ora.xax_analysis")
 ok(

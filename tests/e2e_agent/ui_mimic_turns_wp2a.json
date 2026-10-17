@@ -1,0 +1,4 @@
+[
+  { "id": "wp2a-t1-color", "prompt": "Switch the sample scatter plot on the left panel to the PCA view, with the points colored by the sample group." },
+  { "id": "wp2a-t2-heatmap", "prompt": "Show me what you can change about the heatmap clustering." }
+]

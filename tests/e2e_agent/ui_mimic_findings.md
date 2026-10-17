@@ -141,6 +141,23 @@ burn 5–10 retries. Candidate: literal matches rank before fuzzy ones
 and truncation keeps the literal head; OR fuzzy only when the query has
 no id-separator characters.
 
+**Amendment shipped 2026-10-17 (Chen-approved).** Matching semantics
+unchanged; results now (1) rank fuzzy hits by matched-word count
+(the 3 true color widgets surface first instead of past the cut),
+(2) byte-shape the payload — full records while they fit, then slim
+id/panel/label/operation/kind/tab records (describe_control(id)
+returns full), stepping the count down to a floor of 10 so the codec's
+opaque 8–38 KB truncation marker never fires again, and (3) id-shaped
+fuzzy misses get a hint pointing at prefix/meaning queries. Live
+re-validation (wp2a_validation): "sample scatter color" → 1 call,
+color cascade ranked first, correct disambiguation question (Origin
+vs TP53.Status — "group" is genuinely ambiguous in demo.RDS), and the
+follow-up "use Origin" turn SET the color (`color_variable:
+--select-- → Origin` via set_widgets) — the exact outcome the baseline
+never reached; "heatmap cluster" → 1 call, 63 s (was ~10 calls,
+38 KB truncation, 120 s). Sweep gate PASS (find_controls cases
+assert ids/labels, which slim records keep).
+
 ### F6 — figure filter errors don't list usable columns — FIXED (WP-3)
 `update_figure` failed with *"Figure filter column is unavailable:
 featureId"*; the model self-recovered by retrying with Gene.name, but

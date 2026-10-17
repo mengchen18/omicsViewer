@@ -405,32 +405,82 @@ agent_capability_search <- function(store = NULL, query, max_results = 20L) {
     # WP-G1 bounded fuzzy fallback: approximate (agrep) matching on the
     # query's words, ONLY when the literal pass found nothing - a typo
     # like "higlight" or "genname" still returns the real records.
+    # WP-2 amendment (2026-10-17, Chen-approved): matching semantics are
+    # unchanged, but hits are RANKED by how many distinct query words
+    # they match. The old registry-order cut buried the true matches:
+    # find_controls("dataspace.sample_space.color") matched 207/214
+    # records (any-word OR) with the 3 real color widgets past the
+    # truncation head (live evidence: wp1_validation_b, wp2_validation).
     fuzzy <- TRUE
     qwords <- strsplit(ql, "[^a-z0-9]+")[[1]]
     qwords <- qwords[nzchar(qwords)]
-    if (length(qwords))
-      hits <- Filter(function(r) {
+    if (length(qwords)) {
+      .words_matched <- function(r) {
         hwords <- unique(unlist(strsplit(
           strsplit(paste(hay_of(r), collapse = " "), "[^a-z0-9]+")[[1]],
           "\\s+")))
         hwords <- hwords[nzchar(hwords)]
-        any(vapply(qwords, function(qw)
+        sum(vapply(qwords, function(qw)
           any(vapply(hwords, function(hw)
             grepl(qw, hw, fixed = TRUE) ||
               (nchar(qw) >= 4L && nchar(hw) >= 4L &&
                  agrepl(qw, hw, max.distance = 0.2)),
             logical(1))), logical(1)))
-      }, records)
+      }
+      scores <- vapply(records, .words_matched, integer(1), USE.NAMES = FALSE)
+      keep <- scores > 0L
+      hits <- records[keep]
+      ord <- order(-scores[keep], seq_along(hits), method = "radix")
+      hits <- hits[ord]
+    }
   }
-  list(
+
+  # WP-2 amendment: byte-shaped results. Full records average ~1 KB, so
+  # max_results = 50 previously produced 8-38 KB payloads that the tool
+  # codec replaced with an opaque truncation marker. Instead: keep full
+  # records while they fit the tool-output budget; otherwise slim to
+  # id/panel/label/operation/kind/tab (describe_control(id) returns the
+  # full record) and, if still oversized, step the count down to a floor
+  # of 10 - the codec marker never fires for capability search again.
+  .slim_record <- function(r)
+    list(id = r$id, panel = r$panel, label = r$label,
+         operation = r$operation, kind = r$kind, tab = r$tab)
+  .payload_bytes <- function(x)
+    nchar(
+      jsonlite::toJSON(
+        agent_json_prep(x), auto_unbox = TRUE, null = "null"),
+      type = "bytes")
+  budget <- max(1024L, .agent_tool_output_max_bytes() - 600L)
+  k <- min(max_results, length(hits))
+  out_records <- utils::head(hits, k)
+  slim_records <- FALSE
+  if (length(out_records) && .payload_bytes(out_records) > budget) {
+    slim_records <- TRUE
+    out_records <- lapply(utils::head(hits, k), .slim_record)
+    while (k > 10L && .payload_bytes(out_records) > budget) {
+      k <- max(10L, k - 5L)
+      out_records <- lapply(utils::head(hits, k), .slim_record)
+    }
+  }
+  out <- list(
     query = query,
     capability_count = length(records),
     match_count = length(hits),
     fuzzy = fuzzy,
-    truncated = length(hits) > max_results,
-    capabilities = if (length(hits))
-      utils::head(hits, max_results) else list()
+    truncated = length(hits) > length(out_records),
+    capabilities = out_records
   )
+  if (slim_records) out$slim_records <- TRUE
+  # WP-2 amendment: an id-shaped query with no literal match usually
+  # means the model guessed an id section that does not exist verbatim
+  # (e.g. dataspace.sample_space.color vs ...attr4.color_analysis).
+  # Point it at the two paths that work instead of a fuzzy wall.
+  if (fuzzy && length(qwords) && grepl("[._]", query, useBytes = TRUE))
+    out$hint <- paste(
+      "No literal match for this id-shaped query; canonical ids match by",
+      "prefix, e.g. find_controls(prefix = 'dataspace'), or search by",
+      "meaning, e.g. find_controls(query = 'scatter color').")
+  out
 }
 
 #' Describe one capability by exact id
