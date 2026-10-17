@@ -631,6 +631,20 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
               "request_limit_reached",
               list(request_index = request_count, request_limit = request_limit)
             )
+            # WP-5 abort-settle check (F2 mechanism 2): the safeError must
+            # propagate through ellmer's stream promise so shinychat's
+            # ExtendedTask settles (stream_failure + status idle). With
+            # large histories this has failed silently (batch2/wp4_replay2:
+            # log ended here, composer wedged forever). If the stream has
+            # not settled 5 s after the abort, say so loudly.
+            later::later(function() {
+              tryCatch({
+                if (!is.null(chat_object) &&
+                    identical(isolate(chat_object$status()), "streaming"))
+                  .chat_stuck_notify("chat_abort_stuck",
+                                     list(requests = request_count))
+              }, error = function(e) NULL)
+            }, 5)
             # safeError keeps the explanatory message visible when the app
             # runs with shiny.sanitize.errors = TRUE (generic error pages
             # would hide WHY the assistant stopped)
@@ -687,6 +701,15 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
                 cost_limit_usd = cost_limits$cost_usd
               )
             )
+            # WP-5 abort-settle check (same shape as the request-limit abort)
+            later::later(function() {
+              tryCatch({
+                if (!is.null(chat_object) &&
+                    identical(isolate(chat_object$status()), "streaming"))
+                  .chat_stuck_notify("chat_abort_stuck",
+                                     list(requests = request_count))
+              }, error = function(e) NULL)
+            }, 5)
             # safeError: keep the budget explanation visible under
             # shiny.sanitize.errors (todo 1.9)
             stop(shiny::safeError(violation))
@@ -778,6 +801,26 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # value (composer swallow), the discriminating signal for the
       # stub-drop probe (tests/e2e_agent/ui_probe_stub_drop.mjs).
       .submit_seen_last <- 0
+      .chat_stuck_notify <- function(kind, detail) {
+        # WP-5 (F2): silent loss becomes LOUD. shinychat exposes no
+        # server-side cancel for a hung stream, so the recovery is
+        # user-initiated (reload / new session; WP-6 adds the composer
+        # Retry) - but the user must be TOLD instead of typing into a
+        # wedge that eats messages without a trace.
+        agent_logger_event(logger, kind, detail)
+        tryCatch(
+          shiny::showNotification(
+            paste0(
+              "The assistant stream appears stuck (", kind, "). ",
+              "New messages may not be delivered until the page is ",
+              "reloaded. If this keeps happening, start a new browser ",
+              "session or contact an administrator."
+            ),
+            type = "error", duration = NULL, session = session
+          ),
+          error = function(e) NULL
+        )
+      }
       observeEvent(input$chat_user_input, {
         now <- unclass(Sys.time())
         if (now - .submit_seen_last >= 1) {
@@ -787,6 +830,31 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
             "chat_submit_seen",
             list(chars = nchar(.agent_log_safe_value(input$chat_user_input)[1]))
           )
+          # WP-5 watchdog: the input reached the server, so a provider
+          # request must start within seconds (on_request_start increments
+          # request_count before the provider call). 15 s later: still no
+          # request = log; 30 s later: still none = tell the user. A slow
+          # but healthy request increments the counter and silences both.
+          req_at_submit <- request_count
+          later::later(function() {
+            tryCatch({
+              if (!is.null(chat_object) &&
+                  identical(request_count, req_at_submit)) {
+                status_now <- tryCatch(
+                  isolate(chat_object$status()), error = function(e) "unknown")
+                agent_logger_event(logger, "chat_stuck_detected", list(
+                  status = status_now, requests = request_count))
+              }
+            }, error = function(e) NULL)
+          }, 15)
+          later::later(function() {
+            tryCatch({
+              if (!is.null(chat_object) &&
+                  identical(request_count, req_at_submit))
+                .chat_stuck_notify("chat_stuck_confirmed",
+                                   list(requests = request_count))
+            }, error = function(e) NULL)
+          }, 30)
         }
         agent_logger_event(
           logger,

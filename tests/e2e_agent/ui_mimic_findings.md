@@ -73,6 +73,19 @@ midstream OMICSVIEWER_LLM_MAX_REQUESTS=6 node ui_probe_stub_drop.mjs <n>`
 WP-5 (make the abort always settle; visible busy state) + WP-6
 (composer delivery watchdog covers the client-side discard class).
 
+**WP-5 shipped (detect + notify; silent → loud):** submit watchdog —
+15 s after `chat_submit_seen` with no provider request ⇒
+`chat_stuck_detected` logged; 30 s ⇒ `chat_stuck_confirmed` + error
+notification (reload guidance). Abort-settle check — 5 s after a
+request-limit/budget abort with the stream still `streaming` ⇒
+`chat_abort_stuck` + notification (the batch2 wedge shape). No
+automatic re-drive (shinychat exposes no server-side cancel for a hung
+stream; double-submit risk) — recovery stays user-initiated, and
+WP-6's composer Retry covers it. Validated live: healthy turns and 4/4
+limit aborts produced zero false stuck events; the 2 client-side
+drops per repro run are unchanged BY DESIGN until WP-6 makes them
+visible + retryable.
+
 ### F3 — no cheap column enumeration ("colored by group" flail) — FIXED (WP-1)
 Every session burned 5–8 tool calls guessing synonyms (group, genotype,
 condition, class, cell, type...) because `search_annotations` matches
