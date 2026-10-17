@@ -163,7 +163,7 @@ const heavy = [
   ['h3-ora', 'Run over-representation analysis on the RE vs ME result (FDR < 0.05, |logFC| > 1) and summarize the top enriched gene sets.'],
   ['h4-update', 'Update the volcano figure: color points by whether their log FDR is below 0.05 and label the top 10 genes.'],
 ];
-if (!MIDSTREAM) {
+if (!MIDSTREAM || /^(1|true|yes|on)$/i.test(process.env.PROBE_PHASE_A || '')) {
 for (const [id, prompt] of heavy) {
   const rec = await deliverTurn(prompt, id, 300000);
   console.log(ts(), `<< [${id}] ${rec.timedOut ? 'TIMEOUT' : 'settled'}; stubs so far: ${countEvent('history_stubbed')}`);
@@ -221,7 +221,31 @@ if (MIDSTREAM) {
   }
   // let the chain finish or abort (~2.5 min covers a full ORA-style chain)
   await new Promise(s => setTimeout(s, 150000));
-  const limitHits = countEvent('request_limit_reached');
+  const limitHits0 = countEvent('request_limit_reached');
+  // WP-6: a queued submission that was discarded must have surfaced the
+  // delivery notice; clicking Retry must deliver it through the server
+  let noticeSeen = false, recovered = null;
+  const noticeEl = page.locator('.omicsviewer-ai-delivery-notice');
+  noticeSeen = await noticeEl.count() > 0;
+  if (noticeSeen) {
+    const noticeText = (await page.innerText('.omicsviewer-ai-delivery-notice').catch(() => ''));
+    console.log(ts(), `   delivery notice surfaced: "${noticeText.replace(/\n/g, ' ').slice(0, 80)}"`);
+    const word = queued.find(w => noticeText.includes(w) || true) || null;
+    // the notice does not carry the text; retry whatever is pending
+    const msgBefore2 = countEvent('user_message');
+    await noticeEl.locator('button').click();
+    let ok = false;
+    const dl2 = Date.now() + 45000;
+    while (Date.now() < dl2) {
+      await new Promise(s => setTimeout(s, 1500));
+      if (countEvent('user_message') > msgBefore2) { ok = true; break; }
+    }
+    recovered = ok;
+    console.log(ts(), `   retry clicked -> ${ok ? 'DELIVERED (user_message logged)' : 'not delivered'}`);
+  } else {
+    console.log(ts(), '   no delivery notice visible after chain');
+  }
+  const limitHits = limitHits0;
   const qSeen = countEvent('chat_submit_seen') - seenBefore;
   const qMsg = countEvent('user_message') - msgBefore;
   console.log(ts(), `chain over: limitHits=${limitHits} receipts so far: submit_seen=${qSeen} user_msg=${qMsg}`);
@@ -262,10 +286,11 @@ if (MIDSTREAM) {
     console.log(ts(), `queued [${w}] receipt=${found}`);
   }
   writeFileSync(path.join(OUT, 'probe_report.json'), JSON.stringify({
-    session: SESSION, mode: 'midstream', limitHits,
+    session: SESSION, mode: 'midstream', limitHits, noticeSeen, recovered,
     probes }, null, 2));
   const drops = probes.filter(p => !p.receipt).length;
   console.log(`\nVERDICT (midstream): drops ${drops} of ${probes.length}; limitHits ${limitHits}; ` +
+    `notice=${noticeSeen} retryRecovered=${recovered}; ` +
     `report: ${path.join(OUT, 'probe_report.json')}`);
   await browser.close();
   process.exit(0);

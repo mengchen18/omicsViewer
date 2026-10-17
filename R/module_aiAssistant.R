@@ -170,6 +170,23 @@ ai_assistant_ui <- function(id) {
         place-items: center;
         box-shadow: 0 4px 14px rgba(0,0,0,.18);
       }
+      .omicsviewer-ai-delivery-notice {
+        margin: 6px 10px 8px 10px;
+        padding: 7px 10px;
+        border: 1px solid #e3b9b9;
+        border-left: 4px solid #c0504d;
+        border-radius: 5px;
+        background: #fdf4f4;
+        color: #6b1f1f;
+        font-size: 12.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: space-between;
+      }
+      .omicsviewer-ai-delivery-notice button {
+        flex: none;
+      }
       .omicsviewer-ai-panel {
         position: fixed;
         right: 20px;
@@ -397,7 +414,90 @@ ai_assistant_ui <- function(id) {
       "  });",
       "  restoreGeometry();",
       "})();"
-    )))
+    ))),
+    tags$script(HTML(paste(c(
+      "// WP-6 (F2/F8) composer delivery watchdog: a submission that the",
+      "// client accepted (optimistic bubble) but never delivered - the",
+      "// dominant silent-loss shape from the WP-4 probe - becomes visible",
+      "// after 10 s and retryable through the server-owned submit path.",
+      "(function() {",
+      "  var panel = document.getElementById(", .agent_js_string(panel_id), ");",
+      "  if (!panel) return;",
+      "  var RETRY_INPUT = ", .agent_js_string(ns("assistant_retry")), ";",
+      "  var notice = null, pendingText = null, noticeTimer = null;",
+      "  var composerText = function(el) {",
+      "    return (el && (el.value || el.innerText) || '').replace(/^\\s+|\\s+$/g, '');",
+      "  };",
+      "  var hideNotice = function() {",
+      "    if (notice) { notice.remove(); notice = null; }",
+      "  };",
+      "  var showNotice = function(text) {",
+      "    if (notice) return;",
+      "    notice = document.createElement('div');",
+      "    notice.className = 'omicsviewer-ai-delivery-notice';",
+      "    notice.setAttribute('role', 'alert');",
+      "    var msg = document.createElement('span');",
+      "    msg.textContent = 'Message not delivered - the assistant may still be finishing. Retry when it is idle.';",
+      "    var btn = document.createElement('button');",
+      "    btn.type = 'button'; btn.className = 'btn btn-default btn-xs';",
+      "    btn.textContent = 'Retry';",
+      "    btn.addEventListener('click', function() {",
+      "      if (window.Shiny && Shiny.setInputValue)",
+      "        Shiny.setInputValue(RETRY_INPUT, { text: text, nonce: Date.now() }, { priority: 'event' });",
+      "      btn.disabled = true; btn.textContent = 'Retrying...';",
+      "    });",
+      "    notice.appendChild(msg); notice.appendChild(btn);",
+      "    panel.appendChild(notice);",
+      "  };",
+      "  var arm = function(text) {",
+      "    if (!text) return;",
+      "    pendingText = text;",
+      "    if (noticeTimer) clearTimeout(noticeTimer);",
+      "    noticeTimer = setTimeout(function() {",
+      "      if (pendingText === null) return;",
+      "      showNotice(pendingText);",
+      "    }, 10000);",
+      "  };",
+      "  var clear = function() {",
+      "    pendingText = null;",
+      "    if (noticeTimer) { clearTimeout(noticeTimer); noticeTimer = null; }",
+      "    hideNotice();",
+      "  };",
+  "  var clearAck = function(_) { clear(); };",
+      "  panel.addEventListener('keydown', function(e) {",
+      "    if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;",
+      "    var t = e.target;",
+      "    if (t && (t.tagName === 'TEXTAREA' || t.getAttribute('contenteditable') === 'true'))",
+      "      arm(composerText(t));",
+      "  });",
+      "  panel.addEventListener('click', function(e) {",
+      "    var t = e.target;",
+      "    if (t && t.closest && t.closest('button') && !t.closest('.omicsviewer-ai-delivery-notice')) {",
+      "      var c = panel.querySelector('textarea, [contenteditable]');",
+      "      if (c) arm(composerText(c));",
+      "    }",
+      "  });",
+      "  if (window.Shiny && Shiny.addCustomMessageHandler) {",
+      "    Shiny.addCustomMessageHandler('omicsviewerAssistantDeliveryAck', clearAck);",
+      "    Shiny.addCustomMessageHandler('omicsviewerAssistantRetryStatus', function(m) {",
+      "      if (notice && m && m.busy) {",
+      "        notice.querySelector('span').textContent =",
+      "          'The assistant is still working - the retry will be delivered when it finishes.';",
+      "        var b = notice.querySelector('button');",
+      "        if (b) { b.disabled = false; b.textContent = 'Retry'; }",
+      "      }",
+      "    });",
+      "  }",
+      "  // test hook (env-gated render): lets browser suites arm the",
+      "  // watchdog deterministically without a live provider stream",
+      if (agent_test_hooks_enabled()) c(
+      "  window.__omicsviewerAiDelivery = {",
+      "    arm: arm, clear: clear,",
+      "    visible: function() { return !!notice; },",
+      "    text: function() { return pendingText; }",
+      "  };") else NULL,
+      "})();"
+    ), collapse = "\n")))
   )
 }
 
@@ -823,6 +923,14 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       }
       observeEvent(input$chat_user_input, {
         now <- unclass(Sys.time())
+        # WP-6: ack EVERY submission to the client delivery watchdog
+        # (outside the 1/s log rate limit); the notice only appears when
+        # this never arrives - i.e. the client-side discard from WP-4.
+        tryCatch(
+          session$sendCustomMessage(
+            "omicsviewerAssistantDeliveryAck", list(ok = TRUE)),
+          error = function(e) NULL
+        )
         if (now - .submit_seen_last >= 1) {
           .submit_seen_last <<- now
           agent_logger_event(
@@ -865,6 +973,40 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
 
       observeEvent(input$chat_cancel, {
         agent_logger_event(logger, "stream_cancelled_by_user")
+      })
+
+      # WP-6 (F2/F8): Retry path for undelivered submissions. The client
+      # watchdog arms on every composer Enter and clears on the delivery
+      # ack above; if the notice fired, Retry posts the stashed text here
+      # and the server re-drives the submission through shinychat's OWN
+      # update_user_input(submit = TRUE) - no synthetic events, and the
+      # normal composer pipeline (ack, transcript, ExtendedTask) runs.
+      observeEvent(input$assistant_retry, {
+        payload <- input$assistant_retry
+        if (is.null(payload) || !is.list(payload)) return(NULL)
+        text <- .agent_trim_scalar(payload$text)
+        if (!nzchar(text)) return(NULL)
+        if (is.null(chat_object)) return(NULL)
+        status_now <- tryCatch(
+          isolate(chat_object$status()), error = function(e) "unknown")
+        if (!identical(status_now, "idle")) {
+          agent_logger_event(logger, "chat_retry_deferred",
+                             list(status = status_now))
+          tryCatch(
+            session$sendCustomMessage(
+              "omicsviewerAssistantRetryStatus", list(busy = TRUE)),
+            error = function(e) NULL
+          )
+          return(invisible(NULL))
+        }
+        agent_logger_event(logger, "chat_retry_submitted", list(chars = nchar(text)))
+        tryCatch(
+          chat_object$update_user_input(value = text, submit = TRUE, focus = TRUE),
+          error = function(e) {
+            agent_logger_event(logger, "chat_retry_failed",
+                               list(error = .agent_log_condition(e)))
+          }
+        )
       })
 
       chat_object <- shinychat::chat_server(

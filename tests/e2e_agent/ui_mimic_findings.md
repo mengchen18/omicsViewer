@@ -164,7 +164,7 @@ requests over 4+ minutes with nothing user-visible between tool calls
 (ORA pipeline). Recommendation: interim streaming progress notes or a
 soft per-turn tool-call budget with a checkpoint question.
 
-### F8 — composer can swallow the FIRST submission too
+### F8 — composer can swallow the FIRST submission too — FIXED (WP-6)
 minirepro turn 1 waited >25 s before the message registered (retry
 saved it); same silent-swallow class as F2 but pre-stub. Delivery
 feedback in the composer is needed regardless.
@@ -172,6 +172,25 @@ feedback in the composer is needed regardless.
 **WP-4 note:** same client-side discard class as F2 mechanism 1 —
 any submission racing an active stream is dropped without a frame;
 the watchdog (WP-6) makes it visible and retryable.
+
+**Resolution 2026-10-17 (WP-6).** A composer delivery watchdog ships
+with the assistant UI: every Enter arms a 10 s timer; the server acks
+every received submission (`omicsviewerAssistantDeliveryAck` custom
+message fired by the `chat_submit_seen` path), and the ack clears the
+watchdog. No ack within 10 s ⇒ inline notice — "Message not delivered
+- the assistant may still be finishing. Retry when it is idle." —
+whose Retry posts the stashed text to the server, which re-drives the
+submission through shinychat's own `update_user_input(submit = TRUE)`
+(owned APIs only; no synthetic events; a busy stream defers the retry
+with a status message instead of double-submitting). Browser-verified
+7/7 (`verify_wp6_delivery_notice.mjs`: notice at 10 s, retry clears +
+delivers, normal submits never show it). Live end-to-end (wp6_validate
+midstream probe): a queued-during-chain discard surfaced the notice and
+Retry delivered it — `drops 1 of 5, notice=true, retryRecovered=true`.
+Known limitation: the watchdog tracks the most recent armed
+submission, so several messages queued during one long chain surface
+one notice/pending at a time; the rest are re-armed on their next
+Enter.
 
 ## What worked well (keep)
 - Refusal quality: CSV export → clean upfront refusal listing what it
