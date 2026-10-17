@@ -771,7 +771,23 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
 
       # Register prompt diagnostics before chat_server so a user-message event is
       # normally written before the ExtendedTask starts the provider request.
+      # WP-4 (F2): chat_submit_seen is the rate-limited transport flight
+      # recorder - cheapest possible marker that a composer submission
+      # reached the SERVER (user_message adds the sanitized payload).
+      # Absence of both after a submit = the client never sent the input
+      # value (composer swallow), the discriminating signal for the
+      # stub-drop probe (tests/e2e_agent/ui_probe_stub_drop.mjs).
+      .submit_seen_last <- 0
       observeEvent(input$chat_user_input, {
+        now <- unclass(Sys.time())
+        if (now - .submit_seen_last >= 1) {
+          .submit_seen_last <<- now
+          agent_logger_event(
+            logger,
+            "chat_submit_seen",
+            list(chars = nchar(.agent_log_safe_value(input$chat_user_input)[1]))
+          )
+        }
         agent_logger_event(
           logger,
           "user_message",
@@ -981,6 +997,27 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       .context_maybe_compact <- function() {
         if (is.null(chat_object))
           return(invisible(FALSE))
+        # WP-4 (F2): flight recorder for every janitor pass. on.exit
+        # covers ALL exit paths (early returns included) and logs the
+        # post-action chat status - if a stub/compaction pass ever leaves
+        # the chat object in a non-idle state at rest (H-a), this is where
+        # it becomes visible in the timeline next to chat_submit_seen.
+        .janitor_t0 <- .step_now()
+        on.exit(
+          tryCatch(
+            agent_logger_event(logger, "janitor_run", list(
+              elapsed_ms = round((.step_now() - .janitor_t0) * 1000),
+              status_after = tryCatch(
+                isolate(chat_object$status()),
+                error = function(e) "unknown"),
+              turn_count = tryCatch(
+                length(chat_object$client$get_turns()),
+                error = function(e) -1L)
+            )),
+            error = function(e) NULL
+          ),
+          add = TRUE
+        )
         client <- chat_object$client
         turns <- tryCatch(client$get_turns(), error = function(e) NULL)
         if (!length(turns) || !length(Filter(.agent_is_turn, turns)))

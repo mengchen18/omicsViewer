@@ -30,19 +30,48 @@ real UI effects (quick-view badge action + `attr4.color_variable`).
 
 ## Open findings (priority order)
 
-### F2 — silent message drop after context stubbing (top bug)
+### F2 — silent message drop (top bug) — ROOT CAUSE FOUND (WP-4)
 In 3 of 4 multi-turn sessions the chat wedges exactly after the WP13
 janitor's `history_stubbed` events: the user's next message renders a
 bubble client-side (shinychat optimistic render) but NEVER reaches the
 server (no `user_message`, no `provider_request_start`, no error, no
-disconnect overlay; websocket open). Repro: fresh app, 3–4 heavy tool
-turns (figures/enrichment) until `history_stubbed` appears in the jsonl,
-then send anything. Candidates: the janitor's `client$set_turns()` on
-idle breaks shinychat's next submission (the module's own comments
-document ellmer 0.5.0 set_turns desyncs); fix by verifying liveness
-after stubbing (probe input path), deferring stubbing to the next
-request start, and adding a client-side "message not delivered" notice
-when no stream starts within ~10 s.
+disconnect overlay; websocket open).
+
+**Root-cause verdict 2026-10-17 (WP-4 probe: `ui_probe_stub_drop.mjs`,
+modes idle/race/midstream, 6 instrumented runs + 2 batch replays; logs
+in ~/.omicsviewer-llm-eval/stub_probe_*):**
+
+1. **Primary mechanism (client-side, deterministic, 4/4 runs):** while
+   a stream is ACTIVE, shinychat's composer accepts Enter, renders the
+   optimistic user bubble, and NEVER SENDS the input update — the probe
+   observed `bubbleDelta≈300` (bubble in DOM) with `inputFrames=0` (no
+   websocket frame) and no server event, ever. There is no queue and no
+   drain: the message is silently lost. This fires on EVERY active
+   stream (even with the cancel control invisible — `busy=false` at
+   submit — so users cannot tell). The stubbing janitor was pure
+   correlation (it runs after every settle); midstream runs with zero
+   stubs and zero compactions still drop 2/2 queued messages.
+2. **Amplifier (server-side, history-size-dependent):** when a long
+   chain aborts at the session request limit with a LARGE history
+   (~80 turns; batch2 + wp4_replay2 tails), the stream NEVER settles:
+   the log ends at `request_limit_reached → history_stubbed` with NO
+   `stream_failure`/`stream_status: idle` — the composer stays busy
+   forever and ALL subsequent submissions are discarded (batch2's
+   permanent death incl. the failed retry). With small histories
+   (~12 turns; stub_probe_mid1–3) the same abort settles cleanly
+   (`stream_failure` logged, status idle) and the composer recovers.
+3. Hypotheses killed: janitor-leaves-bad-status (all `janitor_run`
+   passes report `status_after=idle`, ≤153 ms), stub-racing (15 race
+   probes clean), compaction interleaving (drops occur with zero
+   compactions; survivors compacted most).
+
+New flight-recorder events (kept): `chat_submit_seen` (rate-limited,
+earliest server receipt marker) and `janitor_run` (on.exit post-action
+status + turn count). Repro gate: `cd tests/e2e_agent && PROBE_MODE=
+midstream OMICSVIEWER_LLM_MAX_REQUESTS=6 node ui_probe_stub_drop.mjs <n>`
+→ exactly 2 of 5 drops in ≤5 min, 4/4 runs. Fix directions land in
+WP-5 (make the abort always settle; visible busy state) + WP-6
+(composer delivery watchdog covers the client-side discard class).
 
 ### F3 — no cheap column enumeration ("colored by group" flail) — FIXED (WP-1)
 Every session burned 5–8 tool calls guessing synonyms (group, genotype,
@@ -126,6 +155,10 @@ soft per-turn tool-call budget with a checkpoint question.
 minirepro turn 1 waited >25 s before the message registered (retry
 saved it); same silent-swallow class as F2 but pre-stub. Delivery
 feedback in the composer is needed regardless.
+
+**WP-4 note:** same client-side discard class as F2 mechanism 1 —
+any submission racing an active stream is dropped without a frame;
+the watchdog (WP-6) makes it visible and retryable.
 
 ## What worked well (keep)
 - Refusal quality: CSV export → clean upfront refusal listing what it
