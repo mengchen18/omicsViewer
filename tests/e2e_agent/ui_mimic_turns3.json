@@ -1,0 +1,6 @@
+[
+  { "id": "b3-refusal-csv", "prompt": "Export the feature table as a CSV file to my computer." },
+  { "id": "b3-multistep", "prompt": "Switch the feature scatter to the MT vs WT volcano quick view, highlight MYC on it, and give me a high-resolution PNG." },
+  { "id": "b3-fgsea", "prompt": "Go to the fGSEA panel, run it on the RE vs ME comparison with default settings, and tell me the top 3 pathways by normalized enrichment score." },
+  { "id": "b3-stringdb", "prompt": "What can you change on the StringDB tab? Then build a STRING network for the current selected features." }
+]

@@ -1,0 +1,10 @@
+[
+  { "id": "b2-pca-retry", "prompt": "Show a PCA scatter plot of the samples on the left panel, colored by group." },
+  { "id": "b2-heatmap", "prompt": "In the data space, set the expression heatmap row clustering to ward.D2 with correlation distance." },
+  { "id": "b2-table", "prompt": "In the phenotype table, show only the t-test RE vs ME columns and sort by log.fdr." },
+  { "id": "b2-fgsea", "prompt": "Go to the fGSEA panel, run it on the RE vs ME comparison with default settings, and tell me the top 3 pathways by normalized enrichment score." },
+  { "id": "b2-stringdb-discover", "prompt": "What can you change on the StringDB tab?" },
+  { "id": "b2-refusal-csv", "prompt": "Export the feature table as a CSV file to my computer." },
+  { "id": "b2-multistep", "prompt": "Switch the feature scatter to the MT vs WT volcano quick view, highlight MYC on it, and give me a high-resolution PNG." },
+  { "id": "b2-down-enriched", "prompt": "Which gene sets are most enriched among genes down-regulated in ME compared to RE?" }
+]

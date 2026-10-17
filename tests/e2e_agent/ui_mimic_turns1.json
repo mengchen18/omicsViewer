@@ -1,0 +1,9 @@
+[
+  { "id": "t1-overview", "prompt": "Give me a quick overview of this dataset and tell me what kinds of things you can control in this app." },
+  { "id": "t2-pca", "prompt": "Show a PCA scatter plot of the samples, colored by group.", "toggle_logging_before": true },
+  { "id": "t3-volcano", "prompt": "Make a volcano plot for the RE vs ME comparison." },
+  { "id": "t4-highlight", "prompt": "Highlight the genes EGFR, MYC, TP53 and BRAF on the current plot." },
+  { "id": "t5-ora", "prompt": "Run over-representation analysis on the RE vs ME result (FDR < 0.05, |logFC| > 1) and summarize the top enriched gene sets." },
+  { "id": "t6-heatmap", "prompt": "Change the expression heatmap on the left to use correlation distance with ward.D2 clustering for the rows." },
+  { "id": "t7-figure", "prompt": "Generate a high-quality PNG of the current volcano plot." }
+]
