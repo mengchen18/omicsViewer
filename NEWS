@@ -1,3 +1,37 @@
+Changes in version 2.1.79
+widget-sweep remediation program (WP-0..WP-G2, 2026-10):
+ - WP-0: the exhaustive 337-case agent widget sweep doubled as the
+   one-command regression gate (NOT_CRAN=true
+   tests/e2e_agent/widget_sweep/run_regression.sh; surgical baseline
+   refresh workflow)
+ - WP-A: choices providers that declare a provider but return empty
+   now reject with a self-describing reason instead of accepting
+   anything; dynamic-heatmap choices are activation-independent
+   (dataset-backed choice sources, selection-preserving choice
+   re-pushes)
+ - WP-B/WP-B2: the F4 "table columns anomaly" and the F6 expr-heatmap
+   congestion were disproven as harness measurement artifacts - no
+   product change; the harness read-back bug was fixed
+ - WP-C: action tier - widget_action()/store_register_action()/
+   store_action_run(), 10 module buttons operable through the new
+   run_control tool (snapshot lifecycle and dataset switching
+   PERMANENTLY excluded; destructive actions never agent-runnable)
+ - WP-D: the four attr4 searchon gene-highlight pickers are store
+   bindings (attr4.search_value; joint cascade+values patches valid
+   through the effective view)
+ - WP-E: F5 dead-end chains - precondition notes on conditional
+   bindings; survival-censor R-M7 push ordering fixed (a push landing
+   before the view renders is no longer dropped); stringdb/batch/
+   censor chains probe-verified end to end
+ - WP-F: categorical-axis freeze remediation CANCELLED by decision -
+   the 2702-category freeze is accepted as-is
+ - WP-G1: every capability record carries tab/effect (+group on
+   cascades); 17 panel records from the sr-only prose; find_controls
+   gains a bounded fuzzy fallback
+ - WP-G2: snapshot-lifecycle + dataset-selector sweep cases carry the
+   explicit excluded-by-policy status; downloads/export cancelled
+   (nothing built)
+
 Changes in version 2.2.0
 agent accuracy & control plane follow-ups (optional AI assistant):
  - WP8 semantic tools: set_enrichment_parameters (ORA/fGSEA panel) and
