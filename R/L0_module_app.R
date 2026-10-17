@@ -869,15 +869,27 @@ app_module <- function(
       parts <- strsplit(axis, "|", fixed = TRUE)[[1]]
       parts
     }
+    # NOTE (2026-10-17 UI-mimic finding): the choices providers read
+    # reactives, and this closure runs from the assistant tool's async
+    # task where there is no active reactive context - exactly like
+    # apply_agent_enrichment below, both applies MUST run inside
+    # shiny::isolate() or every fresh-session call fails with the
+    # misleading "choices are not computed yet" rejection (repro:
+    # first assistant turn, "switch the feature scatter to the MT vs WT
+    # volcano quick view", fails 3/3 without isolate, deterministic).
     patch <- stats::setNames(
       c(as.list(split_axis(view$x_axis)), as.list(split_axis(view$y_axis))),
       c(paste(prefix, c("x_analysis", "x_subset", "x_variable"), sep = "."),
         paste(prefix, c("y_analysis", "y_subset", "y_variable"), sep = ".")))
-    store_apply(app_store, patch, origin = "agent", strict = TRUE)
-    store_apply(
-      app_store,
-      list("dataspace.active_tab" = if (view$space == "feature") "Feature" else "Sample"),
-      origin = "agent", strict = TRUE)
+    shiny::isolate(
+      store_apply(app_store, patch, origin = "agent", strict = TRUE)
+    )
+    shiny::isolate(
+      store_apply(
+        app_store,
+        list("dataspace.active_tab" = if (view$space == "feature") "Feature" else "Sample"),
+        origin = "agent", strict = TRUE)
+    )
 
     view
   }
