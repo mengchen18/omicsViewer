@@ -273,7 +273,9 @@ meta_scatter_module <- function(
         choices_provider = function(v)
           triset()[triset()[, 1] %in% v[[ky1]] & triset()[, 2] %in% v[[ky2]], 3]),
       widget_binding("axis_mode", "enum", label = "Axis mode",
-        help = "Quick-view badges or custom triselectors",
+        help = paste("Switch the axes picker between quick-view shortcuts",
+                     "(PCA, volcano, correlation) and the three-level",
+                     "custom analysis/subset/variable selector"),
         values = c("quick", "custom"))
     )
     # WP-C action tier: the Clear-selection button registers as an

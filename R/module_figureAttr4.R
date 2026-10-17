@@ -184,12 +184,17 @@ attr4selector_module <- function(
                     tooltip = "Tooltips", search = "Search")
     # WP-G1 discovery enrichment: the search cascade feeds the gene
     # highlight picker - its help says so, so find_controls("highlight")
-    # / ("gene") return the cascade with a real explanation
+    # / ("gene") return the cascade with a real explanation.
+    # WP-2 amendment follow-up (2026-10-17, Chen-approved): verb-form,
+    # user-vocabulary phrasing so meaning queries ("color points by
+    # group") match and describe_control output reads like an
+    # instruction, not grammar jargon.
     .a4_group_help <- c(
-      color = "mapped to the point colour aesthetic",
-      shape = "mapped to the point shape aesthetic",
-      size = "mapped to the point size aesthetic",
-      tooltip = "shown in the hover tooltip",
+      color = paste("to color the figure's points by a group or",
+                    "annotation column"),
+      shape = "to give the figure's points a different shape per group",
+      size = "to scale the figure's point size by a numeric column",
+      tooltip = "shown in the figure's hover tooltip",
       search = paste("whose values the gene highlight picker circles",
                      "as open-ring markers on the figure"))
     .a4_binds <- unlist(lapply(names(.a4_groups), function(g) {
