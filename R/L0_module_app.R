@@ -750,6 +750,27 @@ app_module <- function(
     TRUE
   })
 
+  # WP7 (F4): bounded read access to the enrichment result tables through
+  # the result-space reader attribute. Runs inside agent_state's isolate();
+  # a missing/unready result space degrades to explicit not_run notes so
+  # the model always learns WHY there are no rows.
+  read_agent_panel_results <- function(method = NULL, n = 15L) {
+    val <- tryCatch(shiny::isolate(v2()),
+                    shiny.silent.error = function(e) NULL,
+                    error = function(e) NULL)
+    reader <- attr(val, "read_enrichment_results")
+    if (is.null(reader))
+      return(list(
+        ora = agent_enrichment_table_excerpt(NULL, "ORA"),
+        fgsea = agent_enrichment_table_excerpt(NULL, "fGSEA")
+      ))
+    tryCatch(reader(method = method, n = n),
+            shiny.silent.error = function(e)
+              agent_enrichment_table_excerpt(NULL, "unknown"),
+            error = function(e)
+              agent_enrichment_table_excerpt(NULL, "unknown"))
+  }
+
   # WP1 progressive disclosure: the compact state is built on demand for
   # exactly the requested sections. Expensive parts (annotation catalog,
   # figure grammar) are only computed when their section is asked for;
@@ -774,6 +795,8 @@ app_module <- function(
         ),
         figure_grammar = if ("figure_grammar" %in% wanted)
           agent_figure_grammar(),
+        panel_results = if ("panel_results" %in% wanted)
+          read_agent_panel_results(),
         sections = sections,
         store = app_store
       )
@@ -914,8 +937,8 @@ app_module <- function(
       rejected = receipt$rejected %||% list(),
       note = paste(
         "The panel opens and the enrichment recomputes from the currently",
-        "selected features (ORA) or the full ranking (fGSEA); re-check the",
-        "results through the app tables or get_omics_viewer_state."
+        "selected features (ORA) or the full ranking (fGSEA); read the top",
+        "rows back through get_omics_viewer_state(sections='panel_results')."
       )
     )
   }

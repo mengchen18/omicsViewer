@@ -765,7 +765,8 @@ ok(
 ok(
   ut_cmp_identical(
     overview$available_sections,
-    c("annotations", "quick_views", "panels", "figure_grammar")
+    c("annotations", "quick_views", "panels", "panel_results",
+      "figure_grammar")
   ),
   "WP1 overview advertises the section menu"
 )

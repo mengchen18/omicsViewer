@@ -510,9 +510,12 @@ agent_scatter_view_from_store <- function(store) {
 #' @param available_tabs Named list of valid data-space and analysis-space tabs.
 #' @param figure_grammar Allowlisted figure grammar (included only when the
 #'   \code{figure_grammar} section is requested).
+#' @param panel_results Bounded enrichment-result excerpts built by the
+#'   result-space reader (included only when the \code{panel_results}
+#'   section is requested; WP-7/F4).
 #' @param sections Optional character vector requesting full-detail
 #'   sections beyond the overview: \code{annotations}, \code{quick_views},
-#'   \code{panels}, \code{figure_grammar}.
+#'   \code{panels}, \code{panel_results}, \code{figure_grammar}.
 #' @param store Canonical widget store; when given, the overview gains a
 #'   \code{scatter_view} block with the current x/y axis triples and
 #'   axis mode of both data-space scatters, plus \code{capabilities}
@@ -528,6 +531,7 @@ agent_scatter_view_from_store <- function(store) {
 #' @rdname agentAssistantHelpers
 agent_compact_state <- function(state, annotations = NULL, quick_views = NULL,
                                 available_tabs = NULL, figure_grammar = NULL,
+                                panel_results = NULL,
                                 sections = NULL, store = NULL) {
   if (is.null(state))
     return(NULL)
@@ -592,6 +596,8 @@ agent_compact_state <- function(state, annotations = NULL, quick_views = NULL,
     out$annotations <- annotations
   if (want("panels"))
     out$panels <- .agent_bound_value(state$panels)
+  if (want("panel_results"))
+    out$panel_results <- panel_results
   if (want("figure_grammar"))
     out$figure_grammar <- figure_grammar
   out
@@ -751,6 +757,123 @@ agent_annotation_category_catalog <- function(feature_data, sample_data,
     feature = space_one(feature_data, "featureId", half),
     sample = space_one(sample_data, "sampleId", half)
   )
+}
+
+#' Build a bounded, model-readable excerpt of one enrichment result table
+#'
+#' WP-7 (F4): after an ORA/fGSEA run the assistant must be able to report
+#' real result rows. This helper shapes the module's raw result table (a
+#' data.frame, a character no-test message, or NULL when nothing ran)
+#' into a byte-bounded excerpt: the head of the table, key columns first,
+#' numeric values rounded, list-valued columns (\code{overlap_ids},
+#' \code{leadingEdge}) dropped exactly like the app's own tables, and
+#' \code{columns_available} reporting what truncation removed.
+#'
+#' @param table The raw enrichment result: data.frame, character message,
+#'   or NULL.
+#' @param method Enrichment method label ("ORA" or "fGSEA").
+#' @param n Maximum number of rows to return.
+#' @param budget_bytes Approximate serialized-size budget in bytes.
+#' @return A JSON-like list: \code{status} ("ok"/"not_run"/"message"),
+#'   \code{columns} (returned column order), \code{columns_available}
+#'   (dropped columns, when any), \code{rows} (named-row lists), and
+#'   \code{row_count}/\code{returned} counts.
+#' @keywords internal
+#' @rdname agentAssistantHelpers
+agent_enrichment_table_excerpt <- function(table, method, n = 15L,
+                                            budget_bytes = 3072L) {
+  method <- .agent_trim_scalar(method %||% "")
+  n <- suppressWarnings(as.integer(n)[1])
+  if (is.na(n) || n < 1L) n <- 15L
+  n <- min(n, 50L)
+  if (is.null(table)) {
+    return(list(
+      method = method,
+      status = "not_run",
+      message = paste("No results are computed yet. Run the analysis first",
+                      "(set_enrichment_parameters or the panel itself), then",
+                      "request this section again.")
+    ))
+  }
+  if (is.character(table)) {
+    return(list(method = method, status = "message", message = table))
+  }
+  if (!is.data.frame(table) || !nrow(table)) {
+    return(list(
+      method = method,
+      status = "not_run",
+      message = paste("No result rows are available; the analysis has not",
+                      "produced a table for the current parameters.")
+    ))
+  }
+
+  # The app's tables hide the per-gene list columns; so does the excerpt.
+  hidden <- intersect(c("overlap_ids", "leadingEdge"), colnames(table))
+  all_cols <- setdiff(colnames(table), hidden)
+  # Key columns first (per method), then remaining columns in table order.
+  keys <- switch(tolower(method),
+    "fgsea" = c("pathway", "normalized ES", "padj", "pval", "size",
+                "enrichment score (ES)", "description"),
+    "ora" = c("pathway", "size_overlap", "size_geneset", "OR",
+              "p.value", "p.adjusted", "desc"),
+    c("pathway", "gsId"))
+  ordered <- c(intersect(keys, all_cols),
+               setdiff(all_cols, keys))
+
+  .excerpt_bytes <- function(rows, cols) {
+    nchar(jsonlite::toJSON(
+      list(columns = cols, rows = rows), auto_unbox = TRUE, null = "null"),
+      type = "bytes")
+  }
+  .shape_row <- function(i, cols) {
+    out <- lapply(cols, function(nm) {
+      v <- table[[nm]][[i]]
+      if (is.numeric(v)) {
+        if (length(v) == 1L && is.finite(v) && abs(v) >= 1000)
+          round(v, 1)
+        else
+          signif(v, 3)
+      } else if (is.list(v)) {
+        utils::head(as.character(unlist(v)), 5L)
+      } else {
+        as.character(v)
+      }
+    })
+    names(out) <- cols
+    out
+  }
+
+  budget <- max(512L, suppressWarnings(as.integer(budget_bytes)[1]))
+  if (is.na(budget)) budget <- 3072L
+  idx <- seq_len(min(n, nrow(table)))
+  cols <- ordered
+  # Byte shaping: first drop non-key columns while over budget, then
+  # shrink the row window (floor 3 rows), mirroring the WP-2 digest
+  # posture — the codec's opaque truncation marker must never fire.
+  while (.excerpt_bytes(lapply(idx, .shape_row, cols), cols) > budget &&
+         length(cols) > 1L) {
+    key_cols <- intersect(keys, cols)
+    droppable <- rev(setdiff(cols, key_cols))
+    if (!length(droppable))
+      droppable <- rev(cols[-1])
+    cols <- setdiff(cols, droppable[[1]])
+  }
+  rows <- lapply(idx, .shape_row, cols)
+  while (.excerpt_bytes(rows, cols) > budget && length(rows) > 3L)
+    rows <- utils::head(rows, -1L)
+
+  out <- list(
+    method = method,
+    status = "ok",
+    row_count = nrow(table),
+    returned = length(rows),
+    rows_truncated = length(rows) < nrow(table),
+    columns = cols
+  )
+  if (!setequal(cols, all_cols))
+    out$columns_available <- setdiff(all_cols, cols)
+  out$rows <- rows
+  out
 }
 
 #' Search annotation IDs, column names, and bounded matching values

@@ -935,6 +935,31 @@ try {
     (Shiny.shinyapp.$inputValues['app-resultspace-fgsea-stab-table_rows_selected'] || [])[0] === 1,
     null, { timeout: 30000 });
   record('table re-renders with the agent-selected pathway row', true);
+
+  // ---- 4f-b. WP-7 (F4): panel_results state section ------------------
+  // The assistant reads the enrichment tables through the same state
+  // bridge the model uses: the panel_results excerpt must carry REAL
+  // rows (matching the browser's own fGSEA table) with NES first among
+  // the stats, and stay absent from the no-sections overview.
+  const ovPr = await runHook(p1, 'overview', {});
+  record('WP7 overview omits panel_results unless requested',
+    ovPr.panel_results === undefined &&
+      Array.isArray(ovPr.available_sections) &&
+      ovPr.available_sections.includes('panel_results'),
+    JSON.stringify(ovPr.available_sections || null));
+  const pr = await runHook(p1, 'overview', { sections: ['panel_results'] });
+  const prf = (pr.panel_results && pr.panel_results.fgsea) || {};
+  const browserRow0 = await fgPathway(0);
+  record('WP7 panel_results returns fGSEA rows matching the app table',
+    prf.status === 'ok' && Array.isArray(prf.rows) && prf.rows.length > 0 &&
+      prf.rows[0].pathway === browserRow0 &&
+      prf.columns[1] === 'normalized ES' &&
+      Number.isFinite(prf.rows[0]['normalized ES']),
+    `excerpt=${prf.rows && prf.rows[0] && prf.rows[0].pathway} browser=${browserRow0}`);
+  const prOra = (pr.panel_results && pr.panel_results.ora) || {};
+  record('WP7 panel_results reports the ORA panel state',
+    prOra.status === 'ok' || prOra.status === 'not_run' || prOra.status === 'message',
+    JSON.stringify(prOra.status || null));
   const w23 = await runHook(p1, 'widgets', {
     patch: { 'resultspace.fgsea.selected_row': 'NOT_A_PATHWAY' }
   });

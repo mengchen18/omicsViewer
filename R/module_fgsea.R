@@ -6,7 +6,7 @@ enrichment_fgsea_ui <- function(id) {
     # Module description for AI browsers and screen readers
     div(class = "sr-only", id = ns("module-help"),
       tags$h4("About Fast Gene Set Enrichment Analysis (fGSEA)"),
-      tags$p("fGSEA is a computational method that determines whether predefined gene sets show statistically significant, concordant differences between two biological states. Unlike ORA which only uses a cutoff, fGSEA uses the entire ranked list of genes, making it more sensitive to subtle but coordinated changes in gene expression across a pathway."),
+      tags$p("fGSEA is a computational method that determines whether predefined gene sets show statistically significant, concordant differences between two biological states. Unlike ORA which only uses a cutoff, fGSEA uses the entire ranked list of genes, making it more sensitive to subtle but coordinated changes in gene expression across a pathway. After a run, the top rows of the results table are readable by the AI assistant through the panel_results state section; column sorting is click-only."),
       tags$h4("When to use fGSEA"),
       tags$p("Use fGSEA when you have a ranked list of all genes/proteins (e.g., ranked by fold change or t-statistic) and want to identify which gene sets are enriched at the top or bottom of your ranking. This is especially useful when there are no clear cutoffs or when you want to detect pathway-level changes that might not be apparent from individual gene changes."),
       tags$h4("How to interpret results"),
@@ -254,7 +254,33 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
     }
     })
 
-  reactive(list(xax = v1()))
+  # WP-7 (F4): mirror the computed result table into a reactiveVal behind
+  # the same visibility gate the outputs use (R-H3 posture: never compute
+  # fgsea while the tab is hidden). The module return then carries the
+  # table as an ATTRIBUTE (the data-space quickViews pattern) - attributes
+  # are dropped by .sanitize_widget_state (lapply) and as.list(), so
+  # snapshots and the panels state section never see the raw table; only
+  # the result-space reader (get_omics_viewer_state
+  # sections='panel_results') reads it. The reactiveVal read is cheap -
+  # the module return gains no tab() dependency, so the fgsea computation
+  # stays visibility-gated. tab() req()s a settled ranking variable; while
+  # unset the observer simply suspends and fgs_tab stays NULL.
+  fgs_tab <- reactiveVal(NULL)
+  .fgs_keep(observe({
+    if (!output_visible(session, ns("stab-table")))
+      return(NULL)
+    t <- tab()
+    fgs_tab(if (is.list(t) && is.data.frame(t$table)) t$table else NULL)
+  }))
+
+  reactive({
+    l <- list(xax = v1())
+    attr(l, "table") <- tryCatch(
+      fgs_tab(),
+      shiny.silent.error = function(e) NULL,
+      error = function(e) NULL)
+    l
+  })
 
   }) # end moduleServer
 }

@@ -32,7 +32,8 @@ NULL
     help_text = paste("Compact overview of the dataset, active tabs, selections,",
                       "quick views, and current scatter axes; optional sections",
                       "add the annotation catalog, quick-view records, panel",
-                      "state, or the figure grammar in full detail.")
+                      "state, the head of the ORA/fGSEA enrichment result",
+                      "tables, or the figure grammar in full detail.")
   ),
   list(
     id = "search_annotations", panel = "Annotations", tier = "read",
@@ -67,7 +68,10 @@ NULL
                       "annotation column and optionally select a pathway row",
                       "in the results table; opens the panel's tab. ORA tests",
                       "the currently selected features; fGSEA ranks all",
-                      "features by a numeric column.")
+                      "features by a numeric column. After a run the top rows",
+                      "are readable via get_omics_viewer_state",
+                      "(sections='panel_results'); column sorting is",
+                      "click-only in the app.")
   ),
   list(
     id = "set_table_view", panel = "Data space", tier = "semantic",

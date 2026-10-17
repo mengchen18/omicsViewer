@@ -197,7 +197,8 @@ shiny::testServer(
     )
     ok(
       ut_cmp_identical(state_result@extra$data$available_sections,
-                       c("annotations", "quick_views", "panels", "figure_grammar")),
+                       c("annotations", "quick_views", "panels",
+                         "panel_results", "figure_grammar")),
       "state tool overview advertises the section menu"
     )
     ok(

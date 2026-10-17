@@ -59,8 +59,10 @@ agent_tool_registry <- function(state, feature_data, sample_data,
       "quick-view id+label lists, and scatter_view (the current x/y axes and axis mode of",
       "both data-space scatters). Request sections only when needed: 'annotations' (full",
       "annotation column catalog), 'quick_views' (full quick-view records including axes),",
-      "'panels' (bounded interface panel state), 'figure_grammar' (declarative figure",
-      "grammar and templates). Requested sections are returned together with the overview."
+      "'panels' (bounded interface panel state), 'panel_results' (head of the ORA/fGSEA",
+      "enrichment result tables after a run - real rows with NES/p-value columns),",
+      "'figure_grammar' (declarative figure grammar and templates). Requested sections",
+      "are returned together with the overview."
     ),
     arguments = list(
       sections = ellmer::type_array(

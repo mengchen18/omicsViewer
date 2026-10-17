@@ -196,7 +196,9 @@ agent_sentinel_string <- function(x) {
 #' disclosure). The overview itself always carries dataset, active and
 #' available tabs, selection counts with bounded example IDs, quick-view
 #' id+label lists, the widget-store scatter view, and this menu.
-AGENT_STATE_SECTIONS <- c("annotations", "quick_views", "panels", "figure_grammar")
+#' \code{panel_results} (WP-7, F4) returns the head of the ORA/fGSEA
+#' enrichment result tables after a run.
+AGENT_STATE_SECTIONS <- c("annotations", "quick_views", "panels", "panel_results", "figure_grammar")
 
 # R-H3 (todo 4.3): ORA result rows fed into the jaccard/hclust
 # description clustering - the pairwise pass is quadratic in row count
@@ -262,9 +264,9 @@ AGENT_PANEL_PROSE <- list(
   list(space = "Analysis space", tab = "Geneshot", title = "Geneshot Literature Search",
     prose = "Geneshot is a search engine that finds genes and proteins associated with arbitrary text queries by mining the scientific literature. It ranks genes by how frequently they co-occur with your search terms in PubMed abstracts and other biomedical texts."),
   list(space = "Analysis space", tab = "ORA", title = "Over-Representation Analysis",
-    prose = "Over-Representation Analysis identifies gene sets, pathways, and functional categories that are statistically enriched in your selected features. It uses the hypergeometric test to determine if your selected genes/proteins overlap with known biological gene sets more than would be expected by chance."),
+    prose = "Over-Representation Analysis identifies gene sets, pathways, and functional categories that are statistically enriched in your selected features. It uses the hypergeometric test to determine if your selected genes/proteins overlap with known biological gene sets more often than would be expected by chance. After a run, the top rows of the results table are readable by the AI assistant through the panel_results state section; column sorting is click-only."),
   list(space = "Analysis space", tab = "fGSEA", title = "Fast Gene Set Enrichment Analysis",
-    prose = "fGSEA is a computational method that determines whether predefined gene sets show statistically significant, concordant differences between two biological states. Unlike ORA which only uses a cutoff, fGSEA uses the entire ranked list of genes, making it more sensitive to subtle but coordinated changes in gene expression across a pathway."),
+    prose = "fGSEA is a computational method that determines whether predefined gene sets show statistically significant, concordant differences between two biological states. Unlike ORA which only uses a cutoff, fGSEA uses the entire ranked list of genes, making it more sensitive to subtle but coordinated changes in gene expression across a pathway. After a run, the top rows of the results table are readable by the AI assistant through the panel_results state section; column sorting is click-only."),
   list(space = "Analysis space", tab = "Response", title = "Dose-Response Curves",
     prose = "Dose-response analysis models the relationship between drug/compound concentration and biological response using a 4-parameter logistic curve. This analysis fits sigmoid curves to your data and estimates key pharmacological parameters including EC50, IC50, Hill slope, and maximum/minimum response values."),
   list(space = "Analysis space", tab = "StringDB", title = "STRING Protein Interaction Network",

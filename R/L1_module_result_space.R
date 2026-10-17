@@ -139,6 +139,35 @@ L1_result_space_module <- function(
       store = store_ora
     )
 
+    # ------------------------------------------------------------------
+    # WP-7 (F4): bounded read access to the enrichment result tables.
+    # The reader runs from tool contexts (no reactive context), so every
+    # read is isolate()d + tryCatch-guarded; the modules expose their
+    # current tables as attributes on their returns (never as status
+    # elements - snapshots must not grow result tables). Returned as an
+    # attribute on this module's status value, mirroring the data-space
+    # quickViews pattern; as.list()/.sanitize_widget_state drop it.
+    # ------------------------------------------------------------------
+    .read_one_enrichment_table <- function(module_return, method) {
+      tab <- tryCatch(
+        attr(shiny::isolate(module_return()), "table"),
+        shiny.silent.error = function(e) NULL,
+        error = function(e) NULL)
+      agent_enrichment_table_excerpt(tab, method)
+    }
+    read_enrichment_results <- function(method = NULL, n = 15L) {
+      m <- tolower(trimws(if (is.null(method)) "" else as.character(method)[1]))
+      if (!m %in% c("", "ora", "fgsea"))
+        stop("Unknown enrichment method: ", m,
+             ". Use 'ora', 'fgsea', or omit it for both.")
+      out <- list()
+      if (m %in% c("", "ora"))
+        out$ora <- .read_one_enrichment_table(v3, "ORA")
+      if (m %in% c("", "fgsea"))
+        out$fgsea <- .read_one_enrichment_table(v2, "fGSEA")
+      out
+    }
+
     # session restore finished
     v4 <- string_module(
       "stringdb",
@@ -343,7 +372,7 @@ L1_result_space_module <- function(
         }
       }
 
-      list(
+      out <- list(
         analyst_active_tab = input$analyst,
         analyst_feature_general = safe_module_state(v),
         analyst_sample_general = safe_module_state(v5),
@@ -358,6 +387,11 @@ L1_result_space_module <- function(
         analyst_dose_response = list(state_support = FALSE),
         analyst_additional = additional_state
       )
+      # WP-7 (F4): bounded enrichment-result reader for the assistant's
+      # panel_results state section (attribute - never serialized into
+      # snapshots; the same pattern as the data-space quickViews attr).
+      attr(out, "read_enrichment_results") <- read_enrichment_results
+      out
     })
   }) # end moduleServer
 }

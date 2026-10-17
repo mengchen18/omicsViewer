@@ -7,7 +7,7 @@ enrichment_analysis_ui <- function(id) {
     # Module description for AI browsers and screen readers
     div(class = "sr-only", id = ns("module-help"),
       tags$h4("About Over-Representation Analysis (ORA)"),
-      tags$p("Over-Representation Analysis identifies gene sets, pathways, and functional categories that are statistically enriched in your selected features. It uses the hypergeometric test to determine if your selected genes/proteins overlap with known biological gene sets more than would be expected by chance."),
+      tags$p("Over-Representation Analysis identifies gene sets, pathways, and functional categories that are statistically enriched in your selected features. It uses the hypergeometric test to determine if your selected genes/proteins overlap with known biological gene sets more often than would be expected by chance. After a run, the top rows of the results table are readable by the AI assistant through the panel_results state section; column sorting is click-only."),
       tags$h4("When to use ORA"),
       tags$p("Use this analysis when you have a list of interesting features (e.g., significantly changed genes, top-ranked proteins) and want to discover which biological processes, molecular functions, cellular components, or pathways are associated with them. This helps interpret your results in a biological context."),
       tags$h4("How to interpret results"),
@@ -386,7 +386,22 @@ enrichment_analysis_module <- function(
     }
   })
 
-  reactive(list(xax = v1()))
+  # WP-7 (F4): the module return carries the current ORA result table as
+  # an ATTRIBUTE (the data-space quickViews pattern): attributes are
+  # dropped by .sanitize_widget_state (lapply) and as.list(), so snapshots
+  # and the panels state section never see the raw table - only the
+  # result-space reader (get_omics_viewer_state sections='panel_results')
+  # reads it. oraTab() is a cheap reactiveVal read (visibility-gated
+  # computation, R-H3); a character value is the panel's own no-test
+  # message and is passed through for the excerpt to convey.
+  reactive({
+    l <- list(xax = v1())
+    attr(l, "table") <- tryCatch(
+      oraTab(),
+      shiny.silent.error = function(e) NULL,
+      error = function(e) NULL)
+    l
+  })
 
   }) # end moduleServer
 }

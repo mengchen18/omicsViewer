@@ -1,0 +1,4 @@
+[
+  { "id": "wp7-t1-fgsea", "prompt": "Run an fGSEA analysis on the dataset, ranking features by the RE vs ME comparison, and tell me the top 3 pathways by normalized enrichment score." },
+  { "id": "wp7-t2-report", "prompt": "For the most enriched of those pathways, what is its size and adjusted p-value? Quote the actual numbers from the results table." }
+]
