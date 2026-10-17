@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-12T12:57:57.290Z",
+  "generated": "2026-10-17T20:00:18.415Z",
   "results": [
     {
       "name": "A1 user: volcano quick view renders (mean.diff vs log.fdr)",
@@ -44,7 +44,7 @@
     {
       "name": "B3 agent: find_controls(\"highlight\")/(\"gene name\") find the picker record",
       "pass": true,
-      "detail": "highlight: 7 matches; gene name: 0 matches; picker record found: true"
+      "detail": "highlight: 19 matches; gene name: 4 matches; picker record found: true"
     },
     {
       "name": "B3b agent: the picker record exposes the column values as choices",

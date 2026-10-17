@@ -226,11 +226,18 @@ attr4selector_module <- function(
       # values) validates the values against the column the SAME patch is
       # installing, and so the sweep/cascade write order materializes the
       # choices (head(50) in discovery; full membership at validation).
+      # WP-9 (sweep-gate repair, 2026-10-17): mentions the user vocabulary
+      # 'gene name' explicitly - queries like find_controls("gene name")
+      # then hit this record in the LITERAL pass (before fuzzy ranking
+      # can bury it; the WP-2 follow-up's 'numeric column' phrasing lets
+      # size-cascade records agrepl-match 'name' and crowd the picker out
+      # of the byte-shaped cut - sweep case tool:find_controls(gene name)).
       widget_binding("search_value", "multi_select",
         label = "Search highlight values",
-        help = paste("Values of the selected Search column to draw as",
-                     "open-ring highlights on the figure; set the Search",
-                     "column first; empty clears the highlight"),
+        help = paste("Gene name or other value of the selected Search",
+                     "column to draw as open-ring highlights on the",
+                     "figure; set the Search column first; empty clears",
+                     "the highlight"),
         depends_on = "search_variable",
         choices_provider = function(v) .a4_search_values(v)),
       widget_binding("xcut", "string", label = "X cutoff",
