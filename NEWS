@@ -1,6 +1,4 @@
-Changes in version 2.1.80 (UNRELEASED - version decision pending, see
-ui_mimic_findings.md close-out; patch bump within 2.1.x vs 2.2.0 is
-Chen's call)
+Changes in version 2.1.80
 UI-mimic hardening program (F1-F8, 2026-10, branch llm-ui-hardening):
  - F1: set_scatter_view isolate fix - semantic scatter writes work on
    fresh sessions (was dead 3/3 with a misleading rejection)
