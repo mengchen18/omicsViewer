@@ -16,6 +16,7 @@
 \alias{agent_compact_state}
 \alias{agent_annotation_catalog}
 \alias{agent_annotation_category_catalog}
+\alias{agent_enrichment_table_excerpt}
 \alias{agent_search_annotations}
 \alias{agent_summarize_annotation}
 \alias{agent_normalize_state_update}
@@ -61,6 +62,7 @@ agent_compact_state(
   quick_views = NULL,
   available_tabs = NULL,
   figure_grammar = NULL,
+  panel_results = NULL,
   sections = NULL,
   store = NULL
 )
@@ -73,6 +75,8 @@ agent_annotation_category_catalog(
   max_examples = 8L,
   budget_bytes = 4096L
 )
+
+agent_enrichment_table_excerpt(table, method, n = 15L, budget_bytes = 3072L)
 
 agent_search_annotations(
   space,
@@ -153,7 +157,7 @@ plain HTTP. Administrator-supplied settings and
 
 \item{sections}{Optional character vector requesting full-detail
 sections beyond the overview: \code{annotations}, \code{quick_views},
-\code{panels}, \code{figure_grammar}.}
+\code{panels}, \code{panel_results}, \code{figure_grammar}.}
 
 \item{store}{Canonical widget store; when given, the overview gains a
 \code{scatter_view} block with the current x/y axis triples and
@@ -174,14 +178,24 @@ contents).}
 \item{figure_grammar}{Allowlisted figure grammar (included only when the
 \code{figure_grammar} section is requested).}
 
+\item{panel_results}{Bounded enrichment-result excerpts built by the
+result-space reader (included only when the \code{panel_results}
+section is requested; WP-7/F4).}
+
 \item{feature_data}{Feature metadata.}
 
 \item{sample_data}{Sample metadata.}
 
 \item{max_examples}{Maximum example columns per group.}
 
-\item{budget_bytes}{Approximate serialized-size budget in bytes
-shared by the two spaces.}
+\item{budget_bytes}{Approximate serialized-size budget in bytes.}
+
+\item{table}{The raw enrichment result: data.frame, character message,
+or NULL.}
+
+\item{method}{Enrichment method label ("ORA" or "fGSEA").}
+
+\item{n}{Maximum number of rows to return.}
 
 \item{space}{Feature or sample scatter space.}
 
@@ -274,6 +288,11 @@ A named list containing dimensions, row ID labels, and column-level
 A named list with one entry per space; each space lists its
   column groups with counts and bounded examples.
 
+A JSON-like list: \code{status} ("ok"/"not_run"/"message"),
+  \code{columns} (returned column order), \code{columns_available}
+  (dropped columns, when any), \code{rows} (named-row lists), and
+  \code{row_count}/\code{returned} counts.
+
 A JSON-like search result bounded by \code{max_results}. It never
   returns an entire annotation table or expression matrix.
 
@@ -361,6 +380,14 @@ hint. Groups that no longer fit the byte budget degrade to counts
 only; a space-level note then tells the model how to recover the
 details. Columns without a pipe stand as their own single-column
 group (classic phenotype columns such as \code{group}).
+
+WP-7 (F4): after an ORA/fGSEA run the assistant must be able to report
+real result rows. This helper shapes the module's raw result table (a
+data.frame, a character no-test message, or NULL when nothing ran)
+into a byte-bounded excerpt: the head of the table, key columns first,
+numeric values rounded, list-valued columns (\code{overlap_ids},
+\code{leadingEdge}) dropped exactly like the app's own tables, and
+\code{columns_available} reporting what truncation removed.
 
 Belt-and-braces guardrail: API keys never legitimately enter chat turns
 (configuration happens in a modal), but anything key-shaped is replaced
