@@ -1,0 +1,12 @@
+{
+  "name": "omicsviewer-e2e",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end UI tests for the omicsViewer Shiny app, driven with Playwright like a real user. Uses the demo dataset from inst/extdata. Reuses the playwright install from tests/e2e_agent (system Chrome; no browser download).",
+  "scripts": {
+    "test": "node e2e.spec.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}

@@ -58,6 +58,7 @@ SQLITE_REVIVAL_PLAN.md
 # local LLM credentials for agent e2e tests
 tests/e2e_agent/provider.env
 tests/e2e_agent/node_modules/
+tests/e2e/artifacts/
 tests/e2e_agent/artifacts/
 tests/e2e_agent/tier_a_results.json
 *.swp

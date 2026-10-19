@@ -1,0 +1,1151 @@
+{
+  "started": "2026-10-19T09:49:09.202Z",
+  "duration_sec": 255,
+  "backends": [
+    "rds",
+    "sqlite"
+  ],
+  "arms": {
+    "rds": {
+      "total": 76,
+      "passed": 76,
+      "failed": 0,
+      "results": [
+        {
+          "name": "page loads (title)",
+          "pass": true,
+          "detail": "Data"
+        },
+        {
+          "name": "dataset selector is rendered (selectized)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dataset selector offers demo.RDS",
+          "pass": true,
+          "detail": "demo.RDS"
+        },
+        {
+          "name": "demo.RDS loads: contents panel appears",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "loading status reports the dataset dimensions (2702x60)",
+          "pass": true,
+          "detail": "Dataset loaded successfully: 2702 features and 60 samples"
+        },
+        {
+          "name": "data navbar has all 9 tabs",
+          "pass": true,
+          "detail": "Feature,Feature table,Sample,Sample table,Cor,Heatmap,Dynamic heatmap,Expression,GSList"
+        },
+        {
+          "name": "analysis navbar has all 8 tabs (ORA/fGSEA included)",
+          "pass": true,
+          "detail": "Feature,ORA,fGSEA,Response,StringDB,SeqLogo,Geneshot,Sample"
+        },
+        {
+          "name": "default data tab is Feature",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "default analysis tab is Feature",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "default volcano renders (y = -log statistic)",
+          "pass": true,
+          "detail": "y=ttest|RE_vs_ME|log.fdr"
+        },
+        {
+          "name": "volcano corner rects drawn (2)",
+          "pass": true,
+          "detail": "shapes=2"
+        },
+        {
+          "name": "scatter has data points",
+          "pass": true,
+          "detail": "traces=1"
+        },
+        {
+          "name": "quick-view badges present (6)",
+          "pass": true,
+          "detail": "cor_Doubleing.Time,cor_MDR,pca,volcano_MT_vs_WT,volcano_RE_vs_LE,volcano_RE_vs_ME"
+        },
+        {
+          "name": "volcano corner auto-selection = 107 features (table mirrors)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "feature table renders with selection subset",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "\"Show all\" clears the table mirror (2702 entries)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "quick view volcano_RE_vs_LE switches axes",
+          "pass": true,
+          "detail": "y=ttest|RE_vs_LE|log.fdr"
+        },
+        {
+          "name": "RE_vs_LE volcano keeps corner rects",
+          "pass": true,
+          "detail": "shapes=2"
+        },
+        {
+          "name": "RE_vs_LE corner selection = 239 features",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "quick view cor_MDR switches to correlation axes",
+          "pass": true,
+          "detail": "x=Cor|MDR|R"
+        },
+        {
+          "name": "custom mode: PCA PC1 vs PC2 axes applied",
+          "pass": true,
+          "detail": "x=PCA|All|PC1(10.5%) y=PCA|All|PC2(7.2%)"
+        },
+        {
+          "name": "box selection on volcano selects a feature subset (8)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "\"Clear figure selection\" empties the selection",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "pagination: next page shows rows 26–50",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "row click marks the row selected",
+          "pass": true,
+          "detail": "selected=1"
+        },
+        {
+          "name": "column sort re-orders the table",
+          "pass": true,
+          "detail": "\"TYW5\tA2RUC4\t10060000000\" -> \"ENPP4\tQ9Y6X5\t1866000000\""
+        },
+        {
+          "name": "multi-selection: ctrl-click selects a second row",
+          "pass": true,
+          "detail": "selected=2"
+        },
+        {
+          "name": "sample scatter renders PCA PC1 vs PC2",
+          "pass": true,
+          "detail": "x=PCA|All|PC1(10.5%)"
+        },
+        {
+          "name": "sample scatter shows all 60 samples",
+          "pass": true,
+          "detail": "points=60"
+        },
+        {
+          "name": "custom sample axes: MDR vs Doubling time",
+          "pass": true,
+          "detail": "x=General|All|MDR"
+        },
+        {
+          "name": "box selection on the sample scatter selects 14 samples",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample table lists all 60 samples (after Show all)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample row click registers (selected class)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "correlation heatmap renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "expression heatmap renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "expression matrix table renders (mirrors selection: 2702 rows)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "expression cells captured for parity (5 rows x 4 cols)",
+          "pass": true,
+          "detail": "X32.TYW5:6.8203 | X52.CNOT1:7.2064 | X55.MAP1LC3B.MAP1LC3B2:7.5477 | X73.METTL15:6.6995 | X107.ESPN:"
+        },
+        {
+          "name": "gene-set membership table renders (GS annotation attached, 41352 rows)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "gene-set row click selects its member feature (analysis reacts)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "feature analysis renders plot for 107 selected features (boxplot view)",
+          "pass": true,
+          "detail": "traces=5"
+        },
+        {
+          "name": "feature analysis stats table has rows (group test results)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "single feature + categorical var: beeswarm/dual view renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "ROC/PR curve renders (Curve radio, binary TP53.Status)",
+          "pass": true,
+          "detail": "{\"w\":712,\"h\":400}"
+        },
+        {
+          "name": "batch comparison table renders (phenotype vs selection)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis: beeswarm view renders for MDR (continuous)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis stats table renders (MDR test)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis: contingency table renders for Origin (categorical)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis: Kaplan-Meier plot renders (Surv category)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "survival censor range captured (106–990)",
+          "pass": true,
+          "detail": "min=106 max=990"
+        },
+        {
+          "name": "ORA results table renders enriched terms (107 selected)",
+          "pass": true,
+          "detail": "8 rows / 18 cols"
+        },
+        {
+          "name": "ORA table has p-value columns",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "clicking an ORA row shows the overlapping genes table",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "fGSEA results render for ranking ttest|RE_vs_ME|mean.diff",
+          "pass": true,
+          "detail": "10 rows"
+        },
+        {
+          "name": "fGSEA ranking bar plot renders (svg ranking line)",
+          "pass": true,
+          "detail": "28 svg paths"
+        },
+        {
+          "name": "fGSEA row click adds the leading-edge bars to the plot",
+          "pass": true,
+          "detail": "28 -> 116 paths"
+        },
+        {
+          "name": "dose-response curve renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dose-response parameter table renders (EC50/Hill)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "PTM motif seq-logo renders (ratio selected/all)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "PTM sequence table renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "baseline: no selection (feature table = 2702 entries)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dynamic heatmap renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dynamic heatmap cell click selects exactly one feature (stats table = 1 row)",
+          "pass": true,
+          "detail": "clickInput=true"
+        },
+        {
+          "name": "dynamic heatmap Clear resets the selection (mirror back to 2702)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "Geneshot UI renders (term input + search button)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "StringDB UI renders (taxonomy input + Run button)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "StringDB Run with empty selection shows an error notification (no crash)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot modal opens",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot saves with a success notification",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot appears in the saved list",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot restore returns the saved tab (Feature scatter)",
+          "pass": true,
+          "detail": "tab=Feature"
+        },
+        {
+          "name": "snapshot restore returns the pre-save selection state (mirror 2702)",
+          "pass": true,
+          "detail": "mirror=2702"
+        },
+        {
+          "name": "snapshot delete removes it from the list",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "xlsx download works (5712 kB)",
+          "pass": true,
+          "detail": "ExpressionSet_20261019_115050.xlsx"
+        },
+        {
+          "name": "AI assistant panel opens with content",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dataset re-select reloads after the full journey (107 corner selection)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "no JavaScript page errors during the whole journey (0 seen)",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "featuresN": 2702,
+        "samplesN": 60,
+        "dataTabs": "Feature,Feature table,Sample,Sample table,Cor,Heatmap,Dynamic heatmap,Expression,GSList",
+        "anaTabs": "Feature,ORA,fGSEA,Response,StringDB,SeqLogo,Geneshot,Sample",
+        "quickViewIds": "cor_Doubleing.Time,cor_MDR,pca,volcano_MT_vs_WT,volcano_RE_vs_LE,volcano_RE_vs_ME",
+        "cornerSel": 107,
+        "ftTotal": 2702,
+        "cornerLE": 239,
+        "ftFirstRow": "ENPP4\tQ9Y6X5\t1866000000",
+        "nPts": 60,
+        "stTotal": 60,
+        "stFirstRow": "786O_NCI60\t-44\t22.4\tRE\tMT\tM\t2557\t0.1\tcurve1",
+        "exprEntries": 2702,
+        "exprCells": [
+          [
+            "X32.TYW5",
+            "6.8203",
+            "6.301",
+            "6.5226"
+          ],
+          [
+            "X52.CNOT1",
+            "7.2064",
+            "7.2584",
+            "7.1065"
+          ],
+          [
+            "X55.MAP1LC3B.MAP1LC3B2",
+            "7.5477",
+            "8.1354",
+            "7.6209"
+          ],
+          [
+            "X73.METTL15",
+            "6.6995",
+            "6.052",
+            "6.3548"
+          ],
+          [
+            "X107.ESPN",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "gsTotal": 41352,
+        "mtabFirstRow": "SDCBP\tO00560\t87900000000",
+        "survMin": 106,
+        "survMax": 990,
+        "oraEntries": 51,
+        "oraFirstRow": "lymphocyte.activation\tcluster_1_\t0.00269\t0.0318\t15.4\t3\t104\t8\t2702",
+        "fgEntries": 568,
+        "fgFirstRow": "cell.cell.adhesion\t0.0000014\t0.000265\t0.644\t0.6\t2.08\t72\tcell.cell.adhesion",
+        "fgFirstRowDet": "actin.filament.organization\t0.335\t88",
+        "drcEntries": 8,
+        "drcFirstRow": "b_hill.slope\t1.12\t5.38\t0.0127\t5.31",
+        "ptmEntries": 2,
+        "ptmFirstRow": "R\tM\tM\tE\tR\tF\tK\tS\tP\tI\tQ\tR\tA\tS\tD",
+        "reselectTotal": 107
+      }
+    },
+    "sqlite": {
+      "total": 79,
+      "passed": 79,
+      "failed": 0,
+      "results": [
+        {
+          "name": "page loads (title)",
+          "pass": true,
+          "detail": "Data"
+        },
+        {
+          "name": "dataset selector is rendered (selectized)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dataset selector offers demo.sqlite",
+          "pass": true,
+          "detail": "demo.sqlite"
+        },
+        {
+          "name": "demo.sqlite loads: contents panel appears",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "loading status reports the dataset dimensions (2702x60)",
+          "pass": true,
+          "detail": "Dataset loaded successfully: 2702 features and 60 samples"
+        },
+        {
+          "name": "data navbar has all 9 tabs",
+          "pass": true,
+          "detail": "Feature,Feature table,Sample,Sample table,Cor,Heatmap,Dynamic heatmap,Expression,GSList"
+        },
+        {
+          "name": "analysis navbar has all 8 tabs (ORA/fGSEA included)",
+          "pass": true,
+          "detail": "Feature,ORA,fGSEA,Response,StringDB,SeqLogo,Geneshot,Sample"
+        },
+        {
+          "name": "default data tab is Feature",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "default analysis tab is Feature",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "default volcano renders (y = -log statistic)",
+          "pass": true,
+          "detail": "y=ttest|RE_vs_ME|log.fdr"
+        },
+        {
+          "name": "volcano corner rects drawn (2)",
+          "pass": true,
+          "detail": "shapes=2"
+        },
+        {
+          "name": "scatter has data points",
+          "pass": true,
+          "detail": "traces=1"
+        },
+        {
+          "name": "quick-view badges present (6)",
+          "pass": true,
+          "detail": "cor_Doubleing.Time,cor_MDR,pca,volcano_MT_vs_WT,volcano_RE_vs_LE,volcano_RE_vs_ME"
+        },
+        {
+          "name": "volcano corner auto-selection = 107 features (table mirrors)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "feature table renders with selection subset",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "\"Show all\" clears the table mirror (2702 entries)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "quick view volcano_RE_vs_LE switches axes",
+          "pass": true,
+          "detail": "y=ttest|RE_vs_LE|log.fdr"
+        },
+        {
+          "name": "RE_vs_LE volcano keeps corner rects",
+          "pass": true,
+          "detail": "shapes=2"
+        },
+        {
+          "name": "RE_vs_LE corner selection = 239 features",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "quick view cor_MDR switches to correlation axes",
+          "pass": true,
+          "detail": "x=Cor|MDR|R"
+        },
+        {
+          "name": "custom mode: PCA PC1 vs PC2 axes applied",
+          "pass": true,
+          "detail": "x=PCA|All|PC1(10.5%) y=PCA|All|PC2(7.2%)"
+        },
+        {
+          "name": "box selection on volcano selects a feature subset (8)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "\"Clear figure selection\" empties the selection",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "pagination: next page shows rows 26–50",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "row click marks the row selected",
+          "pass": true,
+          "detail": "selected=1"
+        },
+        {
+          "name": "column sort re-orders the table",
+          "pass": true,
+          "detail": "\"TYW5\tA2RUC4\t10060000000\" -> \"ENPP4\tQ9Y6X5\t1866000000\""
+        },
+        {
+          "name": "multi-selection: ctrl-click selects a second row",
+          "pass": true,
+          "detail": "selected=2"
+        },
+        {
+          "name": "sample scatter renders PCA PC1 vs PC2",
+          "pass": true,
+          "detail": "x=PCA|All|PC1(10.5%)"
+        },
+        {
+          "name": "sample scatter shows all 60 samples",
+          "pass": true,
+          "detail": "points=60"
+        },
+        {
+          "name": "custom sample axes: MDR vs Doubling time",
+          "pass": true,
+          "detail": "x=General|All|MDR"
+        },
+        {
+          "name": "box selection on the sample scatter selects 14 samples",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample table lists all 60 samples (after Show all)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample row click registers (selected class)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "correlation heatmap renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "expression heatmap renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "expression matrix table renders (mirrors selection: 2702 rows)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "expression cells captured for parity (5 rows x 4 cols)",
+          "pass": true,
+          "detail": "X32.TYW5:6.8203 | X52.CNOT1:7.2064 | X55.MAP1LC3B.MAP1LC3B2:7.5477 | X73.METTL15:6.6995 | X107.ESPN:"
+        },
+        {
+          "name": "gene-set membership table renders (GS annotation attached, 41352 rows)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "gene-set row click selects its member feature (analysis reacts)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "feature analysis renders plot for 107 selected features (boxplot view)",
+          "pass": true,
+          "detail": "traces=5"
+        },
+        {
+          "name": "feature analysis stats table has rows (group test results)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "single feature + categorical var: beeswarm/dual view renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "ROC/PR curve renders (Curve radio, binary TP53.Status)",
+          "pass": true,
+          "detail": "{\"w\":712,\"h\":400}"
+        },
+        {
+          "name": "batch comparison table renders (phenotype vs selection)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis: beeswarm view renders for MDR (continuous)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis stats table renders (MDR test)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis: contingency table renders for Origin (categorical)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "sample analysis: Kaplan-Meier plot renders (Surv category)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "survival censor range captured (106–990)",
+          "pass": true,
+          "detail": "min=106 max=990"
+        },
+        {
+          "name": "ORA results table renders enriched terms (107 selected)",
+          "pass": true,
+          "detail": "8 rows / 18 cols"
+        },
+        {
+          "name": "ORA table has p-value columns",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "clicking an ORA row shows the overlapping genes table",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "fGSEA results render for ranking ttest|RE_vs_ME|mean.diff",
+          "pass": true,
+          "detail": "10 rows"
+        },
+        {
+          "name": "fGSEA ranking bar plot renders (svg ranking line)",
+          "pass": true,
+          "detail": "28 svg paths"
+        },
+        {
+          "name": "fGSEA row click adds the leading-edge bars to the plot",
+          "pass": true,
+          "detail": "28 -> 116 paths"
+        },
+        {
+          "name": "dose-response curve renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dose-response parameter table renders (EC50/Hill)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "PTM motif seq-logo renders (ratio selected/all)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "PTM sequence table renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "baseline: no selection (feature table = 2702 entries)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dynamic heatmap renders",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dynamic heatmap cell click selects exactly one feature (stats table = 1 row)",
+          "pass": true,
+          "detail": "clickInput=true"
+        },
+        {
+          "name": "dynamic heatmap Clear resets the selection (mirror back to 2702)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "Geneshot UI renders (term input + search button)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "StringDB UI renders (taxonomy input + Run button)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "StringDB Run with empty selection shows an error notification (no crash)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot modal opens",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot saves with a success notification",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot appears in the saved list",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "snapshot restore returns the saved tab (Feature scatter)",
+          "pass": true,
+          "detail": "tab=Feature"
+        },
+        {
+          "name": "snapshot restore returns the pre-save selection state (mirror 2702)",
+          "pass": true,
+          "detail": "mirror=2702"
+        },
+        {
+          "name": "snapshot delete removes it from the list",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "xlsx download works (5712 kB)",
+          "pass": true,
+          "detail": "ExpressionSet_20261019_115256.xlsx"
+        },
+        {
+          "name": "AI assistant panel opens with content",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "dataset re-select reloads after the full journey (107 corner selection)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "no JavaScript page errors during the whole journey (0 seen)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "no leaked sqlite file descriptors after session end (app alive)",
+          "pass": true,
+          "detail": "open fds on demo.sqlite: 0"
+        },
+        {
+          "name": "external saveOmicsViewerDb overwrite succeeds with the app running (no stale lock)",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "no stray -wal/-shm journal files left in the data dir",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "featuresN": 2702,
+        "samplesN": 60,
+        "dataTabs": "Feature,Feature table,Sample,Sample table,Cor,Heatmap,Dynamic heatmap,Expression,GSList",
+        "anaTabs": "Feature,ORA,fGSEA,Response,StringDB,SeqLogo,Geneshot,Sample",
+        "quickViewIds": "cor_Doubleing.Time,cor_MDR,pca,volcano_MT_vs_WT,volcano_RE_vs_LE,volcano_RE_vs_ME",
+        "cornerSel": 107,
+        "ftTotal": 2702,
+        "cornerLE": 239,
+        "ftFirstRow": "ENPP4\tQ9Y6X5\t1866000000",
+        "nPts": 60,
+        "stTotal": 60,
+        "stFirstRow": "786O_NCI60\t-44\t22.4\tRE\tMT\tM\t2557\t0.1\tcurve1",
+        "exprEntries": 2702,
+        "exprCells": [
+          [
+            "X32.TYW5",
+            "6.8203",
+            "6.301",
+            "6.5226"
+          ],
+          [
+            "X52.CNOT1",
+            "7.2064",
+            "7.2584",
+            "7.1065"
+          ],
+          [
+            "X55.MAP1LC3B.MAP1LC3B2",
+            "7.5477",
+            "8.1354",
+            "7.6209"
+          ],
+          [
+            "X73.METTL15",
+            "6.6995",
+            "6.052",
+            "6.3548"
+          ],
+          [
+            "X107.ESPN",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "gsTotal": 41352,
+        "mtabFirstRow": "SDCBP\tO00560\t87900000000",
+        "survMin": 106,
+        "survMax": 990,
+        "oraEntries": 51,
+        "oraFirstRow": "lymphocyte.activation\tcluster_1_\t0.00269\t0.0318\t15.4\t3\t104\t8\t2702",
+        "fgEntries": 568,
+        "fgFirstRow": "cell.cell.adhesion\t0.00000101\t0.00042\t0.644\t0.6\t2.09\t72\tcell.cell.adhesion",
+        "fgFirstRowDet": "actin.filament.organization\t0.335\t88",
+        "drcEntries": 8,
+        "drcFirstRow": "b_hill.slope\t1.12\t5.38\t0.0127\t5.31",
+        "ptmEntries": 2,
+        "ptmFirstRow": "R\tM\tM\tE\tR\tF\tK\tS\tP\tI\tQ\tR\tA\tS\tD",
+        "reselectTotal": 107
+      }
+    }
+  },
+  "parity": {
+    "ran": true,
+    "total": 26,
+    "passed": 26,
+    "failed": 0,
+    "comparisons": [
+      {
+        "name": "dataset dimensions (features x samples)",
+        "rds": "2702x60",
+        "sqlite": "2702x60",
+        "pass": true
+      },
+      {
+        "name": "data-space tab set",
+        "rds": "Feature,Feature table,Sample,Sample table,Cor,Heatmap,Dynamic heatmap,Expression,GSList",
+        "sqlite": "Feature,Feature table,Sample,Sample table,Cor,Heatmap,Dynamic heatmap,Expression,GSList",
+        "pass": true
+      },
+      {
+        "name": "analysis tab set (incl. ORA/fGSEA)",
+        "rds": "Feature,ORA,fGSEA,Response,StringDB,SeqLogo,Geneshot,Sample",
+        "sqlite": "Feature,ORA,fGSEA,Response,StringDB,SeqLogo,Geneshot,Sample",
+        "pass": true
+      },
+      {
+        "name": "quick-view badge ids",
+        "rds": "cor_Doubleing.Time,cor_MDR,pca,volcano_MT_vs_WT,volcano_RE_vs_LE,volcano_RE_vs_ME",
+        "sqlite": "cor_Doubleing.Time,cor_MDR,pca,volcano_MT_vs_WT,volcano_RE_vs_LE,volcano_RE_vs_ME",
+        "pass": true
+      },
+      {
+        "name": "volcano corner selection count",
+        "rds": 107,
+        "sqlite": 107,
+        "pass": true
+      },
+      {
+        "name": "RE_vs_LE corner selection count",
+        "rds": 239,
+        "sqlite": 239,
+        "pass": true
+      },
+      {
+        "name": "feature table total entries",
+        "rds": 2702,
+        "sqlite": 2702,
+        "pass": true
+      },
+      {
+        "name": "sample table total entries",
+        "rds": 60,
+        "sqlite": 60,
+        "pass": true
+      },
+      {
+        "name": "sample scatter point count",
+        "rds": 60,
+        "sqlite": 60,
+        "pass": true
+      },
+      {
+        "name": "sample table first row",
+        "rds": "786O_NCI60\t-44\t22.4\tRE\tMT\tM\t2557\t0.1\tcurve1",
+        "sqlite": "786O_NCI60\t-44\t22.4\tRE\tMT\tM\t2557\t0.1\tcurve1",
+        "pass": true
+      },
+      {
+        "name": "feature table first row (sorted)",
+        "rds": "ENPP4\tQ9Y6X5\t1866000000",
+        "sqlite": "ENPP4\tQ9Y6X5\t1866000000",
+        "pass": true
+      },
+      {
+        "name": "expression table total entries",
+        "rds": 2702,
+        "sqlite": 2702,
+        "pass": true
+      },
+      {
+        "name": "expression spot-check cells (5 rows x 4 cols)",
+        "rds": [
+          [
+            "X32.TYW5",
+            "6.8203",
+            "6.301",
+            "6.5226"
+          ],
+          [
+            "X52.CNOT1",
+            "7.2064",
+            "7.2584",
+            "7.1065"
+          ],
+          [
+            "X55.MAP1LC3B.MAP1LC3B2",
+            "7.5477",
+            "8.1354",
+            "7.6209"
+          ],
+          [
+            "X73.METTL15",
+            "6.6995",
+            "6.052",
+            "6.3548"
+          ],
+          [
+            "X107.ESPN",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "sqlite": [
+          [
+            "X32.TYW5",
+            "6.8203",
+            "6.301",
+            "6.5226"
+          ],
+          [
+            "X52.CNOT1",
+            "7.2064",
+            "7.2584",
+            "7.1065"
+          ],
+          [
+            "X55.MAP1LC3B.MAP1LC3B2",
+            "7.5477",
+            "8.1354",
+            "7.6209"
+          ],
+          [
+            "X73.METTL15",
+            "6.6995",
+            "6.052",
+            "6.3548"
+          ],
+          [
+            "X107.ESPN",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "pass": true
+      },
+      {
+        "name": "gene-set membership total entries",
+        "rds": 41352,
+        "sqlite": 41352,
+        "pass": true
+      },
+      {
+        "name": "feature analysis stats first row",
+        "rds": "SDCBP\tO00560\t87900000000",
+        "sqlite": "SDCBP\tO00560\t87900000000",
+        "pass": true
+      },
+      {
+        "name": "survival censor-time range min",
+        "rds": 106,
+        "sqlite": 106,
+        "pass": true
+      },
+      {
+        "name": "survival censor-time range max",
+        "rds": 990,
+        "sqlite": 990,
+        "pass": true
+      },
+      {
+        "name": "ORA total entries",
+        "rds": 51,
+        "sqlite": 51,
+        "pass": true
+      },
+      {
+        "name": "ORA first row (enrichment statistics)",
+        "rds": "lymphocyte.activation\tcluster_1_\t0.00269\t0.0318\t15.4\t3\t104\t8\t2702",
+        "sqlite": "lymphocyte.activation\tcluster_1_\t0.00269\t0.0318\t15.4\t3\t104\t8\t2702",
+        "pass": true
+      },
+      {
+        "name": "fGSEA total entries",
+        "rds": 568,
+        "sqlite": 568,
+        "pass": true
+      },
+      {
+        "name": "fGSEA alphabetically-first pathway: deterministic fields (pathway, ES, size)",
+        "rds": "actin.filament.organization\t0.335\t88",
+        "sqlite": "actin.filament.organization\t0.335\t88",
+        "pass": true
+      },
+      {
+        "name": "dose-response parameter entries",
+        "rds": 8,
+        "sqlite": 8,
+        "pass": true
+      },
+      {
+        "name": "dose-response first row (EC50/Hill)",
+        "rds": "b_hill.slope\t1.12\t5.38\t0.0127\t5.31",
+        "sqlite": "b_hill.slope\t1.12\t5.38\t0.0127\t5.31",
+        "pass": true
+      },
+      {
+        "name": "seq-logo table entries",
+        "rds": 2,
+        "sqlite": 2,
+        "pass": true
+      },
+      {
+        "name": "seq-logo first row",
+        "rds": "R\tM\tM\tE\tR\tF\tK\tS\tP\tI\tQ\tR\tA\tS\tD",
+        "sqlite": "R\tM\tM\tE\tR\tF\tK\tS\tP\tI\tQ\tR\tA\tS\tD",
+        "pass": true
+      },
+      {
+        "name": "dataset re-select total (post full journey)",
+        "rds": 107,
+        "sqlite": 107,
+        "pass": true
+      }
+    ],
+    "note": "numeric tolerance rel 1e-9 / abs 1e-12 (SQLite REAL stores exact IEEE-754 doubles; tolerance absorbs last-bit display drift only). Mouse-geometry counts (box selections) and plotly/DOM internals are deliberately not compared. fGSEA pval/padj/NES/log2err are unseeded Monte-Carlo statistics that differ between any two runs on identical input (R repro: 4 runs on the same demo ranking -> pval 9.7e-7..2.9e-6, |NES|-sorted top pathway shuffles) - excluded from parity, deterministic fields (pathway/ES/size) compared instead."
+  },
+  "total": 181,
+  "passed": 181,
+  "failed": 0
+}
