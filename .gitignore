@@ -71,3 +71,7 @@ review/
 
 # UI verification screenshots (session artifacts)
 tests/artifacts_ui/
+
+# local-only symlink for the e2e harness (target is gitignored; a committed
+# dangling symlink breaks the GitHub Pages / Jekyll build)
+tests/e2e/node_modules
