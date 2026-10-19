@@ -21,7 +21,10 @@ with its own \code{getFData} method (dispatched automatically)}
 }
 \value{
 the feature annotation data.frame; the gene-set annotation
-  rides along as the \code{GS} attribute where available
+  rides along as the \code{GS} attribute where available. Legacy
+  (pre-2.1.81) databases are normalized on read: wide \code{GS|*}
+  membership columns are converted back into the gene-set annotation,
+  so both file generations serve the same app-ready view
 }
 \description{
 Extract the feature annotation of an omicsViewer dataset

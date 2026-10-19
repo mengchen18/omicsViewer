@@ -20,7 +20,10 @@ getPData(x)
 with its own \code{getPData} method (dispatched automatically)}
 }
 \value{
-the sample annotation data.frame
+the sample annotation data.frame; column types (factor levels,
+  logicals) are rebuilt from the \code{attrs} metadata and
+  user-defined quick-view shortcuts ride along as the
+  \code{"quickViews"} attribute where available
 }
 \description{
 Extract the phenotype (sample) annotation of an omicsViewer dataset

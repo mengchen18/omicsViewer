@@ -221,7 +221,12 @@ L1_result_space_module <- function(
       reactive_featureData = reactive_featureData,
       reactive_attr_drc = reactive({
         req(object())
-        attr(object(), "S6.6_drc")
+        # sqlite-revival WP-3: S6.6_drc rides through getAx (the default
+        # seam) so SQLite connections serve it from the attrs table;
+        # containers without a getAx method fall back to plain attr()
+        # (the pre-2.1.81 behavior)
+        tryCatch(getAx(object(), "S6.6_drc"),
+                 error = function(e) attr(object(), "S6.6_drc"))
       })
     )
 

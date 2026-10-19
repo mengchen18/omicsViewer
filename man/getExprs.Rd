@@ -20,7 +20,10 @@ getExprs(x)
 with its own \code{getExprs} method (dispatched automatically)}
 }
 \value{
-the (features x samples) expression matrix
+the (features x samples) expression matrix; for SQLite
+  connections, matrix-level attributes (precomputed
+  \code{rowDendrogram}/\code{colDendrogram}) are restored from the
+  \code{attrs} table
 }
 \description{
 Extract the expression matrix of an omicsViewer dataset

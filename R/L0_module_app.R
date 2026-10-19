@@ -441,6 +441,28 @@ app_module <- function(
     v
   })
   
+  # sqlite-revival WP-4: SQLite connections returned by readESVObj are
+  # read-only but still hold file descriptors; close the previous
+  # connection whenever the dataset is replaced and when the session
+  # ends, so dataset switches and app shutdown never leak handles (or
+  # Windows file locks). The observer is module-level referenced
+  # (observer-GC lesson).
+  .esv_con <- new.env(parent = emptyenv())
+  .esv_con$active <- NULL
+  esv_con_watch <- observe({
+    es <- reactive_eset()
+    if (identical(es, .esv_con$active))
+      return(NULL)
+    # close the previous connection on ANY replacement (db -> RDS, db ->
+    # NULL after a load error) - not only on db -> db switches
+    if (!is.null(.esv_con$active))
+      esv_close_connection(.esv_con$active)
+    .esv_con$active <- if (inherits(es, "SQLiteConnection")) es else NULL
+  })
+  tryCatch(
+    session$onEnded(function() esv_close_connection(.esv_con$active)),
+    error = function(e) NULL)
+  
   expr <- reactive({
     req(reactive_eset())        
     exprsGetter(reactive_eset())
@@ -508,7 +530,12 @@ app_module <- function(
   })
   cormat <- reactive( {
     req(eset <- reactive_eset())
-    attr(eset, "cormat") 
+    # sqlite-revival WP-3: object-level attributes ride through the
+    # defaultAxisGetter seam so SQLite connections serve cormat from the
+    # attrs table; containers without a getAx method fall back to plain
+    # attr() (the pre-2.1.81 behavior)
+    tryCatch(defaultAxisGetter(eset, "cormat"),
+             error = function(e) attr(eset, "cormat"))
   })
 
 

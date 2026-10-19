@@ -10,13 +10,24 @@ readESVObj(x)
 \item{x}{the path of an object of \code{SummarizedExperiment} or \code{ExpressionSet}, passed to \link{readRDS}}
 }
 \value{
-an object of class \code{ExpressionSet} or \code{SummarizedExperiment} to be visualzied.
+an object of class \code{ExpressionSet} or an SQLite connection to be visualzied.
 }
 \description{
 This function accept a path to a sqlite database or RDS object. If an RDS file to be read, 
   The function is similar to \code{readRDS}. It reads the object to R working environment and perform extra two things. 
   1. If the loaded data an class of \code{SummarizedExperiment}, it will be converted to \code{ExpressionSet};
   2. If the gene set annotatio is in matrix format, the gene set annotation is converted to \code{data.frame} format.
+
+  For SQLite files the function returns a live read-only
+  \code{SQLiteConnection}; the app reads it through the getter methods
+  (\code{getExprs}, \code{getPData}, \code{getFData}, \code{getAx}) and
+  closes the connection when the dataset is switched or the session
+  ends. Standalone users should close it themselves with
+  \code{DBI::dbDisconnect()}. Databases missing the required tables are
+  rejected with an explicit error; files without a \code{meta} table
+  are legacy (pre-2.1.81) databases and are read with compatibility
+  recovery (wide \code{GS|*} columns are converted back into the gene-set
+  annotation).
 }
 \examples{
 file <- system.file("extdata/demo.RDS", package = "omicsViewer")

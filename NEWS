@@ -1,3 +1,35 @@
+Changes in version 2.1.81
+SQLite revival (2026-10, branch sqlite-revival):
+ - saveOmicsViewerDb now persists the app-ready view: wide GS|* gene-set
+   columns are moved into the GS table at save (tallGS), so database
+   datasets carry working gene sets (ORA/fGSEA/GSList tabs were dead on
+   this path) and the feature table is no longer polluted with hundreds
+   of membership columns
+ - metadata attributes round trip through the new attrs table:
+   user-defined quickViews, volcanoCategories, cormat, S6.6_drc,
+   precomputed expression dendrograms (rowDendrogram/colDendrogram);
+   object-level attributes are served through the getAx seam at both
+   attr() call sites (cormat in L0, S6.6_drc in the result space)
+ - type fidelity: factor levels, logicals and Dates are rebuilt from
+   recorded column-type metadata; NaN normalizes to NA at save (SQLite
+   cannot represent NaN); getExprs no longer routes doubles through a
+   character matrix
+ - connection hygiene: readESVObj opens validated READ-ONLY connections
+   (missing files are not silently created, non-database files are
+   rejected with a clear error) and the app closes dataset connections
+   on dataset switch and session end
+ - legacy (pre-2.1.81) databases are recovered on read: wide GS|*
+   columns are converted back into the gene-set annotation; a meta
+   table marks the schema version
+ - save atomicity: all writes run in one transaction; guards reject a
+   real 'rowname' column, duplicated column names and unsupported
+   column classes before the file is touched; a stale exprsimpute
+   table no longer survives a re-save without imputed values
+ - tallGS preserves ALL fData attributes (volcanoCategories etc. were
+   dropped together with the wide gene-set columns on the .RDS path)
+ - docs: ?saveOmicsViewerDb documents the schema; ?prepOmicsViewer
+   SQLite caveats lifted
+
 Changes in version 2.1.80
 UI-mimic hardening program (F1-F8, 2026-10, branch llm-ui-hardening):
  - F1: set_scatter_view isolate fix - semantic scatter writes work on

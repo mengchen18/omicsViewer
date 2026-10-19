@@ -4,7 +4,7 @@
 \alias{saveOmicsViewerDb}
 \alias{saveOmicsViewerDb,SummarizedExperiment,character-method}
 \alias{saveOmicsViewerDb,ExpressionSet,character-method}
-\title{Save the xcmsViewer result object as sqlite database}
+\title{Save the omicsViewer result object as sqlite database}
 \usage{
 saveOmicsViewerDb(obj, db.file, overwrite = TRUE)
 
@@ -23,7 +23,26 @@ saveOmicsViewerDb(obj, db.file, overwrite = TRUE)
 the directory where the database saved
 }
 \description{
-Save the xcmsViewer result object as sqlite database
+The object is normalized to the app-ready view before
+  writing (see \code{\link{tallGS}}): wide \code{GS|*} gene-set columns
+  are moved into the long \code{GS} table, so the \code{feature} table
+  matches what the \code{.RDS} load path serves after
+  \code{\link{readESVObj}}. Selected metadata attributes (user-defined
+  quick views, \code{volcanoCategories}, \code{cormat}, \code{S6.6_drc},
+  precomputed expression dendrograms, column type/level metadata) are
+  preserved in the \code{attrs} table and restored by the getters
+  (\code{getExprs}, \code{getPData}, \code{getFData}, \code{getAx}).
+
+  Tables written: \code{exprs}, \code{exprsimpute} (only when the object
+  carries imputed values; a stale table from an earlier save is
+  dropped), \code{feature}, \code{sample}, \code{GS}, \code{axes},
+  \code{dendrogram}, \code{meta} (schema version marker; absent in
+  pre-2.1.81 files) and \code{attrs}. All writes run in a single
+  transaction, so a failed save never leaves a half-written database.
+
+  The \code{attrs.value} column stores base64-encoded serialized R
+  objects - as with \code{\link{readRDS}}, only open databases you
+  trust.
 }
 \examples{
 f <- system.file("extdata", "demo.RDS", package = "omicsViewer")

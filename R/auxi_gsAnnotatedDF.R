@@ -99,9 +99,6 @@ setGeneric("tallGS", function(obj) standardGeneric("tallGS"))
 
 setMethod("tallGS", "ExpressionSet", function(obj) {
   fd <- Biobase::fData(obj)
-  # Column subsetting can drop arbitrary metadata attributes.
-  fdQuickViews <- attr(fd, "quickViews")
-  fdShortcuts <- attr(fd, "shortcut")
   scn <- str_split_fixed(colnames(fd), "\\|", n = 3)
   ir <- which(scn[, 1] == "GS")
   gscsc <- attr(fd, "GS")
@@ -109,11 +106,15 @@ setMethod("tallGS", "ExpressionSet", function(obj) {
     igs <- fd[, ir, drop = FALSE]
     colnames(igs) <- make.names(scn[ir, 3])
     gs <- totall(igs)
-    fd <- fd[, -ir]
-    if (!is.null(fdQuickViews))
-      attr(fd, "quickViews") <- fdQuickViews
-    if (!is.null(fdShortcuts))
-      attr(fd, "shortcut") <- fdShortcuts
+    # Column subsetting drops arbitrary metadata attributes; preserve ALL
+    # of them generically (quickViews, shortcut, volcanoCategories, ...) -
+    # the explicit quickViews/shortcut re-attachment used to lose
+    # everything else (sqlite-revival tallGS parity fix)
+    fd_attrs <- attributes(fd)[setdiff(names(attributes(fd)),
+                                       c("names", "row.names", "class"))]
+    fd <- fd[, -ir, drop = FALSE]
+    for (nm in names(fd_attrs))
+      attr(fd, nm) <- fd_attrs[[nm]]
     attr(fd, "GS") <- gs
   } else if (inherits(gscsc, c("dgCMatrix", "lgCMatrix"))) {
     gs <- csc2list(gscsc)

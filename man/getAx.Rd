@@ -20,7 +20,9 @@ getAx(x, what)
 with its own \code{getAx} method (dispatched automatically)}
 
 \item{what}{a character scalar naming the axis (\code{fx}, \code{fy},
-\code{sx}, \code{sy} or \code{dendrogram})}
+\code{sx}, \code{sy} or \code{dendrogram}); object-level attributes
+persisted through the SQLite path (e.g. \code{cormat},
+\code{S6.6_drc}) are served through the same seam}
 }
 \value{
 the axis value (usually a column name), or NULL when unset
