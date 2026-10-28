@@ -23,4 +23,34 @@
 
 # revision plan
 ^todo\.md$
-^review/$
+
+# review notes: directory prefix, no $ anchor (paths are review/foo.md)
+^review/
+
+# --- tarball hygiene 2026-10-28 -------------------------------------------
+# Keep repo-local tooling, CI config, session artifacts and planning docs
+# out of R CMD build. These were inflating the tarball to ~20 MB and
+# triggering ~250 non-portable-path build warnings.
+# NOTE: .Rbuildignore has no comment syntax - every line is a Perl regex,
+# so comments must stay free of unbalanced regex metacharacters.
+
+# repo-local tooling / CI / FUSE and plot session artifacts
+^\.codegraph/
+^\.claude/
+^\.github/
+^\.fuse_hidden
+# zero-byte / stray R session plot dumps - root and any subdir
+(^|/)Rplots\.pdf$
+
+# first-generation e2e harness - superseded by tests/e2e_agent; includes a
+# local playwright/node_modules install of ~12.6 MB
+^tests/e2e/
+
+# local UI-verification screenshots and the widget-sweep working set
+^tests/artifacts_ui/
+^tests/e2e_agent/widget_sweep/
+
+# root-level planning docs - not part of the package
+^SQLITE_REVIVAL_PLAN\.md$
+^KNOWN_ISSUES\.md$
+# --- end tarball hygiene --------------------------------------------------

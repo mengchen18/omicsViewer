@@ -75,3 +75,8 @@ tests/artifacts_ui/
 # local-only symlink for the e2e harness (target is gitignored; a committed
 # dangling symlink breaks the GitHub Pages / Jekyll build)
 tests/e2e/node_modules
+
+# first-gen e2e harness (superseded by tests/e2e_agent): kept locally,
+# untracked from git; also excluded from the R package tarball
+# (see .Rbuildignore). Includes local node_modules / playwright install.
+tests/e2e/
