@@ -7,6 +7,10 @@ length-3 character vector, or NULL when malformed.}
 \usage{
 .scatter_axis_triple(axis_string)
 }
+\value{
+A length-3 character vector \code{c(analysis, subset, variable)},
+  or \code{NULL} when the input is malformed.
+}
 \description{
 Split a stored default-axis string ("Analysis|Subset|Variable") into a
 length-3 character vector, or NULL when malformed.

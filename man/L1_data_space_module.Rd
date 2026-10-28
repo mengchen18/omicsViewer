@@ -38,6 +38,14 @@ L1_data_space_module(
 \item{cormat}{reactive value; correlation matrix. if not given, calculated on the fly.}
 
 \item{status}{intial status}
+
+\item{store}{shared widget store (see \code{\link{widget_store_init}});
+required. The data-space module registers its widgets in this store.}
+}
+\value{
+A Shiny module server function, called for its side effects
+  (renders the data-space panels and registers their widget-store
+  bindings).
 }
 \description{
 Application level 1 module - data space

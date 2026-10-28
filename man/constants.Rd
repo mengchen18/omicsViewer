@@ -7,6 +7,9 @@
 \usage{
 agent_sentinel_string(x)
 }
+\value{
+Documentation-only topic; no return value.
+}
 \description{
 This file contains named constants used throughout the omicsViewer application.
 Using named constants instead of "magic numbers" improves code readability,

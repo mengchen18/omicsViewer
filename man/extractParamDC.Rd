@@ -11,6 +11,10 @@ extractParamDC(mod, prefix = "ResponseCurve")
 
 \item{prefix}{for column header, the column will be named as prefix|curveid|curveparameter}
 }
+\value{
+A named numeric vector of model parameters; names are constructed
+  as \code{prefix|curveid|parameter}.
+}
 \description{
 Extracting parameters from drc models
 }

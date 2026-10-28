@@ -11,6 +11,9 @@ L1_data_space_ui(id, activeTab = "Feature")
 
 \item{activeTab}{one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"}
 }
+\value{
+A Shiny UI definition (\code{tagList}).
+}
 \description{
 Application level 1 ui - data space
 }

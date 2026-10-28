@@ -13,6 +13,10 @@ stringNetwork(genes, taxid = 9606, caller = "omicsViewer")
 
 \item{caller}{your identifier for string-db.org}
 }
+\value{
+A data.frame of STRING network interactions, or an error-message
+  string when the request fails.
+}
 \description{
 get string network
 }

@@ -3,6 +3,9 @@
 \name{error_handling}
 \alias{error_handling}
 \title{Error Handling Utilities for API Calls}
+\value{
+Documentation-only topic; no return value.
+}
 \description{
 Utility functions for robust error handling of external API calls.
 Provides consistent error messages and graceful degradation when

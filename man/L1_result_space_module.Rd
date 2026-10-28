@@ -41,6 +41,11 @@ L1_result_space_module(
 derived from it (\code{resultspace.*}) and the analyst tab navbar is
 registered for agent control.}
 }
+\value{
+A Shiny module server function, called for its side effects
+  (renders the result-space panels and registers their widget-store
+  bindings).
+}
 \description{
 Utility L1 result space ui
 }

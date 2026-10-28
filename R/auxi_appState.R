@@ -347,6 +347,10 @@ migrate_app_state <- function(state) {
 #' `widget_store` section and derives the selection-bus records from the
 #' legacy fields. The panel copies of the moved fields are dropped so a
 #' restore reads them from exactly one place (the store).
+#'
+#' @param state A snapshot state list with `schema_version == 1`.
+#' @return A snapshot state list migrated to schema 2.
+#' @keywords internal
 .migrate_v1_to_v2 <- function(state) {
   if (!identical(state$schema_version, 1L)) {
     state$schema_version <- as.integer(state$schema_version)

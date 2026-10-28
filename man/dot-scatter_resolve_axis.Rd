@@ -11,6 +11,10 @@
 
 \item{ts}{triset matrix (columns: analysis, subset, variable).}
 }
+\value{
+A length-3 character vector (exact or stem-resolved), or
+  \code{NULL} when nothing matches.
+}
 \description{
 Stored defaults go stale when a derived label changes: PCA axes carry the
 explained-variance share in their name ("PC1(10.5%)"), so recomputing the

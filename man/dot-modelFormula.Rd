@@ -20,6 +20,9 @@ In models where f = 1 (2-4 parameter models), e is EC50.}
 
 \item{f}{Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.}
 }
+\value{
+A numeric vector of predicted responses.
+}
 \description{
 model fitted by drc
 }

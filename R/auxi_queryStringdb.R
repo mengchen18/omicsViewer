@@ -3,6 +3,7 @@
 #' @param gsa gene set result, often returned by "stringGSA" function
 #' @param i row index of gsa, which should be highlighted in the network
 #' @param label whether the point should be labelled in the network
+#' @return A \code{networkD3::forceNetwork} htmlwidget.
 #' @importFrom fastmatch fmatch
 #' @importFrom networkD3 forceNetwork JS
 stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
@@ -46,6 +47,8 @@ stringD3Net <- function(ntwk, gsa, i, label = FALSE) {
 #' @param genes the gene ids
 #' @param taxid taxonomy ids
 #' @param caller your identifier for string-db.org
+#' @return A data.frame of STRING network interactions, or an error-message
+#'   string when the request fails.
 #' @importFrom httr GET content
 
 stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
@@ -119,6 +122,8 @@ stringNetwork <- function(genes, taxid = 9606, caller = "omicsViewer") {
 #' 1
 #' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
 #' # getStringId(gg)
+#' @return A data.frame mapping the input identifiers to STRING ids, or an
+#'   error-message string when the request fails.
 getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
   # Input validation
   if (is.null(genes) || length(genes) == 0) {
@@ -172,6 +177,8 @@ getStringId <- function(genes, taxid = 9606, caller = "omicsViewer") {
 #' 1
 #' # gg = c('P04637', 'P00533', 'P04626', "Q8IYB3", "O75494", "Q9Y696")
 #' # u <- stringGSA(gg)
+#' @return A data.frame of functional-enrichment terms, or an error-message
+#'   string when the request fails.
 stringGSA <- function(genes, taxid = 9606, background = NULL, backgroundStringId = FALSE, caller = "omicsViewer") {
   # Input validation
   if (is.null(genes) || length(genes) == 0) {

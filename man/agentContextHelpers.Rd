@@ -72,7 +72,7 @@ agent_promise_race(promise_list)
 
 \item{policy}{From \code{\link{agent_context_policy}}.}
 
-\item{archive}{Environment from \code{\link{.agent_context_new_archive}}.}
+\item{archive}{Environment from \code{.agent_context_new_archive()}.}
 
 \item{target_tokens}{Numeric budget for the kept suffix.}
 

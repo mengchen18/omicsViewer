@@ -13,6 +13,10 @@ getStringId(genes, taxid = 9606, caller = "omicsViewer")
 
 \item{caller}{your identifier for string-db.org}
 }
+\value{
+A data.frame mapping the input identifiers to STRING ids, or an
+  error-message string when the request fails.
+}
 \description{
 the string ids can be used as background in the string enrichment analysis
 }

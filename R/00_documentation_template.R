@@ -5,6 +5,7 @@
 #' in the omicsViewer package. All module functions should follow this structure
 #' to ensure consistency and completeness.
 #'
+#' @return Documentation-only topic; no return value.
 #' @name documentation_template
 #' @keywords internal
 NULL

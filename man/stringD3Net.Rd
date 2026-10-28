@@ -15,6 +15,9 @@ stringD3Net(ntwk, gsa, i, label = FALSE)
 
 \item{label}{whether the point should be labelled in the network}
 }
+\value{
+A \code{networkD3::forceNetwork} htmlwidget.
+}
 \description{
 Drawing network given network and gene set result
 }

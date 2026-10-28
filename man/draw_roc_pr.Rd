@@ -11,6 +11,10 @@ draw_roc_pr(value, label)
 
 \item{label}{true class labels, could be two or more unique values}
 }
+\value{
+Invisibly \code{NULL}; called for its side effect of drawing the
+  ROC and PR curves.
+}
 \description{
 Drawing ROC and PR curve
 }

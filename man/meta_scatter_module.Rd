@@ -48,6 +48,11 @@ restore all report through the port (origins "figure", "corner",
 "clear", "restore"), and every consumer (tables, result space,
 snapshot) reads the bus instead of adopting module returns.}
 }
+\value{
+A Shiny module server function, called for its side effects
+  (renders the scatter, writes selections to the selection bus and the
+  widget store).
+}
 \description{
 Utility - scatter plot for meta shiny module
 }

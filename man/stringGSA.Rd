@@ -25,6 +25,10 @@ to convet your id to string id.}
 
 \item{caller}{your identifier for string-db.org}
 }
+\value{
+A data.frame of functional-enrichment terms, or an error-message
+  string when the request fails.
+}
 \description{
 Performing gene set analysis using string-db
 }

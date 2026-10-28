@@ -3,6 +3,9 @@
 \name{documentation_template}
 \alias{documentation_template}
 \title{Documentation Template for omicsViewer Modules}
+\value{
+Documentation-only topic; no return value.
+}
 \description{
 This file provides the standard documentation template for all Shiny modules
 in the omicsViewer package. All module functions should follow this structure

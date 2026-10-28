@@ -3,6 +3,9 @@
 \name{quickViews-internal}
 \alias{quickViews-internal}
 \title{Quick-view shortcut helpers and badge module}
+\value{
+Documentation-only topic; no return value.
+}
 \description{
 These internal utilities define one-click scatter-plot shortcuts. Custom
 shortcuts are read from the \code{"quickViews"} or \code{"shortcut"}

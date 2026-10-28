@@ -490,7 +490,10 @@ ok(
 # combinator as list(<tibble>). Both must render first-try through the
 # seam, on the demo dataset, with the exact payloads.
 
-demo <- readRDS(file.path("inst", "extdata", "demo.RDS"))
+demo_path <- system.file("extdata", "demo.RDS", package = "omicsViewer")
+if (!nzchar(demo_path))
+  demo_path <- file.path("inst", "extdata", "demo.RDS")
+demo <- readRDS(demo_path)
 demo_fd <- Biobase::fData(demo)
 demo_pd <- Biobase::pData(demo)
 demo_mat <- Biobase::exprs(demo)

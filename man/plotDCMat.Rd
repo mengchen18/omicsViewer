@@ -34,6 +34,11 @@ the function only returns the parameters of models.}
 \item{...}{other parameters passed to \code{plot} function, except \code{col},
 \code{pch}, \code{xlab}, \code{ylab}}
 }
+\value{
+When \code{only.par = TRUE}, a list with elements \code{par}
+  (parameter data.frame) and \code{featInfo}; otherwise invisibly
+  \code{NULL}, called for its plotting side effect.
+}
 \description{
 Draw dose response curve given the feature Data/rowData, phenotype data/colData 
 and expression matrix. The function is usually used in shinyApp.

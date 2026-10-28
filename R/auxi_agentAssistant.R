@@ -1109,6 +1109,12 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
   out[!nulls]
 }
 
+.agent_nullable_scalar <- function(x, arg = NULL) {
+  # Trim to a scalar string; absent values (NULL / empty) normalize to ""
+  # so downstream nzchar() logic treats the argument as absent.
+  .agent_trim_scalar(x, arg = arg)
+}
+
 #' Validate an assistant-proposed scatter view
 #'
 #' @param space Feature or sample scatter space.
@@ -1122,12 +1128,6 @@ agent_normalize_state_update <- function(update, data_tabs, analysis_tabs,
 #' @return A validated scatter-space and axis update.
 #' @keywords internal
 #' @rdname agentAssistantHelpers
-.agent_nullable_scalar <- function(x, arg = NULL) {
-  # Trim to a scalar string; absent values (NULL / empty) normalize to ""
-  # so downstream nzchar() logic treats the argument as absent.
-  .agent_trim_scalar(x, arg = arg)
-}
-
 agent_normalize_scatter_view <- function(space, quick_view_id = NULL,
                                          x_axis = NULL, y_axis = NULL,
                                          quick_views = NULL,
@@ -1353,8 +1353,8 @@ agent_history_payload <- function(turns, figures = list(),
   list(
     version = 1L,
     saved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-    turns = slim[keep:n],
-    transcript = records[keep:n],
+    turns = slim[seq.int(keep, n)],
+    transcript = records[seq.int(keep, n)],
     figures = if (length(figures)) figures[seq_len(min(length(figures), 20L))] else list(),
     truncated = keep > 1L,
     bytes = round(suffix_bytes(keep))

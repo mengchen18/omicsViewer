@@ -6,6 +6,9 @@
 \usage{
 .scatter_axis_signature(x, y)
 }
+\value{
+A length-1 character string uniquely identifying the axis pair.
+}
 \description{
 Selection emphasis is tied to the exact axes on which that selection was
 made or restored. This prevents an opacity vector from being carried into a

@@ -25,6 +25,8 @@
 #'   axes-convergence handles, todo 4.1).
 #' @param store Canonical widget store.
 #' @param assistant Optional WP11 assistant API.
+#' @return A Shiny module server function, called for its side effects
+#'   (registers the snapshot save/restore observers in the caller's scope).
 #' @keywords internal
 #' @rdname snapshotModule
 snapshot_module <- function(input, output, session, .dir, dataset_id,

@@ -19,6 +19,10 @@ plotDC(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = FALSE)
 
 \item{logx}{whether the x-axis should be in log scale}
 }
+\value{
+Invisibly \code{NULL}; called for its side effect of drawing the
+  fitted dose-response curve.
+}
 \description{
 Draw dose-response curves
 }

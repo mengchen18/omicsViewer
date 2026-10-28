@@ -1,6 +1,7 @@
 #' @title Application level 1 ui - data space
 #' @param id id
 #' @param activeTab one of "Feature", "Feature table", "Sample", "Sample table", "Heatmap"
+#' @return A Shiny UI definition (\code{tagList}).
 #' @importFrom shinythemes shinytheme
 #' @importFrom shinyWidgets tooltipOptions dropdown
 #'
@@ -9,7 +10,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
   navbarPage(
     title = tagList(
       tags$span(class = "omicsviewer-nav-title", "Data"),
-      tags$span(class = "omicsviewer-nav-sub", " — explore the data, select features and samples")
+      tags$span(class = "omicsviewer-nav-sub", " \u2014 explore the data, select features and samples")
     ),
     windowTitle = "Data",
     id = ns("eset"),
@@ -242,6 +243,11 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 #' @param reactive_x_f pre-selected x axis for feature space
 #' @param reactive_y_f pre-selected y axis for feature space
 #' @param status intial status
+#' @param store shared widget store (see \code{\link{widget_store_init}});
+#'   required. The data-space module registers its widgets in this store.
+#' @return A Shiny module server function, called for its side effects
+#'   (renders the data-space panels and registers their widget-store
+#'   bindings).
 #' @export
 L1_data_space_module <- function(
   id, expr, pdata, fdata,

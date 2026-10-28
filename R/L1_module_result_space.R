@@ -1,5 +1,6 @@
 #' @title Utility L1 result space ui
 #' @param id id
+#' @return A Shiny UI definition (\code{tagList}).
 #' @importFrom shinythemes shinytheme
 L1_result_space_ui <- function(id) {
   ns <- NS(id)
@@ -23,6 +24,9 @@ L1_result_space_ui <- function(id) {
 #'   (\code{\link{widget_store_new}}). Result-space child stores are
 #'   derived from it (\code{resultspace.*}) and the analyst tab navbar is
 #'   registered for agent control.
+#' @return A Shiny module server function, called for its side effects
+#'   (renders the result-space panels and registers their widget-store
+#'   bindings).
 #' @export
 L1_result_space_module <- function(
   id,
@@ -272,7 +276,7 @@ L1_result_space_module <- function(
       titleTabs <- list(
         title = tagList(
           tags$span(class = "omicsviewer-nav-title", "Analysis"),
-          tags$span(class = "omicsviewer-nav-sub", " — analyse the current selection on the fly")
+          tags$span(class = "omicsviewer-nav-sub", " \u2014 analyse the current selection on the fly")
         ),
         windowTitle = "Analysis",
         id = ns("analyst"),

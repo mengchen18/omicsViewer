@@ -271,7 +271,7 @@ agent_estimate_context_tokens <- function(turns, overhead = NULL) {
 #' @param turns List of ellmer Turn objects (not mutated; new turns are
 #'   returned).
 #' @param policy From \code{\link{agent_context_policy}}.
-#' @param archive Environment from \code{\link{.agent_context_new_archive}}
+#' @param archive Environment from \code{.agent_context_new_archive()}
 #'   (mutated: originals appended).
 #' @return List: \code{turns}, \code{changed}, \code{stub_count},
 #'   \code{saved_bytes}, \code{archive_ids}.
@@ -672,7 +672,7 @@ agent_compaction_summary_turns <- function(summary) {
 #' keeps full-fidelity values even though the model context was slimmed.
 #'
 #' @param turns List of ellmer Turn objects (stubbed values inside).
-#' @param archive Environment from \code{\link{.agent_context_new_archive}}.
+#' @param archive Environment from \code{.agent_context_new_archive()}.
 #' @return New list of turns with archived values restored.
 #' @keywords internal
 #' @rdname agentContextHelpers

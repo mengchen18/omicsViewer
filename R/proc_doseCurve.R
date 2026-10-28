@@ -86,6 +86,8 @@ drmMat <- function(
 #' @param pch pch in plot function
 #' @param cex cex in plot function
 #' @param logx whether the x-axis should be in log scale
+#' @return Invisibly \code{NULL}; called for its side effect of drawing the
+#'   fitted dose-response curve.
 #' @importFrom graphics lines
 #'
 plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = FALSE) {
@@ -137,6 +139,7 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = F
 #' @param f Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.
 #' @note
 #' Only has an effect when using LL.5 and LL2.5 model
+#' @return A numeric scalar: the effective EC50 dose.
 .e2EC50 <- function(b, d, e, f) {
   e * (2^(1/f) - 1) ^ (1/b)
 }
@@ -151,6 +154,7 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = F
 #'   In models where f = 1 (2-4 parameter models), e is EC50. 
 #' @param b Hill's slope. The Hill's slope refers to the steepness of the curve. It could either be positive or negative.
 #' @param f Asymmetry factor. When f=1 we have a symmetrical curve around inflection point and so we have a four-parameters logistic equation.
+#' @return A numeric vector of predicted responses.
 .modelFormula <- function(x, b, c = 0, d = 1, e, f = 1) {
   c + (d - c) / (1 + (x/e)^b)^f
 }
@@ -161,7 +165,8 @@ plotDC <- function(mod, ylab = "Abundance", lty = 2, pch = 19, cex = 1, logx = F
 #' @param prefix for column header, the column will be named as prefix|curveid|curveparameter
 #' @note
 #' when LL2.X is used, e is estimated as log(e), this function will return e in linear scale instead. 
-
+#' @return A named numeric vector of model parameters; names are constructed
+#'   as \code{prefix|curveid|parameter}.
 extractParamDC <- function(mod, prefix = "ResponseCurve") {
   
   pm <- mod$parmMat
@@ -269,7 +274,9 @@ extractParamDCList <- function(x, prefix = "ResponseCurve") {
 #'   the function only returns the parameters of models.
 #' @param ... other parameters passed to \code{plot} function, except \code{col},
 #'   \code{pch}, \code{xlab}, \code{ylab}
-
+#' @return When \code{only.par = TRUE}, a list with elements \code{par}
+#'   (parameter data.frame) and \code{featInfo}; otherwise invisibly
+#'   \code{NULL}, called for its plotting side effect.
 plotDCMat <- function(expr, pd, fd, featid, dose.var, curve.var=NULL, only.par = FALSE, ...) {
   
   op <- par(no.readonly = TRUE)

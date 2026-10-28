@@ -6,6 +6,7 @@
 #' PCA and volcano views are detected from the standard omicsViewer column
 #' naming conventions.
 #'
+#' @return Documentation-only topic; no return value.
 #' @keywords internal
 #' @name quickViews-internal
 NULL

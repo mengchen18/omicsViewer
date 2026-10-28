@@ -5,6 +5,7 @@
 #' Provides consistent error messages and graceful degradation when
 #' network requests fail.
 #'
+#' @return Documentation-only topic; no return value.
 #' @name error_handling
 #' @keywords internal
 NULL

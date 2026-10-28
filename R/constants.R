@@ -5,6 +5,7 @@
 #' Using named constants instead of "magic numbers" improves code readability,
 #' maintainability, and makes it easier to update values in a single location.
 #'
+#' @return Documentation-only topic; no return value.
 #' @name constants
 #' @keywords internal
 NULL

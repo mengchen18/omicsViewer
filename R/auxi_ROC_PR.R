@@ -1,6 +1,8 @@
 #' Drawing ROC and PR curve
 #' @param value a numerical vector indicates the predictions
 #' @param label true class labels, could be two or more unique values
+#' @return Invisibly \code{NULL}; called for its side effect of drawing the
+#'   ROC and PR curves.
 #' @importFrom ROCR performance prediction
 #' @importFrom stats model.matrix
 #' @importFrom graphics legend

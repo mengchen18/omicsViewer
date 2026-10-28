@@ -6,9 +6,16 @@
 \usage{
 .migrate_v1_to_v2(state)
 }
+\arguments{
+\item{state}{A snapshot state list with `schema_version == 1`.}
+}
+\value{
+A snapshot state list migrated to schema 2.
+}
 \description{
 Moves the store-owned scatter axis/mode/attribute state into the
 `widget_store` section and derives the selection-bus records from the
 legacy fields. The panel copies of the moved fields are dropped so a
 restore reads them from exactly one place (the store).
 }
+\keyword{internal}

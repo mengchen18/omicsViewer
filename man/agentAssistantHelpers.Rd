@@ -20,7 +20,7 @@
 \alias{agent_search_annotations}
 \alias{agent_summarize_annotation}
 \alias{agent_normalize_state_update}
-\alias{.agent_nullable_scalar}
+\alias{agent_normalize_scatter_view}
 \alias{agent_history_redact}
 \alias{.agent_slim_turn}
 \alias{agent_transcript_records}
@@ -104,7 +104,15 @@ agent_normalize_state_update(
   max_samples = 2000L
 )
 
-.agent_nullable_scalar(x, arg = NULL)
+agent_normalize_scatter_view(
+  space,
+  quick_view_id = NULL,
+  x_axis = NULL,
+  y_axis = NULL,
+  quick_views = NULL,
+  feature_columns = character(),
+  sample_columns = character()
+)
 
 agent_history_redact(text)
 
@@ -223,16 +231,6 @@ An empty query returns the category catalog instead of searching.}
 
 \item{max_samples}{Maximum number of selected samples.}
 
-\item{text}{Character vector.}
-
-\item{turns}{Client turns (\code{client$get_turns()}).}
-
-\item{figures}{Figure registry (\code{figures()}); at most 20 entries.}
-
-\item{max_bytes}{Read-side budget (default 512 KB).}
-
-\item{payload}{Candidate payload from a .ESS snapshot.}
-
 \item{quick_view_id}{Optional quick-view ID.}
 
 \item{x_axis}{Optional exact annotation column for the X axis.}
@@ -242,6 +240,16 @@ An empty query returns the category catalog instead of searching.}
 \item{feature_columns}{Valid feature annotation columns.}
 
 \item{sample_columns}{Valid sample annotation columns.}
+
+\item{text}{Character vector.}
+
+\item{turns}{Client turns (\code{client$get_turns()}).}
+
+\item{figures}{Figure registry (\code{figures()}); at most 20 entries.}
+
+\item{max_bytes}{Read-side budget (default 512 KB).}
+
+\item{payload}{Candidate payload from a .ESS snapshot.}
 }
 \value{
 Provider configuration, compact state, annotation summaries, or a

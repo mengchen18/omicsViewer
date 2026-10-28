@@ -9,6 +9,9 @@ L1_result_space_ui(id)
 \arguments{
 \item{id}{id}
 }
+\value{
+A Shiny UI definition (\code{tagList}).
+}
 \description{
 Utility L1 result space ui
 }

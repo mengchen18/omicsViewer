@@ -1,6 +1,8 @@
 #' Split a stored default-axis string ("Analysis|Subset|Variable") into a
 #' length-3 character vector, or NULL when malformed.
 #'
+#' @return A length-3 character vector \code{c(analysis, subset, variable)},
+#'   or \code{NULL} when the input is malformed.
 #' @keywords internal
 .scatter_axis_triple <- function(axis_string) {
   if (is.null(axis_string)) return(NULL)
@@ -22,6 +24,8 @@
 #'
 #' @param axis_string Default axis string, e.g. from \code{getAx(eset, "sx")}.
 #' @param ts triset matrix (columns: analysis, subset, variable).
+#' @return A length-3 character vector (exact or stem-resolved), or
+#'   \code{NULL} when nothing matches.
 #' @keywords internal
 .scatter_resolve_axis <- function(axis_string, ts) {
   l <- .scatter_axis_triple(axis_string)
@@ -50,6 +54,7 @@
 #' signature came back empty and restored figure selections never
 #' re-emphasized).
 #'
+#' @return A length-1 character string uniquely identifying the axis pair.
 #' @keywords internal
 .scatter_axis_signature <- function(x, y) {
   axis <- function(z) {
@@ -191,6 +196,9 @@ meta_scatter_ui <- function(id) {
 #'   "clear", "restore"), and every consumer (tables, result space,
 #'   snapshot) reads the bus instead of adopting module returns.
 #'
+#' @return A Shiny module server function, called for its side effects
+#'   (renders the scatter, writes selections to the selection bus and the
+#'   widget store).
 meta_scatter_module <- function(
   id, reactive_meta = reactive(NULL), reactive_expr = reactive(NULL),
   combine = c("pheno", "feature"), source = "plotlyscattersource",

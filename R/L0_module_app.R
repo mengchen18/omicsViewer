@@ -302,6 +302,7 @@ app_ui <- function(id, showDropList = TRUE, activeTab = "Feature") {
 #'  p.adjust
 #'  predict
 #'  quantile
+#'  setNames
 #'  t.test
 #'  uniroot
 #'  wilcox.test

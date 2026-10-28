@@ -50,6 +50,10 @@ axes-convergence handles, todo 4.1).}
 
 \item{assistant}{Optional WP11 assistant API.}
 }
+\value{
+A Shiny module server function, called for its side effects
+  (registers the snapshot save/restore observers in the caller's scope).
+}
 \description{
 Extracted verbatim from \code{app_module}'s server: the .ESS listing,
 save observer (with the opt-in assistant-history payload), delete flow,
