@@ -54,3 +54,5 @@
 ^SQLITE_REVIVAL_PLAN\.md$
 ^KNOWN_ISSUES\.md$
 # --- end tarball hygiene --------------------------------------------------
+# local pi agent workspace
+^.pi/

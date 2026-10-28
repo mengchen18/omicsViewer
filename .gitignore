@@ -80,3 +80,6 @@ tests/e2e/node_modules
 # untracked from git; also excluded from the R package tarball
 # (see .Rbuildignore). Includes local node_modules / playwright install.
 tests/e2e/
+
+# local pi agent workspace (plans, QA screenshots) - never tracked or shipped
+.pi/
