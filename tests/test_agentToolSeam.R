@@ -524,8 +524,10 @@ shiny::testServer(
       `_intent` = "seed the session figure fig_1"
     )
     for (fx in c("update_figure_seq35.json", "update_figure_seq55.json")) {
-      payload <- jsonlite::fromJSON(
-        file.path("tests", "fixtures", "agent", fx), simplifyVector = FALSE)
+      fx_file <- file.path("tests", "fixtures", "agent", fx)
+      if (!file.exists(fx_file))  # R CMD check: cwd is the tests directory
+        fx_file <- file.path("fixtures", "agent", fx)
+      payload <- jsonlite::fromJSON(fx_file, simplifyVector = FALSE)
       req <- ellmer::ContentToolRequest(
         id = "replay", name = "update_figure", arguments = payload)
       req@tool <- tools$update_figure

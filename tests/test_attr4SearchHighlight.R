@@ -15,10 +15,14 @@
 ##   5. meta_scatter: the volcano params carry highlight/highlightName
 ##   6. plotly_scatter: highlight draws the circle-open trace at the gene
 
-local({
-  library(unittest, quietly = TRUE)
-  pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
-})
+library(unittest, quietly = TRUE)
+if (!file.exists("DESCRIPTION")) {
+  ## R CMD check: cwd is the tests directory; this harness drives the
+  ## source checkout via load_all and reads bare internal names.
+  ok(TRUE, "attr4 search-highlight harness skipped: needs a source checkout")
+  quit(save = "no", status = 0)
+}
+pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
 dat <- readRDS("inst/extdata/demo.RDS")
 fd <- fData(dat)
 ts_demo <- do.call(rbind, strsplit(colnames(fd), "|", fixed = TRUE))

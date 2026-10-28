@@ -630,6 +630,7 @@ agent_summarize_log <- function(path, retry_window = 10L, max_examples = 8L) {
 #' @method print omicsViewerAgentLogSummary
 #' @keywords internal
 #' @rdname agentLoggingHelpers
+#' @export
 print.omicsViewerAgentLogSummary <- function(x, ...) {
   cat("omicsViewer agent log summary\n")
   cat("  file:            ", x$path, "\n", sep = "")

@@ -129,13 +129,20 @@ if (requireNamespace("ellmer", quietly = TRUE)) {
 
 # environment config accepts the new provider name
 old_env_provider2 <- Sys.getenv("OMICSVIEWER_LLM_PROVIDER")
-Sys.setenv(OMICSVIEWER_LLM_PROVIDER = "openai_compatible")
+old_env_base2 <- Sys.getenv("OMICSVIEWER_LLM_BASE_URL")
+Sys.setenv(
+  OMICSVIEWER_LLM_PROVIDER = "openai_compatible",
+  OMICSVIEWER_LLM_BASE_URL = "https://vllm.internal:8000/v1"
+)
 ok(
   ut_cmp_identical(omicsViewer:::agent_environment_config()$provider,
                    "openai_compatible"),
   "environment config accepts OMICSVIEWER_LLM_PROVIDER=openai_compatible"
 )
-Sys.setenv(OMICSVIEWER_LLM_PROVIDER = old_env_provider2)
+Sys.setenv(
+  OMICSVIEWER_LLM_PROVIDER = old_env_provider2,
+  OMICSVIEWER_LLM_BASE_URL = old_env_base2
+)
 
 ## -------------------------- 1.2 environment-key endpoint lock ----
 agent_allow_user_endpoint <- omicsViewer:::agent_allow_user_endpoint

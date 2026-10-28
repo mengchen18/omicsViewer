@@ -6,10 +6,14 @@
 ## 4. testServer probe: booting the sample-space scatter with the OLD truncated
 ##    defaults ("PCA|All|PC1(") seeds the live PC1/PC2 axes, not a dead triple
 
-local({
-  library(unittest, quietly = TRUE)
-  pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
-})
+library(unittest, quietly = TRUE)
+if (!file.exists("DESCRIPTION")) {
+  ## R CMD check: cwd is the tests directory; this harness drives the
+  ## source checkout via load_all and reads bare internal names.
+  ok(TRUE, "scatter-defaults harness skipped: needs a source checkout")
+  quit(save = "no", status = 0)
+}
+pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
 dat <- readRDS("inst/extdata/demo.RDS")
 pd <- pData(dat); ex <- exprs(dat)
 

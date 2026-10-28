@@ -27,8 +27,14 @@ suppressMessages({
     quit(save = "no", status = 0)
   }
   library(unittest, quietly = TRUE)
-  pkgload::load_all(".", quiet = TRUE)
 })
+if (!file.exists("DESCRIPTION")) {
+  # R CMD check: cwd is the tests directory; this harness drives the
+  # source checkout via load_all and reads bare internal names.
+  ok(TRUE, "snapshot round-trip suite skipped: needs a source checkout")
+  quit(save = "no", status = 0)
+}
+pkgload::load_all(".", quiet = TRUE)
 
 demo_path <- system.file("extdata", "demo.RDS", package = "omicsViewer")
 if (!nzchar(demo_path))
@@ -622,6 +628,8 @@ unlink(d8, recursive = TRUE)
 ##    through the real app_module
 ## ==================================================================
 fixdir <- file.path("tests", "fixtures")
+if (!dir.exists(fixdir))  # R CMD check: cwd is the tests directory
+  fixdir <- "fixtures"
 if (!dir.exists(fixdir))
   fixdir <- system.file("tests", package = "omicsViewer") # installed copy
 have_fixtures <- all(file.exists(file.path(

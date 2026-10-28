@@ -27,8 +27,14 @@ suppressMessages({
     quit(save = "no", status = 0)
   }
   library(unittest, quietly = TRUE)
-  pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
 })
+if (!file.exists("DESCRIPTION")) {
+  # R CMD check: cwd is the tests directory; this harness drives the
+  # source checkout via load_all and reads bare internal names.
+  ok(TRUE, "render-stability harness skipped: needs a source checkout")
+  quit(save = "no", status = 0)
+}
+pkgload::load_all(".", quiet = TRUE, attach_testthat = FALSE)
 demo_path <- system.file("extdata", "demo.RDS", package = "omicsViewer")
 if (!nzchar(demo_path))
   demo_path <- file.path("inst", "extdata", "demo.RDS")
