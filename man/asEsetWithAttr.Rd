@@ -26,3 +26,11 @@ an object of class ExpressionSet
 \description{
 Convert SummarizedExperiment to ExpressionSet retaining all attributes
 }
+\examples{
+se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = matrix(rnorm(20), nrow = 5,
+    dimnames = list(letters[1:5], LETTERS[1:4])))
+)
+eset <- asEsetWithAttr(se)
+class(eset)
+}

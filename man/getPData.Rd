@@ -28,3 +28,8 @@ the sample annotation data.frame; column types (factor levels,
 \description{
 Extract the phenotype (sample) annotation of an omicsViewer dataset
 }
+\examples{
+demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+pd <- getPData(demo)
+head(pd[, seq_len(min(3, ncol(pd)))])
+}

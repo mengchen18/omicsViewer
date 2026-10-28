@@ -50,3 +50,4 @@ A Shiny module server function, called for its side effects
 \description{
 Application level 1 module - data space
 }
+\keyword{internal}

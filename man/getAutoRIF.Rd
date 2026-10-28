@@ -24,7 +24,8 @@ Get genes associated with search terms and AutoRIF annotations
 https://amp.pharm.mssm.edu/geneshot/
 }
 \examples{
-a <- getAutoRIF("mtor signaling")
+if (interactive())
+  a <- getAutoRIF("mtor signaling")
 }
 \references{
 Alexander Lachmann, Brian M Schilder, Megan L Wojciechowicz, 

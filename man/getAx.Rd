@@ -30,3 +30,7 @@ the axis value (usually a column name), or NULL when unset
 \description{
 Read a default axis of an omicsViewer dataset
 }
+\examples{
+demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+getAx(demo, "sx")  # default scatter x-axis of the demo dataset
+}

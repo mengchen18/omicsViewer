@@ -29,3 +29,8 @@ the feature annotation data.frame; the gene-set annotation
 \description{
 Extract the feature annotation of an omicsViewer dataset
 }
+\examples{
+demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+fd <- getFData(demo)
+head(fd[, seq_len(min(3, ncol(fd)))])
+}

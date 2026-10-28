@@ -30,7 +30,7 @@
 #' }
 #' }
 #'
-#' @export
+#' @keywords internal
 validate_dataframe <- function(data, name = "data", required = TRUE,
                                 min_rows = 1, min_cols = 1) {
 
@@ -96,7 +96,7 @@ validate_dataframe <- function(data, name = "data", required = TRUE,
 #'
 #' @return List with $valid (logical) and $message (character) fields
 #'
-#' @export
+#' @keywords internal
 validate_numeric_matrix <- function(mat, name = "matrix", required = TRUE,
                                      min_rows = 1, min_cols = 1, allow_na = TRUE) {
 
@@ -179,7 +179,7 @@ validate_numeric_matrix <- function(mat, name = "matrix", required = TRUE,
 #'
 #' @return List with $valid (logical) and $message (character) fields
 #'
-#' @export
+#' @keywords internal
 validate_character_vector <- function(vec, name = "vector", required = TRUE,
                                        min_length = 1, max_length = Inf,
                                        allow_empty = FALSE) {
@@ -251,7 +251,7 @@ validate_character_vector <- function(vec, name = "vector", required = TRUE,
 #'
 #' @return List with $valid (logical) and $message (character) fields
 #'
-#' @export
+#' @keywords internal
 validate_triselector_input <- function(triset, name = "triselector data", allow_null = FALSE) {
 
   # Handle reactive expressions
@@ -322,7 +322,7 @@ validate_triselector_input <- function(triset, name = "triselector data", allow_
 #'
 #' @return List with $valid (logical) and $message (character) fields
 #'
-#' @export
+#' @keywords internal
 validate_numeric_range <- function(value, name = "value",
                                     min = -Inf, max = Inf, allow_na = FALSE) {
 
@@ -374,7 +374,7 @@ validate_numeric_range <- function(value, name = "value",
 #'
 #' @return List with $valid (logical) and $message (character) fields
 #'
-#' @export
+#' @keywords internal
 validate_matching_dimensions <- function(obj1, obj2, dimension = c("rows", "cols"),
                                           name1 = "object1", name2 = "object2") {
 

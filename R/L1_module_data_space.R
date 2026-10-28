@@ -248,7 +248,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 #' @return A Shiny module server function, called for its side effects
 #'   (renders the data-space panels and registers their widget-store
 #'   bindings).
-#' @export
+#' @keywords internal
 L1_data_space_module <- function(
   id, expr, pdata, fdata,
   reactive_x_s = reactive(NULL), reactive_y_s = reactive(NULL),

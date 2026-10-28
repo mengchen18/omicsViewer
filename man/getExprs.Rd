@@ -28,3 +28,8 @@ the (features x samples) expression matrix; for SQLite
 \description{
 Extract the expression matrix of an omicsViewer dataset
 }
+\examples{
+demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+m <- getExprs(demo)
+dim(m)
+}

@@ -10,7 +10,7 @@ L1_result_space_ui <- function(id) {
   )
 }
 
-#' @title Utility L1 result space ui
+#' @title Application level 1 module - result space
 #' @param id module id
 #' @param reactive_expr expression matrix
 #' @param reactive_phenoData phentype data
@@ -27,7 +27,7 @@ L1_result_space_ui <- function(id) {
 #' @return A Shiny module server function, called for its side effects
 #'   (renders the result-space panels and registers their widget-store
 #'   bindings).
-#' @export
+#' @keywords internal
 L1_result_space_module <- function(
   id,
   reactive_expr, reactive_phenoData, reactive_featureData,

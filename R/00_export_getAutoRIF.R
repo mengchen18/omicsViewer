@@ -16,9 +16,10 @@
 #'   Nucleic Acids Research, Volume 47, Issue W1, 02 July 2019, Pages W571–W577, 
 #'   https://doi.org/10.1093/nar/gkz393
 #' @importFrom httr POST content
-#' @examples 
-#' a <- getAutoRIF("mtor signaling")
-#' @return a \code{data.frame} of 4 columns: gene, n, perc, rank. 
+#' @examples
+#' if (interactive())
+#'   a <- getAutoRIF("mtor signaling")
+#' @return a \code{data.frame} of 4 columns: gene, n, perc, rank.
 
 getAutoRIF <- function(term, rif = c("generif", "autorif")[1], filter = TRUE) {
 

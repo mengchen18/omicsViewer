@@ -2,7 +2,7 @@
 % Please edit documentation in R/L1_module_result_space.R
 \name{L1_result_space_module}
 \alias{L1_result_space_module}
-\title{Utility L1 result space ui}
+\title{Application level 1 module - result space}
 \usage{
 L1_result_space_module(
   id,
@@ -47,5 +47,6 @@ A Shiny module server function, called for its side effects
   bindings).
 }
 \description{
-Utility L1 result space ui
+Application level 1 module - result space
 }
+\keyword{internal}

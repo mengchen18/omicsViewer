@@ -26,3 +26,8 @@ the imputed expression matrix, or NULL if the dataset carries
 \description{
 Extract the imputed expression matrix of an omicsViewer dataset
 }
+\examples{
+demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+imp <- getExprsImpute(demo)  # NULL when the dataset has no imputed matrix
+is.null(imp) || is.matrix(imp)
+}

@@ -23,3 +23,4 @@ List with $valid (logical) and $message (character) fields
 \description{
 Validate triselector input matrix
 }
+\keyword{internal}

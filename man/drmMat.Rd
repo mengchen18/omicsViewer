@@ -33,3 +33,14 @@ a list of \code{drc} object
 A convenient function to fit dose response models for every row in 
   an omics matrix using \code{drm} function in the \code{drc} package.
 }
+\examples{
+# simulate a small dose-response matrix: 3 features, 10 doses
+set.seed(1)
+dd <- 2^(-(9:0))
+m <- t(sapply(1:3, function(i) {
+  y <- 1 / (1 + (dd / 0.005)^(-1))
+  y + rnorm(length(dd), sd = 0.001)
+}))
+fit <- drmMat(m, fitvar = dd, fitvar.name = "Dose", fct.name = "LL.4()")
+length(fit)
+}

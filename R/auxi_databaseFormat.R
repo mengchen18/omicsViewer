@@ -481,6 +481,13 @@ str2hclust <- function(x) {
 #'   \code{ExpressionSet}, or any class with its own \code{asEsetWithAttr}
 #'   method (dispatched automatically)
 #' @return an object of class ExpressionSet
+#' @examples
+#' se <- SummarizedExperiment::SummarizedExperiment(
+#'   assays = list(counts = matrix(rnorm(20), nrow = 5,
+#'     dimnames = list(letters[1:5], LETTERS[1:4])))
+#' )
+#' eset <- asEsetWithAttr(se)
+#' class(eset)
 #' @name asEsetWithAttr
 #' @export
 setGeneric("asEsetWithAttr", function(x) standardGeneric("asEsetWithAttr"))
@@ -552,6 +559,10 @@ readESVObj <- function(x) {
 #'   connections, matrix-level attributes (precomputed
 #'   \code{rowDendrogram}/\code{colDendrogram}) are restored from the
 #'   \code{attrs} table
+#' @examples
+#' demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+#' m <- getExprs(demo)
+#' dim(m)
 #' @name getExprs
 #' @export
 setGeneric("getExprs", function(x) standardGeneric("getExprs"))
@@ -577,6 +588,10 @@ setMethod("getExprs", "ANY", function(x)
 #'   with its own \code{getExprsImpute} method (dispatched automatically)
 #' @return the imputed expression matrix, or NULL if the dataset carries
 #'   no imputed values
+#' @examples
+#' demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+#' imp <- getExprsImpute(demo)  # NULL when the dataset has no imputed matrix
+#' is.null(imp) || is.matrix(imp)
 #' @name getExprsImpute
 #' @export
 setGeneric("getExprsImpute", function(x) standardGeneric("getExprsImpute"))
@@ -602,6 +617,10 @@ setMethod("getExprsImpute", "ANY", function(x)
 #'   logicals) are rebuilt from the \code{attrs} metadata and
 #'   user-defined quick-view shortcuts ride along as the
 #'   \code{"quickViews"} attribute where available
+#' @examples
+#' demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+#' pd <- getPData(demo)
+#' head(pd[, seq_len(min(3, ncol(pd)))])
 #' @name getPData
 #' @export
 setGeneric("getPData", function(x) standardGeneric("getPData"))
@@ -634,6 +653,10 @@ setMethod("getPData", "ANY", function(x)
 #'   (pre-2.1.81) databases are normalized on read: wide \code{GS|*}
 #'   membership columns are converted back into the gene-set annotation,
 #'   so both file generations serve the same app-ready view
+#' @examples
+#' demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+#' fd <- getFData(demo)
+#' head(fd[, seq_len(min(3, ncol(fd)))])
 #' @name getFData
 #' @export
 setGeneric("getFData", function(x) standardGeneric("getFData"))
@@ -687,6 +710,9 @@ setMethod("getFData", "ANY", function(x)
 #'   \code{S6.6_drc}) are served through the same seam
 #' @return the axis value (usually a column name), or NULL when unset
 #' @name getAx
+#' @examples
+#' demo <- readRDS(system.file("extdata", "demo.RDS", package = "omicsViewer"))
+#' getAx(demo, "sx")  # default scatter x-axis of the demo dataset
 #' @export
 setGeneric("getAx", function(x, what) standardGeneric("getAx"))
 

@@ -32,3 +32,4 @@ List with $valid (logical) and $message (character) fields
 \description{
 Validate character vector input
 }
+\keyword{internal}
