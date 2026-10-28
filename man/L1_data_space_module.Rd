@@ -39,7 +39,7 @@ L1_data_space_module(
 
 \item{status}{intial status}
 
-\item{store}{shared widget store (see \code{\link{widget_store_init}});
+\item{store}{shared widget store (see \code{\link{widget_store_new}});
 required. The data-space module registers its widgets in this store.}
 }
 \value{

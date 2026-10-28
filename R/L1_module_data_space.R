@@ -243,7 +243,7 @@ L1_data_space_ui <- function(id, activeTab = "Feature") {
 #' @param reactive_x_f pre-selected x axis for feature space
 #' @param reactive_y_f pre-selected y axis for feature space
 #' @param status intial status
-#' @param store shared widget store (see \code{\link{widget_store_init}});
+#' @param store shared widget store (see \code{\link{widget_store_new}});
 #'   required. The data-space module registers its widgets in this store.
 #' @return A Shiny module server function, called for its side effects
 #'   (renders the data-space panels and registers their widget-store
