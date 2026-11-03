@@ -53,6 +53,13 @@ fillNA <- omicsViewer:::fillNA
 res <- fillNA(exprNA)
 ok(ut_cmp_equal(length(unique(res[1, 1:11])), 1), "fillNA")
 
+# all-NA rows are returned unchanged (no Inf warning, no maxfill filling)
+exprAllNA <- expr
+exprAllNA[2, ] <- NA
+resAllNA <- fillNA(exprAllNA)
+ok(ut_cmp_equal(all(is.na(resAllNA[2, ])), TRUE), "fillNA - all-NA row kept as NA")
+ok(ut_cmp_equal(identical(resAllNA[-2, ], fillNA(expr)[-2, ]), TRUE), "fillNA - other rows unaffected")
+
 # R-M12: var.equal must be a formal, not a ... entry - a documented
 # var.equal = FALSE call used to collide with the hard-coded TRUE inside
 # the per-row t.test call ("formal argument ... matched by multiple

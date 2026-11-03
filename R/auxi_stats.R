@@ -276,22 +276,27 @@ exprspca <- function(x, n = min(8, ncol(x)-1), prefix = "PCA|All", fillNA = FALS
 #'   \code{function(x) min(x, na.rm = TRUE) - 1 }# half of lowest detected value when expression matrix
 #'     is in log2 scale
 #'   \code{function(x) 0} # replace NA by 0
-#' @note The returned matrix may have -Inf, which may need to be filtered/replaced additionally
+#' @note Rows in which all values are NA are returned unchanged (no filling value can be derived from them).
+#'   The returned matrix may thus still contain NA (all-NA rows), and may have -Inf, which may need to be
+#'   filtered/replaced additionally
 #' @export
 #' @examples
 #' m <- matrix(rnorm(200), 20, 10)
 #' m[sample(1:200, size = 20)] <- NA
 #' mf <- fillNA(m)
-#' @return a matrix without NAs
+#' @return a matrix in which NA values are replaced by the row-wise filling value; rows consisting
+#'   entirely of NA are returned unchanged
 fillNA <- function(x, maxfill = quantile(x, probs = 0.15, na.rm = TRUE), fillingFun = function(x) min(x, na.rm = TRUE) - log10(2)) {
   xf <- apply(x, 1, function(xx) {
+    if (all(is.na(xx)))
+      return(xx)
     x3 <- xx
     x3[is.na(x3)] <- min(maxfill, fillingFun(xx))
     x3
   })
   xf <- t(xf)
   rownames(xf) <- rownames(x)
-  colnames(xf) <- colnames(xf)
+  colnames(xf) <- colnames(x)
   xf
 }
 
