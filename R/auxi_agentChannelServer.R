@@ -1,26 +1,38 @@
 #' @name agentChannelServer
-#' @title Localhost JSON-RPC agent channel endpoint (Stage 2)
+#' @title Localhost JSON-RPC agent channel endpoint (Stages 2-3)
 #' @description Stage 2 of the agent-channel plan (AGENT_CHANNEL_PLAN.md):
 #'   a JSON-RPC 2.0-over-WebSocket endpoint on 127.0.0.1 through which an
 #'   EXTERNAL agent (editor bridge, Python driver, ...) can drive the
-#'   currently-bound assistant session's read-tier tools. The endpoint is a
-#'   thin transport shell around the Stage 0 plane: every request is answered
-#'   by the pure handler \code{\link{agent_channel_handle}}, which dispatches
-#'   through \code{\link{agent_channel_dispatch}} against the session-bound
-#'   registry (exactly the pathway a model drives). Nothing here touches the
-#'   widget store, the sanitizer seam, or any triselector internals.
+#'   currently-bound assistant session's read-tier tools. Stage 3 adds the
+#'   WRITE tier (the eight write tools, off by default behind
+#'   \code{OMICSVIEWER_AGENT_CHANNEL_WRITES}, decided at SERVER START - the
+#'   tier is a property of the running server) and the figure GET endpoint
+#'   (D7): plain HTTP \code{GET /<token>/figure/<figure_id>/(preview|full).png}
+#'   on the channel port serving the bound session's rendered figure PNG
+#'   bytes. The endpoint is a thin transport shell around the Stage 0 plane:
+#'   every request is answered by the pure handler
+#'   \code{\link{agent_channel_handle}}, which dispatches through
+#'   \code{\link{agent_channel_dispatch}} against the session-bound registry
+#'   (exactly the pathway a model drives) - write tools included; there is no
+#'   separate write pathway. Nothing here touches the widget store, the
+#'   sanitizer seam, or any triselector internals; store writes land as
+#'   \code{origin = "agent"} exactly like the drawer (D5).
 #'
 #'   Security posture (plan decisions D3/D10): the server binds 127.0.0.1
 #'   ONLY - there is no host argument and none may be added without
 #'   revisiting this posture; it is compiled in but starts only when
 #'   \code{OMICSVIEWER_AGENT_CHANNEL} is truthy; connections must present
 #'   the per-process random pairing token as the WebSocket path
-#'   (\code{/<token>}) - wrong paths are closed immediately. The FULL token
+#'   (\code{/<token>}) - wrong paths are closed immediately, and figure GETs
+#'   with a wrong token get the same silent generic refusal. The FULL token
 #'   is printed to the console at server start (that is the pairing
 #'   mechanism) and never written to a log or response; log events carry
 #'   only a short non-reversible tag (\code{\link{.agent_channel_token_tag}}).
-#'   Stage 2 exposes the READ tier only (decision: enabled tier "read");
-#'   write tools arrive in Stage 3 behind their own env flag.
+#'   Figure ids are validated \code{^[A-Za-z0-9_-]+$} before any path is
+#'   built - path traversal is rejected by construction. Write calls emit
+#'   \code{channel_write_start} / \code{channel_write_end} logger events with
+#'   a BOUNDED receipt summary (counts + at most 5 key NAMES, never values,
+#'   D5); reads and writes share the same per-connection rate cap (D6).
 NULL
 
 ############################################################################
@@ -35,6 +47,21 @@ NULL
 
 .agent_channel_enabled <- function() {
   value <- tolower(trimws(Sys.getenv("OMICSVIEWER_AGENT_CHANNEL", unset = "")))
+  !(value %in% .agent_channel_falsy)
+}
+
+#' Write-tier gate (Stage 3): OFF by default
+#'
+#' \code{OMICSVIEWER_AGENT_CHANNEL_WRITES} enables the eight write tools
+#' on the channel. It is read ONCE at server start (D-plan rollback
+#' rule): the enabled tier is a property of the running server, not of
+#' an individual call - later env changes take effect only after a
+#' restart (stop + start), which also regenerates the pairing token.
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_writes_enabled <- function() {
+  value <- tolower(trimws(
+    Sys.getenv("OMICSVIEWER_AGENT_CHANNEL_WRITES", unset = "")))
   !(value %in% .agent_channel_falsy)
 }
 
@@ -64,22 +91,35 @@ NULL
 
 #' Enabled tool tiers
 #'
-#' Stage 2 serves the \code{read} tier only. The \code{write} tier is
-#' listed for Stage 3 readiness and is NOT reachable through this
-#' server until Stage 3 enables it behind its own env flag
-#' (\code{OMICSVIEWER_AGENT_CHANNEL_WRITES}).
+#' The \code{read} tier lists the six read tools. The \code{read-write}
+#' tier (Stage 3) adds the eight write tools; it is selected at server
+#' start when \code{OMICSVIEWER_AGENT_CHANNEL_WRITES} is truthy. Tier
+#' enforcement lives in exactly ONE place: the tools/call name check in
+#' \code{\link{agent_channel_handle}} compares against
+#' \code{.agent_channel_tiers[[state$tier]]}; the connection layer only
+#' decides which tier a server serves.
 #' @keywords internal
 #' @rdname agentChannelServer
 .agent_channel_tiers <- list(
   read = c("get_omics_viewer_state", "search_annotations",
            "summarize_annotation", "find_controls", "describe_control",
            "get_figure"),
-  write = c("get_omics_viewer_state", "search_annotations",
-            "summarize_annotation", "set_omics_viewer_state",
-            "set_scatter_view", "find_controls", "describe_control",
-            "set_widgets", "run_control", "set_enrichment_parameters",
-            "set_table_view", "create_figure", "get_figure",
-            "update_figure"))
+  `read-write` = c("get_omics_viewer_state", "search_annotations",
+                   "summarize_annotation", "set_omics_viewer_state",
+                   "set_scatter_view", "find_controls", "describe_control",
+                   "set_widgets", "run_control", "set_enrichment_parameters",
+                   "set_table_view", "create_figure", "get_figure",
+                   "update_figure"))
+
+#' Tools that count as WRITES for channel logging (D5)
+#'
+#' The write-only set (tier \code{read-write} minus tier \code{read});
+#' calls to these tools emit \code{channel_write_start} /
+#' \code{channel_write_end} logger events with a bounded receipt summary.
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_write_tools <- function()
+  setdiff(.agent_channel_tiers[["read-write"]], .agent_channel_tiers$read)
 
 #' Generate a fresh pairing token
 #'
@@ -178,10 +218,11 @@ NULL
 #'   NULL.
 #' @param session_token Bound session token (used only for log tags),
 #'   or NULL.
-#' @param tier Enabled tool tier ("read" in Stage 2).
-#' @param max_calls Per-connection tools/call cap; NULL reads
-#'   \code{OMICSVIEWER_AGENT_CHANNEL_MAX_CALLS} (default 600, 0 =
-#'   unlimited).
+#' @param tier Enabled tool tier ("read", or "read-write" when the
+#'   server started with \code{OMICSVIEWER_AGENT_CHANNEL_WRITES}).
+#' @param max_calls Per-connection tools/call cap (writes count like
+#'   reads); NULL reads \code{OMICSVIEWER_AGENT_CHANNEL_MAX_CALLS}
+#'   (default 600, 0 = unlimited).
 #' @return An environment (handler state).
 #' @keywords internal
 #' @rdname agentChannelServer
@@ -269,6 +310,93 @@ agent_channel_state_new <- function(tools = NULL, logger = NULL,
 }
 
 ############################################################################
+### [Stage 3] channel-tagged write logging (D5)
+###
+### Write-tool calls emit channel_write_start / channel_write_end with
+### the 16-hex session tag, the tool name, the duration, and - on the
+### end event - a BOUNDED receipt summary distilled from the tool
+### result's structured original (extra$data): counts of applied /
+### unchanged (skipped) / rejected / ran keys plus at most 5 key NAMES.
+### NEVER values: applied_values / diffs / params are dropped by
+### construction, and the logger's own .agent_log_safe_value pass runs
+### afterwards as the second net.
+
+#' Bounded key-name list for a write receipt (at most `max_keys`)
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_receipt_keys <- function(x, max_keys = 5L) {
+  if (is.character(x))
+    return(utils::head(unique(x), max_keys))
+  if (is.list(x) && length(x)) {
+    ids <- tryCatch(
+      vapply(x, function(entry) as.character(entry$id %||% ""),
+             character(1)),
+      error = function(e) character())
+    return(utils::head(unique(ids[nzchar(ids)]), max_keys))
+  }
+  character()
+}
+
+#' Distill a bounded receipt summary from a write tool result
+#'
+#' Reads only \code{extra$data} (the structured original the codec
+#' keeps for in-process consumers) and reduces it to counts + at most 5
+#' key names. Widget VALUES never enter the summary; an absent,
+#' non-list, or unrecognizable payload yields zero counts rather than
+#' an error (the receipt is observability, not truth).
+#' @param value A \code{ellmer::ContentToolResult} from a write tool.
+#' @return Named list of counts and key names (JSON-ready).
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_write_receipt <- function(value) {
+  zero <- list(applied = 0L, ran = 0L, unchanged = 0L, rejected = 0L,
+               keys = character())
+  data <- tryCatch(
+    if (!is.null(value) && inherits(value, "ellmer::ContentToolResult"))
+      value@extra$data
+    else
+      NULL,
+    error = function(e) NULL)
+  if (is.null(data) || !is.list(data))
+    return(zero)
+  # counts come from the RAW payloads; only the key-name list is capped
+  # at 5 (a 20-key patch logs 20 applied but at most 5 names).
+  count_entries <- function(x)
+    if (is.character(x)) length(x) else if (is.list(x)) length(x) else 0L
+  applied_raw <- data$applied
+  ran_raw <- data$ran
+  rejected_raw <- data$rejected
+  unchanged_raw <- data$unchanged %||% data$skipped
+  keys <- utils::head(unique(c(
+    .agent_channel_receipt_keys(applied_raw),
+    .agent_channel_receipt_keys(ran_raw),
+    .agent_channel_receipt_keys(rejected_raw))), 5L)
+  receipt <- list(
+    applied = count_entries(applied_raw),
+    ran = count_entries(ran_raw),
+    unchanged = count_entries(unchanged_raw),
+    rejected = count_entries(rejected_raw),
+    keys = keys)
+  figure_id <- tryCatch(as.character(data$figure_id),
+                        error = function(e) character())
+  if (length(figure_id) == 1L && nzchar(figure_id))
+    receipt$figure_id <- figure_id
+  receipt
+}
+
+#' Bound a write-failure message for the channel_write_end event
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_write_error <- function(message) {
+  text <- tryCatch(as.character(message), error = function(e) character())
+  if (!length(text) || is.na(text) || !nzchar(text))
+    return("(no error message)")
+  if (nchar(text) > 200L)
+    text <- paste0(substr(text, 1L, 200L), "...")
+  text
+}
+
+############################################################################
 ### [Stage 2] the handler itself
 
 #' Answer one JSON-RPC message (pure handler)
@@ -280,8 +408,9 @@ agent_channel_state_new <- function(tools = NULL, logger = NULL,
 #'   \item \code{initialize} - protocol identity: name
 #'     \code{"omicsviewer-agent-channel"}, jsonrpc \code{"2.0"},
 #'     \code{package_version}, \code{channel_schema_version} (D8), and
-#'     the enabled \code{tool_tier} ("read" in Stage 2). No bound
-#'     session required.
+#'     the enabled \code{tool_tier} ("read", or "read-write" when the
+#'     server started with \code{OMICSVIEWER_AGENT_CHANNEL_WRITES}). No
+#'     bound session required.
 #'   \item \code{tools/list} - the enabled tier's tool specs
 #'     (\code{\link{agent_channel_toolspecs}} filtered to the tier,
 #'     \code{required}/\code{enum} kept as arrays) plus the version
@@ -289,8 +418,10 @@ agent_channel_state_new <- function(tools = NULL, logger = NULL,
 #'   \item \code{tools/call} (params \code{name}, optional \code{args}
 #'     object; omitted or \code{\{\}} args dispatch an argument-less
 #'     call) - dispatch through \code{\link{agent_channel_dispatch}}
-#'     against the bound session's tools. The wire result carries
-#'     \code{value@value} ONLY, wrapped as
+#'     against the bound session's tools. Reads and writes dispatch
+#'     through the SAME Stage-0 dispatcher; tools outside the enabled
+#'     tier are refused before dispatch (the single tier gate). The wire
+#'     result carries \code{value@value} ONLY, wrapped as
 #'     \code{content = [{type: "text", text}]} (Stage-0 review F3:
 #'     \code{extra$data}/\code{extra$display} never cross the wire).
 #'     Dispatcher \code{ok = FALSE} maps to error -32602 (arg/tool
@@ -302,15 +433,20 @@ agent_channel_state_new <- function(tools = NULL, logger = NULL,
 #' supported in v1; wrong \code{jsonrpc} field); -32601 unknown method;
 #' -32602 tool/argument errors (including tools outside the enabled
 #' tier); -32000 channel-state errors (no session bound; rate cap
-#' exceeded - the cap is per connection,
-#' \code{OMICSVIEWER_AGENT_CHANNEL_MAX_CALLS}, default 600, 0 =
+#' exceeded - the cap is per connection and counts WRITES exactly like
+#' reads, \code{OMICSVIEWER_AGENT_CHANNEL_MAX_CALLS}, default 600, 0 =
 #' unlimited, and an exceeded cap does NOT close the connection);
 #' -32603 internal error (never expected).
 #'
 #' Rate-capped and executed \code{tools/call} requests emit
 #' \code{channel_request_start} / \code{channel_request_end} (method,
 #' tool, ok, duration) and \code{channel_rate_cap_hit} events through
-#' the state's logger when one is present (D5).
+#' the state's logger when one is present (D5). Calls to WRITE tools
+#' additionally emit \code{channel_write_start} /
+#' \code{channel_write_end} (16-hex session tag, tool name, duration;
+#' the end event carries a BOUNDED receipt summary - applied / ran /
+#' unchanged / rejected counts plus at most 5 key NAMES, never values;
+#' failures carry a 200-char-bounded error message).
 #'
 #' @param state Handler state from \code{\link{agent_channel_state_new}}
 #'   (an environment; \code{state$calls} is incremented once per
@@ -453,7 +589,31 @@ agent_channel_handle <- function(state, msg_json) {
         FALSE, name))
     }
     state$calls <- state$calls + 1L
+    # Channel-tagged write logging (D5, Stage 3): write-tool executions
+    # emit start/end events with a bounded receipt summary on the end.
+    # Tier-refused (never executed) and cap-refused writes log nothing
+    # here - only the request_end/rate-cap events above.
+    is_write <- name %in% .agent_channel_write_tools()
+    session_tag <- if (is.null(state$session_token)) NULL else
+      .agent_channel_token_tag(state$session_token)
+    write_started_at <- proc.time()[["elapsed"]]
+    if (is_write)
+      .agent_channel_log(state, "channel_write_start", list(
+        tool = name, session = session_tag))
     result <- agent_channel_dispatch(state$tools, name, args)
+    if (is_write) {
+      write_details <- list(
+        tool = name,
+        session = session_tag,
+        duration_ms = round((proc.time()[["elapsed"]] - write_started_at) *
+                              1000),
+        ok = isTRUE(result$ok))
+      if (isTRUE(result$ok))
+        write_details$receipt <- .agent_channel_write_receipt(result$value)
+      else
+        write_details$error <- .agent_channel_write_error(result$error)
+      .agent_channel_log(state, "channel_write_end", write_details)
+    }
     if (!isTRUE(result$ok))
       return(finish(.agent_channel_err(id, -32602L, result$error),
                     FALSE, name))
@@ -487,6 +647,7 @@ agent_channel_handle <- function(state, msg_json) {
   env$server <- NULL
   env$token <- NULL
   env$port <- NULL
+  env$tier <- "read"
   env$max_calls <- 600L
   env$next_id <- 1L
   env
@@ -508,8 +669,10 @@ agent_channel_handle <- function(state, msg_json) {
 #'
 #' Reads the (single) bound registry entry at connection open: the
 #' first-bound session's tools and logger become this connection's
-#' dispatch target (first-bind-wins, plan D4 interpretation). Falls
-#' back to a no-session state when nothing is bound.
+#' dispatch target (first-bind-wins, plan D4 interpretation). The tier
+#' is the RUNNING SERVER's tier (decided at start from
+#' \code{OMICSVIEWER_AGENT_CHANNEL_WRITES}), never re-read per call.
+#' Falls back to a no-session state when nothing is bound.
 #' @keywords internal
 #' @rdname agentChannelServer
 .agent_channel_conn_state <- function(server) {
@@ -523,8 +686,162 @@ agent_channel_handle <- function(state, msg_json) {
     logger = if (!is.null(entry) && !is.null(entry$logger))
       entry$logger else .agent_channel_server_logger(),
     session_token = if (length(tokens)) tokens[[1]] else NULL,
-    tier = "read",
+    tier = server$tier,
     max_calls = server$max_calls)
+}
+
+############################################################################
+### [Stage 3] figure GET endpoint (D7)
+###
+### Plain HTTP on the channel port: GET /<token>/figure/<figure_id>/(preview|full).png
+### serves the bound session's figure PNG bytes with image/png content
+### type. Resolution order: the figures registry (id -> entry$spec) via
+### the session's figure_renderer (agent_render_figure DELETES its PNGs
+### after data-URI encoding, so a stored figure must be RE-RENDERED to
+### be served - the module's renderer closure mirrors
+### render_assistant_figure without touching the registry/counter), then
+### a safe fallback to <figure_directory>/<figure_id>_<size>.png when a
+### file happens to exist. The figure_id is validated ^[A-Za-z0-9_-]+$
+### and the size is one of two constants - the served path is built
+### ONLY from those, so path traversal is impossible by construction;
+### everything else (wrong token included) gets the same silent generic
+### 404 as any unknown plain-HTTP path, with no path echo.
+
+#' Parse a figure GET path into (figure_id, size), or NULL
+#'
+#' Strict segment parser: \code{/<token>/figure/<id>/(preview|full).png}
+#' with id matching \code{^[A-Za-z0-9_-]+$}. httpuv does NOT URL-decode
+#' PATH_INFO, so percent-encoded traversal (%2F) fails the id regex and
+#' literal traversal (../) changes the segment count or fails the
+#' regex - both are refused here, never reaching any filesystem call.
+#' @param path Request path (PATH_INFO).
+#' @param token The server's pairing token.
+#' @return list(figure_id, size) or NULL when the path is not a valid
+#'   figure GET for this token.
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_figure_parse <- function(path, token) {
+  if (!is.character(path) || length(path) != 1L ||
+      !is.character(token) || length(token) != 1L)
+    return(NULL)
+  parts <- strsplit(path, "/", fixed = TRUE)[[1]]
+  if (length(parts) != 5L)
+    return(NULL)
+  if (!identical(parts[[1]], "") ||
+      !identical(parts[[2]], token) ||
+      !identical(parts[[3]], "figure"))
+    return(NULL)
+  figure_id <- parts[[4]]
+  size <- switch(parts[[5]],
+                 "preview.png" = "preview",
+                 "full.png" = "full",
+                 NA_character_)
+  if (is.na(size) || !grepl("^[A-Za-z0-9_-]+$", figure_id))
+    return(NULL)
+  list(figure_id = figure_id, size = size)
+}
+
+#' Decode a data URI (data:image/png;base64,...) to raw bytes
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_uri_bytes <- function(uri) {
+  text <- tryCatch(as.character(uri), error = function(e) character())
+  if (length(text) != 1L || is.na(text) ||
+      !startsWith(text, "data:image/png;base64,"))
+    return(NULL)
+  payload <- sub("^data:[^,]+,", "", text)
+  tryCatch(base64enc::base64decode(payload), error = function(e) NULL)
+}
+
+#' Resolve figure PNG bytes for one GET (registry first, then file)
+#'
+#' @param figure_id Validated figure id (^[A-Za-z0-9_-]+$).
+#' @param size "preview" or "full".
+#' @param entry The bound session's registry entry (may lack figure
+#'   fields entirely - Stage-2 binds).
+#' @return list(status = 200L, content_type = "image/png", body = <raw>)
+#'   or list(status = 404L, reason = ...) - reason is for the LOG only,
+#'   never the response body.
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_figure_resolve <- function(figure_id, size, entry) {
+  fail <- function(reason) list(status = 404L, reason = reason)
+  if (is.null(entry))
+    return(fail("no_session"))
+  spec <- NULL
+  if (!is.null(entry$figures)) {
+    registry <- tryCatch(shiny::isolate(entry$figures()),
+                         error = function(e) NULL)
+    hit <- registry[[figure_id]]
+    if (!is.null(hit))
+      spec <- hit$spec
+  }
+  if (!is.null(spec) && is.function(entry$figure_renderer)) {
+    rendered <- tryCatch(entry$figure_renderer(spec),
+                         error = function(e) NULL)
+    bytes <- if (is.list(rendered))
+      .agent_channel_uri_bytes(rendered[[paste0(size, "_uri")]]) else NULL
+    if (!is.null(bytes) && length(bytes))
+      return(list(status = 200L, content_type = "image/png", body = bytes,
+                  source = "renderer"))
+  }
+  # Safe fallback: a PNG that exists on disk under the session's
+  # figure directory (the id and size are already validated constants;
+  # no user-controlled path component can reach file.path).
+  if (!is.null(entry$figure_directory) &&
+      is.character(entry$figure_directory) &&
+      length(entry$figure_directory) == 1L) {
+    candidate <- file.path(entry$figure_directory,
+                           paste0(figure_id, "_", size, ".png"))
+    if (file.exists(candidate)) {
+      bytes <- tryCatch(
+        readBin(candidate, what = "raw", n = file.size(candidate)),
+        error = function(e) NULL)
+      if (!is.null(bytes) && length(bytes))
+        return(list(status = 200L, content_type = "image/png",
+                    body = bytes, source = "file"))
+    }
+  }
+  fail("no_figure")
+}
+
+#' Answer one plain-HTTP request on the channel port
+#'
+#' Stage 3 serves exactly one HTTP surface: the figure GET endpoint
+#' (D7) under \code{/<token>/figure/<id>/(preview|full).png}. NB httpuv
+#' 1.6.17 routes plain HTTP to the Rook \code{call(req)} entry (a
+#' callback named \code{onRequest} is silently ignored - found while
+#' building Stage 3; Stage 2's generic 404 therefore came from httpuv's
+#' own default handler). Every non-figure path - and every figure path
+#' with a wrong token - answers the same generic 404 with no path echo;
+#' the refusal is logged with the token tag, never the token or path.
+#' @keywords internal
+#' @rdname agentChannelServer
+.agent_channel_http_response <- function(server_env, req) {
+  parsed <- .agent_channel_figure_parse(
+    .agent_channel_request_path(req), server_env$token)
+  if (is.null(parsed))
+    return(list(status = 404L, body = "Not Found",
+                headers = list("Content-Type" = "text/plain")))
+  tokens <- agent_channel_registry_list()
+  entry <- NULL
+  if (length(tokens))
+    entry <- tryCatch(get(tokens[[1]], envir = .agent_channel_registry),
+                      error = function(e) NULL)
+  resolved <- .agent_channel_figure_resolve(
+    parsed$figure_id, parsed$size, entry)
+  .agent_channel_log(
+    agent_channel_state_new(logger = .agent_channel_server_logger()),
+    "channel_figure_request", list(
+      figure_id = parsed$figure_id, size = parsed$size,
+      status = resolved$status,
+      session = if (length(tokens))
+        .agent_channel_token_tag(tokens[[1]]) else NULL))
+  if (identical(resolved$status, 200L))
+    return(list(status = 200L, body = resolved$body,
+                headers = list("Content-Type" = "image/png")))
+  list(status = 404L, body = "Not Found",
+       headers = list("Content-Type" = "text/plain"))
 }
 
 .agent_channel_request_path <- function(req) {
@@ -550,12 +867,20 @@ agent_channel_handle <- function(state, msg_json) {
 #' \code{OMICSVIEWER_AGENT_CHANNEL} is truthy; a second start while
 #' running reports the existing server and returns \code{TRUE}.
 #'
+#' The tool tier is decided HERE, once, from the environment (rollback
+#' rule): \code{OMICSVIEWER_AGENT_CHANNEL_WRITES} truthy serves the
+#' \code{read-write} tier (the eight write tools), anything else serves
+#' \code{read}. The tier is a property of the running server - changing
+#' the env later requires a restart, which also re-pairs (fresh token).
+#'
 #' The pairing token is generated fresh at start (>= 32 hex chars), so
 #' a restart invalidates prior clients; the FULL token is printed to
 #' the console (the pairing surface) while log events carry only
-#' \code{\link{.agent_channel_token_tag}}. Connections must hit
-#' \code{ws://127.0.0.1:<port>/<token>}; anything else is closed
-#' immediately (nothing about the token is echoed back).
+#' \code{\link{.agent_channel_token_tag}}. WebSocket connections must
+#' hit \code{ws://127.0.0.1:<port>/<token>}; anything else is closed
+#' immediately (nothing about the token is echoed back). Plain HTTP GET
+#' \code{/<token>/figure/<id>/(preview|full).png} serves figure PNGs
+#' (D7); every other plain-HTTP path gets a generic 404.
 #'
 #' @param port Port to listen on; NULL reads
 #'   \code{OMICSVIEWER_AGENT_CHANNEL_PORT} (default 7790, outside the
@@ -576,7 +901,7 @@ agent_channel_server_start <- function(port = NULL) {
   server_env <- .agent_channel_server
   if (isTRUE(server_env$running)) {
     message("omicsViewer agent channel: already running on port ",
-            server_env$port, " (token tag ",
+            server_env$port, " (tier ", server_env$tier, ", token tag ",
             .agent_channel_token_tag(server_env$token), ").")
     return(invisible(TRUE))
   }
@@ -589,6 +914,8 @@ agent_channel_server_start <- function(port = NULL) {
   server_env$token <- token
   server_env$port <- port
   server_env$max_calls <- .agent_channel_max_calls()
+  # Tier decided at server start only (rollback rule, Stage 3).
+  server_env$tier <- if (.agent_channel_writes_enabled()) "read-write" else "read"
 
   handle <- NULL
   ok_start <- tryCatch({
@@ -632,13 +959,18 @@ agent_channel_server_start <- function(port = NULL) {
                              list(connection = conn_id))
         })
       },
-      onRequest = function(req) {
-        # Plain HTTP requests carry no endpoint in Stage 2 (figures
-        # arrive in Stage 3); answer generically without echoing any
-        # path content.
-        list(status = 404L,
-             body = "Not Found",
-             headers = list("Content-Type" = "text/plain"))
+      # Plain HTTP (Rook interface): Stage 3's figure GET endpoint
+      # (D7). NB httpuv 1.6.17 invokes `call(req)` - an onRequest entry
+      # would be silently ignored (Stage 2's generic 404 actually came
+      # from httpuv's built-in default). Unknown paths, wrong tokens,
+      # and malformed figure paths all answer the SAME generic 404
+      # with no path echo.
+      call = function(req) {
+        tryCatch(
+          .agent_channel_http_response(server_env, req),
+          error = function(e)
+            list(status = 500L, body = "Internal Server Error",
+                 headers = list("Content-Type" = "text/plain")))
       }
     ))
     TRUE
@@ -654,12 +986,14 @@ agent_channel_server_start <- function(port = NULL) {
   # The pairing surface: full token to the console ONLY. Log events
   # below carry the tag, never the token (D5/D10).
   message("omicsViewer agent channel: listening on ws://127.0.0.1:",
-          port, "/", token)
+          port, "/", token, " (tier ", server_env$tier,
+          "; set OMICSVIEWER_AGENT_CHANNEL_WRITES=1 to enable write tools)")
   logger <- .agent_channel_server_logger()
   if (!is.null(logger))
     try(agent_logger_event(logger, "channel_server_start", list(
       port = port, token_tag = .agent_channel_token_tag(token),
-      tier = "read", max_calls = server_env$max_calls)), silent = TRUE)
+      tier = server_env$tier, max_calls = server_env$max_calls)),
+      silent = TRUE)
   invisible(TRUE)
 }
 
@@ -693,7 +1027,8 @@ agent_channel_server_stop <- function() {
 #' Introspect the channel server (internal)
 #'
 #' Test/introspection helper. The full token is included so a local
-#' client can pair; it is never on the wire or in logs.
+#' client can pair; it is never on the wire or in logs. \code{tier} is
+#' the tier decided at server start ("read" or "read-write").
 #' @return List: running, port, token, token_tag, tier, max_calls.
 #' @keywords internal
 #' @rdname agentChannelServer
@@ -706,7 +1041,7 @@ agent_channel_server_info <- function() {
     token = if (running) server_env$token else NULL,
     token_tag = if (running)
       .agent_channel_token_tag(server_env$token) else NULL,
-    tier = "read",
+    tier = if (running) server_env$tier else NULL,
     max_calls = if (running) server_env$max_calls else NULL)
 }
 
@@ -727,8 +1062,10 @@ agent_channel_server_info <- function() {
 #' Called once per session from \code{module_aiAssistant.R} with the
 #' freshly built tool registry. Inert (returns \code{FALSE}) unless
 #' \code{OMICSVIEWER_AGENT_CHANNEL} is truthy. When enabled and no
-#' session is bound, stores the session's tools/domain/logger in the
-#' Stage-0 registry under \code{session$token}, wires
+#' session is bound, stores the session's tools/domain/logger (plus,
+#' from Stage 3, its \code{figures} registry, \code{figure_directory},
+#' and \code{figure_renderer} closure for the figure GET endpoint, D7)
+#' in the Stage-0 registry under \code{session$token}, wires
 #' \code{session$onEnded} eviction, and starts the server. When a
 #' session is already bound, logs a console+logger warning and does
 #' not rebind (first-bind-wins). A failed server start (e.g. the port
@@ -743,13 +1080,25 @@ agent_channel_server_info <- function() {
 #'   \code{$tools}).
 #' @param session_domain The session domain the tool handlers use.
 #' @param logger Session logger (\code{\link{agent_logger_new}}).
+#' @param figures The module's figure-registry reactiveVal (id ->
+#'   entry with \code{$spec}); read via isolate at GET time. NULL when
+#'   the caller has no figure registry (the figure GET endpoint then
+#'   falls back to the directory).
+#' @param figure_directory The session's figure directory (safe
+#'   fallback for the figure GET endpoint).
+#' @param figure_renderer Optional \code{function(spec)} closure that
+#'   re-renders a stored (normalized) figure spec through the standard
+#'   pipeline and returns \code{\link{agent_render_figure}}'s result
+#'   (data URIs); the channel decodes and serves the PNG bytes.
 #' @return TRUE when this session bound the channel AND the server is
 #'   listening; FALSE when disabled, another session holds the bind,
 #'   or the server failed to start (the bind is kept) (invisibly).
 #' @keywords internal
 #' @rdname agentChannelServer
 agent_channel_session_attach <- function(session, tools, session_domain,
-                                         logger) {
+                                         logger, figures = NULL,
+                                         figure_directory = NULL,
+                                         figure_renderer = NULL) {
   tryCatch(
     {
       if (!.agent_channel_enabled())
@@ -771,6 +1120,9 @@ agent_channel_session_attach <- function(session, tools, session_domain,
         token,
         list(tools = tools, session_domain = session_domain,
              logger = logger,
+             figures = figures,
+             figure_directory = figure_directory,
+             figure_renderer = figure_renderer,
              bound_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS6Z",
                                tz = "UTC")),
         on_ended = function()
@@ -789,7 +1141,8 @@ agent_channel_session_attach <- function(session, tools, session_domain,
       }
       agent_logger_event(
         logger, "channel_bind",
-        list(session = .agent_channel_token_tag(token), tier = "read"))
+        list(session = .agent_channel_token_tag(token),
+             tier = agent_channel_server_info()$tier))
       invisible(TRUE)
     },
     error = function(e) {

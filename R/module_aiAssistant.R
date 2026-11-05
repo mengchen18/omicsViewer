@@ -781,11 +781,40 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
       # Stage 2 agent channel (AGENT_CHANNEL_PLAN.md D14): expose this
       # session's tool registry on the localhost JSON-RPC channel.
       # Inert unless OMICSVIEWER_AGENT_CHANNEL is truthy; never throws.
+      # Stage 3 (D7): pass the figure registry + a re-render closure so
+      # the channel's figure GET endpoint can serve PNG bytes.
+      # agent_render_figure DELETES its PNGs after data-URI encoding,
+      # so stored figures must be re-rendered to be served again; this
+      # closure mirrors render_assistant_figure (auxi_agentToolRegistry.R)
+      # - same normalize -> data -> plot -> render pipeline, same
+      # validation - WITHOUT touching the figure registry or counter.
       agent_channel_session_attach(
         session = session,
         tools = tool_registry$tools,
         session_domain = session_domain,
-        logger = logger
+        logger = logger,
+        figures = figures,
+        figure_directory = figure_directory,
+        figure_renderer = function(spec) {
+          normalized <- agent_normalize_figure_spec(
+            spec = spec,
+            feature_data = isolate(feature_data()),
+            sample_data = isolate(sample_data()),
+            expression = isolate(expression_data()),
+            selected_features = isolate(
+              .agent_figure_selection(selected_features())),
+            selected_samples = isolate(
+              .agent_figure_selection(selected_samples())))
+          figure_data <- agent_build_figure_data(
+            spec = normalized,
+            feature_data = isolate(feature_data()),
+            sample_data = isolate(sample_data()),
+            expression = isolate(expression_data()))
+          agent_render_figure(
+            agent_build_figure_plot(figure_data, normalized),
+            directory = figure_directory,
+            figure_id = "channel")
+        }
       )
 
       # WP-8 (F7): per-turn progress publisher. The step counter resets on
