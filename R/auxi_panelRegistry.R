@@ -1,0 +1,585 @@
+#' @name panelRegistryHelpers
+#' @title Result-space panel registry and shared panel context (WP-0)
+#' @description Internal registry + socket for the built-in result-space
+#'   panels (PANEL_DEBT_PLAN.md sections 3-4, WP-0). The registry is ONE
+#'   ordered list of validated records describing every built-in panel
+#'   (module pair, store prefix, tab value, status key, availability
+#'   predicate); \code{\link{rs_tab_set}} is the ONE availability function
+#'   derived from it. \code{\link{panel_context}} bundles everything a
+#'   panel receives (data reactives, selections, child store, sliced
+#'   status, retention helper, triset/table helpers, logger, session,
+#'   active flag) so later work packages can converge the modules on one
+#'   shape without touching the widget-store control plane or the
+#'   triselector cascade (AGENTS.md blast-radius rule: this file only
+#'   CALLS \code{widget_store_child}, \code{store_register},
+#'   \code{store_watch}, \code{store_epoch}, \code{store_bind_triselector},
+#'   \code{triselector_module} - wrap-only).
+#'
+#'   Adoption is deliberately staged: WP-0 ships the registry and helpers
+#'   with ZERO call sites inside the app (call-site adoption is WP-1+),
+#'   so nothing here may change any user-visible behavior yet.
+#' @keywords internal
+NULL
+
+############################################################################
+### [1] registry records (plan section 3.1)
+############################################################################
+
+# Composition pins these two tab values last, exactly as the L1 renderUI
+# does today (additionalTabs compose between the core panels and this
+# pinned pair). rs_tab_set restores that order (plan section 3.1: registry
+# order EQUALS today's literal composition order).
+.panel_pinned_tabs <- c("Geneshot", "Sample")
+
+.panel_id_pattern <- "^[a-zA-Z][a-zA-Z0-9_]*$"
+
+# dotted, namespaced (at least one dot), mirroring the widget-store id
+# shape; kept local so this file has no load-order dependency on
+# auxi_widgetStore.R (R sources R/ in collate order: auxi_* first)
+.panel_dotted_pattern <- "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
+
+#' Describe one built-in result-space panel
+#'
+#' Plain validated list; the registry (\code{\link{panel_records}}) is an
+#' ordered list of these. Field semantics (plan section 3.1):
+#' \itemize{
+#'   \item \code{module_id} - the namespace id L1 passes to
+#'     \code{moduleServer} TODAY, verbatim (renaming changes DOM ids -
+#'     forbidden).
+#'   \item \code{store_id} - the canonical widget-store prefix; verbatim
+#'     for the 7 existing children, NEW \code{"resultspace.dose_response"}
+#'     for dose (D2/D18; the module id \code{"rescurve"} is historical).
+#'   \item \code{tab_value} - the navbar tab value (drives
+#'     \code{input$analyst} and the \code{analyst_tab} store choices).
+#'   \item \code{label}/\code{icon} - the tab label / FontAwesome icon
+#'     name used by the navbar composition (WP-12 consumes these).
+#'   \item \code{order} - registry list order equals today's literal
+#'     composition order: Feature, ORA, fGSEA, Response, StringDB,
+#'     SeqLogo, Geneshot, Sample.
+#'   \item \code{requires(fd, pd)} - availability predicate over the
+#'     feature data (and, for future use, phenotype data); must be
+#'     defensive: \code{fd} may be NULL (hidden tab) or make reads error
+#'     (\code{rs_tab_set} guards evaluation).
+#'   \item \code{ui}/\code{server} - the module UI/server pair.
+#'   \item \code{stateful} - whether the legacy \code{analyst_*} status
+#'     transport applies to the module's own state.
+#'   \item \code{status_key} - the \code{analyst_*} snapshot key (note
+#'     \code{analyst_gene_shot} differs from the module id - historical,
+#'     kept).
+#' }
+#'
+#' @param module_id Single-segment namespace id (letters, digits,
+#'   underscore), e.g. \code{"feature_general"}.
+#' @param store_id Dotted canonical store prefix, e.g.
+#'   \code{"resultspace.ora"}.
+#' @param tab_value Navbar tab value, e.g. \code{"ORA"}.
+#' @param label Tab label, e.g. \code{"ORA"}.
+#' @param icon FontAwesome icon name, e.g. \code{"object-group"}.
+#' @param order Scalar integer-ish composition rank (1-based).
+#' @param requires Function of \code{(fd, pd)} returning TRUE when the
+#'   tab is available.
+#' @param ui Module UI function.
+#' @param server Module server function.
+#' @param stateful Scalar logical; whether legacy status transport
+#'   applies.
+#' @param status_key NULL or the \code{analyst_*} snapshot key.
+#' @return A validated record (named list).
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+panel_record <- function(module_id, store_id, tab_value, label, icon,
+                         order, requires, ui, server, stateful = TRUE,
+                         status_key = NULL) {
+  .panel_chr <- function(x, what) {
+    if (!is.character(x) || length(x) != 1L || is.na(x) || !nzchar(x))
+      stop("panel_record: ", what, " must be a single non-empty character string.",
+           call. = FALSE)
+    x
+  }
+  module_id <- .panel_chr(module_id, "module_id")
+  if (!grepl(.panel_id_pattern, module_id))
+    stop("panel_record: module_id must be a single-segment identifier ",
+         "(letters, digits, underscore), not a dotted path: ", module_id,
+         call. = FALSE)
+  store_id <- .panel_chr(store_id, "store_id")
+  if (!grepl(.panel_dotted_pattern, store_id))
+    stop("panel_record: store_id must be a dotted namespaced identifier ",
+         "such as 'resultspace.ora': ", store_id, call. = FALSE)
+  tab_value <- .panel_chr(tab_value, "tab_value")
+  label <- .panel_chr(label, "label")
+  icon <- .panel_chr(icon, "icon")
+  if (!is.numeric(order) || length(order) != 1L || is.na(order) ||
+      order != floor(order))
+    stop("panel_record: order must be a single finite integer-like number.",
+         call. = FALSE)
+  if (!is.function(requires))
+    stop("panel_record: requires must be a function of (fd, pd).", call. = FALSE)
+  if (!is.function(ui))
+    stop("panel_record: ui must be a function.", call. = FALSE)
+  if (!is.function(server))
+    stop("panel_record: server must be a function.", call. = FALSE)
+  if (!is.logical(stateful) || length(stateful) != 1L || is.na(stateful))
+    stop("panel_record: stateful must be TRUE or FALSE.", call. = FALSE)
+  if (!is.null(status_key))
+    status_key <- .panel_chr(status_key, "status_key")
+  list(
+    module_id = module_id, store_id = store_id, tab_value = tab_value,
+    label = label, icon = icon, order = as.integer(order),
+    requires = requires, ui = ui, server = server,
+    stateful = isTRUE(stateful), status_key = status_key
+  )
+}
+
+#' The ordered registry of built-in result-space panels
+#'
+#' Seed content, WP-0 (plan section 3.1 + appendix cheat sheet; names are
+#' verbatim and must never drift). List order equals today's literal
+#' composition order. Dose/STRING carry their CURRENT state semantics
+#' faithfully: dose has no store/status transport yet (gains the store in
+#' WP-3; the \code{analyst_dose_response} marker stays), STRING's status
+#' emission is the placeholder that WP-4 removes.
+#'
+#' @format A named list of \code{\link{panel_record}} lists keyed by
+#'   module id (a lazily materialized binding - see the note below).
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+# The registry references the module UI/server FUNCTIONS, but collate
+# order sources this file (auxi_*) before the module_* definitions - so
+# the list is a DELAYED binding: it materializes on first access, when
+# the namespace is complete. Data-shaped for consumers (plan section
+# 3.1/3.2 sketch uses it as a plain list); tests force it explicitly.
+delayedAssign(
+  "panel_records",
+  value = stats::setNames(
+  list(
+  panel_record(
+    module_id = "feature_general",
+    store_id = "resultspace.feature_general",
+    tab_value = "Feature", label = "Feature", icon = "chart-column",
+    order = 1L,
+    requires = function(fd, pd) TRUE,
+    ui = feature_general_ui, server = feature_general_module,
+    stateful = TRUE, status_key = "analyst_feature_general"
+  ),
+  panel_record(
+    module_id = "ora",
+    store_id = "resultspace.ora",
+    tab_value = "ORA", label = "ORA", icon = "object-group",
+    order = 2L,
+    requires = function(fd, pd) !is.null(fd) && !is.null(attr(fd, "GS")),
+    ui = enrichment_analysis_ui, server = enrichment_analysis_module,
+    stateful = TRUE, status_key = "analyst_ora"
+  ),
+  panel_record(
+    module_id = "fgsea",
+    store_id = "resultspace.fgsea",
+    tab_value = "fGSEA", label = "fGSEA", icon = "arrow-down-short-wide",
+    order = 3L,
+    requires = function(fd, pd) !is.null(fd) && !is.null(attr(fd, "GS")),
+    ui = enrichment_fgsea_ui, server = enrichment_fgsea_module,
+    stateful = TRUE, status_key = "analyst_fgsea"
+  ),
+  panel_record(
+    module_id = "rescurve",
+    store_id = "resultspace.dose_response",  # NEW (D2/D18); store lands in WP-3
+    tab_value = "Response", label = "Response", icon = "capsules",
+    order = 4L,
+    requires = function(fd, pd)
+      !is.null(fd) && any(grepl("^ResponseCurve\\|", colnames(fd))),
+    ui = dose_response_ui, server = dose_response_module,
+    # no legacy status transport today: the module has no status/store
+    # formals and L1 emits only the state_support marker (kept, WP-3)
+    stateful = FALSE, status_key = "analyst_dose_response"
+  ),
+  panel_record(
+    module_id = "stringdb",
+    store_id = "resultspace.stringdb",
+    tab_value = "StringDB", label = "StringDB", icon = "share-nodes",
+    order = 5L,
+    requires = function(fd, pd)
+      !is.null(fd) && any(grepl("^StringDB\\|", colnames(fd))),
+    ui = string_ui, server = string_module,
+    # L1 passes reactive(NULL) and emits the state_support/gap placeholder
+    # (that dead emission is removed in WP-4)
+    stateful = FALSE, status_key = "analyst_stringdb"
+  ),
+  panel_record(
+    module_id = "ptm",
+    store_id = "resultspace.ptm",
+    tab_value = "SeqLogo", label = "SeqLogo", icon = "font",
+    order = 6L,
+    requires = function(fd, pd)
+      !is.null(fd) && any(grepl("^SeqLogo\\|", colnames(fd))),
+    ui = ptmotif_ui, server = ptmotif_module,
+    stateful = TRUE, status_key = "analyst_ptm"
+  ),
+  panel_record(
+    module_id = "geneshotTab",
+    store_id = "resultspace.geneshot",
+    tab_value = "Geneshot", label = "Geneshot", icon = "book-open",
+    order = 7L,
+    requires = function(fd, pd) TRUE,
+    ui = geneshot_ui, server = geneshot_module,
+    stateful = TRUE, status_key = "analyst_gene_shot"
+  ),
+  panel_record(
+    module_id = "sample_general",
+    store_id = "resultspace.sample_general",
+    tab_value = "Sample", label = "Sample", icon = "arrows-down-to-people",
+    order = 8L,
+    requires = function(fd, pd) TRUE,
+    ui = sample_general_ui, server = sample_general_module,
+    stateful = TRUE, status_key = "analyst_sample_general"
+  )
+  ),
+  c("feature_general", "ora", "fgsea", "rescurve", "stringdb", "ptm",
+    "geneshotTab", "sample_general")
+  ),
+  eval.env = environment(),
+  assign.env = environment()
+)
+
+############################################################################
+### [2] the ONE availability function (plan section 3.2)
+############################################################################
+
+#' Compute the available analysis (result-space) tab values
+#'
+#' Registry-backed replacement for the triplicated availability logic
+#' (L1 \code{.rs_tab_choices}, the L1 renderUI conditions, L0
+#' \code{agent_analysis_tabs}). Predicates are NULL-safe and their
+#' evaluation is guarded: a failed read degrades to
+#' Feature/Geneshot/Sample exactly as today's tryCatch-wrapped
+#' \code{.rs_tab_choices}. Additional tab names compose between the core
+#' panels and the pinned Geneshot/Sample pair (today's literal order), and
+#' the result is uniqued.
+#'
+#' Call sites adopt this in WP-1 (L1 \code{.rs_tab_choices} and L0
+#' \code{agent_analysis_tabs}); the renderUI conditions convert in WP-12.
+#'
+#' @param fd Feature data (may be NULL when the tab/data is unavailable).
+#' @param additional Character vector of additional tab names
+#'   (\code{additionalTabs$tabName}); \code{character(0)} by default.
+#' @return Unique character vector of available tab values in composition
+#'   order.
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+rs_tab_set <- function(fd, additional = character(0)) {
+  if (is.null(additional))
+    additional <- character(0)
+  additional <- as.character(additional)
+  ok <- vapply(
+    panel_records,
+    function(r)
+      isTRUE(tryCatch(
+        r$requires(fd, NULL),
+        shiny.silent.error = function(e) FALSE,
+        error = function(e) FALSE)),
+    logical(1))
+  vals <- vapply(panel_records[ok], function(r) r$tab_value, character(1))
+  # pinned pair composes last; their records (always available) are held
+  # back from the leading segment so additional tabs sit between the core
+  # panels and Geneshot/Sample, byte-identical to today's vector
+  unique(c(vals[!vals %in% .panel_pinned_tabs], additional,
+           .panel_pinned_tabs))
+}
+
+############################################################################
+### [3] shared panel context + helpers (plan section 3.3/3.4)
+############################################################################
+
+#' Observer-retention factory (the \code{.xx_keep} idiom, owned once)
+#'
+#' Shiny holds observer dependencies weakly: store-glue observers that are
+#' not referenced anywhere are garbage collected between flushes and later
+#' store-to-UI pushes silently never fire (AGENTS.md observer-GC lore).
+#' Every module hand-rolled this closure; this is the one shared
+#' definition. PER-INSTANCE by construction (each call returns a fresh
+#' closure over its own list) - never share one factory result across
+#' sessions or modules (D3). Contexts hold one instance; modules running
+#' without a context (\code{context = NULL}) fall back to a local one.
+#'
+#' @return A closure \code{function(obs)} that appends and returns
+#'   \code{obs}, keeping it referenced for the lifetime of the closure's
+#'   owning frame.
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+panel_keep <- function() {
+  obs <- list()
+  function(o) {
+    obs[[length(obs) + 1L]] <<- o
+    invisible(o)
+  }
+}
+
+#' Bind a triselector cascade to the widget store (the boilerplate, once)
+#'
+#' Absorbs ONLY the per-panel cascade boilerplate (D4): the guarded triset
+#' source, the ts1/ts2/ts3 choices providers, the
+#' xax_analysis/xax_subset/xax_variable binding registration, the
+#' \code{\link{triselector_module}} wiring through
+#' \code{\link{store_watch}}/\code{\link{store_epoch}}, and
+#' \code{\link{store_bind_triselector}}. Label/help strings, sync/seed/
+#' store-to-UI push observers, extra bindings and actions stay in the
+#' module files - they are panel semantics, not boilerplate.
+#'
+#' The registered bindings are exactly today's shape: xax_analysis
+#' (\code{"select"}), xax_subset (\code{"select"}, depends on
+#' xax_analysis), xax_variable (\code{"select_cascaded"}, depends on
+#' both), with the caller's labels/help and choices providers that mirror
+#' the triset source (\code{unique} per cascade level, empty when the
+#' source is cold - the exact semantics of the current \code{.xx_ts1/
+#' .xx_ts2/.xx_ts3} helpers).
+#'
+#' @param store Child view of the canonical widget store for the panel
+#'   (e.g. \code{resultspace.ora}).
+#' @param keep Retention closure from \code{\link{panel_keep}}; keeps the
+#'   UI-to-store sync observer referenced (observer-GC rule).
+#' @param tri_id Module id of the triselector (e.g. \code{"tris_ora"}).
+#' @param tri_label Group label shown by the triselector (e.g.
+#'   \code{"Collapse features on"}).
+#' @param triset_source Panel-owned function returning the nx3 character
+#'   cascade matrix (e.g. \code{function() trisetter(meta = fd(),
+#'   combine = "none")}). Evaluated defensively: NULL/errors/non-matrix
+#'   results degrade to empty choices.
+#' @param bindings List with elements \code{analysis}, \code{subset},
+#'   \code{variable}, each a list with \code{label} and \code{help}
+#'   strings for that binding (panel-owned strings; they do not move into
+#'   this file).
+#' @param allow_unset Passed to \code{\link{triselector_module}}; TRUE for
+#'   panels whose variable may be unset (\code{"--select--"} placeholder).
+#' @return The triselector module's returned reactive (settled triples,
+#'   or NULL while the first selection has not settled).
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+panel_triset_bind <- function(store, keep, tri_id, tri_label,
+                              triset_source, bindings,
+                              allow_unset = FALSE) {
+  if (is.null(store) || !is.environment(store))
+    stop("panel_triset_bind: store must be a widget store/child view ",
+         "(e.g. from widget_store_child).", call. = FALSE)
+  if (!is.function(keep))
+    stop("panel_triset_bind: keep must be a panel_keep() closure.", call. = FALSE)
+  if (!is.character(tri_id) || length(tri_id) != 1L || !nzchar(tri_id))
+    stop("panel_triset_bind: tri_id must be a non-empty module id.",
+         call. = FALSE)
+  if (!is.function(triset_source))
+    stop("panel_triset_bind: triset_source must be a function returning ",
+         "an nx3 character matrix.", call. = FALSE)
+  if (!is.list(bindings) ||
+      !setequal(names(bindings), c("analysis", "subset", "variable")))
+    stop("panel_triset_bind: bindings must be a list with elements ",
+         "analysis, subset, variable.", call. = FALSE)
+  for (nm in names(bindings)) {
+    b <- bindings[[nm]]
+    if (!is.list(b) || !all(c("label", "help") %in% names(b)) ||
+        !is.character(b$label) || length(b$label) != 1L || !nzchar(b$label) ||
+        !is.character(b$help) || length(b$help) != 1L || !nzchar(b$help))
+      stop("panel_triset_bind: bindings$", nm,
+           " must be a list with non-empty label and help strings.",
+           call. = FALSE)
+  }
+  if (!is.logical(allow_unset) || length(allow_unset) != 1L || is.na(allow_unset))
+    stop("panel_triset_bind: allow_unset must be TRUE or FALSE.", call. = FALSE)
+
+  # guarded triset source (the .xx_ts shape shared by every panel today)
+  .ts <- function() {
+    ts <- tryCatch(triset_source(),
+                   shiny.silent.error = function(e) NULL,
+                   error = function(e) NULL)
+    if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) NULL else ts
+  }
+  .ts1 <- function() {
+    ts <- .ts()
+    if (is.null(ts)) character(0) else unique(ts[, 1])
+  }
+  .ts2 <- function(a) {
+    ts <- .ts()
+    if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
+    else unique(ts[ts[, 1] %in% a, 2])
+  }
+  .ts3 <- function(a, b) {
+    ts <- .ts()
+    if (is.null(ts)) character(0)
+    else {
+      i <- rep(TRUE, nrow(ts))
+      if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
+      if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
+      unique(ts[i, 3])
+    }
+  }
+  k1 <- .widget_store_key(store, "xax_analysis")
+  k2 <- .widget_store_key(store, "xax_subset")
+  store_register(
+    store,
+    widget_binding(
+      "xax_analysis", "select",
+      label = bindings$analysis$label, help = bindings$analysis$help,
+      choices_provider = function(v) .ts1()),
+    widget_binding(
+      "xax_subset", "select",
+      label = bindings$subset$label, help = bindings$subset$help,
+      depends_on = "xax_analysis",
+      choices_provider = function(v) .ts2(v[[k1]])),
+    widget_binding(
+      "xax_variable", "select_cascaded",
+      label = bindings$variable$label, help = bindings$variable$help,
+      depends_on = c("xax_analysis", "xax_subset"),
+      choices_provider = function(v) .ts3(v[[k1]], v[[k2]]))
+  )
+  v1 <- triselector_module(
+    tri_id,
+    reactive_x = reactive(.ts()), label = tri_label,
+    reactive_selector1 = store_watch(store, "xax_analysis"),
+    reactive_selector2 = store_watch(store, "xax_subset"),
+    reactive_selector3 = store_watch(store, "xax_variable"),
+    reactive_axis_request = store_epoch(store),
+    allow_unset = allow_unset)
+  store_bind_triselector(
+    store,
+    keys = c(analysis = "xax_analysis", subset = "xax_subset",
+             variable = "xax_variable"),
+    sel = v1, keep = keep)
+  v1
+}
+
+# D14: dormant logger. The assistant owns real logging
+# (agent_logger_new); L0 does not construct a logger in this pass. The
+# context field exists so later threading is mechanical, and its default
+# accepts any event call and does nothing.
+.panel_logger_noop <- function(...) invisible(NULL)
+
+#' Construct the per-panel context bundle
+#'
+#' The bundle every result-space panel receives (plan section 3.3). Built
+#' once per panel (registry loop in WP-11) and passed as the optional
+#' \code{context} formal each module server gains; modules coalesce
+#' (\code{store <- context$store \%||\% store}) so all legacy formals keep
+#' working. Fields:
+#' \describe{
+#'   \item{id, tab_value}{Panel identity (module id; navbar tab value).}
+#'   \item{data}{Named list of data reactives; subset of
+#'     \code{expr/pdata/fdata/object}.}
+#'   \item{selection}{Named list of selection reactives; subset of
+#'     \code{feature/sample}.}
+#'   \item{store}{The panel's child store view.}
+#'   \item{status}{Reactive carrying the panel's sliced legacy status
+#'     (\code{status()$analyst_<key>}); \code{reactive(NULL)} by default.
+#'     Status OUT stays the module's return value this pass (the
+#'     convention is documented, not re-plumbed).}
+#'   \item{keep}{Retention closure (a fresh \code{\link{panel_keep()}}
+#'     instance per context - D3, never package-level).}
+#'   \item{triset}{Partial application of \code{\link{panel_triset_bind}}
+#'     over this context's store/keep.}
+#'   \item{table}{Passthrough to \code{\link{dataTableDownload_module}}
+#'     with this context's store forwarded (the sanctioned table pattern;
+#'     dormant until adopted).}
+#'   \item{logger}{Dormant no-op by default (D14); accepts any event call.}
+#'   \item{session}{The caller's Shiny session (dormant field); panels
+#'     may ignore it.}
+#'   \item{active}{When \code{active_tab} is given:
+#'     \code{reactive(active_tab() == tab_value)} - the string module's
+#'     \code{active} wiring re-expressed; \code{reactive(NULL)}
+#'     otherwise.}
+#' }
+#'
+#' Deliberately NOT in the context (plan section 3.3): agent tool
+#' registration, agent excerpt providers, prose/labels, snapshot policy,
+#' additionalTabs handling.
+#'
+#' @param id Module id (namespace id L1 passes to moduleServer).
+#' @param tab_value Navbar tab value; needed for \code{active}.
+#' @param store The panel's child store view, or NULL (legacy/no-store
+#'   use; \code{triset}/\code{table} then refuse with an actionable
+#'   error).
+#' @param data Named list of data reactives (\code{expr}, \code{pdata},
+#'   \code{fdata}, \code{object} - any subset).
+#' @param selection Named list of selection reactives (\code{feature},
+#'   \code{sample} - any subset).
+#' @param status Reactive carrying the panel's sliced status; defaults to
+#'   \code{reactive(NULL)}.
+#' @param active_tab Optional reactive yielding the session-wide active
+#'   analysis tab name (L1's \code{status()$analyst_active_tab}); drives
+#'   \code{active}.
+#' @param keep Retention closure; defaults to a FRESH
+#'   \code{\link{panel_keep}()} instance (per-context, D3).
+#' @param logger Optional logger closure; defaults to the dormant no-op
+#'   (D14).
+#' @param session Optional Shiny session (dormant field).
+#' @return A named list (the context bundle).
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+panel_context <- function(id, tab_value = NULL, store = NULL,
+                          data = list(), selection = list(),
+                          status = shiny::reactive(NULL),
+                          active_tab = NULL,
+                          keep = panel_keep(),
+                          logger = NULL,
+                          session = NULL) {
+  if (!is.character(id) || length(id) != 1L || is.na(id) || !nzchar(id))
+    stop("panel_context: id must be a single non-empty character string.",
+         call. = FALSE)
+  if (!is.null(tab_value) &&
+      (!is.character(tab_value) || length(tab_value) != 1L ||
+       is.na(tab_value) || !nzchar(tab_value)))
+    stop("panel_context: tab_value must be NULL or a non-empty string.",
+         call. = FALSE)
+  if (!is.null(store) && !is.environment(store))
+    stop("panel_context: store must be a widget store/child view.",
+         call. = FALSE)
+  .panel_reactives <- function(x, what, allowed) {
+    if (!is.list(x))
+      stop("panel_context: ", what, " must be a named list of reactives.",
+           call. = FALSE)
+    bad <- setdiff(names(x), allowed)
+    if (length(bad))
+      stop("panel_context: ", what, " has unknown element(s): ",
+           paste(bad, collapse = ", "), "; allowed: ",
+           paste(allowed, collapse = ", "), ".", call. = FALSE)
+    for (nm in names(x))
+      if (!is.function(x[[nm]]))
+        stop("panel_context: ", what, "$", nm, " must be a reactive ",
+             "(function).", call. = FALSE)
+    invisible(NULL)
+  }
+  .panel_reactives(data, "data", c("expr", "pdata", "fdata", "object"))
+  .panel_reactives(selection, "selection", c("feature", "sample"))
+  if (!is.function(status))
+    stop("panel_context: status must be a reactive (function).", call. = FALSE)
+  if (!is.null(active_tab) && !is.function(active_tab))
+    stop("panel_context: active_tab must be NULL or a reactive (function).",
+         call. = FALSE)
+  if (!is.function(keep))
+    stop("panel_context: keep must be a panel_keep() closure.", call. = FALSE)
+  if (is.null(logger))
+    logger <- .panel_logger_noop
+  else if (!is.function(logger))
+    stop("panel_context: logger must be NULL or a closure.", call. = FALSE)
+  ctx <- list(
+    id = id,
+    tab_value = tab_value,
+    data = data,
+    selection = selection,
+    store = store,
+    status = status,
+    keep = keep,
+    triset = function(tri_id, tri_label, triset_source, bindings,
+                      allow_unset = FALSE) {
+      if (is.null(store))
+        stop("panel_context: panel '", id, "' has no store; the triset ",
+             "cascade helper requires a store-backed panel.", call. = FALSE)
+      panel_triset_bind(store, keep, tri_id, tri_label, triset_source,
+                        bindings, allow_unset)
+    },
+    table = function(id, ..., store_key = NULL) {
+      if (is.null(store))
+        stop("panel_context: panel '", id, "' has no store; the table ",
+             "helper requires a store-backed panel.", call. = FALSE)
+      dataTableDownload_module(id, ..., store = store, store_key = store_key)
+    },
+    logger = logger,
+    session = session,
+    active = if (is.null(active_tab)) shiny::reactive(NULL)
+             else shiny::reactive(active_tab() == tab_value)
+  )
+  ctx
+}
