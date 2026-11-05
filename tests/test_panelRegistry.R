@@ -594,10 +594,17 @@ ok(grepl("store", .err(panel_triset_bind(
 # The agent-visible store-key enumeration of the REAL result-space
 # composition (L1 instantiates every module server unconditionally, so
 # ORA/fGSEA register even though the demo ships no GS attr). This vector
-# is the permanent regression gate: every panel WP asserts it UNCHANGED;
-# only WP-3 may grow it (by exactly the resultspace.dose_response.* keys).
+# is the permanent regression gate: every later panel WP asserts it
+# UNCHANGED. WP-3 (its own reviewed commit, D12) grew it by EXACTLY the
+# two dose keys - what the dose tables' dataTableDownload_module calls
+# register. The updated vector was verified byte-equal to a dput of the
+# live post-WP-3 composition (72 ids; captured 2026-11-05 from the
+# freeze harness below), not hand-typed: the equality assertion IS the
+# proof.
 PANEL_REGISTRY_FREEZE_IDS <- sort(unique(c(
   "resultspace.analyst_tab",
+  "resultspace.dose_response.feature_table",
+  "resultspace.dose_response.param_table",
   "resultspace.feature_general.xax_analysis",
   "resultspace.feature_general.xax_subset",
   "resultspace.feature_general.xax_variable",
@@ -684,19 +691,10 @@ ok(isTRUE(provider_identity),
    "provider identity: the live analyst_tab choices provider equals the frozen golden vector (hand-typed; the rs_tab_set comparison went circular at WP-1 and was replaced - recorded in PANEL_DEBT_STATUS)")
 live_ids <- sort(unique(vapply(
   store_registry_view(esv$store), function(r) r$id, character(1))))
-# WP-3 transition (D12): the dose panel joined the store in this WP, so
-# the live enumeration is now the frozen vector PLUS exactly the two
-# sanctioned dose keys (plan WP-3: "whatever dataTableDownload_module
-# registers" for the two tables). The next commit (the D12 freeze update,
-# its own reviewed commit) folds these keys into the literal vector above
-# captured from this live composition; until then the union form below
-# keeps the gate strict - NOTHING outside the two dose keys may change.
-PANEL_W3_DOSE_IDS <- sort(c(
-  "resultspace.dose_response.feature_table",
-  "resultspace.dose_response.param_table"))
-ok(ut_cmp_identical(live_ids, sort(unique(c(PANEL_REGISTRY_FREEZE_IDS,
-                                          PANEL_W3_DOSE_IDS)))),
-   "D12 enumeration freeze (WP-3 transition): frozen vector + exactly the two dose keys; nothing else changed")
+# WP-3's D12 update folded the dose keys into the literal vector above
+# (captured from the live composition); the gate is plain equality again
+ok(ut_cmp_identical(live_ids, PANEL_REGISTRY_FREEZE_IDS),
+   "D12 enumeration freeze: agent-visible result-space store keys unchanged (72 ids incl. the two WP-3 dose keys)")
 live_ns <- unname(vapply(panel_records, function(r) r$store_id, ""))
 ok(all(startsWith(live_ids, "resultspace.")) &&
    all(vapply(live_ns, function(p)
@@ -717,6 +715,11 @@ dose_response_module <- omicsViewer:::dose_response_module
 agent_capability_records <- omicsViewer:::agent_capability_records
 .w3_params <- c("b_hill.slope", "c_min.response", "d_max.response",
                 "e_inflection", "pval", "log.pval", "pseudo.rsq", "range")
+# the sanctioned WP-3 additions (now folded into the frozen vector above;
+# the D12 update commit's own subject)
+PANEL_W3_DOSE_IDS <- sort(c(
+  "resultspace.dose_response.feature_table",
+  "resultspace.dose_response.param_table"))
 # shared boot factory: the module wired exactly like the L1 call site
 # does since WP-3 (context-built store + object in the context data)
 .w3_mkapp <- function(child, object = dat) {
