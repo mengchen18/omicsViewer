@@ -14,12 +14,17 @@
 #        carries counts + at most 5 key NAMES and never values.
 #   [W5] attach hook: figures / figure_directory / figure_renderer
 #        land in the registry entry; channel_bind logs the live tier.
-#   [W6] loopback smoke (websocket + curl, both skipped gracefully
-#        when unavailable): real server + real clients - write
-#        round-trips through the socket with STORE-state assertions
-#        (store_snapshot), create/get/update figure round-trip, and
-#        the figure GET endpoint over plain HTTP (200 PNG bytes, wrong
-#        token refused, traversal refused, unknown ids 404).
+#   [W6] loopback smoke, real server + real clients, each section
+#        skipping gracefully when its client package is absent:
+#        [W6-WS] write round-trips through the socket with STORE-state
+#        assertions (store_snapshot) and create/get/update figure
+#        round-trip (websocket section); [W6-HTTP] the figure GET
+#        endpoint over plain HTTP - 200 PNG bytes, wrong token refused,
+#        traversal refused, unknown ids 404 (curl section, hoisted OUT
+#        of the websocket conditional - O2 - so figure-GET coverage
+#        survives on machines with curl but no websocket; the literal
+#        ../ traversal guarantee is asserted at the PARSER level - O3,
+#        libcurl normalizes dot segments client-side).
 #
 # NEW FILE (not an extension of test_agentChannelServer.R): the
 # Stage-2 suite stays a stable read-tier guard (its 68 assertions pin
@@ -866,30 +871,6 @@ with_env(c(OMICSVIEWER_AGENT_CHANNEL = "1",
     cli$messages[length(cli$messages)]
   }
 
-  # async HTTP GET: client and server share this process's event loop,
-  # so the fetch rides curl's multi pool while later services httpuv.
-  http_get <- function(url) {
-    if (!requireNamespace("curl", quietly = TRUE))
-      return(NULL)
-    resp <- NULL
-    failed <- NULL
-    pool <- curl::new_pool()
-    curl::curl_fetch_multi(
-      url,
-      done = function(res) resp <<- res,
-      fail = function(e) failed <<- e,
-      pool = pool)
-    deadline <- Sys.time() + 20
-    while (is.null(resp) && is.null(failed) && Sys.time() < deadline) {
-      later::run_now(0.05)
-      curl::multi_run(timeout = 0, pool = pool)
-    }
-    if (!is.null(failed))
-      structure(list(status = NA_integer_, content = raw(0)),
-                class = "curl_fail", message = conditionMessage(failed))
-    resp
-  }
-
   cli <- make_client(paste0("ws://127.0.0.1:", smoke_port, "/", token))
   ok(wait_for(function() cli$open), "client opens the token-paired connection")
 
@@ -996,103 +977,11 @@ with_env(c(OMICSVIEWER_AGENT_CHANNEL = "1",
   )
 
   ## W6.5 figure GET over plain HTTP ----------------------------------------
-
-  if (!requireNamespace("curl", quietly = TRUE)) {
-    ok(TRUE, "figure HTTP tests skipped: the curl package is not installed")
-  } else {
-    get_png <- function(path) http_get(paste0(base_url, path))
-    is_png <- function(bytes)
-      length(bytes) >= 4L && identical(bytes[[1]], as.raw(0x89)) &&
-      identical(bytes[[2]], as.raw(0x50))  # \x89P (NG)
-
-    r <- get_png(paste0("/", token, "/figure/", created_id, "/preview.png"))
-    ok(
-      !is.null(r) && ut_cmp_identical(r$status, 200L) &&
-        ut_cmp_identical(is_png(r$content), TRUE) &&
-        ut_cmp_identical(length(r$content) > 500L, TRUE),
-    "figure GET serves the preview PNG bytes (200, image/png, PNG magic)"
-    )
-    ok(
-      ut_cmp_identical(
-        grepl("image/png", rawToChar(r$headers), fixed = TRUE), TRUE),
-      "figure GET answers with the image/png content type"
-    )
-    r <- get_png(paste0("/", token, "/figure/", created_id, "/full.png"))
-    ok(
-      ut_cmp_identical(r$status, 200L) &&
-        ut_cmp_identical(is_png(r$content), TRUE) &&
-        ut_cmp_identical(length(r$content) > 1000L, TRUE),
-      "figure GET serves the full-resolution PNG (bigger than the preview)"
-    )
-    r_preview <- get_png(paste0("/", token, "/figure/", created_id,
-                                "/preview.png"))
-    ok(
-      ut_cmp_identical(
-        identical(r_preview$content, get_png(
-          paste0("/", token, "/figure/", created_id, "/full.png"))$content),
-        FALSE),
-      "preview and full artifacts differ (renderer honors the size segment)"
-    )
-    r <- get_png(paste0("/", token, "/figure/", revised_id, "/preview.png"))
-    ok(
-      ut_cmp_identical(r$status, 200L) &&
-        ut_cmp_identical(is_png(r$content), TRUE),
-      "the revision figure is servable too"
-    )
-
-    # wrong token: the SAME silent refusal as WS - generic 404, no echo
-    r <- get_png(paste0("/wrongtoken/figure/", created_id, "/preview.png"))
-    ok(
-      ut_cmp_identical(r$status, 404L) &&
-        ut_cmp_identical(
-          grepl(token, rawToChar(r$content), fixed = TRUE), FALSE),
-      "wrong-token figure GET is refused with the generic 404 and no token echo"
-    )
-    # traversal attempts: encoded and literal
-    r <- get_png(paste0("/", token, "/figure/..%2F..%2Fetc%2Fpasswd/preview.png"))
-    ok(
-      ut_cmp_identical(r$status, 404L) &&
-        ut_cmp_identical(length(r$content) < 100L, TRUE),
-      "percent-encoded traversal (..%2F..%2F) is refused (404, short generic body)"
-    )
-    r <- get_png(paste0("/", token, "/figure/../../../etc/passwd/preview.png"))
-    ok(
-      ut_cmp_identical(r$status, 404L),
-      "literal traversal (../..) is refused (404)"
-    )
-    r <- get_png(paste0("/", token, "/figure/fig_1%2Fsecrets/preview.png"))
-    ok(
-      ut_cmp_identical(r$status, 404L),
-      "encoded slash inside the figure id is refused (404)"
-    )
-    # unknown figure and bad size
-    r <- get_png(paste0("/", token, "/figure/no_such_figure/preview.png"))
-    ok(
-      ut_cmp_identical(r$status, 404L),
-      "unknown figure id answers 404"
-    )
-    r <- get_png(paste0("/", token, "/figure/", created_id, "/medium.png"))
-    ok(ut_cmp_identical(r$status, 404L), "non-png size answers 404")
-    r <- get_png(paste0("/", token, "/figure/", created_id, "/full.PNG"))
-    ok(ut_cmp_identical(r$status, 404L), "case-variant size answers 404")
-    r <- get_png(paste0("/anything/else"))
-    ok(
-      ut_cmp_identical(r$status, 404L) &&
-        ut_cmp_identical(rawToChar(r$content), "Not Found"),
-      "non-figure plain HTTP keeps the generic 404 (no path echo)"
-    )
-    # the token never appears in any HTTP response body
-    ok(
-      ut_cmp_identical(
-        any(grepl(token, vapply(
-          list(get_png(paste0("/", token, "/figure/nope/preview.png")),
-               get_png(paste0("/wrongtoken/figure/", created_id,
-                              "/preview.png"))),
-          function(x) rawToChar(x$content), character(1)),
-          fixed = TRUE)), FALSE),
-      "no HTTP response body ever contains the pairing token"
-    )
-  }
+  # hoisted OUT of this websocket conditional (O2): the plain-HTTP
+  # surface has no websocket dependency, so its coverage now runs in
+  # the [W6-HTTP] section below whenever curl is available - even on
+  # machines without the websocket package (which would otherwise
+  # mask the whole subsection behind the skip above).
 
   ## W6.6 write logging through the socket path ------------------------------
 
@@ -1113,6 +1002,212 @@ with_env(c(OMICSVIEWER_AGENT_CHANNEL = "1",
   agent_channel_server_stop()
   ok(ut_cmp_identical(agent_channel_server_info()$running, FALSE),
      "socket cleanup stopped the server")
+})
+}
+
+# ==========================================================================
+# [W6-HTTP] figure GET over plain HTTP (O2: hoisted out of the websocket
+#           conditional above - runs whenever curl is available, even
+#           without the websocket package; the plain-HTTP surface has
+#           no WS dependency)
+# ==========================================================================
+
+if (!requireNamespace("curl", quietly = TRUE)) {
+  ok(TRUE, "figure HTTP tests skipped: the curl package is not installed")
+} else {
+
+with_env(c(OMICSVIEWER_AGENT_CHANNEL = "1",
+           OMICSVIEWER_AGENT_CHANNEL_WRITES = "1",
+           OMICSVIEWER_AGENT_CHANNEL_PORT =
+             as.character(smoke_port <- find_free_port())), {
+  clean_slate()
+
+  # Seed the figure registry through the PURE handler (the W4
+  # pattern): no websocket needed - the dispatcher mutates the same
+  # shared figures/figure_counter reactives the server resolves from.
+  http_state <- agent_channel_state_new(
+    tools = registry$tools, logger = logger,
+    session_token = domain$token, tier = "read-write")
+  resp <- agent_channel_handle(http_state, call_msg(31, "create_figure",
+    list(template = "volcano", x = "ttest|RE_vs_ME|mean.diff",
+         y = "ttest|RE_vs_ME|log.fdr", title = "HTTP volcano",
+         `_intent` = "seed the HTTP endpoint")))
+  http_created_id <- tryCatch(
+    jsonlite::fromJSON(
+      parse_response(resp)$result$content[[1]]$text,
+      simplifyVector = FALSE)$figure_id,
+    error = function(e) NULL)
+  ok(
+    ut_cmp_identical(err_code(resp), NULL) &&
+      ut_cmp_identical(grepl("^fig_[0-9]+$", http_created_id %||% ""), TRUE),
+    paste0("HTTP section: pure-handler create_figure seeded the figure registry (",
+           http_created_id, ") without any websocket")
+  )
+  resp <- agent_channel_handle(http_state, call_msg(32, "update_figure",
+    list(figure_id = http_created_id,
+         changes = list(labels = list(title = "HTTP revision")),
+         `_intent` = "seed a revision")))
+  http_revised_id <- tryCatch(
+    jsonlite::fromJSON(
+      parse_response(resp)$result$content[[1]]$text,
+      simplifyVector = FALSE)$figure_id,
+    error = function(e) NULL)
+  ok(
+    ut_cmp_identical(err_code(resp), NULL) &&
+      ut_cmp_identical(grepl("^fig_[0-9]+$", http_revised_id %||% ""), TRUE) &&
+      ut_cmp_identical(http_revised_id != http_created_id, TRUE),
+    "HTTP section: pure-handler update_figure seeded a distinct revision"
+  )
+
+  agent_channel_registry_bind(
+    "http-figure-token",
+    list(tools = registry$tools, session_domain = domain,
+         logger = log_logger,
+         figures = figures, figure_directory = figure_directory,
+         figure_renderer = figure_renderer))
+  ok(ut_cmp_identical(agent_channel_server_start(), TRUE),
+     "HTTP section: server starts read-write on a random free port (websocket package not required)")
+  token <- agent_channel_server_info()$token
+  base_url <- paste0("http://127.0.0.1:", smoke_port)
+
+  # async HTTP GET: client and server share this process's event loop,
+  # so the fetch rides curl's multi pool while later services httpuv.
+  http_get <- function(url) {
+    resp <- NULL
+    failed <- NULL
+    pool <- curl::new_pool()
+    curl::curl_fetch_multi(
+      url,
+      done = function(res) resp <<- res,
+      fail = function(e) failed <<- e,
+      pool = pool)
+    deadline <- Sys.time() + 20
+    while (is.null(resp) && is.null(failed) && Sys.time() < deadline) {
+      later::run_now(0.05)
+      curl::multi_run(timeout = 0, pool = pool)
+    }
+    if (!is.null(failed))
+      structure(list(status = NA_integer_, content = raw(0)),
+                class = "curl_fail", message = conditionMessage(failed))
+    resp
+  }
+
+  get_png <- function(path) http_get(paste0(base_url, path))
+  is_png <- function(bytes)
+    length(bytes) >= 4L && identical(bytes[[1]], as.raw(0x89)) &&
+    identical(bytes[[2]], as.raw(0x50))  # \x89P (NG)
+
+  r <- get_png(paste0("/", token, "/figure/", http_created_id, "/preview.png"))
+  ok(
+    !is.null(r) && ut_cmp_identical(r$status, 200L) &&
+      ut_cmp_identical(is_png(r$content), TRUE) &&
+      ut_cmp_identical(length(r$content) > 500L, TRUE),
+    "figure GET serves the preview PNG bytes (200, image/png, PNG magic)"
+  )
+  ok(
+    ut_cmp_identical(
+      grepl("image/png", rawToChar(r$headers), fixed = TRUE), TRUE),
+    "figure GET answers with the image/png content type"
+  )
+  r <- get_png(paste0("/", token, "/figure/", http_created_id, "/full.png"))
+  ok(
+    ut_cmp_identical(r$status, 200L) &&
+      ut_cmp_identical(is_png(r$content), TRUE) &&
+      ut_cmp_identical(length(r$content) > 1000L, TRUE),
+    "figure GET serves the full-resolution PNG (bigger than the preview)"
+  )
+  r_preview <- get_png(paste0("/", token, "/figure/", http_created_id,
+                              "/preview.png"))
+  ok(
+    ut_cmp_identical(
+      identical(r_preview$content, get_png(
+        paste0("/", token, "/figure/", http_created_id, "/full.png"))$content),
+      FALSE),
+    "preview and full artifacts differ (renderer honors the size segment)"
+  )
+  r <- get_png(paste0("/", token, "/figure/", http_revised_id, "/preview.png"))
+  ok(
+    ut_cmp_identical(r$status, 200L) &&
+      ut_cmp_identical(is_png(r$content), TRUE),
+    "the revision figure is servable too"
+  )
+
+  # wrong token: the SAME silent refusal as WS - generic 404, no echo
+  r <- get_png(paste0("/wrongtoken/figure/", http_created_id, "/preview.png"))
+  ok(
+    ut_cmp_identical(r$status, 404L) &&
+      ut_cmp_identical(
+        grepl(token, rawToChar(r$content), fixed = TRUE), FALSE),
+    "wrong-token figure GET is refused with the generic 404 and no token echo"
+  )
+  # traversal attempts: encoded over the wire; literal at the PARSER
+  r <- get_png(paste0("/", token, "/figure/..%2F..%2Fetc%2Fpasswd/preview.png"))
+  ok(
+    ut_cmp_identical(r$status, 404L) &&
+      ut_cmp_identical(length(r$content) < 100L, TRUE),
+    "percent-encoded traversal (..%2F..%2F) is refused (404, short generic body)"
+  )
+  r <- get_png(paste0("/", token, "/figure/fig_1%2Fsecrets/preview.png"))
+  ok(
+    ut_cmp_identical(r$status, 404L),
+    "encoded slash inside the figure id is refused (404)"
+  )
+  # O3: a LITERAL-../ wire fetch was vacuous - libcurl normalizes dot
+  # segments client-side, so the server never saw the traversal (the
+  # 404 came back for an unrelated normalized path). The guarantee is
+  # asserted where it actually lives: the pure parser, on literal
+  # traversal shapes (a 5-segment ../ id fails the id regex; deeper
+  # shapes fail the segment count), with a positive control.
+  ok(
+    ut_cmp_identical(
+      .agent_channel_figure_parse(
+        paste0("/", token, "/figure/", http_created_id, "/preview.png"),
+        token),
+      list(figure_id = http_created_id, size = "preview")),
+    "parser control: the valid figure GET path parses (so the refusals below mean something)"
+  )
+  ok(
+    is.null(.agent_channel_figure_parse(
+      paste0("/", token, "/figure/../../../etc/passwd/preview.png"), token)) &&
+      is.null(.agent_channel_figure_parse(
+        paste0("/", token, "/figure/../preview.png"), token)) &&
+      is.null(.agent_channel_figure_parse(
+        paste0("/", token, "/figure/a/../../etc/passwd/preview.png"), token)),
+    "literal traversal (../) is refused by the figure-path parser itself (O3: dot-segment ids fail the id regex, deeper shapes fail the segment count)"
+  )
+  # unknown figure and bad size
+  r <- get_png(paste0("/", token, "/figure/no_such_figure/preview.png"))
+  ok(
+    ut_cmp_identical(r$status, 404L),
+    "unknown figure id answers 404"
+  )
+  r <- get_png(paste0("/", token, "/figure/", http_created_id, "/medium.png"))
+  ok(ut_cmp_identical(r$status, 404L), "non-png size answers 404")
+  r <- get_png(paste0("/", token, "/figure/", http_created_id, "/full.PNG"))
+  ok(ut_cmp_identical(r$status, 404L), "case-variant size answers 404")
+  r <- get_png(paste0("/anything/else"))
+  ok(
+    ut_cmp_identical(r$status, 404L) &&
+      ut_cmp_identical(rawToChar(r$content), "Not Found"),
+    "non-figure plain HTTP keeps the generic 404 (no path echo)"
+  )
+  # the token never appears in any HTTP response body
+  ok(
+    ut_cmp_identical(
+      any(grepl(token, vapply(
+        list(get_png(paste0("/", token, "/figure/nope/preview.png")),
+             get_png(paste0("/wrongtoken/figure/", http_created_id,
+                            "/preview.png"))),
+        function(x) rawToChar(x$content), character(1)),
+        fixed = TRUE)), FALSE),
+    "no HTTP response body ever contains the pairing token"
+  )
+
+  # cleanup
+  agent_channel_registry_unbind("http-figure-token")
+  agent_channel_server_stop()
+  ok(ut_cmp_identical(agent_channel_server_info()$running, FALSE),
+     "HTTP section: cleanup stopped the server")
 })
 }
 
