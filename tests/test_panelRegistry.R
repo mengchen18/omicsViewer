@@ -47,6 +47,8 @@ store_watch <- omicsViewer:::store_watch
 store_epoch <- omicsViewer:::store_epoch
 store_read <- omicsViewer:::store_read
 store_apply <- omicsViewer:::store_apply
+store_reset <- omicsViewer:::store_reset
+store_restore <- omicsViewer:::store_restore
 store_bind_triselector <- omicsViewer:::store_bind_triselector
 store_registry_view <- omicsViewer:::store_registry_view
 trisetter <- omicsViewer:::trisetter
@@ -682,16 +684,257 @@ ok(isTRUE(provider_identity),
    "provider identity: the live analyst_tab choices provider equals the frozen golden vector (hand-typed; the rs_tab_set comparison went circular at WP-1 and was replaced - recorded in PANEL_DEBT_STATUS)")
 live_ids <- sort(unique(vapply(
   store_registry_view(esv$store), function(r) r$id, character(1))))
-ok(ut_cmp_identical(live_ids, PANEL_REGISTRY_FREEZE_IDS),
-   "D12 enumeration freeze: agent-visible result-space store keys unchanged")
-live_ns <- setdiff(unname(vapply(panel_records, function(r) r$store_id, "")),
-                    "resultspace.dose_response")
+# WP-3 transition (D12): the dose panel joined the store in this WP, so
+# the live enumeration is now the frozen vector PLUS exactly the two
+# sanctioned dose keys (plan WP-3: "whatever dataTableDownload_module
+# registers" for the two tables). The next commit (the D12 freeze update,
+# its own reviewed commit) folds these keys into the literal vector above
+# captured from this live composition; until then the union form below
+# keeps the gate strict - NOTHING outside the two dose keys may change.
+PANEL_W3_DOSE_IDS <- sort(c(
+  "resultspace.dose_response.feature_table",
+  "resultspace.dose_response.param_table"))
+ok(ut_cmp_identical(live_ids, sort(unique(c(PANEL_REGISTRY_FREEZE_IDS,
+                                          PANEL_W3_DOSE_IDS)))),
+   "D12 enumeration freeze (WP-3 transition): frozen vector + exactly the two dose keys; nothing else changed")
+live_ns <- unname(vapply(panel_records, function(r) r$store_id, ""))
 ok(all(startsWith(live_ids, "resultspace.")) &&
    all(vapply(live_ns, function(p)
      any(startsWith(live_ids, paste0(p, "."))), TRUE)) &&
-   !any(startsWith(live_ids, "resultspace.dose_response.")) &&
+   any(startsWith(live_ids, "resultspace.dose_response.")) &&
    any(live_ids == "resultspace.analyst_tab"),
-   "freeze cross-check: every registry store prefix is represented, dose absent until WP-3")
+   "freeze cross-check: every registry store prefix is represented; dose present since WP-3 (its child registers unconditionally, like ORA/fGSEA on GS-less data)")
+
+## ------------------- WP-3 (P4): dose-response joins the store ----
+# The first snapshot-additive adoption: the two dataTableDownload tables
+# register selected-row bindings under the NEW resultspace.dose_response
+# namespace (D2/D18) - exactly the two keys above, nothing else. The
+# S6.6_drc attribute derivation moved into the module from the L1 call
+# site (verbatim expressions over context$data$object); these cases pin
+# the moved glue end-to-end over the demo data (32 ResponseCurve
+# columns; S6.6_drc = c(dose_col = "Dose", curveid_col = "Curve")).
+dose_response_module <- omicsViewer:::dose_response_module
+agent_capability_records <- omicsViewer:::agent_capability_records
+.w3_params <- c("b_hill.slope", "c_min.response", "d_max.response",
+                "e_inflection", "pval", "log.pval", "pseudo.rsq", "range")
+# shared boot factory: the module wired exactly like the L1 call site
+# does since WP-3 (context-built store + object in the context data)
+.w3_mkapp <- function(child, object = dat) {
+  force(child); force(object)
+  function(input, output, session) {
+    dose_response_module(
+      "rescurve",
+      reactive_expr = reactive(Biobase::exprs(dat)),
+      reactive_phenoData = reactive(Biobase::pData(dat)),
+      reactive_featureData = reactive(fd0),
+      reactive_i = reactive(1L),
+      context = panel_context(
+        id = "rescurve", tab_value = "Response", store = child,
+        data = list(object = reactive(object))))
+  }
+}
+
+# --- context adoption: bindings, live choices, agent round-trip
+w3 <- new.env()
+w3$store <- widget_store_new()
+w3$child <- widget_store_child(w3$store, "resultspace.dose_response")
+w3_err <- NULL; w3_view <- NULL; w3_receipt <- NULL; w3_applied <- NULL
+w3_bad <- NULL
+shiny::testServer(.w3_mkapp(w3$child), {
+  w3_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # registry view (inside the session: the choices providers read live
+  # reactives - outside a reactive context they degrade to unavailable)
+  w3_view <<- store_registry_view(w3$store, "resultspace.dose_response")
+  # agent round-trip exactly like the other panels' tables
+  w3_receipt <<- tryCatch(
+    store_apply(w3$child, list(param_table = "pval"), origin = "agent"),
+    error = function(e) conditionMessage(e))
+  w3_applied <<- store_read(w3$child, "param_table")[[1]]
+  w3_bad <<- tryCatch(
+    store_apply(w3$child, list(feature_table = "GHOST_FEATURE"),
+                origin = "agent"),
+    error = function(e) conditionMessage(e))
+  session$flushReact()
+})
+ok(is.null(w3_err),
+   "WP-3 dose: module boots headless with a context-built store child")
+ok(ut_cmp_identical(sort(vapply(w3_view, function(r) r$id, "")),
+                    PANEL_W3_DOSE_IDS),
+   "WP-3 dose: exactly the two sanctioned selected-row bindings register")
+ok(all(vapply(w3_view, function(r) identical(r$kind, "select"), TRUE)),
+   "WP-3 dose: both bindings are select-kind (string selected_row pattern)")
+w3_par <- Filter(function(r) grepl("param_table$", r$id), w3_view)[[1]]
+w3_feat <- Filter(function(r) grepl("feature_table$", r$id), w3_view)[[1]]
+ok(ut_cmp_identical(w3_par$allowed_values, .w3_params),
+   "WP-3 dose: parameter choices live via the moved-in drc derivation (exact demo rows pinned)")
+ok(ut_cmp_identical(w3_feat$allowed_values, rownames(fd0)[1]),
+   "WP-3 dose: feature-table choice is the selected feature id (demo feature 1)")
+ok(!is.character(w3_receipt) &&
+   ut_cmp_identical(w3_receipt$applied, "resultspace.dose_response.param_table") &&
+   ut_cmp_identical(w3_receipt$diff$`resultspace.dose_response.param_table`, "pval"),
+   "WP-3 dose: agent store_apply round-trips with a receipt (param_table)")
+ok(ut_cmp_identical(w3_applied, "pval"),
+   "WP-3 dose: the applied value is readable back through the store")
+ok(is.character(w3_bad) && grepl("Unknown value for resultspace.dose_response.feature_table", w3_bad),
+   "WP-3 dose: a value outside the live choices is rejected (validation over the moved-in derivation)")
+
+# --- user clicks sync into the store (the tables' acknowledgement path)
+w3u <- new.env()
+w3u$store <- widget_store_new()
+w3u$child <- widget_store_child(w3u$store, "resultspace.dose_response")
+w3u_err <- NULL; w3u_click <- NULL
+shiny::testServer(.w3_mkapp(w3u$child), {
+  w3u_err <<- tryCatch({
+    # warm the sync observers before the click (AGENTS.md testServer
+    # lore; bare observers fire on the first flush regardless)
+    session$flushReact()
+    session$setInputs(`rescurve-param-table_rows_selected` = 2L)
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w3u_click <<- store_read(w3u$child, "param_table")[[1]]
+})
+ok(is.null(w3u_err),
+   "WP-3 dose: table click path stays alive headless")
+ok(ut_cmp_identical(w3u_click, "c_min.response"),
+   "WP-3 dose: a user row click syncs the semantic row id into the store")
+
+# --- dataset-switch reset: L0's store_reset prefix "resultspace" now
+# actually covers dose (P4's invisible-before reset gap). Runs inside a
+# live session (the reset bumps the store's reactive values)
+w3r <- new.env()
+w3r$store <- widget_store_new()
+w3r$child <- widget_store_child(w3r$store, "resultspace.dose_response")
+w3r_err <- NULL; w3r_reset <- NULL; w3r_after <- NULL
+shiny::testServer(.w3_mkapp(w3r$child), {
+  w3r_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    store_apply(w3r$child,
+                list(param_table = "pval",
+                     feature_table = rownames(fd0)[1]), origin = "agent")
+    session$flushReact()
+    # L0's exact dataset-switch call (todo 2.5)
+    w3r_reset <<- store_reset(w3r$store, c("dataspace", "resultspace"))
+    session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w3r_after <<- store_read(w3r$child, c("param_table", "feature_table"))
+})
+ok(is.null(w3r_err), "WP-3 dose: dataset-switch reset path stays alive")
+ok(ut_cmp_identical(sort(intersect(w3r_reset$reset, PANEL_W3_DOSE_IDS)),
+                    PANEL_W3_DOSE_IDS),
+   "WP-3 dose: dataset-switch reset clears the dose keys (resultspace prefix coverage)")
+ok(ut_cmp_identical(w3r_after,
+                    list(`resultspace.dose_response.param_table` = NULL,
+                         `resultspace.dose_response.feature_table` = NULL)),
+   "WP-3 dose: dose keys read NULL after the reset")
+
+# --- legacy paths: store-less boots idle; the explicit reactive_attr_drc
+# formal still feeds the tables (direct instantiation, D13)
+w3l <- new.env()
+w3l$store <- widget_store_new()
+w3l$child <- widget_store_child(w3l$store, "resultspace.dose_response")
+w3l_err <- NULL; w3l_view <- NULL
+shiny::testServer(function(input, output, session) {
+  dose_response_module(
+    "rescurve",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    reactive_i = reactive(1L),
+    reactive_attr_drc = reactive(c(dose_col = "Dose", curveid_col = "Curve")),
+    store = w3l$child)
+}, {
+  w3l_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w3l_view <<- store_registry_view(w3l$store, "resultspace.dose_response")
+})
+ok(is.null(w3l_err),
+   "WP-3 dose: legacy direct instantiation (explicit reactive_attr_drc + store) boots")
+ok(ut_cmp_identical(
+  Filter(function(r) grepl("param_table$", r$id), w3l_view)[[1]]$allowed_values,
+  .w3_params),
+   "WP-3 dose: the legacy reactive_attr_drc formal still drives the choices (no context)")
+
+w3n <- new.env()
+w3n_err <- NULL
+shiny::testServer(function(input, output, session) {
+  dose_response_module(
+    "rescurve",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    reactive_i = reactive(1L))
+}, {
+  w3n_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+})
+ok(is.null(w3n_err),
+   "WP-3 dose: store-less legacy use boots exactly as before (no store, no context)")
+
+# --- the derivation sources context$data$object: without the S6.6_drc
+# attribute the choices stay cold and agent writes are rejected with the
+# WP-A/F3 unavailable reason (same class as string pre-Run)
+dat_nodrc <- dat
+attr(dat_nodrc, "S6.6_drc") <- NULL
+w3c <- new.env()
+w3c$store <- widget_store_new()
+w3c$child <- widget_store_child(w3c$store, "resultspace.dose_response")
+w3c_err <- NULL; w3c_bad <- NULL; w3c_allowed <- NULL
+shiny::testServer(.w3_mkapp(w3c$child, dat_nodrc), {
+  w3c_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w3c_allowed <<- Filter(function(r) grepl("param_table$", r$id),
+    store_registry_view(w3c$store, "resultspace.dose_response"))[[1]]$allowed_values
+  w3c_bad <<- tryCatch(
+    store_apply(w3c$child, list(param_table = "pval"), origin = "agent"),
+    error = function(e) conditionMessage(e))
+})
+ok(is.null(w3c_err),
+   "WP-3 dose: an object without S6.6_drc boots idle (no error)")
+ok(identical(w3c_allowed, character(0)),
+   "WP-3 dose: choices stay cold without the drc attribute (derivation reads context$data$object)")
+ok(is.character(w3c_bad) && grepl("Choices are currently unavailable", w3c_bad),
+   "WP-3 dose: cold choices reject agent writes (WP-A/F3 unavailable semantics)")
+
+# --- capability records: additive, mapped to the Response tab (D10)
+w3_caps <- Filter(function(r) grepl("^resultspace\\.dose_response\\.", r$id),
+                  agent_capability_records(esv$store))
+ok(ut_cmp_identical(sort(vapply(w3_caps, function(r) r$id, "")),
+                    PANEL_W3_DOSE_IDS),
+   "WP-3 dose: exactly two capability records appear (additive; the enumeration freeze bounds the rest)")
+ok(ut_cmp_identical(unique(vapply(w3_caps, function(r) r$tab, "")), "Response"),
+   "WP-3 dose: capability records map to the Response tab (the one AGENT_TAB_LABELS entry)")
+
+# --- rollback direction: a snapshot carrying dose keys restores into a
+# store WITHOUT the dose bindings through unknown-id degradation
+# (auxi_widgetStore store_restore; pre-WP-3 code reading post-WP-3
+# snapshots). The app-level both-direction cases live in
+# test_snapshotRoundTrip.R.
+w3_old <- widget_store_new()
+store_register(widget_store_child(w3_old, "resultspace.ora"),
+               widget_binding("xax_analysis", "select", values = c("ttest", "PCA")))
+w3_rr <- tryCatch(
+  store_restore(w3_old, list(
+    values = list(`resultspace.ora.xax_analysis` = "ttest",
+                  `resultspace.dose_response.param_table` = "pval",
+                  `resultspace.dose_response.feature_table` = "X1"),
+    unset = character(0)), replace = TRUE),
+  error = function(e) conditionMessage(e))
+ok(!is.character(w3_rr) &&
+   ut_cmp_identical(sort(w3_rr$unknown_ids), PANEL_W3_DOSE_IDS) &&
+   ut_cmp_identical(w3_rr$applied, "resultspace.ora.xax_analysis") &&
+   ut_cmp_identical(store_read(w3_old, "resultspace.ora.xax_analysis")[[1]], "ttest"),
+   "WP-3 dose: dose keys in a snapshot degrade to unknown_ids on a dose-less store (rollback-safe restore)")
 
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1

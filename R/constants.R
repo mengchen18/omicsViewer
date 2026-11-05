@@ -228,6 +228,9 @@ AGENT_TAB_LABELS <- c(
   "resultspace.feature_general" = "Feature",
   "resultspace.ora" = "ORA",
   "resultspace.fgsea" = "fGSEA",
+  # WP-3 (P4, D10): the ONE additive dose entry - the tables' capability
+  # records map to the owning "Response" tab
+  "resultspace.dose_response" = "Response",
   "resultspace.stringdb" = "StringDB",
   "resultspace.geneshot" = "Geneshot",
   "resultspace.sample_general" = "Sample",

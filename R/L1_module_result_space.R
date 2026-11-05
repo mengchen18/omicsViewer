@@ -52,6 +52,7 @@ L1_result_space_module <- function(
     store_stringdb <- NULL
     store_ptm <- NULL
     store_geneshot <- NULL
+    store_rescurve <- NULL
     store_rs <- NULL  # L1: referenced by the status-restore observer even when store is NULL
     if (!is.null(store)) {
       store_feature_general <- widget_store_child(store, "resultspace.feature_general")
@@ -61,6 +62,8 @@ L1_result_space_module <- function(
       store_stringdb <- widget_store_child(store, "resultspace.stringdb")
       store_ptm <- widget_store_child(store, "resultspace.ptm")
       store_geneshot <- widget_store_child(store, "resultspace.geneshot")
+      # WP-3 (P4): dose-response joins the store (new child, D2/D18)
+      store_rescurve <- widget_store_child(store, "resultspace.dose_response")
       store_rs <- widget_store_child(store, "resultspace")
       # tab titles in renderUI order; providers must never req()
       # WP-1 (P2): thin wrapper over the ONE availability function
@@ -206,22 +209,29 @@ L1_result_space_module <- function(
       #   })
     )
 
-    # dose response
+    # dose response (WP-3, P4: the panel joins the store). The context is
+    # built here per plan D13 - WP-11 collapses the per-panel context
+    # builds into the registry loop. The S6.6_drc attribute derivation
+    # moved INTO the module (verbatim expressions over
+    # context$data$object); this call site no longer builds it.
+    dose_context <- panel_context(
+      id = "rescurve", tab_value = "Response",
+      store = store_rescurve,
+      data = Filter(is.function, list(
+        expr = reactive_expr, pdata = reactive_phenoData,
+        fdata = reactive_featureData, object = object)),
+      selection = Filter(is.function, list(
+        feature = reactive_i, sample = reactive_highlight)),
+      status = reactive(status()$analyst_dose_response),
+      session = session
+    )
     v8 <- dose_response_module(
       "rescurve",
       reactive_expr = reactive_expr,
       reactive_i = reactive_i,
       reactive_phenoData = reactive_phenoData,
       reactive_featureData = reactive_featureData,
-      reactive_attr_drc = reactive({
-        req(object())
-        # sqlite-revival WP-3: S6.6_drc rides through getAx (the default
-        # seam) so SQLite connections serve it from the attrs table;
-        # containers without a getAx method fall back to plain attr()
-        # (the pre-2.1.81 behavior)
-        tryCatch(getAx(object(), "S6.6_drc"),
-                 error = function(e) attr(object(), "S6.6_drc"))
-      })
+      context = dose_context
     )
 
     #

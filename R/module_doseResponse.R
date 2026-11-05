@@ -73,7 +73,22 @@ dose_response_ui <- function(id) {
 #'
 #' @param reactive_attr_drc Reactive expression. Returns a named character vector
 #'   with elements "dose_col" and "curveid_col" specifying the column names
-#'   in phenoData for dose values and curve identifiers.
+#'   in phenoData for dose values and curve identifiers. Defaults to an empty
+#'   reactive (the module mounts idle); since WP-3 the L1 call site passes no
+#'   explicit derivation - the attribute is derived inside the module from
+#'   \code{context$data$object} instead.
+#' @param store Optional child view of the canonical widget store
+#'   (\code{\link{widget_store_child}}) for this module, e.g.
+#'   \code{widget_store_child(store, "resultspace.dose_response")}. When
+#'   given (directly or through \code{context}), the parameter and feature
+#'   tables register their selected-row bindings on it (\code{param_table} /
+#'   \code{feature_table}; the string \code{selected_row} pattern); when NULL
+#'   the tables keep the legacy store-less behavior (WP-3, P4).
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   plan D13). When given, \code{context$store} takes over the store wiring
+#'   and the \code{S6.6_drc} attribute derivation is computed from
+#'   \code{context$data$object} (moved in verbatim from the L1 call site in
+#'   WP-3). All legacy formals keep working for direct instantiation.
 #'
 #' @details
 #' The module fits 4-parameter or 5-parameter log-logistic curves to the
@@ -99,18 +114,42 @@ dose_response_module <- function(
     reactive_phenoData,
     reactive_featureData,
     reactive_i,
-    reactive_attr_drc
+    reactive_attr_drc = shiny::reactive(NULL),
+    store = NULL,
+    context = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+
+  # WP-3 (P4): the panel joins the widget store. Resolution per plan
+  # D13: the context (when given) owns the store; the explicit formal is
+  # the legacy / direct-instantiation path.
+  if (!is.null(context))
+    store <- context$store %||% store
+
+  # WP-3 (P4): the S6.6_drc attribute derivation moved in VERBATIM from
+  # the L1 call site (plan WP-3 risk-table rule: identical expressions
+  # moved across the module boundary). The source is the context's
+  # object reactive; without a context the legacy reactive_attr_drc
+  # formal is used (direct instantiation).
+  .dose_object <- if (is.null(context)) NULL else context$data$object
+  attr_drc <- if (is.null(.dose_object)) reactive_attr_drc else reactive({
+    req(.dose_object())
+    # sqlite-revival WP-3: S6.6_drc rides through getAx (the default
+    # seam) so SQLite connections serve it from the attrs table;
+    # containers without a getAx method fall back to plain attr()
+    # (the pre-2.1.81 behavior)
+    tryCatch(getAx(.dose_object(), "S6.6_drc"),
+             error = function(e) attr(.dose_object(), "S6.6_drc"))
+  })
   
   dr1 <- reactive({
     req(length(reactive_i()) == 1)
     req(reactive_featureData())
-    req(reactive_attr_drc())
-    v <- reactive_attr_drc()
+    req(attr_drc())
+    v <- attr_drc()
     list(
       col_dose = paste("General", "All", v["dose_col"], sep = "|"),
       col_curveid = paste("General", "All", v["curveid_col"], sep = "|")
@@ -143,10 +182,37 @@ dose_response_module <- function(
   })
   
   dataTableDownload_module(
-    "feature", reactive_table = reactive(tabs()$featInfo), prefix = "Response_featureInfo_"
+    "feature", reactive_table = reactive(tabs()$featInfo), prefix = "Response_featureInfo_",
+    reactive_row_ids = reactive({
+      fi <- tryCatch(tabs()$featInfo,
+                     shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.data.frame(fi) && nrow(fi) > 0L) rownames(fi) else NULL
+    }),
+    store = store, store_key = "feature_table",
+    store_label = "Selected feature row",
+    store_help = paste("Feature whose row is selected in the dose-response",
+                       "feature-information table; the table follows the",
+                       "current single-feature selection. PRECONDITION:",
+                       "requires exactly one feature selected and",
+                       "dose-response metadata (S6.6_drc) on the dataset")
   )
   dataTableDownload_module(
-    "param", reactive_table = reactive(tabs()$par), prefix = "Response_par_"
+    "param", reactive_table = reactive(tabs()$par), prefix = "Response_par_",
+    reactive_row_ids = reactive({
+      pt <- tryCatch(tabs()$par,
+                     shiny.silent.error = function(e) NULL,
+                     error = function(e) NULL)
+      if (is.data.frame(pt) && "param" %in% colnames(pt))
+        as.character(pt$param) else NULL
+    }),
+    store = store, store_key = "param_table",
+    store_label = "Selected parameter",
+    store_help = paste("Parameter row currently selected in the",
+                       "dose-response parameter table (hill slope, response",
+                       "plateaus, inflection point, fit statistics).",
+                       "PRECONDITION: requires exactly one feature selected",
+                       "and dose-response metadata (S6.6_drc) on the dataset")
   )
 
   }) # end moduleServer

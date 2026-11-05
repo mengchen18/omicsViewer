@@ -765,3 +765,87 @@ shiny::testServer(mkapp(d11, demo, st11), {
   alive(session, "corrupt snapshot restore")
 })
 unlink(d11, recursive = TRUE)
+
+## ==================================================================
+## 12. WP-3 (P4) dose-response store keys: the new
+##     resultspace.dose_response.* keys save/restore through the widget-
+##     store section; a snapshot WITHOUT them (pre-WP-3 shape) restores
+##     cleanly (replace mode clears the dose keys to NULL); the legacy
+##     analyst_dose_response marker stays state_support = FALSE
+## ==================================================================
+d12 <- snap_dir("dosekeys")
+st12 <- omicsViewer:::widget_store_new()
+dose_key <- "resultspace.dose_response.param_table"
+dose_ids <- sort(c(dose_key, "resultspace.dose_response.feature_table"))
+shiny::testServer(mkapp(d12, demo, st12), {
+  snap_init(session)
+  disarm_corner(session)
+  # the dose tables go live once exactly ONE feature is selected
+  session$setInputs(`app-dataspace-tab_feature-table_rows_selected` = 1L)
+  session$flushReact(); snap_ack(session)
+  # the agent sets a dose parameter row, like any other table widget
+  omicsViewer:::store_apply(st12, stats::setNames(list("pval"), dose_key),
+                            origin = "agent")
+  snap_ack(session)
+  save_snapshot(session, "withdose", 1L)
+  ss <- read_ess(d12, "withdose")
+  ok(ut_cmp_identical(
+    sort(grep("^resultspace\\.dose_response", names(ss$widget_store$values),
+              value = TRUE)), dose_ids),
+     "dose snapshot: exactly the two sanctioned dose keys ride the widget-store section")
+  ok(ut_cmp_identical(ss$widget_store$values[[dose_key]], "pval"),
+     "dose snapshot: the selected parameter row is saved")
+  ok(ut_cmp_identical(ss$panels$result_space$analyst_dose_response,
+                      list(state_support = FALSE)),
+     "dose snapshot: the legacy analyst_dose_response marker stays the state_support placeholder (WP-3 keeps it)")
+  ok(ut_cmp_identical(
+    c("dataspace.feature_space.x_variable", "resultspace.analyst_tab") %in%
+      names(ss$widget_store$values), c(TRUE, TRUE)),
+     "dose snapshot: pre-existing store keys still ride the section byte-untouched (names unchanged)")
+  # drift after the save, then restore through the real modal flow
+  omicsViewer:::store_apply(st12, stats::setNames(list("range"), dose_key),
+                            origin = "agent")
+  snap_ack(session)
+  ok(ut_cmp_identical(
+    omicsViewer:::store_snapshot(st12)$values[[dose_key]], "range"),
+     "dose snapshot: drifted away from the saved parameter row")
+  restore_snapshot(session, 1L, 1L, 1L)
+  ok(ut_cmp_identical(
+    omicsViewer:::store_snapshot(st12)$values[[dose_key]], "pval"),
+     "dose snapshot: the parameter row restores from the widget-store section")
+  alive(session, "dose snapshot restore")
+})
+# a PRE-WP-3-shaped snapshot (dose keys stripped from the store section)
+# must restore cleanly: replace mode clears the dose keys, everything
+# else applies, session alive
+ess12 <- read_ess(d12, "withdose")
+keep12 <- !names(ess12$widget_store$values) %in% dose_ids
+ess12$widget_store$values <- ess12$widget_store$values[keep12]
+ess12$widget_store$unset <- as.character(
+  ess12$widget_store$unset[!ess12$widget_store$unset %in% dose_ids])
+saveRDS(ess12, file.path(d12, omicsViewer:::snapshot_file_name(
+  "nodose", dataset_id = "ESVObj.RDS")))  # sorts BEFORE withdose
+st12b <- omicsViewer:::widget_store_new()
+shiny::testServer(mkapp(d12, demo, st12b), {
+  snap_init(session)
+  disarm_corner(session)
+  session$setInputs(`app-dataspace-tab_feature-table_rows_selected` = 1L)
+  session$flushReact(); snap_ack(session)
+  omicsViewer:::store_apply(st12b, stats::setNames(list("pval"), dose_key),
+                            origin = "agent")
+  snap_ack(session)
+  # rows are alphabetical: [nodose, withdose]
+  restore_snapshot(session, 1L, 1L, 1L)
+  vals <- omicsViewer:::store_snapshot(st12b)$values
+  ok(ut_cmp_identical(vals[[dose_key]], NULL),
+     "dose snapshot: a snapshot WITHOUT dose keys clears them on restore (replace semantics, clean degradation)")
+  ok(ut_cmp_identical(isFALSE(session$isClosed()), TRUE),
+     "dose snapshot: pre-WP-3 snapshot restores with the session alive")
+  # the same snapshot restores again next to the dose-carrying one
+  restore_snapshot(session, 2L, 2L, 2L)
+  ok(ut_cmp_identical(
+    omicsViewer:::store_snapshot(st12b)$values[[dose_key]], "pval"),
+     "dose snapshot: the dose-carrying row restores the parameter row again")
+  alive(session, "pre-WP-3 snapshot restore")
+})
+unlink(d12, recursive = TRUE)
