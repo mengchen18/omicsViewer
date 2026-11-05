@@ -660,27 +660,26 @@ shiny::testServer(app_l1, {
     NULL
   }, error = function(e) conditionMessage(e))
   l1_alive <<- !session$isClosed()
-  # WP-0 review MINOR-1: REAL-provider byte-faithfulness guard. The
-  # harness boots the genuine L1 with fd0, so the hand-written
-  # .rs_tab_choices provider (still the L1 body at this commit) can be
-  # compared against rs_tab_set(fd0) with the real store state passed
-  # in - a genuine two-implementation check while the hand-written
-  # provider exists. WP-1 commit 2 makes .rs_tab_choices delegate to
-  # rs_tab_set, at which point this comparison goes circular and is
-  # replaced by the frozen hand-typed golden vector (see the WP-1 note
-  # in the assertion below).
+  # WP-0 review MINOR-1 guard, in its WP-1 form: the live analyst_tab
+  # choices provider is invoked with the real store state. Before WP-1
+  # this was compared against rs_tab_set(fd0) (a genuine two-
+  # implementation check); WP-1 makes .rs_tab_choices delegate to
+  # rs_tab_set, so that comparison went circular and the provider is now
+  # pinned against the FROZEN hand-typed golden vector below (captured
+  # 2026-11-05 from the pre-WP-1 hand-written provider over demo fd,
+  # byte-for-byte). The vector stays as the permanent fixture.
   provider_identity <<- tryCatch({
     root <- esv$store
     identical(
       root$bindings[["resultspace.analyst_tab"]]$choices_provider(
         store_read(root, names(root$bindings))),
-      rs_tab_set(fd0))
+      c("Feature", "Response", "StringDB", "SeqLogo", "Geneshot", "Sample"))
   }, error = function(e) conditionMessage(e))
 })
 ok(is.null(l1_err) && isTRUE(l1_alive),
    "freeze harness: real L1 composition boots headless with a fresh store")
 ok(isTRUE(provider_identity),
-   "provider identity: the live hand-written analyst_tab choices provider equals rs_tab_set(fd0) byte-for-byte (two-implementation guard while the hand-written provider exists; goes circular at WP-1 - then frozen-golden only)")
+   "provider identity: the live analyst_tab choices provider equals the frozen golden vector (hand-typed; the rs_tab_set comparison went circular at WP-1 and was replaced - recorded in PANEL_DEBT_STATUS)")
 live_ids <- sort(unique(vapply(
   store_registry_view(esv$store), function(r) r$id, character(1))))
 ok(ut_cmp_identical(live_ids, PANEL_REGISTRY_FREEZE_IDS),

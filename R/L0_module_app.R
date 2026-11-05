@@ -733,18 +733,11 @@ app_module <- function(
 
   agent_analysis_tabs <- reactive({
     req(fdata())
-    tabs <- "Feature"
-    if (!is.null(attr(fdata(), "GS")))
-      tabs <- c(tabs, "ORA", "fGSEA")
-    if (any(grepl("^ResponseCurve\\|", colnames(fdata()))))
-      tabs <- c(tabs, "Response")
-    if (any(grepl("^StringDB\\|", colnames(fdata()))))
-      tabs <- c(tabs, "StringDB")
-    if (any(grepl("^SeqLogo\\|", colnames(fdata()))))
-      tabs <- c(tabs, "SeqLogo")
-    if (length(additionalTabs) > 0)
-      tabs <- c(tabs, vapply(additionalTabs, function(x) x$tabName, character(1)))
-    unique(c(tabs, "Geneshot", "Sample"))
+    # WP-1 (P2/D17): thin read of the ONE availability function
+    # (rs_tab_set); same req() gating, same fd input, same additional-
+    # tab composition and uniquing as the hand-written body before it
+    rs_tab_set(fdata(), additional = if (length(additionalTabs) > 0)
+      vapply(additionalTabs, function(x) x$tabName, character(1)))
   })
 
   agent_full_state <- reactive({

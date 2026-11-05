@@ -63,25 +63,15 @@ L1_result_space_module <- function(
       store_geneshot <- widget_store_child(store, "resultspace.geneshot")
       store_rs <- widget_store_child(store, "resultspace")
       # tab titles in renderUI order; providers must never req()
+      # WP-1 (P2): thin wrapper over the ONE availability function
+      # (rs_tab_set); fd acquisition stays here, the availability
+      # predicates/ordering/uniquing are the registry's
       .rs_tab_choices <- function() {
         fd <- tryCatch(reactive_featureData(),
                        shiny.silent.error = function(e) NULL,
                        error = function(e) NULL)
-        tabs <- "Feature"
-        if (!is.null(fd)) {
-          if (!is.null(attr(fd, "GS")))
-            tabs <- c(tabs, "ORA", "fGSEA")
-          if (any(grepl("^ResponseCurve\\|", colnames(fd))))
-            tabs <- c(tabs, "Response")
-          if (any(grepl("^StringDB\\|", colnames(fd))))
-            tabs <- c(tabs, "StringDB")
-          if (any(grepl("^SeqLogo\\|", colnames(fd))))
-            tabs <- c(tabs, "SeqLogo")
-        }
-        if (length(additionalTabs) > 0)
-          tabs <- c(tabs, vapply(additionalTabs,
-                                 function(lo) lo$tabName, character(1)))
-        c(tabs, "Geneshot", "Sample")
+        rs_tab_set(fd, additional = if (length(additionalTabs) > 0)
+          vapply(additionalTabs, function(lo) lo$tabName, character(1)))
       }
       store_register(
         store_rs,
