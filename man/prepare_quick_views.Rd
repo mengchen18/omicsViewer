@@ -15,6 +15,11 @@ prepare_quick_views(meta, triset = NULL)
 A data.frame of available quick-view definitions.
 }
 \description{
-Combine custom and automatically detected quick views
+Custom shortcuts are listed first, followed by auto-detected PCA,
+correlation and volcano views that do not duplicate a custom (x, y) pair.
+A custom shortcut referencing a column of a volcano-producing analysis
+category (\code{\link{volcano_analyses}}; ttest/DE by default) claims that
+whole category: all auto-detected volcano views for it are suppressed, so a
+manually defined volcano is never duplicated by the auto-generated one.
 }
 \keyword{internal}

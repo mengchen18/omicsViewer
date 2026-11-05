@@ -9,8 +9,10 @@ Documentation-only topic; no return value.
 \description{
 These internal utilities define one-click scatter-plot shortcuts. Custom
 shortcuts are read from the \code{"quickViews"} or \code{"shortcut"}
-attribute of feature/sample metadata. If no shortcuts are available, common
-PCA and volcano views are detected from the standard omicsViewer column
-naming conventions.
+attribute of feature/sample metadata. Common PCA and volcano views are
+detected from the standard omicsViewer column naming conventions; a custom
+shortcut referencing a volcano-producing analysis category (ttest/DE by
+default) takes that category over and suppresses its auto-detected volcano
+views.
 }
 \keyword{internal}

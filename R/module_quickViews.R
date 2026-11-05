@@ -2,9 +2,11 @@
 #'
 #' These internal utilities define one-click scatter-plot shortcuts. Custom
 #' shortcuts are read from the \code{"quickViews"} or \code{"shortcut"}
-#' attribute of feature/sample metadata. If no shortcuts are available, common
-#' PCA and volcano views are detected from the standard omicsViewer column
-#' naming conventions.
+#' attribute of feature/sample metadata. Common PCA and volcano views are
+#' detected from the standard omicsViewer column naming conventions; a custom
+#' shortcut referencing a volcano-producing analysis category (ttest/DE by
+#' default) takes that category over and suppresses its auto-detected volcano
+#' views.
 #'
 #' @return Documentation-only topic; no return value.
 #' @keywords internal
@@ -292,6 +294,14 @@ get_quick_views <- function(meta) {
 
 #' Combine custom and automatically detected quick views
 #'
+#' @description
+#' Custom shortcuts are listed first, followed by auto-detected PCA,
+#' correlation and volcano views that do not duplicate a custom (x, y) pair.
+#' A custom shortcut referencing a column of a volcano-producing analysis
+#' category (\code{\link{volcano_analyses}}; ttest/DE by default) claims that
+#' whole category: all auto-detected volcano views for it are suppressed, so a
+#' manually defined volcano is never duplicated by the auto-generated one.
+#'
 #' @param meta Feature or sample metadata.
 #' @param triset Matrix returned by \code{\link{trisetter}}.
 #' @return A data.frame of available quick-view definitions.
@@ -302,6 +312,16 @@ prepare_quick_views <- function(meta, triset = NULL) {
   if (nrow(custom) && nrow(auto)) {
     used <- paste(custom$x, custom$y, sep = "\r")
     auto <- auto[!paste(auto$x, auto$y, sep = "\r") %in% used, , drop = FALSE]
+    # A custom shortcut that uses a column of a volcano-producing category
+    # claims the whole category: drop every auto volcano view for it,
+    # regardless of contrast or exact axes.
+    firstToken <- function(v) sub("\\|.*", "", v)
+    claimed <- intersect(
+      unique(firstToken(c(custom$x, custom$y))),
+      volcano_analyses(meta)
+    )
+    if (length(claimed))
+      auto <- auto[!firstToken(auto$x) %in% claimed, , drop = FALSE]
   }
   out <- rbind(custom, auto)
   if (!nrow(out))

@@ -68,6 +68,55 @@ ok(
   "compact shortcut name becomes the badge label"
 )
 
+# A custom shortcut that uses a column of a volcano-producing category (ttest)
+# claims the whole category: the auto volcano is suppressed even though the
+# custom axes differ (log.pvalue instead of log.fdr); other auto views stay.
+metaVolcano <- meta
+metaVolcano$"ttest|A_B|log.pvalue" <- 1:3
+trisetVolcano <- rbind(
+  triset,
+  c("ttest", "A_B", "log.pvalue")
+)
+attr(metaVolcano, "shortcut") <- list(
+  myVolcano = c(
+    "ttest|A_B|mean.diff",
+    "ttest|A_B|log.pvalue",
+    name = "My volcano"
+  )
+)
+viewsVolcano <- prepare_quick_views(metaVolcano, trisetVolcano)
+ok(
+  ut_cmp_equal(viewsVolcano$id, c("myVolcano", "pca")),
+  "custom volcano shortcut suppresses the auto volcano of that category"
+)
+ok(
+  ut_cmp_equal(viewsVolcano$y[1], "ttest|A_B|log.pvalue"),
+  "custom volcano keeps its own Y axis"
+)
+
+# Suppression is per category, not per contrast: a custom shortcut for one
+# contrast removes the auto volcanoes of every contrast in that category.
+metaTwo <- data.frame(
+  "ttest|A_B|mean.diff" = c(-1, 0, 1),
+  "ttest|A_B|log.fdr" = c(2, 1, 3),
+  "ttest|C_D|mean.diff" = c(1, 0, -1),
+  "ttest|C_D|log.fdr" = c(3, 2, 1),
+  check.names = FALSE
+)
+trisetTwo <- rbind(
+  c("ttest", "A_B", "mean.diff"),
+  c("ttest", "A_B", "log.fdr"),
+  c("ttest", "C_D", "mean.diff"),
+  c("ttest", "C_D", "log.fdr")
+)
+attr(metaTwo, "shortcut") <- list(
+  onlyAB = c("ttest|A_B|mean.diff", "ttest|A_B|log.fdr", name = "A vs B")
+)
+ok(
+  ut_cmp_equal(prepare_quick_views(metaTwo, trisetTwo)$id, "onlyAB"),
+  "suppression is per category, not per contrast"
+)
+
 invalid <- list(
   good = c("PCA|All|PC1(10%)", "PCA|All|PC2(7%)"),
   badColumn = c("PCA|All|PC1(10%)", "Not|Available|Here"),
