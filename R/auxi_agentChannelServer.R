@@ -287,7 +287,8 @@ agent_channel_state_new <- function(tools = NULL, logger = NULL,
 #'     \code{required}/\code{enum} kept as arrays) plus the version
 #'     echo (D8). Requires a bound session.
 #'   \item \code{tools/call} (params \code{name}, optional \code{args}
-#'     object) - dispatch through \code{\link{agent_channel_dispatch}}
+#'     object; omitted or \code{\{\}} args dispatch an argument-less
+#'     call) - dispatch through \code{\link{agent_channel_dispatch}}
 #'     against the bound session's tools. The wire result carries
 #'     \code{value@value} ONLY, wrapped as
 #'     \code{content = [{type: "text", text}]} (Stage-0 review F3:
@@ -400,8 +401,8 @@ agent_channel_handle <- function(state, msg_json) {
     params <- parsed$params
     if (is.null(params))
       params <- list()
-    if (!is.list(params) || is.null(names(params)) ||
-        any(!nzchar(names(params))))
+    if (!is.list(params) || (length(params) && (is.null(names(params)) ||
+        any(!nzchar(names(params))))))
       return(finish(.agent_channel_err(
         id, -32602L,
         "Invalid params: tools/call needs a params object with `name` and optional `args`."),
@@ -415,8 +416,12 @@ agent_channel_handle <- function(state, msg_json) {
     args <- params$args
     if (is.null(args))
       args <- list()
-    if (!is.list(args) || is.null(names(args)) ||
-        any(!nzchar(names(args))))
+    # An omitted (or explicitly empty) args object is a VALID call:
+    # `list()` has NULL names, so only a NON-empty object may be judged
+    # unnamed - otherwise omitted args would trip the guard and the
+    # self-contradictory "or omitted" error below (S2-review F1).
+    if (!is.list(args) || (length(args) && (is.null(names(args)) ||
+        any(!nzchar(names(args))))))
       return(finish(.agent_channel_err(
         id, -32602L,
         "Invalid params: `args` must be a JSON object of tool arguments or omitted."),
@@ -726,7 +731,10 @@ agent_channel_server_info <- function() {
 #' Stage-0 registry under \code{session$token}, wires
 #' \code{session$onEnded} eviction, and starts the server. When a
 #' session is already bound, logs a console+logger warning and does
-#' not rebind (first-bind-wins). Never throws - a channel failure is
+#' not rebind (first-bind-wins). A failed server start (e.g. the port
+#' is taken) is logged as \code{channel_server_start_failed} (tag
+#' only) and returns \code{FALSE}; the binding itself stays so the
+#' session remains inspectable. Never throws - a channel failure is
 #' reported to the console and swallowed.
 #'
 #' @param session Shiny session (needs \code{$token} and
@@ -735,7 +743,9 @@ agent_channel_server_info <- function() {
 #'   \code{$tools}).
 #' @param session_domain The session domain the tool handlers use.
 #' @param logger Session logger (\code{\link{agent_logger_new}}).
-#' @return TRUE when this session bound the channel (invisibly).
+#' @return TRUE when this session bound the channel AND the server is
+#'   listening; FALSE when disabled, another session holds the bind,
+#'   or the server failed to start (the bind is kept) (invisibly).
 #' @keywords internal
 #' @rdname agentChannelServer
 agent_channel_session_attach <- function(session, tools, session_domain,
@@ -765,10 +775,21 @@ agent_channel_session_attach <- function(session, tools, session_domain,
                                tz = "UTC")),
         on_ended = function()
           session$onEnded(function() agent_channel_session_detach(token)))
+      started <- agent_channel_server_start()
+      if (!isTRUE(started)) {
+        # The bind above KEEPS the session (reviewer recommendation:
+        # state stays inspectable), but a wedged channel must not wear
+        # a success log - channel_bind is withheld, the failure is
+        # logged (16-hex tag only, never the token or port), and the
+        # caller learns via FALSE (S2-review F2).
+        agent_logger_event(
+          logger, "channel_server_start_failed",
+          list(session = .agent_channel_token_tag(token)))
+        return(invisible(FALSE))
+      }
       agent_logger_event(
         logger, "channel_bind",
         list(session = .agent_channel_token_tag(token), tier = "read"))
-      agent_channel_server_start()
       invisible(TRUE)
     },
     error = function(e) {

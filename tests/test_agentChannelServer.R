@@ -582,6 +582,55 @@ ok(
   "array-shaped args answer -32602 (params.args must be an object)"
 )
 
+# omitted / empty `args` is NOT a params error (S2-review F1): the call
+# must reach the DISPATCHER, exactly like an explicit argument-less
+# call. NB R's lazy missing-argument semantics: no tool handler ever
+# forces `_intent` in its body, so a dispatcher-layer rejection names
+# the first REQUIRED-AND-USED formal (space, query, id, ...) - while
+# tools whose only required arg is `_intent` outright SUCCEED with an
+# argument-less call. Both outcomes are dispatcher behavior; what F1
+# pins is that neither ever surfaces the args-object guard error.
+resp <- agent_channel_handle(live_state,
+  paste0("{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"tools/call\",",
+         "\"params\":{\"name\":\"search_annotations\"}}"))
+ok(
+  ut_cmp_identical(err_code(resp), -32602L) &&
+    grepl("is missing, with no default", resp, fixed = TRUE) &&
+    !grepl("must be a JSON object", resp, fixed = TRUE),
+  "tools/call with OMITTED args reaches the dispatcher (required-arg missing error), not the args-object guard (F1)"
+)
+resp_omitted <- agent_channel_handle(live_state,
+  paste0("{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"tools/call\",",
+         "\"params\":{\"name\":\"find_controls\"}}"))
+resp_empty <- agent_channel_handle(live_state,
+  paste0("{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"tools/call\",",
+         "\"params\":{\"name\":\"find_controls\",\"args\":{}}}"))
+ok(
+  ut_cmp_identical(err_code(resp_omitted), NULL) &&
+    ut_cmp_identical(err_code(resp_empty), NULL) &&
+    ut_cmp_identical(
+      parse_response(resp_omitted)$result$content[[1]]$text,
+      parse_response(resp_empty)$result$content[[1]]$text),
+  "omitted and explicit {} args dispatch the same argument-less call: find_controls answers both (F1)"
+)
+ok(
+  ut_cmp_identical(
+    err_code(agent_channel_handle(live_state,
+      paste0("{\"jsonrpc\":\"2.0\",\"id\":43,\"method\":\"tools/call\",",
+             "\"params\":{\"name\":\"find_controls\",",
+             "\"args\":{\"_intent\":\"list the controls\"}}}"))), NULL),
+  "omitted-args semantics stay intact: args carrying only _intent succeeds"
+)
+resp <- agent_channel_handle(live_state,
+  paste0("{\"jsonrpc\":\"2.0\",\"id\":44,\"method\":\"tools/call\",",
+         "\"params\":{}}"))
+ok(
+  ut_cmp_identical(err_code(resp), -32602L) &&
+    grepl("`name` must be a single non-empty tool name", resp, fixed = TRUE) &&
+    !grepl("needs a params object", resp, fixed = TRUE),
+  "empty params object falls through to the name check (symmetric empty-object semantics)"
+)
+
 ## 6.5 no-session states ------------------------------------------------------
 
 no_session <- agent_channel_state_new()
@@ -790,6 +839,51 @@ ok(
     ut_cmp_identical(agent_channel_server_info()$running, FALSE),
   "ai_assistant_module boots with the channel unset: nothing binds (inert hook)"
 )
+
+# 7.4 attach reports server-start failure (F2): port pre-occupied -----
+
+startfail_dir <- file.path(tempdir(), "agent-channel-startfail-logs")
+unlink(startfail_dir, recursive = TRUE, force = TRUE)
+startfail_domain <- shiny:::MockShinySession$new()
+startfail_logger <- agent_logger_new(
+  startfail_domain,
+  list(enabled = TRUE, directory = startfail_dir, max_bytes = 10485760L))
+agent_logger_set_enabled(startfail_logger, TRUE)
+
+attach_with_busy_port <- function(logger) {
+  probe_port <- find_free_port()
+  probe <- httpuv::startServer("127.0.0.1", probe_port, list())
+  on.exit(try(httpuv::stopServer(probe), silent = TRUE), add = TRUE)
+  with_env(c(OMICSVIEWER_AGENT_CHANNEL = "1",
+             OMICSVIEWER_AGENT_CHANNEL_PORT = as.character(probe_port)),
+    agent_channel_session_attach(
+      session = stub_session("stub-session-token-F2"),
+      tools = registry$tools, session_domain = domain, logger = logger))
+}
+attach_start_failure <- attach_with_busy_port(startfail_logger)
+startfail_lines <- readLines(startfail_logger$path)
+ok(
+  ut_cmp_identical(attach_start_failure, FALSE) &&
+    ut_cmp_identical(agent_channel_registry_list(), "stub-session-token-F2") &&
+    ut_cmp_identical(agent_channel_server_info()$running, FALSE),
+  "attach returns FALSE when the port is taken; the session stays bound, no server (F2)"
+)
+ok(
+  ut_cmp_identical(
+    any(grepl("channel_server_start_failed", startfail_lines, fixed = TRUE)), TRUE) &&
+    ut_cmp_identical(
+      any(grepl("channel_bind", startfail_lines, fixed = TRUE)), FALSE),
+  "a failed start logs channel_server_start_failed and NO channel_bind success event (F2)"
+)
+ok(
+  ut_cmp_identical(
+    any(grepl(.agent_channel_token_tag("stub-session-token-F2"),
+              startfail_lines, fixed = TRUE)), TRUE) &&
+    ut_cmp_identical(
+      any(grepl("stub-session-token-F2", startfail_lines, fixed = TRUE)), FALSE),
+  "the failure event carries the 16-hex tag, never the session token"
+)
+agent_channel_session_detach("stub-session-token-F2")
 
 # ==========================================================================
 # [8] loopback socket smoke (real httpuv server + real WS client)
