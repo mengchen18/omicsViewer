@@ -242,6 +242,8 @@ ok(grepl("status", .err(panel_context("x", status = NULL))),
    "panel_context: non-reactive status rejected")
 ok(grepl("active_tab", .err(panel_context("x", active_tab = "nope"))),
    "panel_context: non-reactive active_tab rejected")
+ok(grepl("tab_value", .err(panel_context("x", active_tab = reactive("ORA")))),
+   "panel_context: active_tab without tab_value rejected (never a silent logical(0) from active; WP-0 review NIT-a)")
 ok(grepl("no store", .err(ctx$triset(
      "t", "l", function() NULL,
      list(analysis = list(label = "a", help = "b"),
@@ -273,6 +275,28 @@ shiny::testServer(function(input, output, session) {
 # UNkept observers is weak-ref timing dependent and survives in short
 # mock sessions, so this asserts the retention guarantee - the direction
 # the keep idiom owns.)
+#
+# Structural assertion (WP-0 review MINOR-2): the gc case above passes
+# even for a NON-storing keep (PD-8 - an unkept control observer also
+# survived), so the deterministic guarantee is asserted here directly:
+# every kept observer must land in the closure's list. The gc case
+# below stays as integration documentation of the retention idiom.
+keep_struct <- new.env()
+shiny::testServer(function(input, output, session) {
+  k <- panel_keep()
+  v <- shiny::observe({ NULL })
+  k(v)
+  keep_struct$k <- k
+  keep_struct$v <- v
+}, {
+  session$flushReact()
+})
+ok(
+  identical(get("obs", envir = environment(keep_struct$k)),
+            list(keep_struct$v)),
+  "panel_keep: structural retention - kept observers land in the closure's list (deterministic; fails for a non-storing keep)"
+)
+
 gcenv <- new.env()
 gcenv$counts <- rep(0L, 5L)
 app_gc <- function(input, output, session) {
@@ -317,6 +341,11 @@ ok(ut_cmp_identical(gcenv$counts - gcenv$base, rep(1L, 5L)),
 # boilerplate) driven over the demo fdata, against the helper over the
 # same data: identical registered keys/kinds/labels/help/depends_on and
 # identical choices-provider outputs (plan WP-0 test contract).
+#
+# FROZEN GOLDEN FIXTURE (WP-0 review NIT-c): when WP-9 replaces the real
+# module_ora.R cascade with panel_triset_bind, this copy STAYS HERE
+# verbatim - the equivalence claim must not go circular against the very
+# code it once mirrored. Do not "simplify" it to call the helper.
 tsenv <- new.env()
 app_ts <- function(input, output, session) {
   reactive_featureData <- reactive(fd0)
@@ -517,6 +546,24 @@ shiny::testServer(app_ts, {
      "panel_triset_bind: allow_unset commits the explicit unset marker")
 })
 
+ok(grepl("tri_id", .err(panel_triset_bind(
+     widget_store_child(widget_store_new(), "x"), panel_keep(), NULL, "l",
+     function() NULL, list(analysis = list(label = "a", help = "b"),
+                            subset = list(label = "a", help = "b"),
+                            variable = list(label = "a", help = "b"))))),
+   "panel_triset_bind: missing tri_id rejected with an actionable error")
+ok(grepl("tri_label", .err(panel_triset_bind(
+     widget_store_child(widget_store_new(), "x"), panel_keep(), "t", NULL,
+     function() NULL, list(analysis = list(label = "a", help = "b"),
+                            subset = list(label = "a", help = "b"),
+                            variable = list(label = "a", help = "b"))))),
+   "panel_triset_bind: NULL tri_label rejected, validated like tri_id (WP-0 review NIT-b)")
+ok(grepl("tri_label", .err(panel_triset_bind(
+     widget_store_child(widget_store_new(), "x"), panel_keep(), "t", "",
+     function() NULL, list(analysis = list(label = "a", help = "b"),
+                            subset = list(label = "a", help = "b"),
+                            variable = list(label = "a", help = "b"))))),
+   "panel_triset_bind: empty tri_label rejected")
 ok(grepl("bindings", .err(panel_triset_bind(
      widget_store_child(widget_store_new(), "x"), panel_keep(), "t", "l",
      function() NULL, list(analysis = list(label = "a", help = "b"))))),
@@ -606,15 +653,34 @@ app_l1 <- function(input, output, session) {
     store = esv$store)
 }
 l1_err <- NULL; l1_alive <- NULL
+provider_identity <- NULL
 shiny::testServer(app_l1, {
   l1_err <<- tryCatch({
     for (i in 1:3) session$flushReact()
     NULL
   }, error = function(e) conditionMessage(e))
   l1_alive <<- !session$isClosed()
+  # WP-0 review MINOR-1: REAL-provider byte-faithfulness guard. The
+  # harness boots the genuine L1 with fd0, so the hand-written
+  # .rs_tab_choices provider (still the L1 body at this commit) can be
+  # compared against rs_tab_set(fd0) with the real store state passed
+  # in - a genuine two-implementation check while the hand-written
+  # provider exists. WP-1 commit 2 makes .rs_tab_choices delegate to
+  # rs_tab_set, at which point this comparison goes circular and is
+  # replaced by the frozen hand-typed golden vector (see the WP-1 note
+  # in the assertion below).
+  provider_identity <<- tryCatch({
+    root <- esv$store
+    identical(
+      root$bindings[["resultspace.analyst_tab"]]$choices_provider(
+        store_read(root, names(root$bindings))),
+      rs_tab_set(fd0))
+  }, error = function(e) conditionMessage(e))
 })
 ok(is.null(l1_err) && isTRUE(l1_alive),
    "freeze harness: real L1 composition boots headless with a fresh store")
+ok(isTRUE(provider_identity),
+   "provider identity: the live hand-written analyst_tab choices provider equals rs_tab_set(fd0) byte-for-byte (two-implementation guard while the hand-written provider exists; goes circular at WP-1 - then frozen-golden only)")
 live_ids <- sort(unique(vapply(
   store_registry_view(esv$store), function(r) r$id, character(1))))
 ok(ut_cmp_identical(live_ids, PANEL_REGISTRY_FREEZE_IDS),

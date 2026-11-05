@@ -362,6 +362,10 @@ panel_triset_bind <- function(store, keep, tri_id, tri_label,
   if (!is.character(tri_id) || length(tri_id) != 1L || !nzchar(tri_id))
     stop("panel_triset_bind: tri_id must be a non-empty module id.",
          call. = FALSE)
+  if (!is.character(tri_label) || length(tri_label) != 1L ||
+      !nzchar(tri_label))
+    stop("panel_triset_bind: tri_label must be a non-empty group label.",
+         call. = FALSE)
   if (!is.function(triset_source))
     stop("panel_triset_bind: triset_source must be a function returning ",
          "an nx3 character matrix.", call. = FALSE)
@@ -476,10 +480,10 @@ panel_triset_bind <- function(store, keep, tri_id, tri_label,
 #'   \item{logger}{Dormant no-op by default (D14); accepts any event call.}
 #'   \item{session}{The caller's Shiny session (dormant field); panels
 #'     may ignore it.}
-#'   \item{active}{When \code{active_tab} is given:
-#'     \code{reactive(active_tab() == tab_value)} - the string module's
-#'     \code{active} wiring re-expressed; \code{reactive(NULL)}
-#'     otherwise.}
+#'   \item{active}{When \code{active_tab} is given (which requires
+#'     \code{tab_value}): \code{reactive(active_tab() == tab_value)} -
+#'     the string module's \code{active} wiring re-expressed;
+#'     \code{reactive(NULL)} otherwise.}
 #' }
 #'
 #' Deliberately NOT in the context (plan section 3.3): agent tool
@@ -499,7 +503,8 @@ panel_triset_bind <- function(store, keep, tri_id, tri_label,
 #'   \code{reactive(NULL)}.
 #' @param active_tab Optional reactive yielding the session-wide active
 #'   analysis tab name (L1's \code{status()$analyst_active_tab}); drives
-#'   \code{active}.
+#'   \code{active}. Requires \code{tab_value} (error otherwise - the
+#'   comparison needs it).
 #' @param keep Retention closure; defaults to a FRESH
 #'   \code{\link{panel_keep}()} instance (per-context, D3).
 #' @param logger Optional logger closure; defaults to the dormant no-op
@@ -545,9 +550,15 @@ panel_context <- function(id, tab_value = NULL, store = NULL,
   .panel_reactives(selection, "selection", c("feature", "sample"))
   if (!is.function(status))
     stop("panel_context: status must be a reactive (function).", call. = FALSE)
-  if (!is.null(active_tab) && !is.function(active_tab))
-    stop("panel_context: active_tab must be NULL or a reactive (function).",
-         call. = FALSE)
+  if (!is.null(active_tab)) {
+    if (!is.function(active_tab))
+      stop("panel_context: active_tab must be NULL or a reactive (function).",
+           call. = FALSE)
+    if (is.null(tab_value))
+      stop("panel_context: active_tab requires tab_value (the panel's ",
+           "navbar tab value that 'active' compares against); without it ",
+           "active() would silently yield logical(0).", call. = FALSE)
+  }
   if (!is.function(keep))
     stop("panel_context: keep must be a panel_keep() closure.", call. = FALSE)
   if (is.null(logger))
