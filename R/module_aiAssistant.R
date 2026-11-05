@@ -778,6 +778,16 @@ ai_assistant_module <- function(id, state, state_available, feature_data, sample
         logger = logger
       )
 
+      # Stage 2 agent channel (AGENT_CHANNEL_PLAN.md D14): expose this
+      # session's tool registry on the localhost JSON-RPC channel.
+      # Inert unless OMICSVIEWER_AGENT_CHANNEL is truthy; never throws.
+      agent_channel_session_attach(
+        session = session,
+        tools = tool_registry$tools,
+        session_domain = session_domain,
+        logger = logger
+      )
+
       # WP-8 (F7): per-turn progress publisher. The step counter resets on
       # every user submission and counts TOOL CALLS within that turn; the
       # client renders the messages under the composer. sendCustomMessage
