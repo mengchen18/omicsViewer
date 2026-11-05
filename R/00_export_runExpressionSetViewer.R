@@ -120,7 +120,12 @@ omicsViewer <- function(
   appName = "omicsViewer", appVersion = packageVersion("omicsViewer"),
   log_file = NULL
   ) {
-  
+  # WP-2 (P8): validate additionalTabs BEFORE anything is built/run, so a
+  # malformed entry errors here with an actionable message (index +
+  # field + expected type) instead of exploding deep inside reactive
+  # contexts once the server starts (plan sections 4 WP-2, 7).
+  panel_validate_additional_tabs(additionalTabs)
+
   app <- list(
     ui = fluidPage(
       app_ui("app")

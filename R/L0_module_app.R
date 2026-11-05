@@ -332,6 +332,11 @@ app_module <- function(
   appName = "omicsViewer", appVersion = packageVersion("omicsViewer"),
   store = NULL
 ) {
+  # WP-2 (P8): the same additionalTabs entry guard as omicsViewer() -
+  # app_module is the developer entry point for custom embeddings (see
+  # the example above) and the argument would otherwise thread into L1
+  # unvalidated.
+  panel_validate_additional_tabs(additionalTabs)
 
   moduleServer(id, function(input, output, session) {
 

@@ -594,3 +594,85 @@ panel_context <- function(id, tab_value = NULL, store = NULL,
   )
   ctx
 }
+
+############################################################################
+### [4] additionalTabs entry validation (P8, WP-2)
+############################################################################
+
+# describes an offending value for the actionable-error convention
+# ("a numeric of length 1", "a function", "a character of length 2", ...)
+.panel_val_desc <- function(v) {
+  if (is.function(v))
+    "a function"
+  else
+    paste0("a ", paste(class(v), collapse = "/"), " of length ", length(v))
+}
+
+#' Validate the \code{additionalTabs} argument (fail fast; P8, WP-2)
+#'
+#' Entry guard for the legacy 5-field additionalTabs convention, which
+#' STAYS the convention this pass (plan sections 4 WP-2, 7; D8/D15: no
+#' deprecation shims, no registry absorption). Validates exactly the
+#' fields the consumers read - the two L1 loops (server instantiation,
+#' tab-panel composition, status builder) and the L0 availability read
+#' use \code{tabName} (navbar title; \code{vapply} \code{character(1)}
+#' in L0), \code{moduleName} (moduleServer id and status key),
+#' \code{moduleUi}/\code{moduleServer} (functions) and the optional
+#' \code{stateful} (only ever fed to \code{isTRUE()}) - nothing
+#' stricter: extra fields, unnamed top-level lists, NA/absent/NULL
+#' \code{stateful} and duplicate names all pass because the loops
+#' tolerate them.
+#'
+#' Called at BOTH entries - \code{\link{omicsViewer}} (first statement,
+#' before the app object is built) and \code{\link{app_module}} (before
+#' \code{moduleServer}) - so malformed input fails fast with a message
+#' naming the offending entry index, field and expected type, instead
+#' of the deep-dive explosions an unnamed list element used to produce
+#' inside reactive contexts (\code{do.call}/\code{vapply}). NULL (the
+#' default) is the fast path (one \code{is.null} check); the empty
+#' list passes (the loops' \code{length(x) > 0} guards).
+#'
+#' @param x The \code{additionalTabs} argument: NULL or a list of tab
+#'   records.
+#' @return \code{invisible(NULL)}; throws an actionable error
+#'   (\code{call. = FALSE}) naming the first malformed entry.
+#' @keywords internal
+#' @rdname panelRegistryHelpers
+panel_validate_additional_tabs <- function(x) {
+  if (is.null(x))
+    return(invisible(NULL))
+  if (!is.list(x))
+    stop("additionalTabs must be NULL or a list of tab records; got ",
+         .panel_val_desc(x), ".", call. = FALSE)
+  for (i in seq_along(x)) {
+    lo <- x[[i]]
+    if (!is.list(lo))
+      stop("additionalTabs[[", i, "]] must be a list (a tab record); got ",
+           .panel_val_desc(lo), ".", call. = FALSE)
+    for (fld in c("tabName", "moduleName")) {
+      v <- lo[[fld]]
+      if (is.null(v))
+        stop("additionalTabs[[", i, "]] is missing required field '", fld,
+             "' (a non-empty character string of length 1).", call. = FALSE)
+      if (!is.character(v) || length(v) != 1L || is.na(v) || !nzchar(v))
+        stop("additionalTabs[[", i, "]]$", fld,
+             " must be a non-empty character string of length 1; got ",
+             .panel_val_desc(v), ".", call. = FALSE)
+    }
+    for (fld in c("moduleUi", "moduleServer")) {
+      v <- lo[[fld]]
+      if (is.null(v))
+        stop("additionalTabs[[", i, "]] is missing required field '", fld,
+             "' (a function).", call. = FALSE)
+      if (!is.function(v))
+        stop("additionalTabs[[", i, "]]$", fld, " must be a function; got ",
+             .panel_val_desc(v), ".", call. = FALSE)
+    }
+    st <- lo$stateful
+    if (!is.null(st) && !(is.logical(st) && length(st) == 1L))
+      stop("additionalTabs[[", i, "]]$stateful must be TRUE or FALSE ",
+           "(a logical of length 1), or absent/NULL; got ",
+           .panel_val_desc(st), ".", call. = FALSE)
+  }
+  invisible(NULL)
+}

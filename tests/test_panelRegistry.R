@@ -692,3 +692,124 @@ ok(all(startsWith(live_ids, "resultspace.")) &&
    !any(startsWith(live_ids, "resultspace.dose_response.")) &&
    any(live_ids == "resultspace.analyst_tab"),
    "freeze cross-check: every registry store prefix is represented, dose absent until WP-3")
+
+## ------------------- WP-2: additionalTabs entry validation (P8) ----
+# panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
+# loops and the L0 availability read (tabName/moduleName non-empty scalar
+# chr, moduleUi/moduleServer functions, optional scalar-logical stateful)
+# and nothing stricter: extra fields, unnamed top-level lists and
+# NA/absent/NULL stateful pass because the loops tolerate them (isTRUE()
+# semantics). Malformed input errors with the entry index + field +
+# expected type. The guard runs at BOTH entries: omicsViewer() (first
+# statement, before runApp) and app_module() (before moduleServer).
+panel_validate_additional_tabs <- omicsViewer:::panel_validate_additional_tabs
+
+.at_good <- list(
+  tabName = "Custom", moduleName = "customMod",
+  moduleUi = function(id) div(paste0("custom-", id)),
+  moduleServer = function(id, pdata, fdata, expr, feature_selected,
+                          sample_selected, object, ...) paste("srv", id))
+.at <- function(...) utils::modifyList(.at_good, list(...))   # merge by name
+.at_wo <- function(fld) { r <- .at_good; r[[fld]] <- NULL; r }  # field removed
+.at_st_null <- { r <- .at_good; r["stateful"] <- list(NULL); r }  # explicit NULL element
+
+ok(is.null(panel_validate_additional_tabs(NULL)),
+   "additionalTabs: NULL passes (the fast path)")
+ok(is.null(panel_validate_additional_tabs(list())),
+   "additionalTabs: empty list passes (length(x) > 0 guards in the loops)")
+ok(is.null(panel_validate_additional_tabs(list(.at_good))),
+   "additionalTabs: well-formed record passes")
+ok(is.null(panel_validate_additional_tabs(list(.at(stateful = TRUE)))),
+   "additionalTabs: optional stateful = TRUE passes")
+ok(is.null(panel_validate_additional_tabs(list(.at(stateful = NA)))),
+   "additionalTabs: NA stateful passes (isTRUE(NA) is FALSE in the loops - no stricter)")
+ok(is.null(panel_validate_additional_tabs(list(.at_st_null))),
+   "additionalTabs: explicit NULL stateful passes (indistinguishable from absent via $)")
+ok(is.null(panel_validate_additional_tabs(list(.at(extra_field = 1L)))),
+   "additionalTabs: extra fields pass (the loops never read them)")
+ok(is.null(panel_validate_additional_tabs(list(.at_good, .at(tabName = "Second")))),
+   "additionalTabs: multiple well-formed records pass")
+
+## negative paths: every bad shape errors with index + field + expected type
+ok(grepl("additionalTabs must be NULL or a list of tab records; got a numeric of length 1",
+         .err(panel_validate_additional_tabs(42))),
+   "additionalTabs: non-list top level rejected with an actionable message")
+ok(grepl("additionalTabs\\[\\[2\\]\\] must be a list \\(a tab record\\); got a character of length 1",
+         .err(panel_validate_additional_tabs(list(.at_good, "nope")))),
+   "additionalTabs: non-list entry rejected, error names the right index")
+
+for (fld in c("tabName", "moduleName", "moduleUi", "moduleServer")) {
+  ok(grepl(paste0("additionalTabs\\[\\[2\\]\\] is missing required field '", fld, "'"),
+           .err(panel_validate_additional_tabs(list(.at_good, .at_wo(fld))))),
+     paste("additionalTabs: missing", fld, "-> error names index + field"))
+}
+
+ok(grepl("additionalTabs\\[\\[2\\]\\]\\$tabName must be a non-empty character string of length 1; got a numeric of length 1",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(tabName = 42))))),
+   "additionalTabs: numeric tabName rejected, message states the expected type")
+ok(grepl("tabName must be a non-empty character string of length 1; got a character of length 2",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(tabName = c("a", "b")))))),
+   "additionalTabs: length-2 tabName rejected (L0 vapply is character(1))")
+ok(grepl("moduleName must be a non-empty character string of length 1; got a character of length 1",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(moduleName = ""))))),
+   "additionalTabs: empty-string moduleName rejected")
+ok(grepl("moduleName must be a non-empty character string of length 1; got a logical of length 1",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(moduleName = NA))))),
+   "additionalTabs: NA moduleName rejected")
+ok(grepl("moduleUi must be a function; got a character of length 2",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(moduleUi = c("a", "b")))))),
+   "additionalTabs: non-function moduleUi rejected")
+ok(grepl("moduleServer must be a function; got a list of length 1",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(moduleServer = list(x = 1)))))),
+   "additionalTabs: non-function moduleServer rejected")
+ok(grepl("stateful must be TRUE or FALSE \\(a logical of length 1\\), or absent/NULL; got a character of length 1",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(stateful = "yes"))))),
+   "additionalTabs: character stateful rejected")
+ok(grepl("stateful must be TRUE or FALSE \\(a logical of length 1\\), or absent/NULL; got a logical of length 2",
+         .err(panel_validate_additional_tabs(list(.at_good, .at(stateful = c(TRUE, FALSE)))))),
+   "additionalTabs: length-2 stateful rejected")
+ok(grepl("additionalTabs\\[\\[3\\]\\] is missing required field 'moduleServer'",
+         .err(panel_validate_additional_tabs(list(
+           .at_good, .at(tabName = "Second"), .at_wo("moduleServer"))))),
+   "additionalTabs: valid entries before an invalid one - the error names the RIGHT index")
+
+## entry wiring: malformed input fails FAST at both entries (before any
+## Shiny machinery runs - neither runApp nor moduleServer is reached)
+ok(grepl("additionalTabs\\[\\[1\\]\\] is missing required field 'moduleServer'",
+         .err(omicsViewer::omicsViewer(dir = tempdir(),
+                                       additionalTabs = list(.at_wo("moduleServer"))))),
+   "omicsViewer(): malformed additionalTabs fails fast at entry (validator runs before runApp)")
+ok(grepl("additionalTabs\\[\\[1\\]\\]\\$moduleUi must be a function",
+         .err(omicsViewer:::app_module("app", .dir = reactive(NULL),
+                                       additionalTabs = list(.at(moduleUi = "nope"))))),
+   "app_module(): entry guard fires before moduleServer (developer embedding path)")
+
+## no behavior change for well-formed input: the real L1 composition
+## boots with an additional tab exactly as before (freeze-harness pattern)
+esv_at <- new.env()
+esv_at$store <- widget_store_new()
+esv_at$status <- NULL
+app_l1_at <- function(input, output, session) {
+  esv_at$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    additionalTabs = list(.at_good),
+    status = reactive(NULL),
+    store = esv_at$store)
+}
+l1_at_err <- NULL; l1_at_status <- NULL
+shiny::testServer(app_l1_at, {
+  l1_at_err <<- tryCatch({
+    session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  l1_at_status <<- tryCatch(shiny::isolate(esv_at$status()),
+                            error = function(e) conditionMessage(e))
+})
+ok(is.null(l1_at_err),
+   "boot: well-formed additionalTabs still boots the real L1 unchanged")
+ok(ut_cmp_identical(l1_at_status$analyst_additional,
+                    list(customMod = list(state_support = FALSE))),
+   "boot: the additional module composes into the status payload exactly as before")
