@@ -783,6 +783,13 @@ shiny::testServer(mkapp(d12, demo, st12), {
   # the dose tables go live once exactly ONE feature is selected
   session$setInputs(`app-dataspace-tab_feature-table_rows_selected` = 1L)
   session$flushReact(); snap_ack(session)
+  # WP-3 review MINOR-1: genuine pin (replaces the former 2-name
+  # membership spot-check after the save) — capture the FULL pre-apply
+  # store state, then require the saved snapshot to carry exactly that
+  # non-dose state afterwards; non-circular, within this case
+  pre12_vals <- store_vals(st12)
+  pre12_names <- sort(setdiff(names(pre12_vals), dose_ids))
+  pre12_vals <- pre12_vals[pre12_names]
   # the agent sets a dose parameter row, like any other table widget
   omicsViewer:::store_apply(st12, stats::setNames(list("pval"), dose_key),
                             origin = "agent")
@@ -798,10 +805,11 @@ shiny::testServer(mkapp(d12, demo, st12), {
   ok(ut_cmp_identical(ss$panels$result_space$analyst_dose_response,
                       list(state_support = FALSE)),
      "dose snapshot: the legacy analyst_dose_response marker stays the state_support placeholder (WP-3 keeps it)")
-  ok(ut_cmp_identical(
-    c("dataspace.feature_space.x_variable", "resultspace.analyst_tab") %in%
-      names(ss$widget_store$values), c(TRUE, TRUE)),
-     "dose snapshot: pre-existing store keys still ride the section byte-untouched (names unchanged)")
+  ok(ut_cmp_identical(sort(setdiff(names(ss$widget_store$values), dose_ids)),
+                      pre12_names),
+     "dose snapshot: the non-dose key set is byte-identical to the pre-apply store (WP-3 MINOR-1 pin; replaces the 2-name spot-check)")
+  ok(ut_cmp_identical(ss$widget_store$values[pre12_names], pre12_vals),
+     "dose snapshot: the non-dose VALUES ride the section unchanged from the pre-apply store (WP-3 MINOR-1, values half of the pin)")
   # drift after the save, then restore through the real modal flow
   omicsViewer:::store_apply(st12, stats::setNames(list("range"), dose_key),
                             origin = "agent")

@@ -890,7 +890,7 @@ attr(dat_nodrc, "S6.6_drc") <- NULL
 w3c <- new.env()
 w3c$store <- widget_store_new()
 w3c$child <- widget_store_child(w3c$store, "resultspace.dose_response")
-w3c_err <- NULL; w3c_bad <- NULL; w3c_allowed <- NULL
+w3c_err <- NULL; w3c_bad <- NULL; w3c_allowed <- NULL; w3c_rr <- NULL
 shiny::testServer(.w3_mkapp(w3c$child, dat_nodrc), {
   w3c_err <<- tryCatch({
     session$flushReact(); session$flushReact()
@@ -901,6 +901,20 @@ shiny::testServer(.w3_mkapp(w3c$child, dat_nodrc), {
   w3c_bad <<- tryCatch(
     store_apply(w3c$child, list(param_table = "pval"), origin = "agent"),
     error = function(e) conditionMessage(e))
+  # NIT-1 (WP-3 review): the no-drc RESTORE direction under the same cold
+  # conditions as the apply above — a dose-carrying snapshot degrades
+  # per-key through store_restore (a carrier key proves the valid
+  # remainder still applies while the cold dose keys are rejected)
+  store_register(widget_store_child(w3c$store, "resultspace.ora"),
+                 widget_binding("xax_analysis", "select",
+                                values = c("ttest", "PCA")))
+  w3c_rr <<- tryCatch(
+    store_restore(w3c$store, list(
+      values = list(`resultspace.ora.xax_analysis` = "ttest",
+                    `resultspace.dose_response.param_table` = "pval",
+                    `resultspace.dose_response.feature_table` = "X1"),
+      unset = character(0)), replace = TRUE),
+    error = function(e) conditionMessage(e))
 })
 ok(is.null(w3c_err),
    "WP-3 dose: an object without S6.6_drc boots idle (no error)")
@@ -908,6 +922,15 @@ ok(identical(w3c_allowed, character(0)),
    "WP-3 dose: choices stay cold without the drc attribute (derivation reads context$data$object)")
 ok(is.character(w3c_bad) && grepl("Choices are currently unavailable", w3c_bad),
    "WP-3 dose: cold choices reject agent writes (WP-A/F3 unavailable semantics)")
+ok(!is.character(w3c_rr) && length(w3c_rr$rejected) == 2L &&
+   ut_cmp_identical(sort(vapply(w3c_rr$rejected, `[[`, "", "id")),
+                    PANEL_W3_DOSE_IDS) &&
+   all(vapply(w3c_rr$rejected,
+              function(r) grepl("Choices are currently unavailable", r$reason),
+              TRUE)) &&
+   ut_cmp_identical(w3c_rr$applied, "resultspace.ora.xax_analysis") &&
+   all(vapply(store_read(w3c$store, PANEL_W3_DOSE_IDS), is.null, TRUE)),
+   "WP-3 dose: a dose-carrying snapshot restored into a no-drc dataset degrades per-key (dose keys rejected unavailable, valid remainder applies, dose values stay NULL)")
 
 # --- capability records: additive, mapped to the Response tab (D10)
 w3_caps <- Filter(function(r) grepl("^resultspace\\.dose_response\\.", r$id),
