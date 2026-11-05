@@ -346,15 +346,50 @@ d_e2 <- agent_channel_dispatch(
   chan_tools, "chan_echo",
   list(space = "feature", bogus = "field", `_intent` = "x"))
 ok(
-  ut_cmp_identical(d_e2$ok, FALSE) &&
-    grepl("unused argument", d_e2$error, fixed = TRUE),
-  "unknown argument names fail as self-correctable errors, not escapes"
+  ut_cmp_identical(d_e2$ok, FALSE) && is.null(d_e2$value) &&
+    grepl("bogus", d_e2$error, fixed = TRUE) &&
+    grepl("space", d_e2$error, fixed = TRUE) &&
+    grepl("n", d_e2$error, fixed = TRUE),
+  "unknown argument names are rejected before the call, naming the valid ones"
+)
+d_e2b <- agent_channel_dispatch(
+  chan_tools, "chan_echo", list(spa = "feature", `_intent` = "x"))
+ok(
+  ut_cmp_identical(d_e2b$ok, FALSE) &&
+    grepl("spa", d_e2b$error, fixed = TRUE) &&
+    grepl("space", d_e2b$error, fixed = TRUE),
+  "partial-match argument names (spa for space) are rejected, not silently matched"
+)
+ok(
+  ut_cmp_identical(
+    agent_channel_dispatch(
+      chan_tools, "chan_echo",
+      list(space = "feature", `_intent` = "exact names"))$ok, TRUE),
+  "exact argument names still dispatch (I9 does not over-reject)"
 )
 d_e3 <- agent_channel_dispatch(chan_tools, "chan_echo", NULL)
 ok(
   ut_cmp_identical(d_e3$ok, FALSE) &&
     grepl("missing", d_e3$error),
   "missing required args return ok=FALSE (dispatch with no args)"
+)
+
+# (h) string tool errors: an errored ContentToolResult whose @error is
+# a plain string (ellmer's S7 union allows NULL/character/condition,
+# and ellmer itself produces string errors) must not trip
+# conditionMessage() - the dispatcher returns ok=FALSE with the string.
+chan_strerr <- agent_tool(
+  function(`_intent`) ellmer::ContentToolResult(
+    value = NULL, error = "plain string failure"),
+  name = "chan_strerr", description = "string error probe",
+  arguments = list(`_intent` = ellmer::type_string("intent."))
+)
+d_h <- agent_channel_dispatch(
+  list(strerr = chan_strerr), "chan_strerr", list(`_intent` = "x"))
+ok(
+  ut_cmp_identical(d_h$ok, FALSE) && is.null(d_h$value) &&
+    grepl("plain string failure", d_h$error, fixed = TRUE),
+  "string tool errors return ok=FALSE carrying the string; no condition escapes"
 )
 
 # (f) unknown tool name: ok=FALSE naming the available tools
@@ -408,7 +443,7 @@ ok(
 # ---- 3. registry lifecycle -------------------------------------------
 
 reg_env <- omicsViewer:::`.agent_channel_registry`
-tokens_used <- c("chan_tok_1", "chan_tok_2")
+tokens_used <- c("chan_tok_1", "chan_tok_2", "chan_tok_3")
 on.exit(for (t in tokens_used) agent_channel_registry_unbind(t),
        add = TRUE)
 
@@ -456,6 +491,19 @@ ok(
   ut_cmp_identical(ended, 1L) && "chan_tok_2" %in%
     agent_channel_registry_list(),
   "on_ended wiring runs exactly once, immediately after storing"
+)
+# a throwing on_ended fails the bind AND leaves no orphaned entry (F4)
+bind_fail <- tryCatch(
+  agent_channel_registry_bind(
+    "chan_tok_3", list(a = 1),
+    on_ended = function() stop("on_ended exploded")),
+  error = function(e) e)
+ok(
+  inherits(bind_fail, "error") &&
+    grepl("on_ended exploded", conditionMessage(bind_fail), fixed = TRUE) &&
+    !("chan_tok_3" %in% agent_channel_registry_list()) &&
+    !exists("chan_tok_3", envir = reg_env, inherits = FALSE),
+  "a throwing on_ended fails the bind and removes the just-stored entry"
 )
 ok(
   ut_cmp_error(agent_channel_registry_bind(1L, list()), "single non-empty string"),

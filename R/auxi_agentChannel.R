@@ -145,9 +145,11 @@ agent_channel_toolspecs <- function(tools) {
 ### [Stage 0] transport-neutral dispatcher
 ###
 ### The verified transport-clean entry into the tool surface: call the
-### ToolDef directly as a function (module_agentTestHooks.R reuses the
-### same surface; the ToolDef wraps sanitize-in / codec-out, so every
-### caller sees the canonical argument shape and the bounded output).
+### ToolDef directly as a function (the agent unit suites are the
+### precedent for direct ToolDef calls; module_agentTestHooks.R drives
+### the apply_* callbacks, not ToolDefs. The ToolDef itself wraps
+### sanitize-in / codec-out, so every caller sees the canonical
+### argument shape and the bounded output).
 ### Direct ToolDef calls let handler conditions ESCAPE (unlike ellmer's
 ### invoke_tool), so the dispatcher catches them and always answers
 ### with a result record - a channel transport must never propagate an
@@ -170,6 +172,12 @@ agent_channel_toolspecs <- function(tools) {
 #' of available tools so an agent can self-correct. Tools are matched
 #' by wire name first (the ToolDef's \code{@name}), then by their list
 #' key, so both the channel client and internal callers can dispatch.
+#' Argument names must match the tool's declared properties exactly
+#' (the emitted schema advertises \code{additionalProperties: false});
+#' unknown or partial-matching names are rejected with \code{ok = FALSE}
+#' before the call. Transport edges must serialize \code{value@value}
+#' only: \code{extra$data} is uncapped structured data kept for
+#' in-process consumers and must not cross a wire.
 #'
 #' @param tools Named list of ellmer ToolDefs (the
 #'   \code{$tools} element of \code{agent_tool_registry(...)}).
@@ -217,17 +225,54 @@ agent_channel_dispatch <- function(tools, name, args) {
       paste(sort(unique(c(wire_names[!is.na(wire_names)], names(tools)))),
             collapse = ", "), ".")))
 
+  tool_def <- tools[[index]]
+
+  # Exact-name argument validation (review F2, decision I9): the wire
+  # schema advertises additionalProperties: false with exact property
+  # names, so the channel boundary enforces what it advertises. R's
+  # do.call would silently partial-match (spa -> space) or fail late
+  # with "unused argument"; both are replaced by this early,
+  # self-correctable rejection. ellmer's own model path is untouched.
+  valid_names <- if (inherits(tool_def, "ellmer::ToolDef") &&
+                     inherits(tool_def@arguments, "ellmer::TypeObject"))
+    as.character(names(tool_def@arguments@properties))
+  else
+    character(0)
+  unknown_args <- setdiff(names(args), valid_names)
+  if (length(unknown_args))
+    return(fail(paste0(
+      "Unknown argument", if (length(unknown_args) > 1L) "s" else "",
+      " ", paste(sprintf("'%s'", unknown_args), collapse = ", "),
+      " for tool '", name, "'. Valid arguments: ",
+      if (length(valid_names))
+        paste(valid_names, collapse = ", ")
+      else
+        "(none declared)",
+      ".")))
+
   # Absent-argument semantics (mirrors agent_tool): drop explicit NULLs
   # so the handler's own formal defaults apply.
   args <- args[!vapply(args, is.null, logical(1))]
   result <- tryCatch(
-    do.call(tools[[index]], args),
+    do.call(tool_def, args),
     error = function(e) e)
   if (inherits(result, "condition"))
     return(fail(conditionMessage(result)))
   if (inherits(result, "ellmer::ContentToolResult") &&
-      !is.null(result@error))
-    return(fail(conditionMessage(result@error)))
+      !is.null(result@error)) {
+    # @error is ellmer's NULL/character/condition union: handlers (and
+    # ellmer itself) return plain strings, and conditionMessage() only
+    # accepts conditions - normalize every shape to one message string
+    # (review F1).
+    err <- result@error
+    msg <- if (inherits(err, "condition"))
+      conditionMessage(err)
+    else
+      as.character(err)
+    if (!length(msg) || all(is.na(msg)) || !any(nzchar(msg)))
+      msg <- "Tool call failed (errored tool result carried no message)."
+    return(fail(paste(msg, collapse = "; ")))
+  }
   list(ok = TRUE, value = result, error = NULL)
 }
 
@@ -253,8 +298,11 @@ agent_channel_dispatch <- function(tools, name, args) {
 #' overwriting any previous entry for the same token. When
 #' \code{on_ended} is non-NULL it is called exactly once, immediately
 #' after storing; the caller passes its session-lifetime wiring (e.g.
-#' \code{function() session$onEnded(function() unbind(token))}). The
-#' registry keeps no policy and never calls back on its own.
+#' \code{function() session$onEnded(function() unbind(token))}). If
+#' \code{on_ended} itself errors, the just-stored entry is removed
+#' again and the condition is re-thrown - a failed bind never leaves an
+#' orphaned entry. The registry keeps no policy and never calls back on
+#' its own.
 #'
 #' @param token Session token (single non-empty string).
 #' @param entry Arbitrary list to store.
@@ -271,8 +319,18 @@ agent_channel_registry_bind <- function(token, entry, on_ended = NULL) {
   if (!is.list(entry))
     stop("agent_channel_registry_bind: entry must be a list.")
   assign(token, entry, envir = .agent_channel_registry)
-  if (!is.null(on_ended))
-    on_ended()
+  if (!is.null(on_ended)) {
+    tryCatch(
+      on_ended(),
+      error = function(e) {
+        # The bind failed its lifetime wiring: undo the store so no
+        # orphaned entry survives, then let the caller see the failure
+        # (review F4).
+        if (exists(token, envir = .agent_channel_registry, inherits = FALSE))
+          rm(list = token, envir = .agent_channel_registry)
+        stop(e)
+      })
+  }
   invisible(token)
 }
 
