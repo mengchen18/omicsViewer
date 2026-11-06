@@ -5713,3 +5713,142 @@ ok(ut_cmp_identical(
      c("Feature", "ORA", "fGSEA", "Response", "StringDB", "SeqLogo", "Geneshot", "Sample")),
    "WP-12 composition: direct call (session-less) yields the order-field tab order with ORA/fGSEA at 2-3")
 
+
+## ------------- O5 fix round: per-record status slices in the L1 loops ----
+# O5 (PD-79) and its pre-existing additionalTabs sibling. The WP-11
+# registry loop built every panel's status slice as
+# reactive(status()[[r$status_key]]) - lazily capturing the LOOP
+# VARIABLE r, so all eight slices resolved the LAST record's key
+# (analyst_dose_response) and the legacy result-space widget re-apply
+# through the REAL L1 (the modules' observeEvent(reactive_status())
+# restore observers) was a silent no-op since f7fd24e. The
+# additionalTabs server loop carried the same trap around
+# lo$moduleName (with >= 2 stateful plugins, BOTH received the last
+# plugin's analyst_additional payload; sibling present since v1.17.2).
+# Both construction sites now capture the loop variable eagerly inside
+# local(); the loop bodies are otherwise untouched (the context builds
+# evaluate eagerly and were never affected).
+#
+# MUTATION HONESTY: these cases FAIL on the unfixed code. They drive
+# the restore OBSERVERS through the real L1 composition - a status
+# reactiveVal delivered exactly like a snapshot restore - and assert
+# the MODULE-SIDE consumption (store_apply origin="restore" landing
+# under each panel's own store keys), never the store path directly.
+# On unfixed L1 the per-panel delivery lands NOTHING (every slice
+# reads analyst_dose_response, absent from the payload), the dose-key
+# misdelivery CROSS-APPLIES into ora/geneshot, and both plugins
+# receive plugB's payload - the WP-13 reviewer's probe shapes.
+
+# --- per-panel slice resolution through the real L1 (three panels:
+# ora + geneshot + feature_general; demo.RDS, real store) ---
+o5 <- new.env()
+o5$store <- widget_store_new()
+o5$status <- shiny::reactiveVal(NULL)
+o5$app <- function(input, output, session) {
+  omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = o5$status,
+    store = o5$store)
+}
+o5_err <- NULL; o5_err2 <- NULL; o5_closed <- NULL
+v5 <- NULL; v5b <- NULL
+shiny::testServer(o5$app, {
+  o5_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    # a legacy-v1-shaped restore payload: each panel's slice under its
+    # OWN analyst_* key, delivered at once (the snapshot restore shape)
+    o5$status(list(
+      analyst_ora = list(xax = list(analysis = "General", subset = "All",
+                                    variable = "Gene.name")),
+      analyst_gene_shot = list(term = "cell cycle"),
+      analyst_feature_general = list(
+        xax = list(analysis = "General", subset = "All",
+                   variable = "Cell.line"),
+        plotType = "Curve")))
+    for (i in 1:5) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  v5 <<- store_snapshot(o5$store)$values
+  # misdelivery probe: the SAME payload fields under the LAST record's
+  # key (analyst_dose_response - the one key every unfixed slice
+  # resolved), with ora/geneshot-valid values DIFFERENT from the landed
+  # ones, so on unfixed L1 they flip (the reviewer's probe (b2) shape)
+  o5_err2 <<- tryCatch({
+    o5$status(list(analyst_dose_response = list(
+      xax = list(analysis = "General", subset = "All",
+                 variable = "Protein.ID"),
+      term = "apoptosis")))
+    for (i in 1:5) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  v5b <<- store_snapshot(o5$store)$values
+  o5_closed <<- session$isClosed()
+})
+ok(is.null(o5_err) && ut_cmp_identical(
+     paste(v5[c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset",
+                "resultspace.ora.xax_variable")], collapse = "|"),
+     "General|All|Gene.name"),
+   "O5: an analyst_ora payload lands its xax triple under the ora store keys through the real L1")
+ok(is.null(o5_err) && ut_cmp_identical(v5[["resultspace.geneshot.term"]], "cell cycle"),
+   "O5: an analyst_gene_shot payload lands its term under the geneshot store key through the real L1")
+ok(is.null(o5_err) && ut_cmp_identical(
+     paste(v5[c("resultspace.feature_general.xax_analysis",
+                "resultspace.feature_general.xax_subset",
+                "resultspace.feature_general.xax_variable")], collapse = "|"),
+     "General|All|Cell.line") &&
+     ut_cmp_identical(v5[["resultspace.feature_general.plot_type"]], "Curve"),
+   "O5: an analyst_feature_general payload lands its xax triple + plot type under the feature-general store keys through the real L1")
+ok(is.null(o5_err2) &&
+     ut_cmp_identical(v5b[["resultspace.ora.xax_variable"]], "Gene.name") &&
+     ut_cmp_identical(v5b[["resultspace.geneshot.term"]], "cell cycle") &&
+     ut_cmp_identical(v5b, v5),
+   "O5: an analyst_dose_response payload does NOT cross-apply into ora/geneshot/feature (no module consumes the dose slice; the whole store is value-identical after the misdelivery)")
+ok(is.null(o5_err) && is.null(o5_err2) && identical(o5_closed, FALSE),
+   "O5: the L1 composition session stays alive through both legacy deliveries")
+
+# --- the additionalTabs sibling: two stateful plugins with DISTINCT
+# payloads -> each module receives ITS OWN analyst_additional slice
+# (the exact pre-fix failure: both resolved the LAST plugin's payload)
+.o5p_env <- new.env()
+.o5p_env$store <- widget_store_new()
+.o5p_env$status <- shiny::reactiveVal(NULL)
+.o5p_env$rec <- new.env(); .o5p_env$rec$A <- NULL; .o5p_env$rec$B <- NULL
+.o5_plugin <- function(slot) function(id, reactive_status, ...) {
+  observe({
+    v <- reactive_status()
+    if (!is.null(v)) .o5p_env$rec[[slot]] <<- v
+  })
+  NULL
+}
+o5p_err <- NULL; o5p_closed <- NULL
+shiny::testServer(function(input, output, session) {
+  omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = .o5p_env$status,
+    store = .o5p_env$store,
+    additionalTabs = list(
+      list(moduleName = "plugA", moduleServer = .o5_plugin("A"),
+           stateful = TRUE, tabName = "A", icon = NULL, label = "A"),
+      list(moduleName = "plugB", moduleServer = .o5_plugin("B"),
+           stateful = TRUE, tabName = "B", icon = NULL, label = "B")))
+}, {
+  o5p_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    .o5p_env$status(list(analyst_additional = list(plugA = list(x = "AAA"),
+                                                   plugB = list(x = "BBB"))))
+    for (i in 1:5) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  o5p_closed <<- session$isClosed()
+})
+ok(is.null(o5p_err) && ut_cmp_identical(.o5p_env$rec$A, list(x = "AAA")) &&
+     ut_cmp_identical(.o5p_env$rec$B, list(x = "BBB")),
+   "O5 sibling: two stateful plugins each receive their OWN analyst_additional slice (not both-get-last)")
+ok(is.null(o5p_err) && identical(o5p_closed, FALSE),
+   "O5 sibling: the additionalTabs composition session stays alive through the delivery")

@@ -1116,8 +1116,9 @@ shiny::testServer(mkapp(d14, demo, st14), {
   # craft the pre-WP-13 shape from the SAME saved state: re-insert the
   # duplicates exactly as this session's pre-WP-13 mirrors reported them
   # (the attr4 mirrors lag the store-written cutoffs - the honest drift
-  # shape; the re-applied duplicates agree with the store values, so the
-  # legacy re-apply is idempotent under the store section)
+  # shape; the restore-side patch builders skip NULL fields, so only
+  # the non-NULL duplicates re-apply, agreeing with the store section
+  # values - the legacy re-apply is idempotent under the store section)
   ess14 <- ss
   ess14$panels$result_space$analyst_ora <- list(xax = list(
     analysis = "General", subset = "All", variable = "Gene.name"))
@@ -1169,19 +1170,20 @@ shiny::testServer(mkapp(d14, demo, st14), {
   alive(session, "wp13 pre-shape restore")
 })
 # --- (c) a genuine legacy flat v1 snapshot (duplicates, no store section)
-# still restores cleanly through the real restore flow - unchanged by
-# WP-13 (session alive, restore pipeline completes, and - exactly like
-# the WP-4 string-legacy case above - with no widget-store section the
-# Phase-1b store transaction is skipped entirely, so the session's
-# current widget values are not reset by the legacy payload). NOTE: the
-# legacy widget-state re-apply itself (module restore observers over
-# status slices) has been a NO-OP through the real L1 since WP-11 - a
-# latent loop-variable capture in the registry loop's .rs_slice
-# reactives (every slice resolves the LAST record's status_key); the
-# module-level legacy path is intact (WP-9/WP-10 goldens, and the
-# unit-level no-store-section guard above pins that WP-13's strip never
-# touches these snapshots). Recorded OPEN as O5 in PANEL_DEBT_STATUS.md
-# with the repro; fixing L1 is outside WP-13's sanctioned file list.
+# still restores cleanly through the real restore flow (session alive,
+# restore pipeline completes, and - exactly like the WP-4 string-legacy
+# case above - with no widget-store section the Phase-1b store
+# transaction is skipped entirely, so the session's current widget
+# values are not reset by a store transaction). Since the O5 fix
+# (per-record status slices in the L1 registry loop; previously every
+# slice lazily resolved the LAST record's status_key, making the
+# legacy re-apply a silent no-op since f7fd24e) the legacy payload's
+# widget fields DO re-apply through the module restore observers over
+# the status slices: the drifted live term is repaired to the
+# payload's "cell cycle" and the ora triple lands under its own keys
+# (the pre-WP-11 v1-restore behavior, back; the per-panel proof and
+# the mutation-honesty note live in the O5 section of
+# test_panelRegistry.R).
 legacy14 <- list(
   label = "legacy v1 result space",
   analyst_active_tab = "Geneshot",
@@ -1202,11 +1204,15 @@ shiny::testServer(mkapp(d14, demo, st14b), {
   # rows alphabetical: [astrip, bdupes, zzlegacy]
   restore_snapshot(session, 3L, 1L, 1L)
   v <- omicsViewer:::store_snapshot(st14b)$values
-  ok(ut_cmp_identical(v[["resultspace.geneshot.term"]], "apoptosis"),
-     "wp13 legacy: no store section -> Phase 1b skipped, the live widget values survive UNTOUCHED (the legacy payload never resets them)")
+  ok(ut_cmp_identical(v[["resultspace.geneshot.term"]], "cell cycle") &&
+       ut_cmp_identical(
+         paste(unlist(v[c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset",
+                          "resultspace.ora.xax_variable")]), collapse = "|"),
+         "General|All|Gene.name"),
+     "wp13 legacy: no store section -> Phase 1b skipped (no store reset), but the legacy payload re-applies through the module restore observers (O5 fixed: the drifted term repairs to the payload value, the ora triple lands)")
   ok(ut_cmp_identical(
        v[["resultspace.analyst_tab"]], "Geneshot"),
-     "wp13 legacy: analyst_active_tab still restores through the L1 observer (kept field, not the broken slice path)")
+     "wp13 legacy: analyst_active_tab still restores through the L1 observer (kept field; rides L1's own plain observe, never the panel slices)")
   alive(session, "wp13 legacy v1 restore")
 })
 unlink(d14, recursive = TRUE)

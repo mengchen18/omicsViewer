@@ -278,8 +278,13 @@ L1_result_space_module <- function(
     for (r in panel_records) {
       .rs_child <- if (is.null(store)) NULL else
         widget_store_child(store, r$store_id)
+      # O5 fix: capture the loop record's status_key EAGERLY - a bare
+      # reactive(status()[[r$status_key]]) closes over the loop variable
+      # lazily, so every panel's slice would resolve the LAST record's
+      # key (analyst_dose_response) and the legacy result-space widget
+      # re-apply through this composition was a silent no-op.
       .rs_slice <- if (is.null(r$status_key)) reactive(NULL) else
-        reactive(status()[[r$status_key]])
+        local({ .k <- r$status_key; reactive(status()[[.k]]) })
       .rs_ctx <- panel_context(
         id = r$module_id, tab_value = r$tab_value, store = .rs_child,
         data = Filter(is.function,
@@ -338,9 +343,14 @@ L1_result_space_module <- function(
           feature_selected = reactive_i, sample_selected = reactive_highlight, object = object
         )
         if (isTRUE(lo$stateful)) {
-          module_args$reactive_status <- reactive(
-            status()$analyst_additional[[lo$moduleName]]
-          )
+          # O5 sibling fix: same lazy loop-variable trap as the registry
+          # loop's .rs_slice - capture lo$moduleName eagerly so each
+          # stateful plugin reads ITS OWN analyst_additional slice (with
+          # >=2 plugins every slice resolved the LAST plugin's payload).
+          module_args$reactive_status <- local({
+            nm <- lo$moduleName
+            reactive(status()$analyst_additional[[nm]])
+          })
         }
         additional_module_results[[lo$moduleName]] <- do.call(
           lo$moduleServer, c(list(lo$moduleName), module_args)
