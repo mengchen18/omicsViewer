@@ -1,3 +1,80 @@
+# ---------------------------------------------------------------------
+# WP-13 (P6/D16): result-space save-side strip. The legacy analyst_*
+# payloads and the canonical widget store are dual transports for the
+# same state (P6): the panel mirrors can lag the store by a view (the
+# saved status reports the status-assembly-time value, which races
+# store writes). Since every built-in result-space panel is store-backed
+# (WP-3..WP-10), NEW saves stop writing the store-owned duplicates: the
+# strip removes, from panels$result_space, every legacy field whose
+# value is owned by a registered binding under the SAME panel's
+# resultspace.* prefix. SCHEMA-PRESERVING: the analyst_* containers stay
+# (possibly as empty lists), the residue classes that are NOT
+# store-owned stay byte-untouched (analyst_active_tab, which restores
+# before the navbar store child exists; analyst_additional plugin blobs;
+# state_support markers; DT one-shot table state - none of these appear
+# in the ownership table below by construction), and payloads whose
+# mapped bindings are not registered keep their fields (the registry
+# guard: stringdb registers no cascade, so a hypothetical xax would
+# stay). EXISTING snapshots restore identically: their legacy duplicates
+# re-apply idempotently through the module restore observers (the v1
+# path, plan section 6); the restore-side data-space strip inside
+# snapshot_module is unchanged.
+#
+# Ownership mapping (plan section 6 + D16): the legacy field names are
+# historical facts of the pre-store transport, so the CORRESPONDENCE is
+# spelled out once here; the OWNERSHIP decision is registry-driven at
+# runtime - a field is stripped only when every mapped key is actually
+# registered under the panel's store prefix (the store's bindings ARE
+# the ownership truth), and the panel enumeration comes from
+# panel_records (the registry), not a hand list of status keys.
+.snapshot_result_owned_fields <- list(
+  # the link-variable cascade triple every cascade panel mirrors
+  xax = c("xax_analysis", "xax_subset", "xax_variable"),
+  # geneshot search terms
+  term = "term",
+  # feature-general plot type / regression-line switch
+  plotType = "plot_type",
+  showRegLine = "regression_line",
+  # the attr4 widget-state mirror (module_figureAttr4.R params$status:
+  # five cascade groups + the search value + the cutoffs + the corner)
+  attr4 = c(paste0("attr4.", unlist(lapply(
+    c("color", "shape", "size", "tooltip", "search"),
+    function(g) paste0(g, c("_analysis", "_subset", "_variable"))))),
+    "attr4.search_value", "attr4.xcut", "attr4.ycut", "attr4.scorner"))
+
+.snapshot_strip_result_store_owned <- function(state, store) {
+  # symmetric guard with the restore-side data-space strip: without a
+  # canonical widget-store section the legacy payload is the only
+  # transport (legacy v1 snapshots) and must stay untouched
+  if (is.null(state$widget_store) || !is.list(state$widget_store$values))
+    return(state)
+  if (!is.environment(store) || is.null(store$bindings))
+    return(state)
+  root <- if (is.null(store$parent)) store else store$parent
+  owned <- names(root$bindings)
+  rs <- state$panels$result_space
+  if (!is.list(rs))
+    return(state)
+  for (r in panel_records) {
+    if (is.null(r$status_key))
+      next
+    payload <- rs[[r$status_key]]
+    if (!is.list(payload) || is.data.frame(payload))
+      next
+    for (fld in names(.snapshot_result_owned_fields)) {
+      if (!fld %in% names(payload))
+        next
+      keys <- paste(r$store_id, .snapshot_result_owned_fields[[fld]],
+                    sep = ".")
+      if (all(keys %in% owned))
+        payload[[fld]] <- NULL
+    }
+    rs[[r$status_key]] <- payload
+  }
+  state$panels$result_space <- rs
+  state
+}
+
 #' Snapshot save/restore module (L0 split, todo 4.4c)
 #'
 #' Extracted verbatim from \code{app_module}'s server: the .ESS listing,
@@ -29,6 +106,7 @@
 #'   (registers the snapshot save/restore observers in the caller's scope).
 #' @keywords internal
 #' @rdname snapshotModule
+
 snapshot_module <- function(input, output, session, .dir, dataset_id,
                             dataset_ready, eset, result_status,
                             selection_features, selection_samples,
@@ -288,6 +366,11 @@ snapshot_module <- function(input, output, session, .dir, dataset_id,
           widget_store = store_snapshot(app_store),
           label = name
         )
+        # WP-13 (P6/D16): save-side strip of the result-space legacy
+        # duplicates (.snapshot_strip_result_store_owned above) - new
+        # saves are single-transport for store-owned state; the schema
+        # (analyst_* container names/order) is unchanged
+        obj <- .snapshot_strip_result_store_owned(obj, app_store)
         # WP11: the conversation rides along only when the user opted in and
         # there is a conversation to save (assistant unconfigured -> NULL).
         if (isTRUE(input$snapshot_include_chat)) {

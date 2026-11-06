@@ -970,3 +970,243 @@ shiny::testServer(mkapp(d13, demo, st13b), {
 })
 unlink(d13, recursive = TRUE)
 
+
+## ==================================================================
+## ==================================================================
+## 14. WP-13 (P6/D16): result-space SAVE-SIDE STRIP. New saves stop
+##     writing the store-owned duplicates into panels$result_space
+##     (every legacy field whose value is owned by a registered
+##     resultspace.* binding under the SAME panel's prefix - the
+##     ownership truth is the live store's bindings, the panel
+##     enumeration is panel_records). Schema-preserving: the analyst_*
+##     containers stay (empty), the non-store-owned residue classes
+##     stay byte-untouched (analyst_active_tab, analyst_additional
+##     blobs, the analyst_dose_response state_support marker; DT
+##     one-shot table state rides the DATA-space section, which this
+##     strip never touches). Restores are content-equivalent in BOTH
+##     directions: the stripped save restores through the store section
+##     to the SAME app state as a pre-WP-13-shaped snapshot carrying the
+##     duplicates (which re-apply idempotently through the module
+##     restore observers - the v1 path), and a genuine legacy flat v1
+##     snapshot (duplicates present, no store section) still restores
+##     cleanly through that same legacy path.
+## ==================================================================
+
+# --- unit level: the strip is registry-driven, not a hand list of keys --
+st_u <- omicsViewer:::widget_store_new()
+ch_u <- omicsViewer:::widget_store_child(st_u, "resultspace.ora")
+omicsViewer:::store_register(
+  ch_u,
+  omicsViewer:::widget_binding("xax_analysis", "select"),
+  omicsViewer:::widget_binding("xax_subset", "select", depends_on = "xax_analysis"),
+  omicsViewer:::widget_binding("xax_variable", "select_cascaded",
+                               depends_on = c("xax_analysis", "xax_subset")))
+u_triple <- list(analysis = "a", subset = "b", variable = "c")
+u_state <- omicsViewer:::new_app_state(
+  dataset_id = "u", dataset = NULL,
+  widget_store = list(values = list(`resultspace.ora.xax_variable` = "c")),
+  result_space = list(
+    analyst_ora = list(xax = u_triple, residue = "not store-owned"),
+    analyst_ptm = list(xax = u_triple),
+    analyst_dose_response = list(state_support = FALSE),
+    analyst_active_tab = "Feature"))
+u_out <- omicsViewer:::`.snapshot_strip_result_store_owned`(u_state, st_u)
+ok(ut_cmp_identical(names(u_out$panels$result_space$analyst_ora), "residue"),
+   "wp13 unit: a registered field (ora xax triple) is stripped; a non-mapped sibling field stays")
+ok(ut_cmp_identical(u_out$panels$result_space$analyst_ptm$xax, u_triple),
+   "wp13 unit: the SAME legacy field under a namespace WITHOUT the registered keys is kept (registry guard, not a key-name hand list)")
+ok(ut_cmp_identical(u_out$panels$result_space$analyst_dose_response,
+                    list(state_support = FALSE)),
+   "wp13 unit: the state_support marker is not store-owned and stays")
+ok(ut_cmp_identical(u_out$panels$result_space$analyst_active_tab, "Feature"),
+   "wp13 unit: analyst_active_tab stays")
+# attr4 strips only when the FULL binding surface is registered
+st_u2 <- omicsViewer:::widget_store_new()
+ch_u2 <- omicsViewer:::widget_store_child(st_u2, "resultspace.feature_general")
+omicsViewer:::store_register(
+  ch_u2, omicsViewer:::widget_binding("attr4.scorner", "select"))
+u2_state <- omicsViewer:::new_app_state(
+  dataset_id = "u", dataset = NULL,
+  widget_store = list(values = list()),
+  result_space = list(analyst_feature_general =
+                        list(attr4 = list(acorner = "volcano"))))
+u2_out <- omicsViewer:::`.snapshot_strip_result_store_owned`(u2_state, st_u2)
+ok(ut_cmp_identical(u2_out$panels$result_space$analyst_feature_general$attr4$acorner,
+                    "volcano"),
+   "wp13 unit: a PARTIAL attr4 registration keeps the legacy mirror (all-keys ownership guard)")
+# guards: no widget-store section (legacy v1 shapes) and a store-less call
+u3 <- u_state
+u3$widget_store <- NULL
+ok(ut_cmp_identical(
+     omicsViewer:::`.snapshot_strip_result_store_owned`(u3, st_u)$panels$result_space,
+     u3$panels$result_space),
+   "wp13 unit: no widget-store section -> payload untouched (legacy single transport)")
+ok(ut_cmp_identical(
+     omicsViewer:::`.snapshot_strip_result_store_owned`(u_state, NULL)$panels$result_space,
+     u_state$panels$result_space),
+   "wp13 unit: store-less call is a no-op")
+
+# --- (a) save-side strip through the REAL save flow ----------------------
+d14 <- snap_dir("wp13strip")
+st14 <- omicsViewer:::widget_store_new()
+WP13_SCHEMA <- c(
+  "analyst_active_tab", "analyst_feature_general", "analyst_sample_general",
+  "analyst_gene_shot", "analyst_fgsea", "analyst_ora", "analyst_ptm",
+  "analyst_dose_response", "analyst_additional")
+WP13_PANELS <- WP13_SCHEMA[2:7]
+shiny::testServer(mkapp(d14, demo, st14), {
+  snap_init(session)
+  disarm_corner(session)
+  # populate store-owned state through genuine user interactions (each of
+  # these mirrored into the analyst_* payloads pre-WP-13)
+  session$setInputs(`app-resultspace-ora-tris_ora-analysis` = "General")
+  snap_ack(session)
+  session$setInputs(`app-resultspace-ora-tris_ora-subset` = "All")
+  snap_ack(session)
+  session$setInputs(`app-resultspace-ora-tris_ora-variable` = "Gene.name")
+  snap_ack(session)
+  session$setInputs(`app-resultspace-geneshotTab-term` = "cell cycle")
+  session$flushReact(); snap_ack(session)
+  session$setInputs(`app-resultspace-feature_general-internal_radio` = "Curve")
+  session$flushReact(); snap_ack(session)
+  # store-written values the widget mirrors lag behind (the P6 drift
+  # class: the store holds the value while the legacy attr4 mirror still
+  # reports NULL at status-assembly time)
+  omicsViewer:::store_apply(st14, list(
+    `resultspace.feature_general.attr4.xcut` = "log10(5)",
+    `resultspace.sample_general.attr4.xcut` = "5"), origin = "agent")
+  snap_ack(session)
+  session$setInputs(`app-resultspace-analyst` = "Geneshot")
+  session$flushReact(); snap_ack(session)
+  save_snapshot(session, "astrip", 1L)
+  ss <- read_ess(d14, "astrip")
+  ok(ut_cmp_identical(names(ss$panels$result_space), WP13_SCHEMA),
+     "wp13 save: schema preserved - the analyst_* container names and order are unchanged")
+  ok(ut_cmp_identical(
+       vapply(WP13_PANELS, function(k) length(ss$panels$result_space[[k]]), 0L),
+       setNames(rep(0L, length(WP13_PANELS)), WP13_PANELS)),
+     "wp13 save: no panel payload carries store-owned duplicates (empty containers stay)")
+  # the state itself is single-transport: the store section carries it
+  v14 <- ss$widget_store$values
+  ok(ut_cmp_identical(
+       paste(unlist(v14[c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset",
+                          "resultspace.ora.xax_variable")]), collapse = "|"),
+       "General|All|Gene.name"),
+     "wp13 save: the ora triple rides the widget-store section")
+  ok(ut_cmp_identical(v14[["resultspace.geneshot.term"]], "cell cycle") &&
+     ut_cmp_identical(v14[["resultspace.feature_general.plot_type"]], "Curve") &&
+     ut_cmp_identical(v14[["resultspace.feature_general.attr4.xcut"]], "log10(5)") &&
+     ut_cmp_identical(v14[["resultspace.sample_general.attr4.xcut"]], "5"),
+     "wp13 save: term / plot type / feature+sample attr4 cutoffs all ride the store section")
+  # (d)+(e) residue classes pinned present; stringdb never emitted
+  ok(ut_cmp_identical(ss$panels$result_space$analyst_active_tab, "Geneshot"),
+     "wp13 save: analyst_active_tab still rides the legacy payload (restores before the navbar store child exists)")
+  ok(ut_cmp_identical(ss$panels$result_space$analyst_additional, list()),
+     "wp13 save: the analyst_additional plugin container stays")
+  ok(ut_cmp_identical(ss$panels$result_space$analyst_dose_response,
+                      list(state_support = FALSE)),
+     "wp13 save: the analyst_dose_response state_support marker stays (WP-3/section 6 residue class)")
+  ok(ut_cmp_identical("analyst_stringdb" %in% names(ss$panels$result_space), FALSE),
+     "wp13 save: analyst_stringdb is still never emitted (WP-4 semantics survive the strip)")
+  ok(all(c("eset_fdata_tab", "eset_pdata_tab", "eset_exprs_tab") %in%
+         names(ss$panels$data_space)),
+     "wp13 save: the data-space section (incl. the DT one-shot table containers) is untouched by the result-space strip")
+
+  # --- (b) content equivalence: stripped vs pre-WP-13-shaped restore ----
+  # craft the pre-WP-13 shape from the SAME saved state: re-insert the
+  # duplicates exactly as this session's pre-WP-13 mirrors reported them
+  # (the attr4 mirrors lag the store-written cutoffs - the honest drift
+  # shape; the re-applied duplicates agree with the store values, so the
+  # legacy re-apply is idempotent under the store section)
+  ess14 <- ss
+  ess14$panels$result_space$analyst_ora <- list(xax = list(
+    analysis = "General", subset = "All", variable = "Gene.name"))
+  ess14$panels$result_space$analyst_gene_shot <- list(
+    xax = NULL, term = "cell cycle")
+  a4_nulls <- list(selectColor = NULL, selectShape = NULL, selectSize = NULL,
+                   selectTooltip = NULL, searchOnCol = NULL, searchValue = NULL,
+                   xcut = NULL, ycut = NULL, acorner = "None")
+  ess14$panels$result_space$analyst_feature_general <- list(
+    xax = NULL, showRegLine = FALSE, attr4 = a4_nulls, plotType = "Curve")
+  ess14$panels$result_space$analyst_sample_general <- list(
+    xax = NULL, attr4 = a4_nulls)
+  saveRDS(ess14, file.path(d14, omicsViewer:::snapshot_file_name(
+    "bdupes", dataset_id = "ESVObj.RDS")))
+  # drift away from the saved state, then restore the STRIPPED snapshot
+  # (rows alphabetical: [astrip, bdupes])
+  omicsViewer:::store_apply(st14, list(
+    `resultspace.ora.xax_variable` = "Protein.ID",
+    `resultspace.geneshot.term` = "apoptosis",
+    `resultspace.feature_general.plot_type` = "Bees",
+    `resultspace.sample_general.attr4.xcut` = "9"), origin = "agent")
+  snap_ack(session)
+  restore_snapshot(session, 1L, 1L, 1L)
+  vals_strip <- omicsViewer:::store_snapshot(st14)$values
+  ok(ut_cmp_identical(
+       paste(unlist(vals_strip[c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset",
+                                 "resultspace.ora.xax_variable")]), collapse = "|"),
+       "General|All|Gene.name") &&
+     ut_cmp_identical(vals_strip[["resultspace.geneshot.term"]], "cell cycle") &&
+     ut_cmp_identical(vals_strip[["resultspace.feature_general.plot_type"]], "Curve") &&
+     ut_cmp_identical(vals_strip[["resultspace.feature_general.attr4.xcut"]], "log10(5)") &&
+     ut_cmp_identical(vals_strip[["resultspace.sample_general.attr4.xcut"]], "5") &&
+     ut_cmp_identical(vals_strip[["resultspace.analyst_tab"]], "Geneshot"),
+     "wp13 restore: the stripped snapshot restores its full state through the store section (single transport)")
+  alive(session, "wp13 stripped restore")
+  # drift again, then restore the PRE-WP-13-SHAPED snapshot (duplicates
+  # re-apply through the module restore observers, idempotent under the
+  # store section - section 6 restore-ordering note)
+  omicsViewer:::store_apply(st14, list(
+    `resultspace.ora.xax_variable` = "Intensity",
+    `resultspace.geneshot.term` = "mitosis",
+    `resultspace.feature_general.plot_type` = "Curve",
+    `resultspace.sample_general.attr4.xcut` = "2"), origin = "agent")
+  snap_ack(session)
+  restore_snapshot(session, 2L, 2L, 2L)
+  vals_dupes <- omicsViewer:::store_snapshot(st14)$values
+  ok(ut_cmp_identical(vals_dupes, vals_strip),
+     "wp13 equivalence: the duplicate-carrying (pre-WP-13-shaped) snapshot restores to the IDENTICAL store state as the stripped save")
+  alive(session, "wp13 pre-shape restore")
+})
+# --- (c) a genuine legacy flat v1 snapshot (duplicates, no store section)
+# still restores cleanly through the real restore flow - unchanged by
+# WP-13 (session alive, restore pipeline completes, and - exactly like
+# the WP-4 string-legacy case above - with no widget-store section the
+# Phase-1b store transaction is skipped entirely, so the session's
+# current widget values are not reset by the legacy payload). NOTE: the
+# legacy widget-state re-apply itself (module restore observers over
+# status slices) has been a NO-OP through the real L1 since WP-11 - a
+# latent loop-variable capture in the registry loop's .rs_slice
+# reactives (every slice resolves the LAST record's status_key); the
+# module-level legacy path is intact (WP-9/WP-10 goldens, and the
+# unit-level no-store-section guard above pins that WP-13's strip never
+# touches these snapshots). Recorded OPEN as O5 in PANEL_DEBT_STATUS.md
+# with the repro; fixing L1 is outside WP-13's sanctioned file list.
+legacy14 <- list(
+  label = "legacy v1 result space",
+  analyst_active_tab = "Geneshot",
+  analyst_ora = list(xax = list(
+    analysis = "General", subset = "All", variable = "Gene.name")),
+  analyst_gene_shot = list(xax = NULL, term = "cell cycle"),
+  eset_active_tab = "Feature")
+saveRDS(legacy14, file.path(d14, omicsViewer:::snapshot_file_name(
+  "zzlegacy", dataset_id = "ESVObj.RDS")))
+st14b <- omicsViewer:::widget_store_new()
+shiny::testServer(mkapp(d14, demo, st14b), {
+  snap_init(session)
+  disarm_corner(session)
+  # seed a live result-space value so the restore direction is
+  # observable (drift the term like a user visiting Geneshot)
+  session$setInputs(`app-resultspace-geneshotTab-term` = "apoptosis")
+  session$flushReact(); snap_ack(session)
+  # rows alphabetical: [astrip, bdupes, zzlegacy]
+  restore_snapshot(session, 3L, 1L, 1L)
+  v <- omicsViewer:::store_snapshot(st14b)$values
+  ok(ut_cmp_identical(v[["resultspace.geneshot.term"]], "apoptosis"),
+     "wp13 legacy: no store section -> Phase 1b skipped, the live widget values survive UNTOUCHED (the legacy payload never resets them)")
+  ok(ut_cmp_identical(
+       v[["resultspace.analyst_tab"]], "Geneshot"),
+     "wp13 legacy: analyst_active_tab still restores through the L1 observer (kept field, not the broken slice path)")
+  alive(session, "wp13 legacy v1 restore")
+})
+unlink(d14, recursive = TRUE)
