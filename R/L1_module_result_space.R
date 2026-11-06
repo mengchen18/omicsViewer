@@ -42,28 +42,14 @@ L1_result_space_module <- function(
 
     # ------------------------------------------------------------------
     # Canonical widget-store bindings (control plane, plan section 6, S4):
-    # result-space child stores plus the analyst tab navbar itself, so the
-    # agent can switch analysis tabs exactly like a user.
+    # the analyst tab navbar itself, so the agent can switch analysis
+    # tabs exactly like a user. This block is L1's OWN state (plan
+    # appendix "L1-owned"); the per-panel child stores are created by
+    # the WP-11 registry loop below, in registry (server-composition)
+    # order - the pre-WP-11 hardcoded child-store lines dissolved there.
     # ------------------------------------------------------------------
-    store_feature_general <- NULL
-    store_sample_general <- NULL
-    store_ora <- NULL
-    store_fgsea <- NULL
-    store_stringdb <- NULL
-    store_ptm <- NULL
-    store_geneshot <- NULL
-    store_rescurve <- NULL
-    store_rs <- NULL  # L1: referenced by the status-restore observer even when store is NULL
+    store_rs <- NULL  # referenced by the status-restore observer even when store is NULL
     if (!is.null(store)) {
-      store_feature_general <- widget_store_child(store, "resultspace.feature_general")
-      store_sample_general <- widget_store_child(store, "resultspace.sample_general")
-      store_ora <- widget_store_child(store, "resultspace.ora")
-      store_fgsea <- widget_store_child(store, "resultspace.fgsea")
-      store_stringdb <- widget_store_child(store, "resultspace.stringdb")
-      store_ptm <- widget_store_child(store, "resultspace.ptm")
-      store_geneshot <- widget_store_child(store, "resultspace.geneshot")
-      # WP-3 (P4): dose-response joins the store (new child, D2/D18)
-      store_rescurve <- widget_store_child(store, "resultspace.dose_response")
       store_rs <- widget_store_child(store, "resultspace")
       # tab titles in renderUI order; providers must never req()
       # WP-1 (P2): thin wrapper over the ONE availability function
@@ -111,105 +97,136 @@ L1_result_space_module <- function(
       }))
     }
 
-    # session restore finished
-    # WP-7: Feature-general converts to the shared socket machinery with
-    # ZERO store-key/behavior change (the WP-5/WP-6 pure-migration
-    # pattern). The context (D13; WP-11 collapses the per-panel builds
-    # into the registry loop) carries the store and the per-instance
-    # retention helper, which the module consumes; data/selection/
-    # status/session ride along for shape parity (dormant this pass).
-    # Legacy formals stay (direct-instantiation path); the five
-    # resultspace.feature_general.* bindings (plus the attr4 panel's
-    # 19 child-store registrations) register byte-identically (frozen
-    # pre-migration golden, tests/test_panelRegistry.R).
-    feature_context <- panel_context(
-      id = "feature_general", tab_value = "Feature",
-      store = store_feature_general,
-      data = Filter(is.function, list(
-        expr = reactive_expr, pdata = reactive_phenoData,
-        fdata = reactive_featureData)),
-      selection = Filter(is.function, list(
-        feature = reactive_i, sample = reactive_highlight)),
-      status = reactive(status()$analyst_feature_general),
-      session = session
-    )
-    v <- feature_general_module("feature_general",
-      reactive_expr = reactive_expr,
-      reactive_i = reactive_i,
-      reactive_highlight = reactive_highlight,
-      reactive_phenoData = reactive_phenoData,
-      reactive_featureData = reactive_featureData,
-      reactive_status = reactive(status()$analyst_feature_general),
-      store = store_feature_general,
-      context = feature_context
-    )
+    # ------------------------------------------------------------------
+    # WP-11 (plan section 4): L1 SERVER-side composition from the panel
+    # registry. The eight per-panel call sites with their bespoke formals
+    # and per-panel context builds (WP-3..WP-10, D13) collapse into ONE
+    # loop over panel_records: per record, create the child store view
+    # (dose keeps its resultspace.dose_response namespace, D2/D18), build
+    # the panel_context (the established pattern: data/selection/status/
+    # session/active), and invoke the record's server with its module id
+    # plus the legacy formals (the modules still consume data through
+    # those; context data fields stay dormant). Module returns are
+    # collected into a map keyed by status_key for the status builder
+    # and the enrichment reader below.
+    #
+    # ORDER INVARIANT (call order = snapshot/enumeration order): the
+    # registry list order IS the module invocation order, which is the
+    # binding registration order - the store_snapshot bytes (values+
+    # epochs+actions, names AND order) and the capability-record order
+    # depend on it. The pre-WP-11 literal call order was feature_general,
+    # fgsea, ora, stringdb, sample_general, geneshotTab, ptm, rescurve;
+    # the registry records were reordered to exactly that (data fix in
+    # auxi_panelRegistry.R), never the frozen goldens (D12).
+    # ------------------------------------------------------------------
+    .rs_active_tab <- reactive(status()$analyst_active_tab)
+    .rs_sources <- list(
+      expr = reactive_expr, pdata = reactive_phenoData,
+      fdata = reactive_featureData, object = object,
+      feature = reactive_i, sample = reactive_highlight)
+    # which context data/selection fields each panel receives (the exact
+    # per-call-site shapes; Filter(is.function) keeps a NULL `object` out
+    # of the dose context, PD-17)
+    .rs_ctx_data <- list(
+      feature_general = c("expr", "pdata", "fdata"),
+      fgsea = "fdata",
+      ora = "fdata",
+      stringdb = "fdata",
+      sample_general = c("expr", "pdata"),
+      geneshotTab = "fdata",
+      ptm = "fdata",
+      rescurve = c("expr", "pdata", "fdata", "object"))
+    .rs_ctx_selection <- list(
+      feature_general = c("feature", "sample"),
+      fgsea = "feature",
+      ora = "feature",
+      stringdb = "feature",
+      sample_general = "sample",
+      geneshotTab = "feature",
+      ptm = "feature",
+      rescurve = c("feature", "sample"))
+    # the legacy formals per module, verbatim from the dissolved call
+    # sites (D13 argument coalescing: context wins for store/keep, the
+    # explicit formals remain the direct-instantiation path). status
+    # slices come from the record's status_key (the special-arg glue is
+    # gone: string ids moved in WP-4, dose attrs in WP-3)
+    .rs_server_args <- list(
+      feature_general = function(slice) list(
+        reactive_expr = reactive_expr,
+        reactive_i = reactive_i,
+        reactive_highlight = reactive_highlight,
+        reactive_phenoData = reactive_phenoData,
+        reactive_featureData = reactive_featureData,
+        reactive_status = slice),
+      fgsea = function(slice) list(
+        reactive_featureData = reactive_featureData,
+        reactive_status = slice),
+      ora = function(slice) list(
+        reactive_i = reactive_i,
+        reactive_featureData = reactive_featureData,
+        reactive_status = slice),
+      # string consumes everything through its context since WP-4 (the
+      # ids derivation moved into the module)
+      stringdb = function(slice) list(),
+      sample_general = function(slice) list(
+        reactive_phenoData = reactive_phenoData,
+        reactive_expr = reactive_expr,
+        reactive_j = reactive_highlight,
+        reactive_status = slice),
+      geneshotTab = function(slice) list(
+        fdata = reactive_featureData,
+        feature_selected = reactive_i,
+        reactive_status = slice),
+      ptm = function(slice) list(
+        fdata = reactive_featureData,
+        feature_selected = reactive_i,
+        reactive_status = slice
+        # background = reactive(attr(object(), "ptm.seq.window"))
+        # background = reactive({
+        #   i <- grep("^PTMSeq\\|", colnames(reactive_featureData()))
+        #   reactive_featureData()[[i]]
+        # })
+        ),
+      # dose: the S6.6_drc derivation moved into the module in WP-3
+      # (over context$data$object); no reactive_status formal is passed
+      rescurve = function(slice) list(
+        reactive_expr = reactive_expr,
+        reactive_i = reactive_i,
+        reactive_phenoData = reactive_phenoData,
+        reactive_featureData = reactive_featureData))
 
-    # session restore finished
-    # WP-10: fGSEA converts to the shared socket machinery with ZERO
-    # store-key/behavior change (the WP-5..WP-9 pure-migration pattern;
-    # the LAST panel migration). Like ORA it is agent-coupled - the
-    # set_enrichment_parameters tool (method = "fgsea"), the
-    # panel_results excerpt reader and the enrichment normalizer
-    # address this panel's store keys, none of them rewritten here
-    # (proven unchanged by the frozen L0 apply-callback receipt golden,
-    # byte-identical pre/post over a GS-attached dataset). The context
-    # (D13; WP-11 collapses the per-panel builds into the registry
-    # loop) carries the store and the per-instance retention helper,
-    # which the module consumes; fdata/status/session ride along for
-    # shape parity (dormant this pass). Legacy formals stay
-    # (direct-instantiation path); the three ranking-cascade keys plus
-    # the results-table row selection (run-preconditioned
-    # selected_row) keep registering byte-identically (frozen
-    # pre-migration golden, tests/test_panelRegistry.R). The legacy
-    # restore observer and the return-with-table-attr (the
-    # panel_results excerpt source) stay in the module verbatim (D4
-    # panel semantics).
-    fgsea_context <- panel_context(
-      id = "fgsea", tab_value = "fGSEA",
-      store = store_fgsea,
-      data = Filter(is.function, list(fdata = reactive_featureData)),
-      selection = Filter(is.function, list(feature = reactive_i)),
-      status = reactive(status()$analyst_fgsea),
-      session = session
-    )
-    v2 <- enrichment_fgsea_module("fgsea",
-      reactive_featureData = reactive_featureData,
-      reactive_status = reactive(status()$analyst_fgsea),
-      store = store_fgsea,
-      context = fgsea_context
-    )
-
-    # session restore finished
-    # WP-9: ORA converts to the shared socket machinery with ZERO
-    # store-key/behavior change (the WP-5..WP-8 pure-migration pattern;
-    # ORA is the reference citizen and the FIRST agent-coupled migration
-    # - the set_enrichment_parameters tool, the panel_results excerpt
-    # reader and the enrichment normalizer all address this panel's
-    # store keys, none of them rewritten here). The context (D13; WP-11
-    # collapses the per-panel builds into the registry loop) carries the
-    # store and the per-instance retention helper, which the module
-    # consumes; data/selection/status/session ride along for shape
-    # parity (dormant this pass). Legacy formals stay
-    # (direct-instantiation path); the three cascade keys plus the
-    # results-table row selection (run-preconditioned selected_row)
-    # keep registering byte-identically (frozen pre-migration golden,
-    # tests/test_panelRegistry.R). The legacy restore observer and the
-    # return-with-table-attr (the panel_results excerpt source) stay in
-    # the module verbatim (D4 panel semantics).
-    ora_context <- panel_context(
-      id = "ora", tab_value = "ORA",
-      store = store_ora,
-      data = Filter(is.function, list(fdata = reactive_featureData)),
-      selection = Filter(is.function, list(feature = reactive_i)),
-      status = reactive(status()$analyst_ora),
-      session = session
-    )
-    v3 <- enrichment_analysis_module("ora",
-      reactive_i = reactive_i, reactive_featureData = reactive_featureData,
-      reactive_status = reactive(status()$analyst_ora),
-      store = store_ora,
-      context = ora_context
-    )
+    .rs_panel_results <- list()
+    # static guard: the loop tables must cover exactly the registry's
+    # module ids (actionable boot failure when a future record is added
+    # without its loop entry - the failures below would otherwise be
+    # silent empty contexts / "attempt to apply non-function")
+    .rs_loop_ids <- vapply(panel_records, function(r) r$module_id, "")
+    for (.rs_tbl in list(.rs_server_args, .rs_ctx_data, .rs_ctx_selection)) {
+      if (!setequal(.rs_loop_ids, names(.rs_tbl)))
+        stop("L1 result space: the WP-11 registry loop tables must cover ",
+             "exactly the registry module ids (",
+             paste(.rs_loop_ids, collapse = ", "), "); got: ",
+             paste(names(.rs_tbl), collapse = ", "), call. = FALSE)
+    }
+    for (r in panel_records) {
+      .rs_child <- if (is.null(store)) NULL else
+        widget_store_child(store, r$store_id)
+      .rs_slice <- if (is.null(r$status_key)) reactive(NULL) else
+        reactive(status()[[r$status_key]])
+      .rs_ctx <- panel_context(
+        id = r$module_id, tab_value = r$tab_value, store = .rs_child,
+        data = Filter(is.function,
+                      .rs_sources[.rs_ctx_data[[r$module_id]]]),
+        selection = Filter(is.function,
+                           .rs_sources[.rs_ctx_selection[[r$module_id]]]),
+        status = .rs_slice,
+        active_tab = .rs_active_tab,
+        session = session)
+      .rs_panel_results[[r$status_key %||% r$module_id]] <- do.call(
+        r$server,
+        c(list(r$module_id), .rs_server_args[[r$module_id]](.rs_slice),
+          list(store = .rs_child, context = .rs_ctx)))
+    }
 
     # ------------------------------------------------------------------
     # WP-7 (F4): bounded read access to the enrichment result tables.
@@ -219,6 +236,9 @@ L1_result_space_module <- function(
     # elements - snapshots must not grow result tables). Returned as an
     # attribute on this module's status value, mirroring the data-space
     # quickViews pattern; as.list()/.sanitize_widget_state drop it.
+    # L1-owned (plan appendix); since WP-11 the ora/fgsea module returns
+    # come from the registry loop's result map (identical reactive
+    # values - the loop replaced the v3/v2 call sites 1:1).
     # ------------------------------------------------------------------
     .read_one_enrichment_table <- function(module_return, method) {
       tab <- tryCatch(
@@ -234,150 +254,13 @@ L1_result_space_module <- function(
              ". Use 'ora', 'fgsea', or omit it for both.")
       out <- list()
       if (m %in% c("", "ora"))
-        out$ora <- .read_one_enrichment_table(v3, "ORA")
+        out$ora <- .read_one_enrichment_table(
+          .rs_panel_results$analyst_ora, "ORA")
       if (m %in% c("", "fgsea"))
-        out$fgsea <- .read_one_enrichment_table(v2, "fGSEA")
+        out$fgsea <- .read_one_enrichment_table(
+          .rs_panel_results$analyst_fgsea, "fGSEA")
       out
     }
-
-    # STRING (WP-4, P5): the ids derivation moved INTO the module
-    # (verbatim from this call site); the context is built here per plan
-    # D13 - WP-11 collapses the per-panel context builds into the
-    # registry loop. Widget state round-trips through the store section
-    # (resultspace.stringdb.*); the analyst_stringdb status placeholder
-    # is no longer emitted (the APP_STATE_GAPS entry stays verbatim in
-    # auxi_appState.R - byte stability for legacy v1 reads).
-    string_context <- panel_context(
-      id = "stringdb", tab_value = "StringDB",
-      store = store_stringdb,
-      data = Filter(is.function, list(fdata = reactive_featureData)),
-      selection = Filter(is.function, list(feature = reactive_i)),
-      status = reactive(status()$analyst_stringdb),
-      active_tab = reactive(status()$analyst_active_tab),
-      session = session
-    )
-    v4 <- string_module("stringdb", context = string_context)
-
-    # session restore finished
-    # WP-8: Sample-general converts to the shared socket machinery with
-    # ZERO store-key/behavior change (the WP-5..WP-7 pure-migration
-    # pattern). The context (D13; WP-11 collapses the per-panel builds
-    # into the registry loop) carries the store and the per-instance
-    # retention helper, which the module consumes; data/selection/
-    # status/session ride along for shape parity (dormant this pass).
-    # Legacy formals stay (direct-instantiation path); the three own
-    # resultspace.sample_general.* cascade keys register byte-identically
-    # KEEPING the Surv category (Kaplan-Meier - the deliberate opposite
-    # of feature-general's minus-Surv cascade), with the attr4 (19),
-    # survival (1) and batch (4) child-store registrations untouched
-    # (frozen pre-migration golden, tests/test_panelRegistry.R).
-    sample_context <- panel_context(
-      id = "sample_general", tab_value = "Sample",
-      store = store_sample_general,
-      data = Filter(is.function, list(
-        expr = reactive_expr, pdata = reactive_phenoData)),
-      selection = Filter(is.function, list(sample = reactive_highlight)),
-      status = reactive(status()$analyst_sample_general),
-      session = session
-    )
-    v5 <- sample_general_module(
-      "sample_general",
-      reactive_phenoData = reactive_phenoData, reactive_expr = reactive_expr,
-      reactive_j = reactive_highlight,
-      reactive_status = reactive(status()$analyst_sample_general),
-      store = store_sample_general,
-      context = sample_context
-    )
-
-    # session restore finished
-    # WP-6: Geneshot converts to the shared socket machinery with ZERO
-    # store-key/behavior change (the WP-5 pure-migration pattern) PLUS
-    # the P9 triset dedup: the module's twin derivations (the triset
-    # reactive and the .gs_ts choices provider, divergent empty-data
-    # guards) collapsed into ONE geneshot_triset(fd) feeding both. The
-    # context (D13; WP-11 collapses the per-panel builds into the
-    # registry loop) carries the store and the per-instance retention
-    # helper, which the module consumes; data/selection/status/session
-    # ride along for shape parity (dormant this pass). Legacy formals
-    # stay (direct-instantiation path); the term binding + submit
-    # action + term sync/seed/push observers stay in the module (panel
-    # semantics, D4); the four resultspace.geneshot.* keys register
-    # byte-identically (frozen pre-migration golden,
-    # tests/test_panelRegistry.R).
-    geneshot_context <- panel_context(
-      id = "geneshotTab", tab_value = "Geneshot",
-      store = store_geneshot,
-      data = Filter(is.function, list(fdata = reactive_featureData)),
-      selection = Filter(is.function, list(feature = reactive_i)),
-      status = reactive(status()$analyst_gene_shot),
-      session = session
-    )
-    v6 <- geneshot_module(
-      "geneshotTab",
-      fdata = reactive_featureData,
-      feature_selected = reactive_i,
-      reactive_status = reactive(status()$analyst_gene_shot),
-      store = store_geneshot,
-      context = geneshot_context
-    )
-
-    # session restore finished
-    # WP-5: PTM converts to the shared socket machinery with ZERO
-    # store-key/behavior change. The context (D13; WP-11 collapses the
-    # per-panel builds into the registry loop) carries the store and
-    # the per-instance retention helper, which the module consumes;
-    # data/selection/status/session ride along for shape parity (dormant
-    # this pass). Legacy formals stay (direct-instantiation path); the
-    # cascade registers the same three resultspace.ptm.* bindings
-    # byte-identically (frozen pre-migration golden,
-    # tests/test_panelRegistry.R).
-    ptm_context <- panel_context(
-      id = "ptm", tab_value = "SeqLogo",
-      store = store_ptm,
-      data = Filter(is.function, list(fdata = reactive_featureData)),
-      selection = Filter(is.function, list(feature = reactive_i)),
-      status = reactive(status()$analyst_ptm),
-      session = session
-    )
-    v7 <- ptmotif_module(
-      "ptm",
-      fdata = reactive_featureData,
-      feature_selected = reactive_i,
-      reactive_status = reactive(status()$analyst_ptm),
-      store = store_ptm,
-      context = ptm_context
-      # ,
-      # background = reactive( attr(object(), "ptm.seq.window") )
-      # background = reactive({
-      #   i <- grep("^PTMSeq\\|", colnames(reactive_featureData()))
-      #   reactive_featureData()[[i]]
-      #   })
-    )
-
-    # dose response (WP-3, P4: the panel joins the store). The context is
-    # built here per plan D13 - WP-11 collapses the per-panel context
-    # builds into the registry loop. The S6.6_drc attribute derivation
-    # moved INTO the module (verbatim expressions over
-    # context$data$object); this call site no longer builds it.
-    dose_context <- panel_context(
-      id = "rescurve", tab_value = "Response",
-      store = store_rescurve,
-      data = Filter(is.function, list(
-        expr = reactive_expr, pdata = reactive_phenoData,
-        fdata = reactive_featureData, object = object)),
-      selection = Filter(is.function, list(
-        feature = reactive_i, sample = reactive_highlight)),
-      status = reactive(status()$analyst_dose_response),
-      session = session
-    )
-    v8 <- dose_response_module(
-      "rescurve",
-      reactive_expr = reactive_expr,
-      reactive_i = reactive_i,
-      reactive_phenoData = reactive_phenoData,
-      reactive_featureData = reactive_featureData,
-      context = dose_context
-    )
 
     #
     additional_module_results <- list()
@@ -526,23 +409,26 @@ L1_result_space_module <- function(
         }
       }
 
-      out <- list(
-        analyst_active_tab = input$analyst,
-        analyst_feature_general = safe_module_state(v),
-        analyst_sample_general = safe_module_state(v5),
-        analyst_gene_shot = safe_module_state(v6),
-        analyst_fgsea = safe_module_state(v2),
-        # WP-4 (P5): no analyst_stringdb entry anymore - the dead
-        # placeholder emission was removed; string widget state rides
-        # the store section (resultspace.stringdb.*). Post-sanitize
-        # snapshots are byte-identical: the sanitizer already dropped
-        # this key, and legacy v1 reads stay protected by that verbatim
-        # name-drop (auxi_appState.R).
-        analyst_ora = safe_module_state(v3),
-        analyst_ptm = safe_module_state(v7),
-        analyst_dose_response = list(state_support = FALSE),
-        analyst_additional = additional_state
-      )
+      # WP-11: the status builder pulls every stateful panel's value from
+      # the registry loop's result map (keyed by status_key). The key
+      # EMISSION order below is pinned to the historical literal order -
+      # analyst_active_tab first, analyst_additional last, and the
+      # panels in between in today's order (feature_general,
+      # sample_general, gene_shot, fgsea, ora, ptm) - which is NOT the
+      # registry order; the snapshot panels$result_space name/order
+      # parity is asserted by the WP-11 goldens (test_panelRegistry.R).
+      # analyst_dose_response keeps its state_support marker (WP-3; the
+      # plot is a computed payload) and analyst_stringdb stays unemitted
+      # (WP-4; widget state rides resultspace.stringdb.*).
+      .rs_status_emission <- c(
+        "analyst_feature_general", "analyst_sample_general",
+        "analyst_gene_shot", "analyst_fgsea", "analyst_ora",
+        "analyst_ptm")
+      out <- list(analyst_active_tab = input$analyst)
+      for (.rs_key in .rs_status_emission)
+        out[[.rs_key]] <- safe_module_state(.rs_panel_results[[.rs_key]])
+      out$analyst_dose_response <- list(state_support = FALSE)
+      out$analyst_additional <- additional_state
       # WP-7 (F4): bounded enrichment-result reader for the assistant's
       # panel_results state section (attribute - never serialized into
       # snapshots; the same pattern as the data-space quickViews attr).

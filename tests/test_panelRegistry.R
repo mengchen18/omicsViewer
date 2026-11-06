@@ -114,35 +114,52 @@ ok(is.list(r_ok) && r_ok$order == 2L && !r_ok$stateful && is.null(r_ok$status_ke
    "panel_record: valid record returned as a plain validated list")
 
 ## -------------------------------------------------- seed registry content ----
+# WP-11 record-order data fix: the LIST order is the L1 SERVER
+# composition order (module invocation = binding registration = snapshot
+# byte order; the loop in L1_module_result_space.R iterates it), while
+# the TAB composition order lives in the order field (rs_tab_set sorts
+# by it - its output is unchanged; the truth table below pins that).
 ok(identical(names(panel_records),
-             c("feature_general", "ora", "fgsea", "rescurve", "stringdb",
-               "ptm", "geneshotTab", "sample_general")),
-   "registry: 8 records keyed by module id in composition order")
+             c("feature_general", "fgsea", "ora", "stringdb",
+               "sample_general", "geneshotTab", "ptm", "rescurve")),
+   "registry: 8 records keyed by module id in L1 server-composition order (WP-11 data fix; the pre-WP-11 literal call order)")
 ok(identical(unname(vapply(panel_records, function(r) r$tab_value, "")), c(
+  "Feature", "fGSEA", "ORA", "StringDB", "Sample", "Geneshot",
+  "SeqLogo", "Response")),
+   "registry: tab values verbatim, list order = server-composition order")
+ok(identical(sort(unname(vapply(panel_records, function(r) r$tab_value, ""))), sort(c(
   "Feature", "ORA", "fGSEA", "Response", "StringDB", "SeqLogo",
-  "Geneshot", "Sample")),
-   "registry: tab values verbatim, registry order == today's composition order")
+  "Geneshot", "Sample"))),
+   "registry: the tab-value SET is the plan's 8 verbatim values")
 ok(identical(unname(vapply(panel_records, function(r) r$store_id, "")), c(
-  "resultspace.feature_general", "resultspace.ora", "resultspace.fgsea",
-  "resultspace.dose_response", "resultspace.stringdb", "resultspace.ptm",
-  "resultspace.geneshot", "resultspace.sample_general")),
+  "resultspace.feature_general", "resultspace.fgsea", "resultspace.ora",
+  "resultspace.stringdb", "resultspace.sample_general",
+  "resultspace.geneshot", "resultspace.ptm",
+  "resultspace.dose_response")),
    "registry: store prefixes verbatim incl. the NEW resultspace.dose_response (D2/D18)")
 ok(identical(unname(vapply(panel_records, function(r) r$status_key, "")), c(
-  "analyst_feature_general", "analyst_ora", "analyst_fgsea",
-  "analyst_dose_response", "analyst_stringdb", "analyst_ptm",
-  "analyst_gene_shot", "analyst_sample_general")),
+  "analyst_feature_general", "analyst_fgsea", "analyst_ora",
+  "analyst_stringdb", "analyst_sample_general", "analyst_gene_shot",
+  "analyst_ptm", "analyst_dose_response")),
    "registry: status keys verbatim (analyst_gene_shot != module id, historical)")
-ok(identical(unname(vapply(panel_records, function(r) r$order, 1L)), 1:8),
-   "registry: order field 1..8")
+ok(identical(sort(unname(vapply(panel_records, function(r) r$order, 1L))), 1:8),
+   "registry: order field is a permutation of 1..8 (one rank per record; the TAB composition rank)")
+ok(identical(
+  unname(vapply(panel_records[order(vapply(panel_records, function(r) r$order, 1L))],
+                function(r) r$tab_value, "")),
+  c("Feature", "ORA", "fGSEA", "Response", "StringDB", "SeqLogo",
+    "Geneshot", "Sample")),
+   "registry: sorting by the order field yields the tab-composition order (what rs_tab_set emits; unchanged by the WP-11 data fix)")
 ok(identical(
   unname(vapply(panel_records, function(r) isTRUE(r$stateful), TRUE)),
-  c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, TRUE)),
-   "registry: stateful flags - dose/STRING FALSE (current semantics; fixes are WP-3/4)")
+  c(TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, FALSE)),
+   "registry: stateful flags - stringdb/dose FALSE (WP-4/WP-3 semantics)")
 ok(identical(
   unname(vapply(panel_records, function(r) r$icon, "")),
-  c("chart-column", "object-group", "arrow-down-short-wide", "capsules",
-    "share-nodes", "font", "book-open", "arrows-down-to-people")),
-   "registry: icons match today's L1 navbar composition verbatim")
+  c("chart-column", "arrow-down-short-wide", "object-group",
+    "share-nodes", "arrows-down-to-people", "book-open", "font",
+    "capsules")),
+   "registry: icons match today's L1 navbar composition verbatim (one per record)")
 ok(identical(panel_records$ora$ui, omicsViewer:::enrichment_analysis_ui) &&
    identical(panel_records$ora$server, omicsViewer:::enrichment_analysis_module) &&
    identical(panel_records$geneshotTab$server, omicsViewer:::geneshot_module) &&
@@ -4827,3 +4844,436 @@ ok(is.null(l1_at_err),
 ok(ut_cmp_identical(l1_at_status$analyst_additional,
                     list(customMod = list(state_support = FALSE))),
    "boot: the additional module composes into the status payload exactly as before")
+
+
+## ------------------- WP-11: L1 server composition from the registry ----
+# The structural centerpiece: L1's SERVER-side composition collapses from
+# the eight hand-wired per-panel call sites (WP-3..WP-10 context builds +
+# bespoke formals + the seven hardcoded widget_store_child lines) into
+# ONE loop over panel_records (per record: child store, panel_context,
+# the record's server with its module id and legacy formals; results
+# collected into a map keyed by status_key). Zero behavior change by
+# construction and by proof.
+#
+# GOLDEN PROVENANCE (strict, the PD-29/PD-33/PD-38/PD-43/PD-48/PD-55
+# school): every literal below was captured from PRE-WP-11 HEAD b0f920a
+# BEFORE any edit (2026-11-06), by booting the real L1 composition
+# exactly like the freeze harness above (demo.RDS fd0, fresh store, 3
+# flushes) and dput()ing the outputs: the FULL store snapshot
+# (values+epochs+actions, names AND order), the store_registry_view ids
+# in registration order, the status payload (reader attr stripped for
+# the literal; its behavior is its own golden), the agent state overview
+# shape (agent_compact_state over the real payload + store), the
+# capability-record ids in order with their per-tab counts, and the
+# enrichment reader's cold behavior. The fixtures are FROZEN: never
+# regenerate them from the registry-composed code.
+#
+# Record-order DATA fix: the pre-WP-11 L1 literal call order was
+# feature_general, fgsea, ora, stringdb, sample_general, geneshotTab,
+# ptm, rescurve - and call order IS binding registration order (snapshot
+# bytes, capability-record order). The registry LIST was reordered to
+# exactly that order; the tab-composition order lives in the order
+# field, and rs_tab_set sorts by it (output unchanged - the truth table
+# at the top of this suite pins it). The D12 freeze vector and these
+# goldens are untouched by definition of the invariant.
+#
+# The per-WP real-L1 payload tests earlier in this suite (w5l1, w6l1,
+# the WP-7/8/9/10 blocks) all boot the registry-composed L1 now and stay
+# green - the per-panel golden harnesses are the regression net.
+
+PANEL_W11_SNAP <- list(values = list(resultspace.analyst_tab = NULL, resultspace.feature_general.xax_analysis = NULL, 
+    resultspace.feature_general.xax_subset = NULL, resultspace.feature_general.xax_variable = NULL, 
+    resultspace.feature_general.plot_type = NULL, resultspace.feature_general.regression_line = FALSE, 
+    resultspace.feature_general.attr4.color_analysis = NULL, 
+    resultspace.feature_general.attr4.color_subset = NULL, resultspace.feature_general.attr4.color_variable = NULL, 
+    resultspace.feature_general.attr4.shape_analysis = NULL, 
+    resultspace.feature_general.attr4.shape_subset = NULL, resultspace.feature_general.attr4.shape_variable = NULL, 
+    resultspace.feature_general.attr4.size_analysis = NULL, resultspace.feature_general.attr4.size_subset = NULL, 
+    resultspace.feature_general.attr4.size_variable = NULL, resultspace.feature_general.attr4.tooltip_analysis = NULL, 
+    resultspace.feature_general.attr4.tooltip_subset = NULL, 
+    resultspace.feature_general.attr4.tooltip_variable = NULL, 
+    resultspace.feature_general.attr4.search_analysis = NULL, 
+    resultspace.feature_general.attr4.search_subset = NULL, resultspace.feature_general.attr4.search_variable = NULL, 
+    resultspace.feature_general.attr4.search_value = character(0), 
+    resultspace.feature_general.attr4.xcut = NULL, resultspace.feature_general.attr4.ycut = NULL, 
+    resultspace.feature_general.attr4.scorner = "None", resultspace.fgsea.xax_analysis = NULL, 
+    resultspace.fgsea.xax_subset = NULL, resultspace.fgsea.xax_variable = NULL, 
+    resultspace.fgsea.selected_row = NULL, resultspace.ora.xax_analysis = NULL, 
+    resultspace.ora.xax_subset = NULL, resultspace.ora.xax_variable = NULL, 
+    resultspace.ora.selected_row = NULL, resultspace.stringdb.taxonomy = NULL, 
+    resultspace.stringdb.show_labels = NULL, resultspace.stringdb.selected_row = NULL, 
+    resultspace.sample_general.xax_analysis = NULL, resultspace.sample_general.xax_subset = NULL, 
+    resultspace.sample_general.xax_variable = NULL, resultspace.sample_general.attr4.color_analysis = NULL, 
+    resultspace.sample_general.attr4.color_subset = NULL, resultspace.sample_general.attr4.color_variable = NULL, 
+    resultspace.sample_general.attr4.shape_analysis = NULL, resultspace.sample_general.attr4.shape_subset = NULL, 
+    resultspace.sample_general.attr4.shape_variable = NULL, resultspace.sample_general.attr4.size_analysis = NULL, 
+    resultspace.sample_general.attr4.size_subset = NULL, resultspace.sample_general.attr4.size_variable = NULL, 
+    resultspace.sample_general.attr4.tooltip_analysis = NULL, 
+    resultspace.sample_general.attr4.tooltip_subset = NULL, resultspace.sample_general.attr4.tooltip_variable = NULL, 
+    resultspace.sample_general.attr4.search_analysis = NULL, 
+    resultspace.sample_general.attr4.search_subset = NULL, resultspace.sample_general.attr4.search_variable = NULL, 
+    resultspace.sample_general.attr4.search_value = character(0), 
+    resultspace.sample_general.attr4.xcut = NULL, resultspace.sample_general.attr4.ycut = NULL, 
+    resultspace.sample_general.attr4.scorner = "None", resultspace.sample_general.survival_censor = NULL, 
+    resultspace.sample_general.batch_show_phenotype = NULL, resultspace.sample_general.batch_show_features = NULL, 
+    resultspace.sample_general.batch_phenotype_selected_row = NULL, 
+    resultspace.sample_general.batch_feature_selected_row = NULL, 
+    resultspace.geneshot.term = NULL, resultspace.geneshot.xax_analysis = NULL, 
+    resultspace.geneshot.xax_subset = NULL, resultspace.geneshot.xax_variable = NULL, 
+    resultspace.ptm.xax_analysis = "SeqLogo", resultspace.ptm.xax_subset = "All", 
+    resultspace.ptm.xax_variable = "seq.window", resultspace.dose_response.feature_table = NULL, 
+    resultspace.dose_response.param_table = NULL), epochs = list(
+    resultspace.analyst_tab = 0L, resultspace.feature_general.xax_analysis = 0L, 
+    resultspace.feature_general.xax_subset = 0L, resultspace.feature_general.xax_variable = 0L, 
+    resultspace.feature_general.plot_type = 0L, resultspace.feature_general.regression_line = 0L, 
+    resultspace.feature_general.attr4.color_analysis = 0L, resultspace.feature_general.attr4.color_subset = 0L, 
+    resultspace.feature_general.attr4.color_variable = 0L, resultspace.feature_general.attr4.shape_analysis = 0L, 
+    resultspace.feature_general.attr4.shape_subset = 0L, resultspace.feature_general.attr4.shape_variable = 0L, 
+    resultspace.feature_general.attr4.size_analysis = 0L, resultspace.feature_general.attr4.size_subset = 0L, 
+    resultspace.feature_general.attr4.size_variable = 0L, resultspace.feature_general.attr4.tooltip_analysis = 0L, 
+    resultspace.feature_general.attr4.tooltip_subset = 0L, resultspace.feature_general.attr4.tooltip_variable = 0L, 
+    resultspace.feature_general.attr4.search_analysis = 0L, resultspace.feature_general.attr4.search_subset = 0L, 
+    resultspace.feature_general.attr4.search_variable = 0L, resultspace.feature_general.attr4.search_value = 0L, 
+    resultspace.feature_general.attr4.xcut = 0L, resultspace.feature_general.attr4.ycut = 0L, 
+    resultspace.feature_general.attr4.scorner = 1L, resultspace.fgsea.xax_analysis = 0L, 
+    resultspace.fgsea.xax_subset = 0L, resultspace.fgsea.xax_variable = 0L, 
+    resultspace.fgsea.selected_row = 0L, resultspace.ora.xax_analysis = 0L, 
+    resultspace.ora.xax_subset = 0L, resultspace.ora.xax_variable = 0L, 
+    resultspace.ora.selected_row = 0L, resultspace.stringdb.taxonomy = 0L, 
+    resultspace.stringdb.show_labels = 0L, resultspace.stringdb.selected_row = 0L, 
+    resultspace.sample_general.xax_analysis = 0L, resultspace.sample_general.xax_subset = 0L, 
+    resultspace.sample_general.xax_variable = 0L, resultspace.sample_general.attr4.color_analysis = 0L, 
+    resultspace.sample_general.attr4.color_subset = 0L, resultspace.sample_general.attr4.color_variable = 0L, 
+    resultspace.sample_general.attr4.shape_analysis = 0L, resultspace.sample_general.attr4.shape_subset = 0L, 
+    resultspace.sample_general.attr4.shape_variable = 0L, resultspace.sample_general.attr4.size_analysis = 0L, 
+    resultspace.sample_general.attr4.size_subset = 0L, resultspace.sample_general.attr4.size_variable = 0L, 
+    resultspace.sample_general.attr4.tooltip_analysis = 0L, resultspace.sample_general.attr4.tooltip_subset = 0L, 
+    resultspace.sample_general.attr4.tooltip_variable = 0L, resultspace.sample_general.attr4.search_analysis = 0L, 
+    resultspace.sample_general.attr4.search_subset = 0L, resultspace.sample_general.attr4.search_variable = 0L, 
+    resultspace.sample_general.attr4.search_value = 0L, resultspace.sample_general.attr4.xcut = 0L, 
+    resultspace.sample_general.attr4.ycut = 0L, resultspace.sample_general.attr4.scorner = 1L, 
+    resultspace.sample_general.survival_censor = 0L, resultspace.sample_general.batch_show_phenotype = 0L, 
+    resultspace.sample_general.batch_show_features = 0L, resultspace.sample_general.batch_phenotype_selected_row = 0L, 
+    resultspace.sample_general.batch_feature_selected_row = 0L, 
+    resultspace.geneshot.term = 0L, resultspace.geneshot.xax_analysis = 0L, 
+    resultspace.geneshot.xax_subset = 0L, resultspace.geneshot.xax_variable = 0L, 
+    resultspace.ptm.xax_analysis = 1L, resultspace.ptm.xax_subset = 1L, 
+    resultspace.ptm.xax_variable = 1L, resultspace.dose_response.feature_table = 0L, 
+    resultspace.dose_response.param_table = 0L), actions = list(
+    resultspace.stringdb.run = 0L, resultspace.geneshot.submit = 0L))
+PANEL_W11_REG_ORDER <- c("resultspace.analyst_tab", "resultspace.feature_general.xax_analysis", 
+"resultspace.feature_general.xax_subset", "resultspace.feature_general.xax_variable", 
+"resultspace.feature_general.plot_type", "resultspace.feature_general.regression_line", 
+"resultspace.feature_general.attr4.color_analysis", "resultspace.feature_general.attr4.color_subset", 
+"resultspace.feature_general.attr4.color_variable", "resultspace.feature_general.attr4.shape_analysis", 
+"resultspace.feature_general.attr4.shape_subset", "resultspace.feature_general.attr4.shape_variable", 
+"resultspace.feature_general.attr4.size_analysis", "resultspace.feature_general.attr4.size_subset", 
+"resultspace.feature_general.attr4.size_variable", "resultspace.feature_general.attr4.tooltip_analysis", 
+"resultspace.feature_general.attr4.tooltip_subset", "resultspace.feature_general.attr4.tooltip_variable", 
+"resultspace.feature_general.attr4.search_analysis", "resultspace.feature_general.attr4.search_subset", 
+"resultspace.feature_general.attr4.search_variable", "resultspace.feature_general.attr4.search_value", 
+"resultspace.feature_general.attr4.xcut", "resultspace.feature_general.attr4.ycut", 
+"resultspace.feature_general.attr4.scorner", "resultspace.fgsea.xax_analysis", 
+"resultspace.fgsea.xax_subset", "resultspace.fgsea.xax_variable", 
+"resultspace.fgsea.selected_row", "resultspace.ora.xax_analysis", 
+"resultspace.ora.xax_subset", "resultspace.ora.xax_variable", 
+"resultspace.ora.selected_row", "resultspace.stringdb.taxonomy", 
+"resultspace.stringdb.show_labels", "resultspace.stringdb.selected_row", 
+"resultspace.sample_general.xax_analysis", "resultspace.sample_general.xax_subset", 
+"resultspace.sample_general.xax_variable", "resultspace.sample_general.attr4.color_analysis", 
+"resultspace.sample_general.attr4.color_subset", "resultspace.sample_general.attr4.color_variable", 
+"resultspace.sample_general.attr4.shape_analysis", "resultspace.sample_general.attr4.shape_subset", 
+"resultspace.sample_general.attr4.shape_variable", "resultspace.sample_general.attr4.size_analysis", 
+"resultspace.sample_general.attr4.size_subset", "resultspace.sample_general.attr4.size_variable", 
+"resultspace.sample_general.attr4.tooltip_analysis", "resultspace.sample_general.attr4.tooltip_subset", 
+"resultspace.sample_general.attr4.tooltip_variable", "resultspace.sample_general.attr4.search_analysis", 
+"resultspace.sample_general.attr4.search_subset", "resultspace.sample_general.attr4.search_variable", 
+"resultspace.sample_general.attr4.search_value", "resultspace.sample_general.attr4.xcut", 
+"resultspace.sample_general.attr4.ycut", "resultspace.sample_general.attr4.scorner", 
+"resultspace.sample_general.survival_censor", "resultspace.sample_general.batch_show_phenotype", 
+"resultspace.sample_general.batch_show_features", "resultspace.sample_general.batch_phenotype_selected_row", 
+"resultspace.sample_general.batch_feature_selected_row", "resultspace.geneshot.term", 
+"resultspace.geneshot.xax_analysis", "resultspace.geneshot.xax_subset", 
+"resultspace.geneshot.xax_variable", "resultspace.ptm.xax_analysis", 
+"resultspace.ptm.xax_subset", "resultspace.ptm.xax_variable", 
+"resultspace.dose_response.feature_table", "resultspace.dose_response.param_table"
+)
+PANEL_W11_STATUS_NAMES <- c("analyst_active_tab", "analyst_feature_general",
+  "analyst_sample_general", "analyst_gene_shot", "analyst_fgsea",
+  "analyst_ora", "analyst_ptm", "analyst_dose_response",
+  "analyst_additional")
+PANEL_W11_STATUS_PAYLOAD <- list(analyst_active_tab = NULL, analyst_feature_general = list(
+    xax = NULL, showRegLine = FALSE, attr4 = list(selectColor = NULL, 
+        selectShape = NULL, selectSize = NULL, selectTooltip = NULL, 
+        searchOnCol = NULL, searchValue = NULL, xcut = NULL, 
+        ycut = NULL, acorner = NULL), plotType = NULL), analyst_sample_general = list(
+    xax = NULL, attr4 = list(selectColor = NULL, selectShape = NULL, 
+        selectSize = NULL, selectTooltip = NULL, searchOnCol = NULL, 
+        searchValue = NULL, xcut = NULL, ycut = NULL, acorner = NULL)), 
+    analyst_gene_shot = list(xax = NULL, term = NULL), analyst_fgsea = list(
+        xax = NULL), analyst_ora = list(xax = NULL), analyst_ptm = list(
+        xax = NULL), analyst_dose_response = list(state_support = FALSE), 
+    analyst_additional = list())
+PANEL_W11_OVERVIEW_NAMES <- c("dataset", "active_tabs", "selection", "available_tabs", "quick_views", 
+"available_sections", "state_policy", "capabilities", "panels"
+)
+PANEL_W11_OVERVIEW_TABS <- list(data_space = c("Feature", "Sample"), analysis_space = c("Feature", 
+"Response", "StringDB", "SeqLogo", "Geneshot", "Sample"))
+PANEL_W11_OVERVIEW_CAPS <- list(capability_count = 72L, panels = "Analysis space", semantic_tools = c("set_omics_viewer_state", 
+"set_scatter_view", "set_enrichment_parameters", "set_table_view", 
+"create_figure", "update_figure"))
+PANEL_W11_OVERVIEW_PANELS <- list(data_space = list(eset_active_tab = "Feature"), result_space = list(
+    analyst_active_tab = NULL, analyst_feature_general = list(
+        xax = NULL, showRegLine = FALSE, attr4 = list(selectColor = NULL, 
+            selectShape = NULL, selectSize = NULL, selectTooltip = NULL, 
+            searchOnCol = NULL, searchValue = NULL, xcut = NULL, 
+            ycut = NULL, acorner = NULL), plotType = NULL), analyst_sample_general = list(
+        xax = NULL, attr4 = list(selectColor = NULL, selectShape = NULL, 
+            selectSize = NULL, selectTooltip = NULL, searchOnCol = NULL, 
+            searchValue = NULL, xcut = NULL, ycut = NULL, acorner = NULL)), 
+    analyst_gene_shot = list(xax = NULL, term = NULL), analyst_fgsea = list(
+        xax = NULL), analyst_ora = list(xax = NULL), analyst_ptm = list(
+        xax = NULL), analyst_dose_response = list(state_support = FALSE), 
+    analyst_additional = list()))
+PANEL_W11_CAP_IDS <- c("resultspace.analyst_tab", "resultspace.feature_general.xax_analysis", 
+"resultspace.feature_general.xax_subset", "resultspace.feature_general.xax_variable", 
+"resultspace.feature_general.plot_type", "resultspace.feature_general.regression_line", 
+"resultspace.feature_general.attr4.color_analysis", "resultspace.feature_general.attr4.color_subset", 
+"resultspace.feature_general.attr4.color_variable", "resultspace.feature_general.attr4.shape_analysis", 
+"resultspace.feature_general.attr4.shape_subset", "resultspace.feature_general.attr4.shape_variable", 
+"resultspace.feature_general.attr4.size_analysis", "resultspace.feature_general.attr4.size_subset", 
+"resultspace.feature_general.attr4.size_variable", "resultspace.feature_general.attr4.tooltip_analysis", 
+"resultspace.feature_general.attr4.tooltip_subset", "resultspace.feature_general.attr4.tooltip_variable", 
+"resultspace.feature_general.attr4.search_analysis", "resultspace.feature_general.attr4.search_subset", 
+"resultspace.feature_general.attr4.search_variable", "resultspace.feature_general.attr4.search_value", 
+"resultspace.feature_general.attr4.xcut", "resultspace.feature_general.attr4.ycut", 
+"resultspace.feature_general.attr4.scorner", "resultspace.fgsea.xax_analysis", 
+"resultspace.fgsea.xax_subset", "resultspace.fgsea.xax_variable", 
+"resultspace.fgsea.selected_row", "resultspace.ora.xax_analysis", 
+"resultspace.ora.xax_subset", "resultspace.ora.xax_variable", 
+"resultspace.ora.selected_row", "resultspace.stringdb.taxonomy", 
+"resultspace.stringdb.show_labels", "resultspace.stringdb.selected_row", 
+"resultspace.sample_general.xax_analysis", "resultspace.sample_general.xax_subset", 
+"resultspace.sample_general.xax_variable", "resultspace.sample_general.attr4.color_analysis", 
+"resultspace.sample_general.attr4.color_subset", "resultspace.sample_general.attr4.color_variable", 
+"resultspace.sample_general.attr4.shape_analysis", "resultspace.sample_general.attr4.shape_subset", 
+"resultspace.sample_general.attr4.shape_variable", "resultspace.sample_general.attr4.size_analysis", 
+"resultspace.sample_general.attr4.size_subset", "resultspace.sample_general.attr4.size_variable", 
+"resultspace.sample_general.attr4.tooltip_analysis", "resultspace.sample_general.attr4.tooltip_subset", 
+"resultspace.sample_general.attr4.tooltip_variable", "resultspace.sample_general.attr4.search_analysis", 
+"resultspace.sample_general.attr4.search_subset", "resultspace.sample_general.attr4.search_variable", 
+"resultspace.sample_general.attr4.search_value", "resultspace.sample_general.attr4.xcut", 
+"resultspace.sample_general.attr4.ycut", "resultspace.sample_general.attr4.scorner", 
+"resultspace.sample_general.survival_censor", "resultspace.sample_general.batch_show_phenotype", 
+"resultspace.sample_general.batch_show_features", "resultspace.sample_general.batch_phenotype_selected_row", 
+"resultspace.sample_general.batch_feature_selected_row", "resultspace.geneshot.term", 
+"resultspace.geneshot.xax_analysis", "resultspace.geneshot.xax_subset", 
+"resultspace.geneshot.xax_variable", "resultspace.ptm.xax_analysis", 
+"resultspace.ptm.xax_subset", "resultspace.ptm.xax_variable", 
+"resultspace.dose_response.feature_table", "resultspace.dose_response.param_table", 
+"action:resultspace.stringdb.run", "action:resultspace.geneshot.submit", 
+"panel:Feature Scatter Plot", "panel:Feature Metadata Table", 
+"panel:Sample Scatter Plot", "panel:Sample Metadata Table", "panel:Correlation Heatmap", 
+"panel:Expression Heatmap", "panel:Dynamic Heatmap with Selection", 
+"panel:Expression Matrix Table", "panel:Gene Set Membership Table", 
+"panel:Feature Analysis", "panel:Sample Analysis", "panel:Geneshot Literature Search", 
+"panel:Over-Representation Analysis", "panel:Fast Gene Set Enrichment Analysis", 
+"panel:Dose-Response Curves", "panel:STRING Protein Interaction Network", 
+"panel:Post-Translational Modification Motifs", "tool:get_omics_viewer_state", 
+"tool:search_annotations", "tool:summarize_annotation", "tool:set_omics_viewer_state", 
+"tool:set_scatter_view", "tool:set_enrichment_parameters", "tool:set_table_view", 
+"tool:create_figure", "tool:update_figure", "tool:find_controls", 
+"tool:describe_control", "tool:set_widgets", "tool:run_control"
+)
+PANEL_W11_CAP_TABS <- structure(c(Cor = 1L, `Dynamic heatmap` = 1L, Expression = 1L, 
+`Feature table` = 1L, GSList = 1L, Heatmap = 1L, `Sample table` = 1L, 
+`Analysis space` = 2L, Annotations = 2L, `Data space` = 2L, Figures = 2L, 
+`Global state` = 2L, Response = 3L, Controls = 4L, SeqLogo = 4L, 
+fGSEA = 5L, ORA = 5L, StringDB = 5L, Geneshot = 6L, Feature = 26L, 
+Sample = 29L), dim = 21L, dimnames = structure(list(c("Cor", 
+"Dynamic heatmap", "Expression", "Feature table", "GSList", "Heatmap", 
+"Sample table", "Analysis space", "Annotations", "Data space", 
+"Figures", "Global state", "Response", "Controls", "SeqLogo", 
+"fGSEA", "ORA", "StringDB", "Geneshot", "Feature", "Sample")), names = ""), class = "table")
+PANEL_W11_READER_COLD <- list(ora = list(method = "ORA", status = "not_run", message = "No results are computed yet. Run the analysis first (set_enrichment_parameters or the panel itself), then request this section again."), 
+    fgsea = list(method = "fGSEA", status = "not_run", message = "No results are computed yet. Run the analysis first (set_enrichment_parameters or the panel itself), then request this section again."))
+
+store_snapshot <- omicsViewer:::store_snapshot
+build_app_state <- omicsViewer:::build_app_state
+agent_compact_state <- omicsViewer:::agent_compact_state
+store_action_view <- omicsViewer:::store_action_view
+
+# --- the registry-composed L1 reproduces EVERY golden byte-for-byte
+# (this IS the loop-vs-old-call-site equivalence proof: the literals are
+# pre-change captures of the hand-wired composition, booted the same way)
+w11 <- new.env()
+w11$store <- widget_store_new()
+w11$ret <- NULL
+app_w11 <- function(input, output, session) {
+  w11$ret <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(NULL),
+    store = w11$store)
+}
+w11_err <- NULL; w11_snap <- NULL; w11_reg_order <- NULL
+w11_payload <- NULL; w11_cap <- NULL; w11_reader <- NULL
+shiny::testServer(app_w11, {
+  w11_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w11_snap <<- store_snapshot(w11$store)
+  w11_reg_order <<- unname(vapply(store_registry_view(w11$store),
+                                  function(r) r$id, ""))
+  w11_payload <<- tryCatch(shiny::isolate(w11$ret()),
+                           error = function(e) NULL)
+  w11_cap <<- agent_capability_records(w11$store)
+  w11_reader <<- tryCatch(
+    attr(shiny::isolate(w11$ret()), "read_enrichment_results")(),
+    error = function(e) conditionMessage(e))
+})
+ok(is.null(w11_err),
+   "WP-11: the registry-composed L1 boots headless (one loop, eight records)")
+ok(ut_cmp_identical(w11_snap, PANEL_W11_SNAP),
+   "WP-11: FULL store snapshot byte-identical (values+epochs+actions, names AND order = the pre-change call order)")
+ok(ut_cmp_identical(w11_reg_order, PANEL_W11_REG_ORDER),
+   "WP-11: store_registry_view ids in the frozen registration order (the capability-record order)")
+ok(ut_cmp_identical(sort(unique(w11_reg_order)), PANEL_REGISTRY_FREEZE_IDS),
+   "WP-11: the D12 enumeration freeze stays green through the loop (72 ids)")
+p11 <- w11_payload
+attributes(p11) <- list(names = names(p11))
+ok(ut_cmp_identical(names(w11_payload), PANEL_W11_STATUS_NAMES),
+   "WP-11: status payload keeps its exact key order (analyst_active_tab first, analyst_additional last; the plan's 'registry order == literal order' parenthetical was wrong - the goldens pin the truth)")
+ok(ut_cmp_identical(p11, PANEL_W11_STATUS_PAYLOAD),
+   "WP-11: status payload content byte-identical (registry-keyed map, emission-order-pinned builder; dose marker, string unemitted)")
+ok(is.function(attr(w11_payload, "read_enrichment_results")),
+   "WP-11: the enrichment reader still rides the payload attribute (L1-owned, map-fed)")
+ok(ut_cmp_identical(w11_reader, PANEL_W11_READER_COLD),
+   "WP-11: the reader's cold behavior over the demo boot is byte-identical (ora/fgsea not_run notes)")
+ok(ut_cmp_identical(vapply(w11_cap, function(r) r$id, ""), PANEL_W11_CAP_IDS),
+   "WP-11: agent capability records keep their exact id order (104 records)")
+ok(ut_cmp_identical(sort(table(vapply(w11_cap, function(r) r$tab, ""))),
+                    PANEL_W11_CAP_TABS),
+   "WP-11: agent capability per-tab counts unchanged")
+
+# --- agent state overview shape over the WP-11 composition (the
+# get_omics_viewer_state output shape: top-level section names, the
+# available-tabs block with rs_tab_set's analysis_space, the capability
+# summary over the real store, and the panels section over the payload)
+w11_state <- build_app_state(
+  dataset = dat, dataset_id = "demo.RDS",
+  data_status = list(eset_active_tab = "Feature"),
+  result_status = w11_payload,
+  selected_features = "EGFR", selected_samples = character(),
+  label = "wp11")
+w11_ov <- agent_compact_state(
+  state = w11_state,
+  available_tabs = list(
+    data_space = c("Feature", "Sample"),
+    analysis_space = rs_tab_set(fd0)),
+  store = w11$store,
+  sections = "panels")
+ok(ut_cmp_identical(names(w11_ov), PANEL_W11_OVERVIEW_NAMES),
+   "WP-11: agent state overview section names/order unchanged")
+ok(ut_cmp_identical(w11_ov$available_tabs, PANEL_W11_OVERVIEW_TABS),
+   "WP-11: overview available_tabs unchanged (analysis_space = rs_tab_set output; sort-by-order keeps it byte-identical)")
+ok(ut_cmp_identical(w11_ov$capabilities, PANEL_W11_OVERVIEW_CAPS),
+   "WP-11: overview capability summary unchanged (count 72, panel labels, semantic tools)")
+ok(ut_cmp_identical(w11_ov$panels, PANEL_W11_OVERVIEW_PANELS),
+   "WP-11: overview panels section byte-identical (the bounded view of the status payload)")
+
+# --- loop data threading, dose side: ctx$data$object rides the loop
+# exactly as at the old call site (the S6.6_drc derivation goes live;
+# the WP-3 module-level golden re-proven at L1 level)
+w11o <- new.env()
+w11o$store <- widget_store_new()
+w11o_err <- NULL; w11o_par <- NULL; w11o_feat <- NULL
+shiny::testServer(function(input, output, session) {
+  omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    reactive_i = reactive(1L),
+    object = reactive(dat),
+    status = reactive(NULL),
+    store = w11o$store)
+}, {
+  w11o_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  v <- store_registry_view(w11o$store, "resultspace.dose_response")
+  w11o_par <<- Filter(function(r) grepl("param_table$", r$id), v)[[1]]$allowed_values
+  w11o_feat <<- Filter(function(r) grepl("feature_table$", r$id), v)[[1]]$allowed_values
+})
+ok(is.null(w11o_err),
+   "WP-11: the loop boots L1 with object threaded (dose derivation active)")
+ok(ut_cmp_identical(w11o_par, .w3_params),
+   "WP-11: dose param choices live through the loop (identical to the WP-3 module golden rows)")
+ok(ut_cmp_identical(w11o_feat, rownames(fd0)[1]),
+   "WP-11: dose feature-table choice is the selected feature id through the loop")
+
+# --- loop data threading, string side: ctx$selection$feature rides the
+# loop (the moved-in ids derivation feeds the run action's availability;
+# the WP-4 module-level golden re-proven at L1 level)
+w11s <- new.env()
+w11s$store <- widget_store_new()
+w11s$sel <- shiny::reactiveVal(NULL)
+w11s_err <- NULL; w11s_act0 <- NULL; w11s_act1 <- NULL
+shiny::testServer(function(input, output, session) {
+  omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    reactive_i = w11s$sel,
+    status = reactive(NULL),
+    store = w11s$store)
+}, {
+  w11s_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w11s_act0 <<- store_action_view(
+    w11s$store, "resultspace.stringdb")[[1]]$available
+  w11s$sel(1L)
+  for (i in 1:3) session$flushReact()
+  w11s_act1 <<- store_action_view(
+    w11s$store, "resultspace.stringdb")[[1]]$available
+})
+ok(is.null(w11s_err),
+   "WP-11: the loop boots L1 with the string selection threaded")
+ok(ut_cmp_identical(
+  w11s_act0,
+  "select features first (set_omics_viewer_state features)"),
+   "WP-11: no selection -> the loop-built string context derives no ids (run action gated)")
+ok(ut_cmp_identical(w11s_act1, TRUE),
+   "WP-11: a feature selection -> the derived ids go live through the loop (identical to the WP-4 module golden)")
+
+# --- store-less L1 (exported/embedded use): the loop passes NULL child
+# stores, every panel boots on its legacy path, the status payload still
+# emits (the 4.6 regression shape, now with the full key-order pin)
+w11n_err <- NULL; w11n_names <- NULL; w11n_dose <- NULL
+shiny::testServer(function(input, output, session) {
+  v <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(list(analyst_active_tab = "Sample")),
+    store = NULL)
+  w11n_names <<- tryCatch({
+    for (i in 1:10) session$flushReact()
+    names(shiny::isolate(v()))
+  }, error = function(e) conditionMessage(e))
+  w11n_dose <<- tryCatch(
+    shiny::isolate(v())$analyst_dose_response, error = function(e) NULL)
+}, { })
+ok(ut_cmp_identical(w11n_names, PANEL_W11_STATUS_NAMES),
+   "WP-11: store-less L1 boots through the loop and emits the frozen key set in order")
+ok(ut_cmp_identical(w11n_dose, list(state_support = FALSE)),
+   "WP-11: store-less L1 keeps the analyst_dose_response state_support marker")

@@ -132,11 +132,25 @@ panel_record <- function(module_id, store_id, tab_value, label, icon,
 #' The ordered registry of built-in result-space panels
 #'
 #' Seed content, WP-0 (plan section 3.1 + appendix cheat sheet; names are
-#' verbatim and must never drift). List order equals today's literal
-#' composition order. Dose/STRING carry their CURRENT state semantics
-#' faithfully: dose has no store/status transport yet (gains the store in
-#' WP-3; the \code{analyst_dose_response} marker stays), STRING's status
-#' emission is the placeholder that WP-4 removes.
+#' verbatim and must never drift). WP-11 record-order data fix: the LIST
+#' order is the L1 SERVER composition order - the order L1's registry
+#' loop invokes the module servers, which is the binding registration
+#' order and therefore the store-snapshot byte order (call order =
+#' snapshot/enumeration order; the pre-WP-11 literal call sites composed
+#' feature_general, fgsea, ora, stringdb, sample_general, geneshotTab,
+#' ptm, rescurve). The TAB composition order (Feature, ORA, fGSEA,
+#' Response, StringDB, SeqLogo, [additionalTabs], Geneshot, Sample) is
+#' the records' \code{order} field; \code{\link{rs_tab_set}} sorts by
+#' it, so its output is byte-identical to the pre-WP-11 registry list
+#' order.
+#'
+#' Dose/STRING records carry their current semantics faithfully: dose
+#' gained the store in WP-3 (\code{resultspace.dose_response}; the
+#' \code{analyst_dose_response} status entry stays the state_support
+#' marker), STRING's status emission was removed in WP-4 (widget state
+#' rides \code{resultspace.stringdb.*}; the record keeps
+#' \code{status_key = "analyst_stringdb"} for the context's status
+#' slice, which is dormant).
 #'
 #' @format A named list of \code{\link{panel_record}} lists keyed by
 #'   module id (a lazily materialized binding - see the note below).
@@ -161,15 +175,6 @@ delayedAssign(
     stateful = TRUE, status_key = "analyst_feature_general"
   ),
   panel_record(
-    module_id = "ora",
-    store_id = "resultspace.ora",
-    tab_value = "ORA", label = "ORA", icon = "object-group",
-    order = 2L,
-    requires = function(fd, pd) !is.null(fd) && !is.null(attr(fd, "GS")),
-    ui = enrichment_analysis_ui, server = enrichment_analysis_module,
-    stateful = TRUE, status_key = "analyst_ora"
-  ),
-  panel_record(
     module_id = "fgsea",
     store_id = "resultspace.fgsea",
     tab_value = "fGSEA", label = "fGSEA", icon = "arrow-down-short-wide",
@@ -179,16 +184,13 @@ delayedAssign(
     stateful = TRUE, status_key = "analyst_fgsea"
   ),
   panel_record(
-    module_id = "rescurve",
-    store_id = "resultspace.dose_response",  # NEW (D2/D18); store lands in WP-3
-    tab_value = "Response", label = "Response", icon = "capsules",
-    order = 4L,
-    requires = function(fd, pd)
-      !is.null(fd) && any(grepl("^ResponseCurve\\|", colnames(fd))),
-    ui = dose_response_ui, server = dose_response_module,
-    # no legacy status transport today: the module has no status/store
-    # formals and L1 emits only the state_support marker (kept, WP-3)
-    stateful = FALSE, status_key = "analyst_dose_response"
+    module_id = "ora",
+    store_id = "resultspace.ora",
+    tab_value = "ORA", label = "ORA", icon = "object-group",
+    order = 2L,
+    requires = function(fd, pd) !is.null(fd) && !is.null(attr(fd, "GS")),
+    ui = enrichment_analysis_ui, server = enrichment_analysis_module,
+    stateful = TRUE, status_key = "analyst_ora"
   ),
   panel_record(
     module_id = "stringdb",
@@ -198,9 +200,28 @@ delayedAssign(
     requires = function(fd, pd)
       !is.null(fd) && any(grepl("^StringDB\\|", colnames(fd))),
     ui = string_ui, server = string_module,
-    # L1 passes reactive(NULL) and emits the state_support/gap placeholder
-    # (that dead emission is removed in WP-4)
+    # stateful = FALSE: WP-4 removed the analyst_stringdb status emission;
+    # widget state rides the store section, and the context's status slice
+    # (analyst_stringdb) is dormant - always NULL
     stateful = FALSE, status_key = "analyst_stringdb"
+  ),
+  panel_record(
+    module_id = "sample_general",
+    store_id = "resultspace.sample_general",
+    tab_value = "Sample", label = "Sample", icon = "arrows-down-to-people",
+    order = 8L,
+    requires = function(fd, pd) TRUE,
+    ui = sample_general_ui, server = sample_general_module,
+    stateful = TRUE, status_key = "analyst_sample_general"
+  ),
+  panel_record(
+    module_id = "geneshotTab",
+    store_id = "resultspace.geneshot",
+    tab_value = "Geneshot", label = "Geneshot", icon = "book-open",
+    order = 7L,
+    requires = function(fd, pd) TRUE,
+    ui = geneshot_ui, server = geneshot_module,
+    stateful = TRUE, status_key = "analyst_gene_shot"
   ),
   panel_record(
     module_id = "ptm",
@@ -213,26 +234,20 @@ delayedAssign(
     stateful = TRUE, status_key = "analyst_ptm"
   ),
   panel_record(
-    module_id = "geneshotTab",
-    store_id = "resultspace.geneshot",
-    tab_value = "Geneshot", label = "Geneshot", icon = "book-open",
-    order = 7L,
-    requires = function(fd, pd) TRUE,
-    ui = geneshot_ui, server = geneshot_module,
-    stateful = TRUE, status_key = "analyst_gene_shot"
-  ),
-  panel_record(
-    module_id = "sample_general",
-    store_id = "resultspace.sample_general",
-    tab_value = "Sample", label = "Sample", icon = "arrows-down-to-people",
-    order = 8L,
-    requires = function(fd, pd) TRUE,
-    ui = sample_general_ui, server = sample_general_module,
-    stateful = TRUE, status_key = "analyst_sample_general"
+    module_id = "rescurve",
+    store_id = "resultspace.dose_response",  # NEW in WP-3 (D2/D18)
+    tab_value = "Response", label = "Response", icon = "capsules",
+    order = 4L,
+    requires = function(fd, pd)
+      !is.null(fd) && any(grepl("^ResponseCurve\\|", colnames(fd))),
+    ui = dose_response_ui, server = dose_response_module,
+    # WP-3 joined the store; the legacy status channel carries only the
+    # state_support marker (the plot is a computed payload)
+    stateful = FALSE, status_key = "analyst_dose_response"
   )
   ),
-  c("feature_general", "ora", "fgsea", "rescurve", "stringdb", "ptm",
-    "geneshotTab", "sample_general")
+  c("feature_general", "fgsea", "ora", "stringdb", "sample_general",
+    "geneshotTab", "ptm", "rescurve")
   ),
   eval.env = environment(),
   assign.env = environment()
@@ -246,7 +261,11 @@ delayedAssign(
 #'
 #' Registry-backed replacement for the triplicated availability logic
 #' (L1 \code{.rs_tab_choices}, the L1 renderUI conditions, L0
-#' \code{agent_analysis_tabs}). Predicates are NULL-safe and their
+#' \code{agent_analysis_tabs}). Since the WP-11 record-order data fix the
+#' registry list is in SERVER-composition order, so records are evaluated
+#' in \code{order}-field (tab-composition) order here - the returned
+#' vector is byte-identical to the pre-WP-11 output. Predicates are
+#' NULL-safe and their
 #' evaluation is guarded: a failed read degrades to
 #' Feature/Geneshot/Sample exactly as today's tryCatch-wrapped
 #' \code{.rs_tab_choices}. Additional tab names compose between the core
@@ -267,15 +286,20 @@ rs_tab_set <- function(fd, additional = character(0)) {
   if (is.null(additional))
     additional <- character(0)
   additional <- as.character(additional)
+  # WP-11: evaluate in TAB-composition order (the order field), not
+  # registry list order (the server-composition order since the WP-11
+  # record-order data fix) - the output vector stays byte-identical
+  recs <- panel_records[order(vapply(panel_records,
+                                     function(r) r$order, integer(1)))]
   ok <- vapply(
-    panel_records,
+    recs,
     function(r)
       isTRUE(tryCatch(
         r$requires(fd, NULL),
         shiny.silent.error = function(e) FALSE,
         error = function(e) FALSE)),
     logical(1))
-  vals <- vapply(panel_records[ok], function(r) r$tab_value, character(1))
+  vals <- vapply(recs[ok], function(r) r$tab_value, character(1))
   # pinned pair composes last; their records (always available) are held
   # back from the leading segment so additional tabs sit between the core
   # panels and Geneshot/Sample, byte-identical to today's vector
