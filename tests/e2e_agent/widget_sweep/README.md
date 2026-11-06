@@ -115,6 +115,18 @@ once in isolation (`WIDGET_SWEEP_ONLY`) before failure is declared —
 congestion artifacts (browser main thread blocked by a software-rendered
 redraw) usually do not reproduce from a fresh boot.
 
+O4/PD-27 (2026-11-06): the 9 PD-21-mapped dom-only inputs (dyn-heatmap
+row/col sort, row/col annotation and tooltip selects; the four attr4
+search-on checkboxes) are pinned in `sweep_harness.mjs` as a
+**mapped-by-record allowlist**. When the dynamic-heatmap render loses its
+timing race, the covering binding case's input diff misses the move and
+such an element re-enters the dom-only inventory; its probed
+`unaddressable` verdict is reclassified `mapped-by-record` (excluded from
+the unaddressable count — the per-run mapping race must not fail the
+gate). The case still appears in the matrix with its rejection receipts;
+any other verdict keeps its normal semantics, and any element NOT on the
+allowlist still trips the count rule exactly as before.
+
 **Refreshing the baseline** (only for a WP's intended, reviewed changes —
 never to make a red gate green):
 

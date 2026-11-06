@@ -896,6 +896,45 @@ try {
     'app-snapshot', 'app-snapshot_name', 'app-snapshot_save',
     'app-snapshot_delete', 'app-snapshot_include_chat', 'app-selectFile'
   ]);
+  // O4 / PD-27 (2026-11-06): mapped-by-record allowlist. These 9 DOM
+  // inputs left the dom-only inventory at the reviewed PD-21 baseline
+  // refresh (commit 786ef8a) because store bindings demonstrably move
+  // them (mapping_findings.json of the refresh run) — they are covered
+  // by binding cases, not dom-only debt. But that mapping is PER-RUN
+  // empirical evidence: when the dynamic-heatmap render loses its
+  // timing race, the covering binding case's before/after input diff
+  // misses the move, and the element re-enters this inventory as a NEW
+  // unaddressable case, tripping the gate's dom-only unaddressable
+  // count rule (94 -> 95) with zero real regressions — the O4
+  // false-fail flake (~50-75% of runs at the WP-4 review). An
+  // allowlisted id that lands here is STILL probed and kept in the
+  // matrix; only an `unaddressable` verdict is reclassified
+  // mapped-by-record (excluded from the unaddressable count, exactly
+  // like the per-run mapped cases). Any OTHER verdict keeps its normal
+  // semantics (e.g. unexpected-success stays a loud warning). Anything
+  // NOT on this list still trips the count rule exactly as before.
+  // Trade-off (accepted by PD-27): if a covering binding is ever
+  // REMOVED, the element would silently ride this allowlist — coverage
+  // loss for these 9 is detected on the binding side instead (the
+  // binding case vanishes from the matrix, a reviewed warning).
+  const MAPPED_BY_RECORD = new Map([
+    // dynamic-heatmap parameter inputs — moved by the dataspace.dyn_heatmap
+    // bindings (all 'success' in the committed baseline since the WP-A
+    // activation-gating fix; row/col sort, row/col annotation and tooltip
+    // selects are re-rendered with the heatmap, hence the timing race)
+    ['app-dataspace-dynheatmapViewer-rowSortBy', 'dataspace.dyn_heatmap.row_sort_by'],
+    ['app-dataspace-dynheatmapViewer-colSortBy', 'dataspace.dyn_heatmap.col_sort_by'],
+    ['app-dataspace-dynheatmapViewer-annotRow', 'dataspace.dyn_heatmap.annot_row'],
+    ['app-dataspace-dynheatmapViewer-annotCol', 'dataspace.dyn_heatmap.annot_col'],
+    ['app-dataspace-dynheatmapViewer-tooltipInfo', 'dataspace.dyn_heatmap.tooltip_info'],
+    // attr4 "search on" checkboxes — moved by the WP-D attr4.search_value
+    // bindings of the four attr4 panels (feature/sample space,
+    // feature/sample general)
+    ['app-dataspace-feature_space-a4selector-searchon', 'dataspace.feature_space.attr4.search_value'],
+    ['app-dataspace-sample_space-a4selector-searchon', 'dataspace.sample_space.attr4.search_value'],
+    ['app-resultspace-feature_general-a4_gf-searchon', 'resultspace.feature_general.attr4.search_value'],
+    ['app-resultspace-sample_general-a4_gp-searchon', 'resultspace.sample_general.attr4.search_value']
+  ]);
   const addDomOnly = (ident, desc, probeValue, note) => domOnly.push({ ident, desc, probeValue, note });
   for (const e of dom.shiny) {
     if (mappedInputs.has(e.id)) continue;
@@ -948,7 +987,26 @@ try {
       guesses, probeValue: w.probeValue, note: w.note,
       excludedByPolicy: !!(w.note && w.note.startsWith('excluded-by-policy'))
     }, consoleBuf);
-    if (dres) domResults.push(dres);
+    if (dres) {
+      // O4/PD-27: an allowlisted input whose guessed-id probe verdict is
+      // `unaddressable` is reclassified mapped-by-record — the record
+      // (PD-21 refresh evidence) proves a store binding moves it, so the
+      // rejection only means this run's binding probe missed the DOM move
+      // (timing race), not that agent coverage was lost. The case (and its
+      // rejection receipts) stays in the matrix; every other verdict keeps
+      // its normal semantics and the gate's count rules are untouched for
+      // anything not on the allowlist.
+      if (dres.status === 'unaddressable' && MAPPED_BY_RECORD.has(w.ident)) {
+        dres.status = 'mapped-by-record';
+        dres.note = `PD-21 mapped-by-record: moved by store binding ` +
+          `${MAPPED_BY_RECORD.get(w.ident)} (unaddressable here = this run's ` +
+          `binding probe missed the DOM move, O4 timing race)` +
+          (dres.note ? ` | ${dres.note}` : '');
+        fs.writeFileSync(path.join(RESULTS, `${dres.case}.json`), JSON.stringify(dres, null, 2));
+        console.log(`    -> mapped-by-record (O4/PD-27 allowlist: ${MAPPED_BY_RECORD.get(w.ident)})`);
+      }
+      domResults.push(dres);
+    }
   }
   log(`dom-only cases: ${domResults.length} done`);
 
@@ -977,6 +1035,7 @@ try {
     semantic_failures: semantic.filter(x => x.status !== 'success' && x.status !== 'rejected').map(x => ({ case: x.case, status: x.status, note: x.note })),
     dom_only_addressed: domResults.filter(x => x.status === 'unexpected-success').map(x => x.case),
     unaddressable_count: domResults.filter(x => x.status === 'unaddressable').length,
+    mapped_by_record: domResults.filter(x => x.status === 'mapped-by-record').map(x => x.case),
     slowest: [...all].sort((a, b) => (b.duration_ms || 0) - (a.duration_ms || 0)).slice(0, 10)
       .map(x => ({ case: x.case, ms: x.duration_ms, status: x.status }))
   };
@@ -992,6 +1051,8 @@ try {
   for (const f of summary.semantic_failures) md.push(`- **${f.case}** [${f.status}] ${f.note || ''}`);
   md.push('', '## DOM-only widgets the agent unexpectedly COULD set', '');
   md.push(...(summary.dom_only_addressed.map(c => `- ${c}`)));
+  md.push('', '## DOM-only inputs mapped by record (O4/PD-27 allowlist, timing race this run)', '');
+  md.push(...(summary.mapped_by_record.map(c => `- ${c}`)));
   fs.writeFileSync(path.join(OUT, 'summary.md'), md.join('\n'));
 
   fs.writeFileSync(path.join(OUT, 'app_log_tail.txt'), rlog.slice(-4000));
