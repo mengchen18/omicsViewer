@@ -80,25 +80,41 @@ string_ui <- function(id) {
 #'
 #' @param reactive_ids Reactive expression. Returns a character vector of
 #'   protein/gene identifiers to query. Maximum of 300 features allowed
-#'   (enforced by STRING API limits).
+#'   (enforced by STRING API limits). Since WP-4 this formal is only used
+#'   for direct instantiation - the in-app L1 call site passes a
+#'   \code{context} and the ids derivation runs inside the module
+#'   (verbatim from the former L1 call site, over
+#'   \code{context$data$fdata} / \code{context$selection$feature}).
 #'
 #' @param reactive_status Reactive expression. Returns a list containing
 #'   saved state for session restoration (tax ID, label settings). Optional.
-#'   Default: 
+#'   Default: \code{reactive(NULL)}. Dead in the app since WP-4 (the L1
+#'   status emission was removed); kept for signature stability and
+#'   standalone use.
 #'
 #' @param store Optional child view of the canonical widget store
 #'   (\code{\link{widget_store_child}}) for this module, e.g.
-#'   \code{resultspace.stringdb}. When given, the taxonomy input, the
-#'   labels checkbox, and the enrichment-table row selection (which
-#'   highlights network nodes) register on the store; when NULL the legacy
-#'   status-restore path is kept. The Run button registers on the WP-C
-#'   action tier (run_control) instead of as a widget value.
-#'   registered: it is a stateless command (an API query trigger), not a
-#'   widget value.\code{reactive(NULL)}.
+#'   \code{resultspace.stringdb}. When given (directly or through
+#'   \code{context}), the taxonomy input, the labels checkbox, and the
+#'   enrichment-table row selection (which highlights network nodes)
+#'   register on the store; when NULL the legacy status-restore path is
+#'   kept. The Run button registers on the WP-C action tier (run_control)
+#'   instead of as a widget value: it is a stateless command (an API query
+#'   trigger), not a widget value.
 #'
 #' @param active Reactive expression. Returns a logical indicating whether
-#'   the module should auto-run on initialization. Used for session restoration.
-#'   Default: \code{reactive(FALSE)}.
+#'   the module should auto-run on initialization. Used for session
+#'   restoration. Default: \code{reactive(FALSE)}. With a \code{context}
+#'   the flag comes from \code{context$active} (the panel's
+#'   \code{active_tab} compared against its \code{tab_value}).
+#'
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   plan D13). When given, \code{context$store} takes over the store
+#'   wiring, the ids derivation is computed from
+#'   \code{context$data$fdata} + \code{context$selection$feature} (moved
+#'   in verbatim from the L1 call site in WP-4) and \code{active} comes
+#'   from \code{context$active}. All legacy formals keep working for
+#'   direct instantiation.
 #'
 #' @details
 #' ## API Interaction
@@ -133,13 +149,47 @@ string_ui <- function(id) {
 #' @importFrom networkD3 renderForceNetwork forceNetworkOutput
 #'
 string_module <- function(
-  id, reactive_ids, reactive_status = reactive(NULL), active = reactive(FALSE),
-  store = NULL
+  id, reactive_ids = NULL, reactive_status = reactive(NULL),
+  active = reactive(FALSE), store = NULL, context = NULL
 ) {
+  # ------------------------------------------------------------------
+  # WP-4 (P5): fail fast on the static argument combination (the
+  # panel_context school) - the derivation itself is built inside the
+  # module below.
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    if (is.null(context$data$fdata) || is.null(context$selection$feature))
+      stop("string_module: the context needs data$fdata and ",
+           "selection$feature to derive the STRING query ids (the ",
+           "moved-in L1 derivation).", call. = FALSE)
+  } else if (is.null(reactive_ids)) {
+    stop("string_module: pass either reactive_ids or a context carrying ",
+         "data$fdata + selection$feature.", call. = FALSE)
+  }
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+
+  # ------------------------------------------------------------------
+  # WP-4 (P5): the ids derivation moved in VERBATIM from the L1 call
+  # site (identical expressions over the context's fdata/feature
+  # reactives). The context owns the store and the active flag; the
+  # legacy reactive_ids/active/store formals keep working for direct
+  # instantiation. The legacy reactive_status branch below stays for
+  # signature stability (dead in the app - L1 passes no status since
+  # the placeholder emission was removed in WP-4).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+    .str_ids_fd <- context$data$fdata
+    .str_ids_feature <- context$selection$feature
+    reactive_ids <- reactive({
+      i <- grep("^StringDB\\|", colnames(.str_ids_fd()))
+      .str_ids_fd()[.str_ids_feature(), i[1]]
+    })
+    active <- context$active
+  }
   
   # ------------------------------------------------------------------
   # Canonical widget-store bindings (control plane, plan section 6, S4).

@@ -962,6 +962,117 @@ ok(!is.character(w3_rr) &&
    ut_cmp_identical(store_read(w3_old, "resultspace.ora.xax_analysis")[[1]], "ttest"),
    "WP-3 dose: dose keys in a snapshot degrade to unknown_ids on a dose-less store (rollback-safe restore)")
 
+## ------------------- WP-4 (P5): STRING snapshot story made honest ----
+# The ids derivation moved INTO the module (verbatim from the L1 call
+# site, over context$data$fdata + context$selection$feature) and the
+# active flag comes from context$active; the dead analyst_stringdb
+# status emission is GONE from L1 (app-level round-trip proof lives in
+# test_snapshotRoundTrip.R case 13). These cases pin the moved glue at
+# module level over the demo data (StringDB|All|ID column; the run
+# action's availability is the live consumer of the derived ids).
+string_module <- omicsViewer:::string_module
+PANEL_W4_STRING_IDS <- sort(c(
+  "resultspace.stringdb.taxonomy",
+  "resultspace.stringdb.show_labels",
+  "resultspace.stringdb.selected_row"))
+# shared boot factory: the module wired exactly like the L1 call site
+# does since WP-4 (context-built store + the derivation sources in the
+# context); the feature selection is a reactiveVal so the case can flip
+# it and watch the derived ids go live
+.w4_sel <- shiny::reactiveVal(NULL)
+.w4_mkapp <- function(child) {
+  force(child)
+  function(input, output, session) {
+    string_module(
+      "stringdb",
+      context = panel_context(
+        id = "stringdb", tab_value = "StringDB", store = child,
+        data = list(fdata = reactive(fd0)),
+        selection = list(feature = .w4_sel),
+        active_tab = reactive("StringDB")))
+  }
+}
+
+# --- context adoption: bindings, and the moved-in ids derivation LIVE
+# through the run action's availability (NULL selection -> no ids;
+# feature 1 selected -> the demo's STRING id column yields the ids)
+w4 <- new.env()
+w4$store <- widget_store_new()
+w4$child <- widget_store_child(w4$store, "resultspace.stringdb")
+w4_err <- NULL; w4_view <- NULL; w4_act0 <- NULL; w4_act1 <- NULL
+shiny::testServer(.w4_mkapp(w4$child), {
+  w4_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w4_view <<- store_registry_view(w4$store, "resultspace.stringdb")
+  w4_act0 <<- omicsViewer:::store_action_view(
+    w4$store, "resultspace.stringdb")[[1]]$available
+  .w4_sel(1L)                       # a user picks feature row 1
+  session$flushReact(); session$flushReact()
+  w4_act1 <<- omicsViewer:::store_action_view(
+    w4$store, "resultspace.stringdb")[[1]]$available
+})
+ok(is.null(w4_err),
+   "WP-4 string: module boots headless with a context-built store child")
+ok(ut_cmp_identical(sort(vapply(w4_view, function(r) r$id, "")),
+                    PANEL_W4_STRING_IDS),
+   "WP-4 string: exactly the three frozen bindings register (D12 untouched)")
+ok(ut_cmp_identical(
+  w4_act0,
+  "select features first (set_omics_viewer_state features)"),
+   "WP-4 string: without a selection the derived ids are empty (the moved-in derivation reads context$selection$feature)")
+ok(ut_cmp_identical(w4_act1, TRUE),
+   "WP-4 string: a feature selection makes the derived ids live (the L1-era expression, moved in verbatim)")
+
+# --- legacy paths: the reactive_ids/active/store formals still work
+# (direct instantiation, D13); no store and no context boots idle
+w4l <- new.env()
+w4l$store <- widget_store_new()
+w4l$child <- widget_store_child(w4l$store, "resultspace.stringdb")
+w4l_err <- NULL; w4l_view <- NULL
+shiny::testServer(function(input, output, session) {
+  string_module("sdb", reactive_ids = reactive(c("g1", "g2", "g3")),
+                store = w4l$child)
+}, {
+  w4l_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w4l_view <<- store_registry_view(w4l$store, "resultspace.stringdb")
+})
+ok(is.null(w4l_err),
+   "WP-4 string: legacy direct instantiation (explicit reactive_ids + store) boots")
+ok(ut_cmp_identical(sort(vapply(w4l_view, function(r) r$id, "")),
+                    PANEL_W4_STRING_IDS),
+   "WP-4 string: the legacy formals register the same three bindings (signature stability)")
+
+w4n_err <- NULL
+shiny::testServer(function(input, output, session) {
+  string_module("sdb", reactive_ids = reactive(c("g1", "g2")))
+}, {
+  w4n_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+})
+ok(is.null(w4n_err),
+   "WP-4 string: store-less legacy use boots exactly as before (no store, no context)")
+
+# --- guards: neither ids nor context is a hard error; a context without
+# the derivation sources is (actionable, per the panel_context school)
+ok(grepl("reactive_ids or a context",
+         tryCatch(string_module("sdb"), error = function(e) conditionMessage(e))),
+   "WP-4 string: neither reactive_ids nor context rejected with an actionable message")
+err_w4_ctx <- tryCatch(
+  string_module("sdb",
+                context = panel_context(id = "stringdb",
+                                        data = list(fdata = reactive(fd0)))),
+  error = function(e) conditionMessage(e))
+ok(grepl("selection[$]feature", err_w4_ctx),
+   "WP-4 string: a context missing the derivation sources errors naming them")
+
+
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
 # loops and the L0 availability read (tabName/moduleName non-empty scalar

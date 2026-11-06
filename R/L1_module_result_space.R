@@ -165,16 +165,23 @@ L1_result_space_module <- function(
       out
     }
 
-    # session restore finished
-    v4 <- string_module(
-      "stringdb",
-      reactive_ids = reactive({
-        i <- grep("^StringDB\\|", colnames(reactive_featureData()))
-        reactive_featureData()[reactive_i(), i[1]]
-      }), reactive_status = reactive(NULL),
-      active = reactive(status()$analyst_active_tab == "StringDB"),
-      store = store_stringdb
+    # STRING (WP-4, P5): the ids derivation moved INTO the module
+    # (verbatim from this call site); the context is built here per plan
+    # D13 - WP-11 collapses the per-panel context builds into the
+    # registry loop. Widget state round-trips through the store section
+    # (resultspace.stringdb.*); the analyst_stringdb status placeholder
+    # is no longer emitted (the APP_STATE_GAPS entry stays verbatim in
+    # auxi_appState.R - byte stability for legacy v1 reads).
+    string_context <- panel_context(
+      id = "stringdb", tab_value = "StringDB",
+      store = store_stringdb,
+      data = Filter(is.function, list(fdata = reactive_featureData)),
+      selection = Filter(is.function, list(feature = reactive_i)),
+      status = reactive(status()$analyst_stringdb),
+      active_tab = reactive(status()$analyst_active_tab),
+      session = session
     )
+    v4 <- string_module("stringdb", context = string_context)
 
     # session restore finished
     v5 <- sample_general_module(
@@ -387,10 +394,12 @@ L1_result_space_module <- function(
         analyst_sample_general = safe_module_state(v5),
         analyst_gene_shot = safe_module_state(v6),
         analyst_fgsea = safe_module_state(v2),
-        analyst_stringdb = list(
-          state_support = FALSE,
-          gap = APP_STATE_GAPS$stringdb
-        ),
+        # WP-4 (P5): no analyst_stringdb entry anymore - the dead
+        # placeholder emission was removed; string widget state rides
+        # the store section (resultspace.stringdb.*). Post-sanitize
+        # snapshots are byte-identical: the sanitizer already dropped
+        # this key, and legacy v1 reads stay protected by that verbatim
+        # name-drop (auxi_appState.R).
         analyst_ora = safe_module_state(v3),
         analyst_ptm = safe_module_state(v7),
         analyst_dose_response = list(state_support = FALSE),

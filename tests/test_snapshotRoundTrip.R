@@ -857,3 +857,116 @@ shiny::testServer(mkapp(d12, demo, st12b), {
   alive(session, "pre-WP-3 snapshot restore")
 })
 unlink(d12, recursive = TRUE)
+
+## ==================================================================
+## 13. WP-4 (P5) STRING snapshot honesty: taxonomy/show_labels round-
+##     trip through the widget-store section (the declared gap is
+##     known-stale for WIDGET state - network/enrichment results are
+##     computed payloads, policy-excluded like ORA results); post-WP-4
+##     snapshots carry NO analyst_stringdb panel key (dead emission
+##     removed); a LEGACY flat snapshot whose status still carries the
+##     old-shape analyst_stringdb payload restores cleanly through the
+##     verbatim sanitizer name-drop - the legacy status never feeds
+##     widget state and the STRING query never auto-reruns on restore
+##     (network I/O in restore is a behavior change, D7). selected_row
+##     is run-preconditioned: before a Run the enrichment choices are
+##     cold, so it rides NULL/unset (same class as ORA's selected_row).
+## ==================================================================
+d13 <- snap_dir("stringkeys")
+st13 <- omicsViewer:::widget_store_new()
+str_tax <- "resultspace.stringdb.taxonomy"
+str_lbl <- "resultspace.stringdb.show_labels"
+str_row <- "resultspace.stringdb.selected_row"
+shiny::testServer(mkapp(d13, demo, st13), {
+  snap_init(session)
+  disarm_corner(session)
+  # warm the ignoreInit swallow (AGENTS.md testServer lore), then edit
+  # the string widgets like a user visiting the tab
+  session$setInputs(`app-resultspace-stringdb-tax` = "9606",
+                    `app-resultspace-stringdb-showLabel` = FALSE)
+  session$flushReact(); snap_ack(session)
+  session$setInputs(`app-resultspace-stringdb-tax` = "10090",
+                    `app-resultspace-stringdb-showLabel` = TRUE)
+  session$flushReact(); snap_ack(session)
+  ok(ut_cmp_identical(store_vals(st13)[[str_tax]], "10090"),
+     "string snapshot: the taxonomy edit syncs into the store")
+  ok(ut_cmp_identical(isTRUE(store_vals(st13)[[str_lbl]]), TRUE),
+     "string snapshot: the labels edit syncs into the store")
+  save_snapshot(session, "withstring", 1L)
+  ss <- read_ess(d13, "withstring")
+  ok(ut_cmp_identical(
+    sort(grep("^resultspace\\.stringdb", names(ss$widget_store$values),
+              value = TRUE)),
+    sort(c(str_tax, str_lbl, str_row))),
+    "string snapshot: exactly the three frozen string keys ride the widget-store section (D12)")
+  ok(ut_cmp_identical(ss$widget_store$values[[str_tax]], "10090") &&
+     isTRUE(ss$widget_store$values[[str_lbl]]),
+     "string snapshot: taxonomy and labels ride the store section (the declared gap is closed for widget state)")
+  # selected_row is run-preconditioned: the enrichment table never ran,
+  # so the row selection rides NULL/unset (no network query on restore)
+  ok(ut_cmp_identical(ss$widget_store$values[[str_row]], NULL) &&
+     str_row %in% as.character(ss$widget_store$unset),
+     "string snapshot: selected_row rides NULL/unset (run-preconditioned, same class as ORA's)")
+  # WP-4: the dead analyst_stringdb placeholder is gone from the panel
+  # section (post-sanitize snapshots are byte-identical - the sanitizer
+  # always dropped this key)
+  ok(ut_cmp_identical("analyst_stringdb" %in% names(ss$panels$result_space),
+                      FALSE),
+     "string snapshot: no analyst_stringdb panel key rides the snapshot (WP-4 dead-emission removal)")
+  # the declared-gap text rides VERBATIM (D7 byte stability; known-stale
+  # for widget state, recorded in the plan)
+  ok(ut_cmp_identical(ss$gaps$stringdb, omicsViewer:::APP_STATE_GAPS$stringdb),
+     "string snapshot: the APP_STATE_GAPS$stringdb text rides verbatim (D7)")
+  # drift after the save, then restore through the real modal flow
+  session$setInputs(`app-resultspace-stringdb-tax` = "7227",
+                    `app-resultspace-stringdb-showLabel` = FALSE)
+  session$flushReact(); snap_ack(session)
+  ok(ut_cmp_identical(store_vals(st13)[[str_tax]], "7227"),
+     "string snapshot: drifted away from the saved taxonomy")
+  restore_snapshot(session, 1L, 1L, 1L)
+  ok(ut_cmp_identical(store_vals(st13)[[str_tax]], "10090") &&
+     isTRUE(store_vals(st13)[[str_lbl]]),
+     "string snapshot: taxonomy and labels restore from the widget-store section")
+  alive(session, "string snapshot restore")
+})
+# a LEGACY flat snapshot (pre-format) whose status still carries the
+# old-shape analyst_stringdb payload: the sanitizer name-drop (verbatim,
+# auxi_appState.R) drops the key on read, the restore completes, the
+# legacy status NEVER feeds widget state (replace mode resets to the
+# seeded widget defaults) and the query does not auto-rerun (D7)
+legacy13 <- list(
+  label = "legacy string",
+  analyst_active_tab = "StringDB",
+  analyst_stringdb = list(tax = "10090", showLabel = FALSE),
+  eset_active_tab = "Feature"
+)
+saveRDS(legacy13, file.path(d13, omicsViewer:::snapshot_file_name(
+  "zlegacy", dataset_id = "ESVObj.RDS")))  # sorts AFTER withstring
+st13b <- omicsViewer:::widget_store_new()
+shiny::testServer(mkapp(d13, demo, st13b), {
+  snap_init(session)
+  disarm_corner(session)
+  # seed the string widget defaults (a user visiting the tab), then
+  # drift so the restore direction is observable
+  session$setInputs(`app-resultspace-stringdb-tax` = "9606",
+                    `app-resultspace-stringdb-showLabel` = FALSE)
+  session$flushReact(); snap_ack(session)
+  session$setInputs(`app-resultspace-stringdb-tax` = "7227",
+                    `app-resultspace-stringdb-showLabel` = TRUE)
+  session$flushReact(); snap_ack(session)
+  # rows are alphabetical: [withstring, zlegacy]
+  restore_snapshot(session, 2L, 1L, 1L)
+  # flat-legacy snapshots carry no widget-store section, so Phase 1b is
+  # skipped entirely (L0: "Older snapshots without widget_store skip
+  # this"); the drifted store values survive UNTOUCHED - in particular
+  # the old-shape analyst_stringdb payload never leaks into them
+  ok(ut_cmp_identical(store_vals(st13b)[[str_tax]], "7227"),
+     "string legacy: the old-shape analyst_stringdb status never feeds widget state (sanitizer drops the key; no store section, no reset - drift survives)")
+  ok(ut_cmp_identical(isTRUE(store_vals(st13b)[[str_lbl]]), TRUE),
+     "string legacy: the labels value is likewise untouched (not the legacy showLabel)")
+  ok(ut_cmp_identical(session$input[["app-resultspace-stringdb-run"]], NULL),
+     "string legacy: the STRING query never auto-reruns on restore (D7; active tab was StringDB)")
+  alive(session, "legacy string status restore")
+})
+unlink(d13, recursive = TRUE)
+
