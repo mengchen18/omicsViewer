@@ -16,10 +16,16 @@ A data.frame of available quick-view definitions.
 }
 \description{
 Custom shortcuts are listed first, followed by auto-detected PCA,
-correlation and volcano views that do not duplicate a custom (x, y) pair.
+correlation and volcano views that do not duplicate a stored (x, y) pair.
 A custom shortcut referencing a column of a volcano-producing analysis
-category (\code{\link{volcano_analyses}}; ttest/DE by default) claims that
-whole category: all auto-detected volcano views for it are suppressed, so a
-manually defined volcano is never duplicated by the auto-generated one.
+category (\code{\link{volcano_analyses}}; ttest/DE/DESeq/DESeq2/t-test/
+limma by default) claims the whole volcano family: ALL auto-detected
+volcano views are suppressed, regardless of category, contrast or exact
+axes, so a manually defined volcano is never duplicated by an
+auto-generated near-duplicate. Rows persisted inside the
+\code{"quickViews"} attribute by an earlier prepare round with original
+\code{source == "auto"} render again but never claim — otherwise the
+volcano autos stored in an older dataset would permanently suppress
+newly detected family members at app load.
 }
 \keyword{internal}

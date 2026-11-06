@@ -57,8 +57,9 @@
 #'   \code{<category>|<contrast>|mean.diff} columns (paired with \code{log.fdr}
 #'   or \code{log.pvalue}) form a volcano view. These categories drive the
 #'   default feature-space axes, the auto-detected volcano quick views and the
-#'   volcano corner auto-selection in the app. Default:
-#'   \code{c("ttest", "DE")}. The value is stored as the
+#'   volcano corner auto-selection in the app. Default (since 2.1.85): the
+#'   DE analysis family \code{c("ttest", "DE", "DESeq", "DESeq2", "t-test", "limma")}.
+#'   The value is stored as the
 #'   \code{"volcanoCategories"} attribute of the feature data and persists
 #'   through the SQLite save path (\code{attrs} table, since 2.1.81).
 #' @param ... Additional arguments passed to \code{\link{t.test}}, such as \code{paired = TRUE}

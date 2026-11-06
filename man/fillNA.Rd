@@ -26,7 +26,8 @@ More examples:#'
 \code{function(x) 0} # replace NA by 0}
 }
 \value{
-a matrix without NAs
+a matrix in which NA values are replaced by the row-wise filling value; rows consisting
+  entirely of NA are returned unchanged
 }
 \description{
 This function is usually use to impute missing values in expression matrix, where the rows are
@@ -34,7 +35,9 @@ This function is usually use to impute missing values in expression matrix, wher
   row will be imputed using different constant.
 }
 \note{
-The returned matrix may have -Inf, which may need to be filtered/replaced additionally
+Rows in which all values are NA are returned unchanged (no filling value can be derived from them).
+  The returned matrix may thus still contain NA (all-NA rows), and may have -Inf, which may need to be
+  filtered/replaced additionally
 }
 \examples{
 m <- matrix(rnorm(200), 20, 10)

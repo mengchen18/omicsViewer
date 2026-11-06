@@ -10,7 +10,9 @@ dose_response_module(
   reactive_phenoData,
   reactive_featureData,
   reactive_i,
-  reactive_attr_drc
+  reactive_attr_drc = shiny::reactive(NULL),
+  store = NULL,
+  context = NULL
 )
 }
 \arguments{
@@ -31,7 +33,24 @@ indicating which feature row to display. Must have length 1.}
 
 \item{reactive_attr_drc}{Reactive expression. Returns a named character vector
 with elements "dose_col" and "curveid_col" specifying the column names
-in phenoData for dose values and curve identifiers.}
+in phenoData for dose values and curve identifiers. Defaults to an empty
+reactive (the module mounts idle); since WP-3 the L1 call site passes no
+explicit derivation - the attribute is derived inside the module from
+\code{context$data$object} instead.}
+
+\item{store}{Optional child view of the canonical widget store
+(\code{\link{widget_store_child}}) for this module, e.g.
+\code{widget_store_child(store, "resultspace.dose_response")}. When
+given (directly or through \code{context}), the parameter and feature
+tables register their selected-row bindings on it (\code{param_table} /
+\code{feature_table}; the string \code{selected_row} pattern); when NULL
+the tables keep the legacy store-less behavior (WP-3, P4).}
+
+\item{context}{Optional panel context bundle (\code{\link{panel_context}};
+plan D13). When given, \code{context$store} takes over the store wiring
+and the \code{S6.6_drc} attribute derivation is computed from
+\code{context$data$object} (moved in verbatim from the L1 call site in
+WP-3). All legacy formals keep working for direct instantiation.}
 }
 \value{
 NULL (invisibly). The module displays plots and tables but does not return

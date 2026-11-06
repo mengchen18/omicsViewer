@@ -515,7 +515,8 @@ meta_scatter_module <- function(
     }, ignoreInit = TRUE))
 
     # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from a
-    # volcano-producing analysis category - ttest/DE by default, overridable
+    # volcano-producing analysis category - the DE family by default since
+    # 2.1.85 (ttest, DE, DESeq, DESeq2, t-test, limma), overridable
     # per dataset via the volcanoCategories attribute, see volcano_analyses),
     # read from the DISPLAYED (settled) triselector triples. The
     # store watchers lag one observer hop behind a user edit (the store

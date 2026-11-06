@@ -13,7 +13,8 @@ geneshot_module(
   sample_selected,
   object,
   reactive_status = reactive(NULL),
-  store = NULL
+  store = NULL,
+  context = NULL
 )
 }
 \arguments{
@@ -51,6 +52,13 @@ the ID-mapper cascade register on the store; when NULL the legacy
 status-restore path is kept. The Search button is deliberately not
 registers on the store; the Search button registers on the WP-C
 action tier (run_control) instead - it is a command, not a value.}
+
+\item{context}{Optional panel context bundle (\code{\link{panel_context}};
+plan D13). When given, the module consumes the child store
+(\code{context$store}) and the per-instance retention helper
+(\code{context$keep}) from it; data/selection/status keep arriving
+through their formals (nothing moved into the module in WP-6). All
+legacy formals keep working for direct instantiation.}
 }
 \value{
 A reactive expression returning a list with module state for session saving.

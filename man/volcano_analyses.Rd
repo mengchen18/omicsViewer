@@ -18,7 +18,8 @@ The volcano machinery (default axes, quick-view detection, corner
 auto-selection) is keyed on the analysis token of the
 \code{Category|Subcategory|Variable} column convention. The recognized
 categories default to \code{VOLCANO_DEFAULT_ANALYSES} (\code{ttest},
-\code{DE}) and can be overridden per dataset through the
+\code{DE}, \code{DESeq}, \code{DESeq2}, \code{t-test} and \code{limma})
+and can be overridden per dataset through the
 \code{"volcanoCategories"} feature-data attribute, written by
 \code{\link{prepOmicsViewer}}'s \code{volcano.categories} argument.
 Invalid/missing attribute values fall back to the default set.
