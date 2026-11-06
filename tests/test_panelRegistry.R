@@ -3301,6 +3301,7 @@ ok(ut_cmp_identical(PANEL_W8_SG_TRISET$surv_rows,
 # reaches the store.
 w8k <- new.env()
 w8k_err <- NULL; w8k_nobs <- NULL; w8k_vals <- NULL
+w8k_vt_before <- NULL; w8k_vt_after <- NULL
 shiny::testServer(.w8_mkctx(w8k), {
   w8k_err <<- tryCatch({
     session$flushReact(); session$flushReact()
@@ -3308,6 +3309,7 @@ shiny::testServer(.w8_mkctx(w8k), {
   }, error = function(e) conditionMessage(e))
   obs <- get("obs", envir = environment(w8k$ctx$keep))
   w8k_nobs <<- length(obs)
+  w8k_vt_before <<- is.null(session$output$`sg-sample_general_plot`)
   gc(); gc()
   session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
   session$flushReact()
@@ -3316,6 +3318,15 @@ shiny::testServer(.w8_mkctx(w8k), {
   session$setInputs(`sg-tris_sample_general-variable` = "time")
   session$flushReact(); session$flushReact()
   w8k_vals <<- store_read(w8k$child)[.w8_TRIO]
+  # WP-8 review NIT-2: the view-type WRITE direction after gc() x2 - the
+  # kept carrier observer still flips .sg_view_type to "surv", visible
+  # as the renderUI swapping NULL for the survival container (mirrors
+  # the cascade-pick direction asserted below)
+  vt <- session$output$`sg-sample_general_plot`
+  w8k_vt_after <<- if (is.null(vt)) "NULL" else
+    if (grepl("sample_general_surv",
+              paste(as.character(vt), collapse = ""), fixed = TRUE))
+      "surv" else "other"
 })
 ok(is.null(w8k_err), "WP-8 sg: retention boot stays alive")
 ok(ut_cmp_identical(w8k_nobs, 2L),
@@ -3324,6 +3335,8 @@ ok(ut_cmp_identical(
   unname(unlist(w8k_vals)),
   c("Surv", "All", "time")),
    "WP-8 sg: the kept bind observer still fires after gc() x2 (the Surv cascade pick reaches the store)")
+ok(ut_cmp_identical(w8k_vt_before, TRUE) && ut_cmp_identical(w8k_vt_after, "surv"),
+   "WP-8 sg: the kept view-type carrier still fires after gc() x2 (the Surv pick flips the rendered view from NULL to the Kaplan-Meier container; WP-8 review NIT-2)")
 
 # ------------------- submodule bindings riding the store ----
 # the survival submodule registers survival_censor through THIS panel's
