@@ -1073,6 +1073,310 @@ ok(grepl("selection[$]feature", err_w4_ctx),
    "WP-4 string: a context missing the derivation sources errors naming them")
 
 
+## ------------- WP-5: PTM migration to the shared socket (D3/D4/D13) ----
+# The FIRST pure migration WP: the panel was already a well-formed store
+# citizen, so this is a conversion to the shared machinery (panel_keep
+# retention D3, panel_triset_bind cascade D4, context threading D13)
+# with ZERO store-key/behavior change. The goldens below were captured
+# from the PRE-MIGRATION HEAD (4ff9f8b, 2026-11-06) BEFORE any edit, by
+# booting the then-current ptmotif_module exactly like the L1 call site
+# (child store resultspace.ptm over demo.RDS fdata, feature 1 selected)
+# and dput()ing the outputs - the WP-0 ORA-golden-fixture pattern. They
+# are FROZEN: never regenerate them from the migrated code (that would
+# make the equivalence claim circular).
+ptmotif_module <- omicsViewer:::ptmotif_module
+PANEL_W5_PTM_IDS <- sort(c(
+  "resultspace.ptm.xax_analysis",
+  "resultspace.ptm.xax_subset",
+  "resultspace.ptm.xax_variable"))
+# frozen pre-migration golden: the registry view over demo fd0 (exactly
+# one SeqLogo|All|seq.window column) - id/kind/label/help/depends_on/
+# min/max/allowed_values of all three bindings
+PANEL_W5_PTM_GOLDEN_VIEW <- list(
+  list(id = "resultspace.ptm.xax_analysis", kind = "select",
+       label = "Sequence category",
+       help = "Annotation category of the sequence-window column",
+       depends_on = character(0), min = NULL, max = NULL,
+       allowed_values = "SeqLogo"),
+  list(id = "resultspace.ptm.xax_subset", kind = "select",
+       label = "Sequence subcategory",
+       help = "Subcategory within the sequence category",
+       depends_on = "resultspace.ptm.xax_analysis", min = NULL, max = NULL,
+       allowed_values = "All"),
+  list(id = "resultspace.ptm.xax_variable", kind = "select_cascaded",
+       label = "Sequence column",
+       help = paste("Feature annotation column holding the sequence windows",
+                    "around modification sites"),
+       depends_on = c("resultspace.ptm.xax_analysis",
+                     "resultspace.ptm.xax_subset"),
+       min = NULL, max = NULL, allowed_values = "seq.window"))
+# frozen pre-migration golden: the auto-seeded store values over demo fd0
+PANEL_W5_PTM_GOLDEN_SEED <- list(
+  resultspace.ptm.xax_analysis = "SeqLogo",
+  resultspace.ptm.xax_subset = "All",
+  resultspace.ptm.xax_variable = "seq.window")
+# frozen pre-migration golden: the raw binding metadata incl. the
+# agent_writable flags (the registry view only shows agent-writable ids;
+# this proves all three are in it AND writable)
+PANEL_W5_PTM_GOLDEN_META <- list(
+  list(id = "resultspace.ptm.xax_analysis", kind = "select",
+       label = "Sequence category",
+       help = "Annotation category of the sequence-window column",
+       depends_on = character(0), agent_writable = TRUE),
+  list(id = "resultspace.ptm.xax_subset", kind = "select",
+       label = "Sequence subcategory",
+       help = "Subcategory within the sequence category",
+       depends_on = "resultspace.ptm.xax_analysis", agent_writable = TRUE),
+  list(id = "resultspace.ptm.xax_variable", kind = "select_cascaded",
+       label = "Sequence column",
+       help = paste("Feature annotation column holding the sequence windows",
+                    "around modification sites"),
+       depends_on = c("resultspace.ptm.xax_analysis",
+                     "resultspace.ptm.xax_subset"),
+       agent_writable = TRUE))
+# frozen pre-migration golden: the real-L1 status payload key order and
+# the analyst_ptm entry (module return list(xax = v1()); v1 is NULL
+# until the triselector commits through the UI, hence xax = NULL in a
+# cold headless boot)
+PANEL_W5_PTM_GOLDEN_L1_STATUS <- list(
+  names = c("analyst_active_tab", "analyst_feature_general",
+            "analyst_sample_general", "analyst_gene_shot", "analyst_fgsea",
+            "analyst_ora", "analyst_ptm", "analyst_dose_response",
+            "analyst_additional"),
+  analyst_ptm = list(xax = NULL))
+# synthetic 3-column SeqLogo fdata (the test_agentWidgets shape, plus a
+# Kinase subcategory so the cascade has a real branch to pick into)
+.w5_fd3 <- data.frame(
+  `General|All|Gene.name` = paste0("g", 1:8),
+  `SeqLogo|All|win15` = replicate(8, paste(sample(c("A","C","D","E","F","G",
+    "H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"), 15, TRUE),
+    collapse = "")),
+  `SeqLogo|All|win20` = replicate(8, paste(sample(c("A","C","D","E","F","G",
+    "H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"), 20, TRUE),
+    collapse = "")),
+  `SeqLogo|Kinase|win15k` = replicate(8, paste(sample(c("A","C","D","E","F","G",
+    "H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"), 15, TRUE),
+    collapse = "")),
+  row.names = paste0("P", 1:8), check.names = FALSE)
+# shared boot factories: context-built (the WP-5 L1 call-site shape;
+# holder receives the context so the keep closure is inspectable) and
+# legacy direct (formals only - the pre-WP-5 shape, still supported)
+.w5_mkctx <- function(child, holder, fd = fd0, feat = 1L, status_payload = NULL) {
+  force(child); force(holder)
+  function(input, output, session) {
+    .fd <- reactive(fd); .ft <- reactive(feat); .st <- reactive(status_payload)
+    holder$ctx <- panel_context(
+      id = "ptm", tab_value = "SeqLogo", store = child,
+      data = list(fdata = .fd), selection = list(feature = .ft),
+      status = .st, session = session)
+    holder$ret <- ptmotif_module(
+      "ptm", fdata = .fd, feature_selected = .ft, reactive_status = .st,
+      store = child, context = holder$ctx)
+  }
+}
+.w5_mklegacy <- function(child, fd = fd0, feat = 1L, status_payload = NULL) {
+  force(child)
+  function(input, output, session) {
+    ptmotif_module(
+      "ptm", fdata = reactive(fd), feature_selected = reactive(feat),
+      reactive_status = reactive(status_payload), store = child)
+  }
+}
+.w5_meta <- function(store) {
+  lapply(grep("^resultspace\\.ptm\\.", names(store$bindings), value = TRUE),
+         function(k) {
+           b <- store$bindings[[k]]
+           list(id = k, kind = b$kind, label = b$label, help = b$help,
+                depends_on = b$depends_on, agent_writable = b$agent_writable)
+         })
+}
+
+# --- context boot equals the frozen pre-migration golden, byte-for-byte
+w5 <- new.env()
+w5$store <- widget_store_new()
+w5$child <- widget_store_child(w5$store, "resultspace.ptm")
+w5_err <- NULL; w5_view <- NULL; w5_meta <- NULL; w5_seed <- NULL; w5_ret <- NULL
+shiny::testServer(.w5_mkctx(w5$child, w5), {
+  w5_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # registry view INSIDE the session (WP-3 lore: choices providers read
+  # live reactives; outside a reactive context they degrade to empty)
+  w5_view <<- store_registry_view(w5$store, "resultspace.ptm")
+  w5_meta <<- .w5_meta(w5$store)
+  w5_seed <<- store_read(w5$child)
+  w5_ret <<- tryCatch(shiny::isolate(w5$ret()), error = function(e) NULL)
+})
+ok(is.null(w5_err),
+   "WP-5 ptm: module boots headless context-built (the new L1 call-site shape)")
+ok(ut_cmp_identical(sort(vapply(w5_view, function(r) r$id, "")), PANEL_W5_PTM_IDS),
+   "WP-5 ptm: exactly the three frozen bindings register under resultspace.ptm (D12 untouched)")
+ok(ut_cmp_identical(w5_view, PANEL_W5_PTM_GOLDEN_VIEW),
+   "WP-5 ptm: registry view byte-identical to the frozen pre-migration golden (id/kind/label/help/depends_on/allowed_values over demo fd)")
+ok(ut_cmp_identical(w5_meta, PANEL_W5_PTM_GOLDEN_META),
+   "WP-5 ptm: raw binding meta byte-identical incl. agent_writable TRUE x3")
+ok(ut_cmp_identical(w5_seed, PANEL_W5_PTM_GOLDEN_SEED),
+   "WP-5 ptm: first-choice auto-default seeds the same triple (SeqLogo|All|seq.window)")
+ok(ut_cmp_identical(w5_ret, list(xax = NULL)),
+   "WP-5 ptm: module return (the analyst_ptm payload source) stays list(xax = NULL) before any UI commit")
+
+# --- legacy direct boot registers identically to the context boot
+w5l <- new.env()
+w5l$store <- widget_store_new()
+w5l$child <- widget_store_child(w5l$store, "resultspace.ptm")
+w5l_err <- NULL; w5l_view <- NULL; w5l_meta <- NULL
+shiny::testServer(.w5_mklegacy(w5l$child), {
+  w5l_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w5l_view <<- store_registry_view(w5l$store, "resultspace.ptm")
+  w5l_meta <<- .w5_meta(w5l$store)
+})
+ok(is.null(w5l_err),
+   "WP-5 ptm: legacy direct instantiation (formals only, no context) still boots")
+ok(ut_cmp_identical(w5l_view, PANEL_W5_PTM_GOLDEN_VIEW) &&
+   ut_cmp_identical(w5l_meta, PANEL_W5_PTM_GOLDEN_META),
+   "WP-5 ptm: legacy boot registers byte-identically to the golden (both boot paths agree)")
+ok(ut_cmp_identical(w5l_view, w5_view),
+   "WP-5 ptm: context boot and legacy boot register identically (D13 argument coalescing)")
+
+# --- behavior pins over the synthetic 3-column fd (pre-migration
+# captures (b2)/(c)): auto-seed, restore-first-wins, user-pick-sticks,
+# cascade-dependent live choices - all through the CONTEXT boot path
+w5b <- new.env()
+w5b$store <- widget_store_new()
+w5b$child <- widget_store_child(w5b$store, "resultspace.ptm")
+w5b_err <- NULL; w5b_seed <- NULL; w5b_pick <- NULL; w5b_ret <- NULL
+w5b_ch <- NULL
+shiny::testServer(.w5_mkctx(w5b$child, w5b, fd = .w5_fd3), {
+  w5b_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w5b_seed <<- store_read(w5b$child)
+  # user pick into the Kinase branch sticks over the auto-seed
+  session$setInputs(`ptm-tris_seqlogo-analysis` = "SeqLogo")
+  session$flushReact()
+  session$setInputs(`ptm-tris_seqlogo-subset` = "Kinase")
+  session$flushReact()
+  session$setInputs(`ptm-tris_seqlogo-variable` = "win15k")
+  session$flushReact(); session$flushReact()
+  w5b_pick <<- store_read(w5b$child)
+  w5b_ret <<- tryCatch(shiny::isolate(w5b$ret()), error = function(e) NULL)
+  # state-dependent live choices (store now holds SeqLogo|Kinase|win15k)
+  v <- store_registry_view(w5b$store, "resultspace.ptm")
+  w5b_ch <<- stats::setNames(lapply(v, `[[`, "allowed_values"),
+                            vapply(v, function(r) r$id, ""))
+})
+ok(is.null(w5b_err), "WP-5 ptm: synthetic-fd context boot stays alive")
+ok(ut_cmp_identical(unname(unlist(w5b_seed)), c("SeqLogo", "All", "win15")),
+   "WP-5 ptm: auto-default seeds the first cascade row (SeqLogo|All|win15)")
+ok(ut_cmp_identical(unname(unlist(w5b_pick)), c("SeqLogo", "Kinase", "win15k")),
+   "WP-5 ptm: user pick into the Kinase branch syncs and sticks over the auto-seed")
+ok(ut_cmp_identical(unname(unlist(w5b_ret$xax)), c("SeqLogo", "Kinase", "win15k")),
+   "WP-5 ptm: module return reports the settled triple after the commit (analyst_ptm payload content)")
+ok(ut_cmp_identical(
+  w5b_ch,
+  list(`resultspace.ptm.xax_analysis` = "SeqLogo",
+       `resultspace.ptm.xax_subset` = c("All", "Kinase"),
+       `resultspace.ptm.xax_variable` = "win15k")),
+   "WP-5 ptm: cascade choices stay state-dependent (subset branches, variable filtered by the Kinase branch)")
+
+# --- legacy status restore path unchanged: an analyst_ptm payload with
+# a DIFFERENT triple overrides the auto-seed through
+# store_apply(origin = "restore") (pre-migration capture b2)
+w5r <- new.env()
+w5r$store <- widget_store_new()
+w5r$child <- widget_store_child(w5r$store, "resultspace.ptm")
+w5r_err <- NULL; w5r_read <- NULL
+shiny::testServer(.w5_mkctx(
+  w5r$child, w5r, fd = .w5_fd3,
+  status_payload = list(xax = c("SeqLogo", "Kinase", "win15k"))), {
+  w5r_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w5r_read <<- store_read(w5r$child)
+})
+ok(is.null(w5r_err), "WP-5 ptm: boot with a legacy analyst_ptm status payload stays alive")
+ok(ut_cmp_identical(unname(unlist(w5r_read)), c("SeqLogo", "Kinase", "win15k")),
+   "WP-5 ptm: the legacy restore path re-applies the payload triple over the auto-seed (restore-first-wins preserved)")
+
+# --- retention (D3): the shared per-instance panel_keep holds BOTH the
+# helper's UI->store sync observer and the module's seed observer
+# (structural, deterministic - WP-0 MINOR-2 pattern); after gc() x2 the
+# kept sync observer still fires (the WP-0 gc pattern, retention
+# direction only per PD-8)
+w5k <- new.env()
+w5k$store <- widget_store_new()
+w5k$child <- widget_store_child(w5k$store, "resultspace.ptm")
+w5k_err <- NULL; w5k_nobs <- NULL; w5k_pick <- NULL
+shiny::testServer(.w5_mkctx(w5k$child, w5k, fd = .w5_fd3), {
+  w5k_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # structural: everything the module kept lives in the CONTEXT's
+  # panel_keep closure (D3 - the retention owner), not a module-local list
+  obs <- get("obs", envir = environment(w5k$ctx$keep))
+  w5k_nobs <<- length(obs)
+  # gc integration (retention direction): collect twice, then a user
+  # pick must still reach the store through the kept sync observer
+  # (the context - the L1-frame analogue - is the observers' only anchor)
+  gc(); gc()
+  session$setInputs(`ptm-tris_seqlogo-analysis` = "SeqLogo")
+  session$flushReact()
+  session$setInputs(`ptm-tris_seqlogo-subset` = "All")
+  session$flushReact()
+  session$setInputs(`ptm-tris_seqlogo-variable` = "win20")
+  session$flushReact(); session$flushReact()
+  w5k_pick <<- store_read(w5k$child)
+})
+ok(is.null(w5k_err), "WP-5 ptm: retention boot stays alive")
+ok(ut_cmp_identical(w5k_nobs, 2L),
+   "WP-5 ptm: exactly the bind-sync + seed observers land in the context's panel_keep list (D3 unification)")
+ok(ut_cmp_identical(unname(unlist(w5k_pick)), c("SeqLogo", "All", "win20")),
+   "WP-5 ptm: kept sync observer still fires after gc() x2 (user pick reaches the store)")
+
+# --- app level: the REAL L1 composition's status payload keeps its key
+# order and its analyst_ptm entry byte-identical (pre-migration capture
+# d); the D12 enumeration freeze earlier in this suite already pins the
+# store keys of the same boot (72 ids incl. the three ptm keys)
+w5l1 <- new.env()
+w5l1$store <- widget_store_new()
+app_w5l1 <- function(input, output, session) {
+  w5l1$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(NULL),
+    store = w5l1$store)
+}
+w5l1_err <- NULL; w5l1_payload <- NULL
+shiny::testServer(app_w5l1, {
+  w5l1_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w5l1_payload <<- tryCatch(shiny::isolate(w5l1$status()),
+                            error = function(e) conditionMessage(e))
+})
+ok(is.null(w5l1_err),
+   "WP-5 ptm: the real L1 composition boots headless post-migration")
+ok(ut_cmp_identical(names(w5l1_payload), PANEL_W5_PTM_GOLDEN_L1_STATUS$names),
+   "WP-5 ptm: L1 status payload keeps its exact key order (snapshot schema untouched)")
+ok(ut_cmp_identical(w5l1_payload$analyst_ptm, PANEL_W5_PTM_GOLDEN_L1_STATUS$analyst_ptm),
+   "WP-5 ptm: analyst_ptm payload byte-identical pre/post migration (list(xax = NULL) in a cold boot)")
+ok(ut_cmp_identical(
+  sort(intersect(vapply(store_registry_view(w5l1$store), function(r) r$id, ""),
+                 PANEL_W5_PTM_IDS)),
+  PANEL_W5_PTM_IDS),
+   "WP-5 ptm: the real L1 boot carries the three ptm keys (the D12 freeze above pins the full 72-id vector)")
+
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
 # loops and the L0 availability read (tabName/moduleName non-empty scalar

@@ -38,12 +38,25 @@ ptmotif_ui <- function(id) {
 
 ptmotif_module <- function(
   id, pdata, fdata, expr, feature_selected, sample_selected, background,
-  reactive_status = reactive(NULL), store = NULL
+  reactive_status = reactive(NULL), store = NULL, context = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+
+  # ------------------------------------------------------------------
+  # WP-5 (panel debt, D13): the panel context, built at the L1 call
+  # site (WP-11 collapses the per-panel builds into the registry loop).
+  # Context wins when present; the legacy formals remain the
+  # direct-instantiation path (the string/dose precedent). This module
+  # consumes store + keep from the context; fdata/feature_selected/
+  # reactive_status keep arriving through their formals (nothing moved
+  # in this WP).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+  }
 
   triset <- reactive({
     req(fdata())
@@ -57,72 +70,43 @@ ptmotif_module <- function(
   # The sequence triselector is driven by store_watch selectors; the
   # first-choice auto-default seeds the store once (unset keys only,
   # restore/user-first-wins) instead of resetting on every fdata change.
+  #
+  # WP-5 (panel debt): retention is the shared per-instance panel_keep()
+  # factory (D3 - the context's closure when context-built, else a fresh
+  # local one for direct instantiation), and the cascade boilerplate
+  # (guarded SeqLogo triset source, ts1/ts2/ts3 choices providers, the
+  # three xax_* registrations, triselector wiring through
+  # store_watch/store_epoch and the UI->store sync) is the shared
+  # panel_triset_bind helper (D4). Labels/help stay panel-owned; the
+  # registered keys/kinds/labels/help/depends_on are byte-identical to
+  # the hand-rolled block (frozen pre-migration golden,
+  # tests/test_panelRegistry.R).
   # ------------------------------------------------------------------
-  .ptm_store_observers <- list()
-  .ptm_keep <- function(obs) {
-    .ptm_store_observers[[length(.ptm_store_observers) + 1L]] <<- obs
-    invisible(obs)
-  }
+  keep <- if (is.null(context)) panel_keep() else context$keep
   xax <- reactiveVal()
   if (!is.null(store)) {
-    .ptm_ts <- function() {
-      fd <- tryCatch(fdata(), shiny.silent.error = function(e) NULL,
-                     error = function(e) NULL)
-      if (is.null(fd)) return(NULL)
-      i <- grep("^SeqLogo\\|", colnames(fd), value = TRUE)
-      if (length(i) == 0L) return(NULL)
-      str_split_fixed(i, "\\|", n = 3)
-    }
-    .ptm_ts1 <- function() {
-      ts <- .ptm_ts()
-      if (is.null(ts)) character(0) else unique(ts[, 1])
-    }
-    .ptm_ts2 <- function(a) {
-      ts <- .ptm_ts()
-      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
-      else unique(ts[ts[, 1] %in% a, 2])
-    }
-    .ptm_ts3 <- function(a, b) {
-      ts <- .ptm_ts()
-      if (is.null(ts)) character(0)
-      else {
-        i <- rep(TRUE, nrow(ts))
-        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
-        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
-        unique(ts[i, 3])
-      }
-    }
-    kp1 <- paste0(store$prefix, ".xax_analysis")
-    kp2 <- paste0(store$prefix, ".xax_subset")
-    store_register(
-      store,
-      widget_binding("xax_analysis", "select", label = "Sequence category",
-        help = "Annotation category of the sequence-window column",
-        choices_provider = function(v) .ptm_ts1()),
-      widget_binding("xax_subset", "select", label = "Sequence subcategory",
-        help = "Subcategory within the sequence category",
-        depends_on = "xax_analysis",
-        choices_provider = function(v) .ptm_ts2(v[[kp1]])),
-      widget_binding("xax_variable", "select_cascaded", label = "Sequence column",
-        help = paste("Feature annotation column holding the sequence windows",
-                     "around modification sites"),
-        depends_on = c("xax_analysis", "xax_subset"),
-        choices_provider = function(v) .ptm_ts3(v[[kp1]], v[[kp2]]))
-    )
-    v1 <- triselector_module(
-      "tris_seqlogo", reactive_x = triset, label = 'Sequence',
-      reactive_selector1 = store_watch(store, "xax_analysis"),
-      reactive_selector2 = store_watch(store, "xax_subset"),
-      reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store))
-    # UI -> store: settled triples only (WP2 store_bind_triselector)
-    store_bind_triselector(store,
-      keys = c(analysis = "xax_analysis", subset = "xax_subset",
-               variable = "xax_variable"),
-      sel = v1, keep = .ptm_keep)
+    v1 <- panel_triset_bind(
+      store, keep,
+      tri_id = "tris_seqlogo", tri_label = "Sequence",
+      triset_source = function() {
+        i <- grep("^SeqLogo\\|", colnames(fdata()), value = TRUE)
+        if (length(i) == 0L) return(NULL)
+        str_split_fixed(i, "\\|", n = 3)
+      },
+      bindings = list(
+        analysis = list(
+          label = "Sequence category",
+          help = "Annotation category of the sequence-window column"),
+        subset = list(
+          label = "Sequence subcategory",
+          help = "Subcategory within the sequence category"),
+        variable = list(
+          label = "Sequence column",
+          help = paste("Feature annotation column holding the sequence windows",
+                       "around modification sites"))))
     # auto-default to the first available sequence column, but only while
     # the keys are unset (a restore or user pick wins and sticks)
-    .ptm_keep(observe({
+    keep(observe({
       ts <- tryCatch(triset(), shiny.silent.error = function(e) NULL,
                     error = function(e) NULL)
       if (is.null(ts) || nrow(ts) == 0L) return(NULL)

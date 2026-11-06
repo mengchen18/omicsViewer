@@ -202,12 +202,30 @@ L1_result_space_module <- function(
     )
 
     # session restore finished
+    # WP-5: PTM converts to the shared socket machinery with ZERO
+    # store-key/behavior change. The context (D13; WP-11 collapses the
+    # per-panel builds into the registry loop) carries the store and
+    # the per-instance retention helper, which the module consumes;
+    # data/selection/status/session ride along for shape parity (dormant
+    # this pass). Legacy formals stay (direct-instantiation path); the
+    # cascade registers the same three resultspace.ptm.* bindings
+    # byte-identically (frozen pre-migration golden,
+    # tests/test_panelRegistry.R).
+    ptm_context <- panel_context(
+      id = "ptm", tab_value = "SeqLogo",
+      store = store_ptm,
+      data = Filter(is.function, list(fdata = reactive_featureData)),
+      selection = Filter(is.function, list(feature = reactive_i)),
+      status = reactive(status()$analyst_ptm),
+      session = session
+    )
     v7 <- ptmotif_module(
       "ptm",
       fdata = reactive_featureData,
       feature_selected = reactive_i,
       reactive_status = reactive(status()$analyst_ptm),
-      store = store_ptm
+      store = store_ptm,
+      context = ptm_context
       # ,
       # background = reactive( attr(object(), "ptm.seq.window") )
       # background = reactive({
