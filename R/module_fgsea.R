@@ -37,6 +37,12 @@ enrichment_fgsea_ui <- function(id) {
 #'   the results-table row selection (which drives the leading-edge bar
 #'   plot) register on the store; when NULL the legacy status-restore path
 #'   is kept.
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   WP-10, plan D13 - built at the L1 call site). The module consumes
+#'   the child store (\code{context$store}) and the per-instance
+#'   retention helper (\code{context$keep}) from it; the feature data
+#'   and the sliced status keep arriving through their formals. NULL
+#'   (default) keeps the direct-instantiation path.
 #' @importFrom stringr str_split_fixed
 #' @importFrom DT renderDataTable datatable
 #' @importFrom fastmatch fmatch
@@ -60,11 +66,24 @@ enrichment_fgsea_ui <- function(id) {
 # shinyApp(ui, server)
 
 enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = reactive(NULL),
-                                   store = NULL) {
+                                   store = NULL, context = NULL) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+
+  # ------------------------------------------------------------------
+  # WP-10 (panel debt, D13): the panel context, built at the L1 call
+  # site (WP-11 collapses the per-panel builds into the registry
+  # loop). Context wins when present; the legacy formals remain the
+  # direct-instantiation path (the WP-5..WP-9 precedent). This module
+  # consumes store + keep from the context; reactive_featureData /
+  # reactive_status keep arriving through their formals (nothing
+  # moved in this WP).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+  }
 
   triset <- reactive({
     fd <- reactive_featureData()
@@ -76,74 +95,56 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
   # Canonical widget-store bindings (control plane, plan section 6, S4).
   # The ranking-variable cascade is driven by store_watch selectors
   # (meta_scatter pattern); the results-table row selection registers
-  # through dataTableDownload_module (it drives the leading-edge bar plot).
+  # through dataTableDownload_module (it drives the leading-edge bar
+  # plot).
+  #
+  # WP-10 (panel debt): retention is the shared per-instance
+  # panel_keep() factory (D3 - the context's closure when
+  # context-built, else a fresh local one for direct instantiation;
+  # the hand-rolled .fgs_keep list is gone), and the cascade
+  # boilerplate (guarded fd triset source, ts1/ts2/ts3 choices
+  # providers, the three xax_* registrations, triselector wiring
+  # through store_watch/store_epoch and the UI->store sync) is the
+  # shared panel_triset_bind helper (D4). Labels/help stay
+  # panel-owned; the registered keys/kinds/labels/help/depends_on are
+  # byte-identical to the hand-rolled block (frozen pre-migration
+  # golden, tests/test_panelRegistry.R). The triset source keeps this
+  # panel's OWN numeric-column derivation (numeric, non-GS feature
+  # annotations - a ranking statistic must be numeric; NOT ORA's
+  # trisetter(combine="none") whole-column inventory). The store-path
+  # triselector reads the helper's guarded reactive(.ts()) instead of
+  # the module's unguarded triset reactive (the PD-6 sanctioned
+  # difference, identical for every real data flow); the legacy
+  # no-store branch keeps the triset reactive above.
   # ------------------------------------------------------------------
-  .fgs_store_observers <- list()
-  .fgs_keep <- function(obs) {
-    .fgs_store_observers[[length(.fgs_store_observers) + 1L]] <<- obs
-    invisible(obs)
-  }
+  keep <- if (is.null(context)) panel_keep() else context$keep
   xax <- reactiveVal()
   if (!is.null(store)) {
-    .fgs_ts <- function() {
-      fd <- tryCatch(reactive_featureData(),
-                     shiny.silent.error = function(e) NULL,
-                     error = function(e) NULL)
-      if (is.null(fd)) return(NULL)
-      cn <- colnames(fd)[vapply(fd, is.numeric, logical(1)) &
-                           !grepl("^GS\\|", colnames(fd))]
-      if (length(cn) == 0L) return(NULL)
-      str_split_fixed(cn, "\\|", n = 3)
-    }
-    .fgs_ts1 <- function() {
-      ts <- .fgs_ts()
-      if (is.null(ts)) character(0) else unique(ts[, 1])
-    }
-    .fgs_ts2 <- function(a) {
-      ts <- .fgs_ts()
-      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
-      else unique(ts[ts[, 1] %in% a, 2])
-    }
-    .fgs_ts3 <- function(a, b) {
-      ts <- .fgs_ts()
-      if (is.null(ts)) character(0)
-      else {
-        i <- rep(TRUE, nrow(ts))
-        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
-        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
-        unique(ts[i, 3])
-      }
-    }
-    kf1 <- paste0(store$prefix, ".xax_analysis")
-    kf2 <- paste0(store$prefix, ".xax_subset")
-    store_register(
-      store,
-      widget_binding("xax_analysis", "select",
-        label = "Ranking category",
-        help = paste("Annotation category of the ranking statistic the",
-                     "enrichment scores are computed from"),
-        choices_provider = function(v) .fgs_ts1()),
-      widget_binding("xax_subset", "select", label = "Ranking subcategory",
-        help = "Subcategory within the ranking category",
-        depends_on = "xax_analysis",
-        choices_provider = function(v) .fgs_ts2(v[[kf1]])),
-      widget_binding("xax_variable", "select_cascaded", label = "Ranking variable",
-        help = paste("Numeric feature annotation the features are ranked by",
-                     "for the enrichment analysis"),
-        depends_on = c("xax_analysis", "xax_subset"),
-        choices_provider = function(v) .fgs_ts3(v[[kf1]], v[[kf2]]))
-    )
-    v1 <- triselector_module(
-      "tris_fgsea", reactive_x = triset, label = "Input variable",
-      reactive_selector1 = store_watch(store, "xax_analysis"),
-      reactive_selector2 = store_watch(store, "xax_subset"),
-      reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store))
-    # UI -> store: settled triples only (WP2 store_bind_triselector)
-    store_bind_triselector(store,
-      keys = c(analysis = "xax_analysis", subset = "xax_subset",
-               variable = "xax_variable"),
-      sel = v1, keep = .fgs_keep)
+    v1 <- panel_triset_bind(
+      store, keep,
+      tri_id = "tris_fgsea", tri_label = "Input variable",
+      triset_source = function() {
+        fd <- tryCatch(reactive_featureData(),
+                       shiny.silent.error = function(e) NULL,
+                       error = function(e) NULL)
+        if (is.null(fd)) return(NULL)
+        cn <- colnames(fd)[vapply(fd, is.numeric, logical(1)) &
+                             !grepl("^GS\\|", colnames(fd))]
+        if (length(cn) == 0L) return(NULL)
+        str_split_fixed(cn, "\\|", n = 3)
+      },
+      bindings = list(
+        analysis = list(
+          label = "Ranking category",
+          help = paste("Annotation category of the ranking statistic the",
+                       "enrichment scores are computed from")),
+        subset = list(
+          label = "Ranking subcategory",
+          help = "Subcategory within the ranking category"),
+        variable = list(
+          label = "Ranking variable",
+          help = paste("Numeric feature annotation the features are ranked by",
+                       "for the enrichment analysis"))))
   } else {
     v1 <- triselector_module(
       "tris_fgsea", reactive_x = triset, label = "Input variable",
@@ -266,7 +267,7 @@ enrichment_fgsea_module <- function(id, reactive_featureData, reactive_status = 
   # stays visibility-gated. tab() req()s a settled ranking variable; while
   # unset the observer simply suspends and fgs_tab stays NULL.
   fgs_tab <- reactiveVal(NULL)
-  .fgs_keep(observe({
+  keep(observe({
     if (!output_visible(session, ns("stab-table")))
       return(NULL)
     t <- tab()

@@ -4046,6 +4046,667 @@ ok(ut_cmp_identical(
                  PANEL_W9_ORA_IDS)),
   PANEL_W9_ORA_IDS),
    "WP-9 ora: the real L1 boot carries all four ora keys (the D12 freeze above pins the full 72-id vector)")
+## --------------- WP-10: fGSEA migration (D3/D4/D13) ----
+# The LAST panel migration, identical shape to WP-9 ("as ORA" per the
+# plan appendix): fGSEA is agent-coupled exactly like ORA - the
+# set_enrichment_parameters tool (method = "fgsea" through
+# agent_normalize_enrichment_update -> apply_agent_enrichment), the
+# panel_results excerpt reader (the module return's table attr,
+# WP-7/F4) and the L0/L1 wiring all address this panel's store keys,
+# NONE of them rewritten here. The migration is the WP-5..WP-9
+# pure-migration pattern: retention -> panel_keep (D3), cascade
+# boilerplate -> panel_triset_bind (D4), context threading (D13); the
+# restore observer and the return-with-table-attr stay in the module
+# verbatim (panel semantics).
+#
+# Golden-fixture provenance (PD-29/PD-33/PD-38/PD-43/PD-48 school):
+# all goldens below were captured from PRE-MIGRATION HEAD 40de15e
+# BEFORE any WP-10 edit, by booting the then-current
+# enrichment_fgsea_module exactly like the L1 call site (legacy
+# formals) and dput()ing the outputs: the 4-binding registry view +
+# raw meta (incl. agent_writable) + cold values + module return +
+# pre-run selected_row semantics over demo fd; the legacy-restore
+# triple; the GS-attached run surface (no-run boot - fGSEA req()s a
+# settled ranking variable, the deliberate contrast to ORA's
+# unset-triple no-collapse boot run; the picked ranking's table attr;
+# the live selected_row choices); the set_enrichment_parameters
+# round-trip through the L0 apply-callback path over the REAL L1
+# composition with a GS-attached dataset (two phases: the cold apply
+# rejects the run-preconditioned selected_row with per-key
+# resilience, the acknowledged push settles the ranking, runs fGSEA
+# and the pathway row applies); the real-L1 analyst_fgsea payload +
+# status key order; and the panel's OWN triset derivation over demo
+# fd. The IDENTICAL capture script was re-run POST-migration: all
+# outputs byte-identical (the pre/post proof). The fixtures are
+# FROZEN: never regenerate them from the migrated code.
+#
+# Two panel-specific notes (recorded as decisions in
+# PANEL_DEBT_STATUS.md):
+# - The appendix's triset source "trisetter(fd, combine='none') /
+#   as ORA" refers to the WP SHAPE, not the literal source: the real
+#   module derives its cascade from the NUMERIC non-GS feature
+#   annotations (a ranking statistic must be numeric). Swapping in
+#   trisetter(combine="none") would list non-numeric and GS columns -
+#   a user-visible behavior change the plan forbids (goal 1: zero
+#   user-visible change). The helper carries the panel's own
+#   derivation verbatim (141x3 over demo fd vs ORA's 713x3).
+# - No demo-fd (GS-less) user pick: the fGSEA tab only exists with a
+#   GS attr (availability predicate), and a headless pick over GS-less
+#   fd drives tab() into its pre-existing no-GS error ("argument is of
+#   length zero" at the nrow check - the error predates WP-10 and
+#   survives it byte-identically; headless it also destroys the module
+#   session, so no golden may be built on it). The GS-attached fd is
+#   the realistic pick surface; demo fd covers registration/cold/
+#   restore, where no run is attempted.
+enrichment_fgsea_module <- omicsViewer:::enrichment_fgsea_module
+
+# -------------------------------------------------- frozen goldens ----
+# the 4 ids (3 cascade + the run-preconditioned results-row selection)
+PANEL_W10_FGSEA_IDS <- sort(paste0("resultspace.fgsea.",
+  c("xax_analysis", "xax_subset", "xax_variable", "selected_row")))
+
+PANEL_W10_FGSEA_GOLDEN_VIEW <- 
+list(list(id = "resultspace.fgsea.xax_analysis", kind = "select", 
+    label = "Ranking category", help = "Annotation category of the ranking statistic the enrichment scores are computed from", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "PCA", "mean", "n value", "quantile", "ttest", "Rank", "Cor", 
+    "ResponseCurve")), list(id = "resultspace.fgsea.xax_subset", 
+    kind = "select", label = "Ranking subcategory", help = "Subcategory within the ranking category", 
+    depends_on = "resultspace.fgsea.xax_analysis", min = NULL, 
+    max = NULL, allowed_values = character(0)), list(id = "resultspace.fgsea.xax_variable", 
+    kind = "select_cascaded", label = "Ranking variable", help = "Numeric feature annotation the features are ranked by for the enrichment analysis", 
+    depends_on = c("resultspace.fgsea.xax_analysis", "resultspace.fgsea.xax_subset"
+    ), min = NULL, max = NULL, allowed_values = c("Intensity", 
+    "PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", "PC5(3.6%)", 
+    "PC6(2.9%)", "PC7(2.8%)", "PC8(2.5%)", "RE", "ME", "LE", 
+    "MT", "WT", "pvalue", "log.pvalue", "fdr", "log.fdr", "mean.diff", 
+    "X786O_NCI60", "A498_NCI60", "A549_NCI60", "ACHN_NCI60", 
+    "BT549_NCI60", "CAKI1_NCI60", "CCRFCEM_NCI60", "COLO205_NCI60", 
+    "DU145_NCI60", "EKVX_NCI60", "HCC2998_NCI60", "HCT116_NCI60", 
+    "HCT15_NCI60", "HL60_NCI60", "HOP62_NCI60", "HOP92_NCI60", 
+    "HS578T_NCI60", "HT29_NCI60", "IGROV1_NCI60", "K562_NCI60", 
+    "KM12_NCI60", "LOXIMVI_NCI60", "M14_NCI60", "MALME3M_NCI60", 
+    "MCF7_NCI60", "MDAMB231_NCI60", "MDAMB435_NCI60", "MDAMB468_NCI60", 
+    "MOLT4_NCI60", "NCIADRES_NCI60", "NCIH226_NCI60")), list(
+    id = "resultspace.fgsea.selected_row", kind = "select", label = "Selected pathway", 
+    help = "Gene set whose row is selected in the results table; highlights its leading edge in the bar plot above", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = character(0)))
+
+PANEL_W10_FGSEA_GOLDEN_META <- 
+list(list(id = "resultspace.fgsea.xax_analysis", kind = "select", 
+    label = "Ranking category", help = "Annotation category of the ranking statistic the enrichment scores are computed from", 
+    depends_on = character(0), agent_writable = TRUE), list(id = "resultspace.fgsea.xax_subset", 
+    kind = "select", label = "Ranking subcategory", help = "Subcategory within the ranking category", 
+    depends_on = "resultspace.fgsea.xax_analysis", agent_writable = TRUE), 
+    list(id = "resultspace.fgsea.xax_variable", kind = "select_cascaded", 
+        label = "Ranking variable", help = "Numeric feature annotation the features are ranked by for the enrichment analysis", 
+        depends_on = c("resultspace.fgsea.xax_analysis", "resultspace.fgsea.xax_subset"
+        ), agent_writable = TRUE), list(id = "resultspace.fgsea.selected_row", 
+        kind = "select", label = "Selected pathway", help = "Gene set whose row is selected in the results table; highlights its leading edge in the bar plot above", 
+        depends_on = character(0), agent_writable = TRUE))
+
+PANEL_W10_FGSEA_GOLDEN_COLD <- 
+list(resultspace.fgsea.xax_analysis = NULL, resultspace.fgsea.xax_subset = NULL, 
+    resultspace.fgsea.xax_variable = NULL, resultspace.fgsea.selected_row = NULL)
+
+PANEL_W10_FGSEA_GOLDEN_ALLOWED_COLD <- 
+list(resultspace.fgsea.xax_analysis = c("General", "PCA", "mean", 
+"n value", "quantile", "ttest", "Rank", "Cor", "ResponseCurve"
+), resultspace.fgsea.xax_subset = character(0), resultspace.fgsea.xax_variable = c("Intensity", 
+"PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", "PC5(3.6%)", 
+"PC6(2.9%)", "PC7(2.8%)", "PC8(2.5%)", "RE", "ME", "LE", "MT", 
+"WT", "pvalue", "log.pvalue", "fdr", "log.fdr", "mean.diff", 
+"X786O_NCI60", "A498_NCI60", "A549_NCI60", "ACHN_NCI60", "BT549_NCI60", 
+"CAKI1_NCI60", "CCRFCEM_NCI60", "COLO205_NCI60", "DU145_NCI60", 
+"EKVX_NCI60", "HCC2998_NCI60", "HCT116_NCI60", "HCT15_NCI60", 
+"HL60_NCI60", "HOP62_NCI60", "HOP92_NCI60", "HS578T_NCI60", "HT29_NCI60", 
+"IGROV1_NCI60", "K562_NCI60", "KM12_NCI60", "LOXIMVI_NCI60", 
+"M14_NCI60", "MALME3M_NCI60", "MCF7_NCI60", "MDAMB231_NCI60", 
+"MDAMB435_NCI60", "MDAMB468_NCI60", "MOLT4_NCI60", "NCIADRES_NCI60", 
+"NCIH226_NCI60"), resultspace.fgsea.selected_row = character(0))
+
+PANEL_W10_FGSEA_GOLDEN_RET <- 
+list(xax = NULL, table = NULL)
+
+PANEL_W10_FGSEA_GOLDEN_RESTORE_VALS <- 
+list(resultspace.fgsea.xax_analysis = "ttest", resultspace.fgsea.xax_subset = "RE_vs_ME", 
+    resultspace.fgsea.xax_variable = "log.fdr", resultspace.fgsea.selected_row = NULL)
+
+PANEL_W10_FGSEA_GOLDEN_RESTORE_RET <- 
+list(xax = NULL, table = NULL)
+
+PANEL_W10_FGSEA_TRISET <- 
+list(dim = c(141L, 3L), analysis_levels = c("General", "PCA", 
+"mean", "n value", "quantile", "ttest", "Rank", "Cor", "ResponseCurve"
+), first_rows = structure(c("General", "PCA", "PCA", "PCA", "PCA", 
+"PCA", "All", "All", "All", "All", "All", "All", "Intensity", 
+"PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", "PC5(3.6%)"
+), dim = c(6L, 3L)), variable_head50 = c("Intensity", "PC1(10.5%)", 
+"PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", "PC5(3.6%)", "PC6(2.9%)", 
+"PC7(2.8%)", "PC8(2.5%)", "RE", "ME", "LE", "MT", "WT", "pvalue", 
+"log.pvalue", "fdr", "log.fdr", "mean.diff", "X786O_NCI60", "A498_NCI60", 
+"A549_NCI60", "ACHN_NCI60", "BT549_NCI60", "CAKI1_NCI60", "CCRFCEM_NCI60", 
+"COLO205_NCI60", "DU145_NCI60", "EKVX_NCI60", "HCC2998_NCI60", 
+"HCT116_NCI60", "HCT15_NCI60", "HL60_NCI60", "HOP62_NCI60", "HOP92_NCI60", 
+"HS578T_NCI60", "HT29_NCI60", "IGROV1_NCI60", "K562_NCI60", "KM12_NCI60", 
+"LOXIMVI_NCI60", "M14_NCI60", "MALME3M_NCI60", "MCF7_NCI60", 
+"MDAMB231_NCI60", "MDAMB435_NCI60", "MDAMB468_NCI60", "MOLT4_NCI60", 
+"NCIADRES_NCI60", "NCIH226_NCI60"))
+
+PANEL_W10_FGSEA_AGENT_RECEIPT <- 
+list(method = "fgsea", panel_tab = "fGSEA", applied = c("resultspace.fgsea.xax_analysis", 
+"resultspace.analyst_tab", "resultspace.fgsea.xax_subset", "resultspace.fgsea.xax_variable"
+), applied_values = list(resultspace.fgsea.xax_analysis = "ttest", 
+    resultspace.analyst_tab = "fGSEA", resultspace.fgsea.xax_subset = "A_vs_B", 
+    resultspace.fgsea.xax_variable = "stat"), unchanged = character(0), 
+    rejected = list(list(id = "resultspace.fgsea.selected_row", 
+        reason = "Choices are currently unavailable for resultspace.fgsea.selected_row: its choices are not computed yet (the owning panel may be inactive, its data not ready, or a cascade parent unset). Open or activate the owning panel, then query the control again for its current allowed values.")), 
+    note = "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); read the top rows back through get_omics_viewer_state(sections='panel_results').")
+
+PANEL_W10_FGSEA_AGENT_RECEIPT2 <- 
+list(method = "fgsea", panel_tab = "fGSEA", applied = "resultspace.fgsea.selected_row", 
+    applied_values = list(resultspace.fgsea.selected_row = "GS_A"), 
+    unchanged = "resultspace.analyst_tab", rejected = list(), 
+    note = "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); read the top rows back through get_omics_viewer_state(sections='panel_results').")
+
+PANEL_W10_FGSEA_AGENT_VALS <- 
+list(resultspace.analyst_tab = "fGSEA", resultspace.feature_general.xax_analysis = NULL, 
+    resultspace.feature_general.xax_subset = NULL, resultspace.feature_general.xax_variable = NULL, 
+    resultspace.feature_general.plot_type = NULL, resultspace.feature_general.regression_line = FALSE, 
+    resultspace.feature_general.attr4.color_analysis = NULL, 
+    resultspace.feature_general.attr4.color_subset = NULL, resultspace.feature_general.attr4.color_variable = NULL, 
+    resultspace.feature_general.attr4.shape_analysis = NULL, 
+    resultspace.feature_general.attr4.shape_subset = NULL, resultspace.feature_general.attr4.shape_variable = NULL, 
+    resultspace.feature_general.attr4.size_analysis = NULL, resultspace.feature_general.attr4.size_subset = NULL, 
+    resultspace.feature_general.attr4.size_variable = NULL, resultspace.feature_general.attr4.tooltip_analysis = NULL, 
+    resultspace.feature_general.attr4.tooltip_subset = NULL, 
+    resultspace.feature_general.attr4.tooltip_variable = NULL, 
+    resultspace.feature_general.attr4.search_analysis = NULL, 
+    resultspace.feature_general.attr4.search_subset = NULL, resultspace.feature_general.attr4.search_variable = NULL, 
+    resultspace.feature_general.attr4.search_value = character(0), 
+    resultspace.feature_general.attr4.xcut = NULL, resultspace.feature_general.attr4.ycut = NULL, 
+    resultspace.feature_general.attr4.scorner = "None", resultspace.fgsea.xax_analysis = "ttest", 
+    resultspace.fgsea.xax_subset = "A_vs_B", resultspace.fgsea.xax_variable = "stat", 
+    resultspace.fgsea.selected_row = "GS_A", resultspace.ora.xax_analysis = NULL, 
+    resultspace.ora.xax_subset = NULL, resultspace.ora.xax_variable = NULL, 
+    resultspace.ora.selected_row = NULL, resultspace.stringdb.taxonomy = NULL, 
+    resultspace.stringdb.show_labels = NULL, resultspace.stringdb.selected_row = NULL, 
+    resultspace.sample_general.xax_analysis = NULL, resultspace.sample_general.xax_subset = NULL, 
+    resultspace.sample_general.xax_variable = NULL, resultspace.sample_general.attr4.color_analysis = NULL, 
+    resultspace.sample_general.attr4.color_subset = NULL, resultspace.sample_general.attr4.color_variable = NULL, 
+    resultspace.sample_general.attr4.shape_analysis = NULL, resultspace.sample_general.attr4.shape_subset = NULL, 
+    resultspace.sample_general.attr4.shape_variable = NULL, resultspace.sample_general.attr4.size_analysis = NULL, 
+    resultspace.sample_general.attr4.size_subset = NULL, resultspace.sample_general.attr4.size_variable = NULL, 
+    resultspace.sample_general.attr4.tooltip_analysis = NULL, 
+    resultspace.sample_general.attr4.tooltip_subset = NULL, resultspace.sample_general.attr4.tooltip_variable = NULL, 
+    resultspace.sample_general.attr4.search_analysis = NULL, 
+    resultspace.sample_general.attr4.search_subset = NULL, resultspace.sample_general.attr4.search_variable = NULL, 
+    resultspace.sample_general.attr4.search_value = character(0), 
+    resultspace.sample_general.attr4.xcut = NULL, resultspace.sample_general.attr4.ycut = NULL, 
+    resultspace.sample_general.attr4.scorner = "None", resultspace.sample_general.survival_censor = NULL, 
+    resultspace.sample_general.batch_show_phenotype = NULL, resultspace.sample_general.batch_show_features = NULL, 
+    resultspace.sample_general.batch_phenotype_selected_row = NULL, 
+    resultspace.sample_general.batch_feature_selected_row = NULL, 
+    resultspace.geneshot.term = NULL, resultspace.geneshot.xax_analysis = NULL, 
+    resultspace.geneshot.xax_subset = NULL, resultspace.geneshot.xax_variable = NULL, 
+    resultspace.ptm.xax_analysis = NULL, resultspace.ptm.xax_subset = NULL, 
+    resultspace.ptm.xax_variable = NULL, resultspace.dose_response.feature_table = NULL, 
+    resultspace.dose_response.param_table = NULL)
+
+PANEL_W10_FGSEA_GS_BOOT_RET <- 
+list(xax = NULL, table = NULL)
+
+PANEL_W10_FGSEA_GS_VIEW <- 
+list(list(id = "resultspace.fgsea.xax_analysis", kind = "select", 
+    label = "Ranking category", help = "Annotation category of the ranking statistic the enrichment scores are computed from", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = "ttest"), 
+    list(id = "resultspace.fgsea.xax_subset", kind = "select", 
+        label = "Ranking subcategory", help = "Subcategory within the ranking category", 
+        depends_on = "resultspace.fgsea.xax_analysis", min = NULL, 
+        max = NULL, allowed_values = character(0)), list(id = "resultspace.fgsea.xax_variable", 
+        kind = "select_cascaded", label = "Ranking variable", 
+        help = "Numeric feature annotation the features are ranked by for the enrichment analysis", 
+        depends_on = c("resultspace.fgsea.xax_analysis", "resultspace.fgsea.xax_subset"
+        ), min = NULL, max = NULL, allowed_values = c("pval", 
+        "stat")), list(id = "resultspace.fgsea.selected_row", 
+        kind = "select", label = "Selected pathway", help = "Gene set whose row is selected in the results table; highlights its leading edge in the bar plot above", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = character(0)))
+
+PANEL_W10_FGSEA_GS_PICK_VALS <- 
+list(resultspace.fgsea.xax_analysis = "ttest", resultspace.fgsea.xax_subset = "A_vs_B", 
+    resultspace.fgsea.xax_variable = "stat", resultspace.fgsea.selected_row = NULL)
+
+PANEL_W10_FGSEA_GS_PICK_RET <- 
+list(xax = list(analysis = "ttest", subset = "A_vs_B", variable = "stat"), 
+    table = list(class = "data.frame", names = c("pathway", "pval", 
+    "padj", "log2err", "enrichment score (ES)", "normalized ES", 
+    "size", "leadingEdge", "description"), nrow = 4L, pathways = c("GS_A", 
+    "GS_D", "GS_B", "GS_C")))
+
+PANEL_W10_FGSEA_GS_PICK_ALLOWED <- 
+list(resultspace.fgsea.xax_analysis = "ttest", resultspace.fgsea.xax_subset = "A_vs_B", 
+    resultspace.fgsea.xax_variable = c("pval", "stat"), resultspace.fgsea.selected_row = c("GS_A", 
+    "GS_D", "GS_B", "GS_C"))
+
+PANEL_W10_FGSEA_GOLDEN_L1_NAMES <- 
+c("analyst_active_tab", "analyst_feature_general", "analyst_sample_general", 
+"analyst_gene_shot", "analyst_fgsea", "analyst_ora", "analyst_ptm", 
+"analyst_dose_response", "analyst_additional")
+
+PANEL_W10_FGSEA_GOLDEN_L1_FGSEA <- 
+list(xax = NULL)
+
+
+# -------------------------------------------------- boot factories ----
+# GS-attached synthetic fd (the agentWidgets S4 fgsea shape, two
+# NUMERIC ranking columns - the retention case needs a GENUINELY
+# DIFFERENT valid agent write target in the same cascade branch,
+# stat -> pval; deterministic under set.seed)
+set.seed(10)
+.w10_gs_fd <- data.frame(
+  `ttest|A_vs_B|pval` = c(rnorm(10), rnorm(20)),
+  `ttest|A_vs_B|stat` = c(rnorm(10, mean = 2), rnorm(20)),
+  row.names = paste0("F", 1:30), check.names = FALSE)
+attr(.w10_gs_fd, "GS") <- data.frame(
+  featureId = factor(paste0("F", c(1:10, 6:20, 21:30, 1:5, 25:28))),
+  gsId = factor(rep(c("GS_A", "GS_B", "GS_C", "GS_D"),
+                    c(10, 15, 10, 9))))
+.w10_pd <- data.frame(group = c("A", "A", "B", "B"),
+                     row.names = paste0("S", 1:4))
+.w10_ex <- matrix(rnorm(120), nrow = 30,
+                 dimnames = list(paste0("F", 1:30), paste0("S", 1:4)))
+.w10_sel <- paste0("F", 1:5)
+# context-built (the WP-10 L1 call-site shape; holder receives the
+# context so the keep closure is inspectable)
+.w10_mkctx <- function(holder, fd = fd0, status_payload = NULL) {
+  force(holder)
+  function(input, output, session) {
+    .fd <- reactive(fd); .st <- reactive(status_payload)
+    holder$store <- widget_store_new()
+    holder$child <- widget_store_child(holder$store, "resultspace.fgsea")
+    holder$ctx <- panel_context(
+      id = "fgsea", tab_value = "fGSEA", store = holder$child,
+      data = list(fdata = .fd), status = .st, session = session)
+    holder$ret <- enrichment_fgsea_module(
+      "fgsea", reactive_featureData = .fd,
+      reactive_status = .st, store = holder$child, context = holder$ctx)
+  }
+}
+# legacy direct boot (formals only - the pre-WP-10 shape, still supported)
+.w10_boot <- function(env, fd = fd0, status_payload = NULL) {
+  force(env)
+  function(input, output, session) {
+    env$store <- widget_store_new()
+    env$child <- widget_store_child(env$store, "resultspace.fgsea")
+    env$ret <- enrichment_fgsea_module(
+      "fgsea", reactive_featureData = reactive(fd),
+      reactive_status = reactive(status_payload), store = env$child)
+  }
+}
+# store-less legacy boot (no store, no context - the reactiveVal path)
+.w10_mklegacy <- function(fd = fd0, status_payload = NULL) {
+  function(input, output, session) {
+    enrichment_fgsea_module(
+      "fgsea", reactive_featureData = reactive(fd),
+      reactive_status = reactive(status_payload))
+  }
+}
+.w10_meta <- function(root) {
+  ks <- grep("^resultspace\\.fgsea(\\.|$)", names(root$bindings), value = TRUE)
+  lapply(ks, function(k) {
+    b <- root$bindings[[k]]
+    list(id = k, kind = b$kind, label = b$label, help = b$help,
+         depends_on = b$depends_on, agent_writable = b$agent_writable)
+  })
+}
+.w10_allowed <- function(root) {
+  v <- store_registry_view(root, "resultspace.fgsea")
+  stats::setNames(lapply(v, `[[`, "allowed_values"),
+                  vapply(v, function(r) r$id, ""))
+}
+# the module return as the status builder / excerpt reader see it (the
+# table attr summarized - content pins, not the whole data frame)
+.w10_tab_sum <- function(tab) {
+  if (!is.data.frame(tab)) return(tab)
+  list(class = class(tab)[[1]], names = colnames(tab), nrow = nrow(tab),
+       pathways = as.character(tab$pathway))
+}
+.w10_ret_shape <- function(ret) {
+  r <- tryCatch(shiny::isolate(ret()), error = function(e) NULL)
+  list(xax = r$xax, table = .w10_tab_sum(attr(r, "table")))
+}
+.w10_flush <- function(session, n = 6)
+  for (k in seq_len(n)) tryCatch(session$flushReact(), error = function(e) NULL)
+.w10_TRIO <- paste0("resultspace.fgsea.",
+                    c("xax_analysis", "xax_subset", "xax_variable"))
+
+# ------------------- registration: context boot = the frozen golden ----
+w10 <- new.env()
+w10_err <- NULL; w10_view <- NULL; w10_meta <- NULL
+shiny::testServer(.w10_mkctx(w10), {
+  w10_err <<- tryCatch({
+    .w10_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # registry view INSIDE the session (WP-3 lore: choices providers read
+  # live reactives; outside a reactive context they degrade to empty)
+  w10_view <<- store_registry_view(w10$store, "resultspace.fgsea")
+  w10_meta <<- .w10_meta(w10$store)
+})
+ok(is.null(w10_err),
+   "WP-10 fgsea: module boots headless context-built (the new L1 call-site shape)")
+ok(ut_cmp_identical(sort(vapply(w10_view, function(r) r$id, "")),
+                    PANEL_W10_FGSEA_IDS),
+   "WP-10 fgsea: exactly the four frozen bindings register (3 cascade + run-preconditioned selected_row; D12 untouched)")
+ok(ut_cmp_identical(w10_view, PANEL_W10_FGSEA_GOLDEN_VIEW),
+   "WP-10 fgsea: registry view byte-identical to the frozen pre-migration golden (over demo fd: the 9 NUMERIC analysis levels - the ranking filter; full variable order)")
+ok(ut_cmp_identical(w10_meta, PANEL_W10_FGSEA_GOLDEN_META),
+   "WP-10 fgsea: raw binding meta byte-identical incl. agent_writable TRUE x4 (the set_enrichment_parameters surface)")
+
+# ------------------- cold values + module return + pre-run table attr ----
+w10c <- new.env()
+w10c_err <- NULL; w10c_cold <- NULL; w10c_ret <- NULL; w10c_allow <- NULL
+shiny::testServer(.w10_mkctx(w10c), {
+  w10c_err <<- tryCatch({
+    .w10_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w10c_cold <<- store_read(w10c$store)
+  w10c_ret <<- .w10_ret_shape(w10c$ret)
+  w10c_allow <<- .w10_allowed(w10c$store)
+})
+ok(is.null(w10c_err), "WP-10 fgsea: cold-boot capture stays alive")
+ok(ut_cmp_identical(w10c_cold, PANEL_W10_FGSEA_GOLDEN_COLD),
+   "WP-10 fgsea: cold store values byte-identical (cascade + selected_row all NULL without a run)")
+ok(ut_cmp_identical(w10c_ret, PANEL_W10_FGSEA_GOLDEN_RET),
+   "WP-10 fgsea: module return (the analyst_fgsea payload source + panel_results excerpt source) byte-identical: list(xax = NULL), table attr NULL pre-run")
+ok(ut_cmp_identical(w10c_allow, PANEL_W10_FGSEA_GOLDEN_ALLOWED_COLD),
+   "WP-10 fgsea: pre-run selected_row choices are empty (run-preconditioned semantics; only tested pathways become rows)")
+
+# ------------------- legacy status restore path ----
+w10r <- new.env()
+w10r_err <- NULL; w10r_vals <- NULL; w10r_ret <- NULL
+shiny::testServer(.w10_boot(w10r, status_payload = list(
+  xax = c("ttest", "RE_vs_ME", "log.fdr"))), {
+  w10r_err <<- tryCatch({
+    .w10_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w10r_vals <<- store_read(w10r$store)
+  w10r_ret <<- .w10_ret_shape(w10r$ret)
+})
+ok(is.null(w10r_err),
+   "WP-10 fgsea: boot with a legacy analyst_fgsea payload stays alive")
+ok(ut_cmp_identical(w10r_vals, PANEL_W10_FGSEA_GOLDEN_RESTORE_VALS),
+   "WP-10 fgsea: the legacy restore path re-applies the triple through the store (observer untouched, 4 keys byte-identical)")
+ok(ut_cmp_identical(w10r_ret, PANEL_W10_FGSEA_GOLDEN_RESTORE_RET),
+   "WP-10 fgsea: module return stays cold after a restore-only boot (the triple lands in the store; v1 has not been user-driven)")
+
+# ------------------- legacy boot registers identically (D13) ----
+w10l <- new.env()
+w10l_err <- NULL; w10l_view <- NULL; w10l_meta <- NULL; w10l_cold <- NULL
+shiny::testServer(.w10_boot(w10l), {
+  w10l_err <<- tryCatch({
+    .w10_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w10l_view <<- store_registry_view(w10l$store, "resultspace.fgsea")
+  w10l_meta <<- .w10_meta(w10l$store)
+  w10l_cold <<- store_read(w10l$store)
+})
+ok(is.null(w10l_err),
+   "WP-10 fgsea: legacy direct instantiation (store formal only, no context) still boots")
+ok(ut_cmp_identical(w10l_view, PANEL_W10_FGSEA_GOLDEN_VIEW) &&
+   ut_cmp_identical(w10l_meta, PANEL_W10_FGSEA_GOLDEN_META) &&
+   ut_cmp_identical(w10l_cold, PANEL_W10_FGSEA_GOLDEN_COLD),
+   "WP-10 fgsea: legacy store boot registers and seeds byte-identically to the golden (both boot paths agree)")
+ok(ut_cmp_identical(w10l_view, w10_view),
+   "WP-10 fgsea: context boot and legacy boot register identically (D13 argument coalescing)")
+
+# ------------------- the triset derivation (the panel's OWN filter) ----
+cn10 <- colnames(fd0)[vapply(fd0, is.numeric, logical(1)) &
+                        !grepl("^GS\\|", colnames(fd0))]
+tsd10 <- stringr::str_split_fixed(cn10, "\\|", n = 3)
+ok(ut_cmp_identical(list(dim = dim(tsd10),
+                         analysis_levels = unique(tsd10[, 1]),
+                         first_rows = utils::head(tsd10, 6L),
+                         variable_head50 = utils::head(unique(tsd10[, 3]), 50)),
+                    list(dim = PANEL_W10_FGSEA_TRISET$dim,
+                         analysis_levels = PANEL_W10_FGSEA_TRISET$analysis_levels,
+                         first_rows = PANEL_W10_FGSEA_TRISET$first_rows,
+                         variable_head50 = PANEL_W10_FGSEA_TRISET$variable_head50)),
+   "WP-10 fgsea: the cascade triset source over demo fd = the numeric non-GS column inventory (141x3; NOT trisetter(combine=none)'s 713x3 - a ranking statistic must be numeric; the appendix's 'as ORA' is the WP shape, not the source)")
+
+# ------------------- GS dataset: the run / table-attr surface ----
+# module-direct boot (legacy formals) with a real GS attr: fGSEA does
+# NOT run at boot (tab() req()s a settled ranking variable - the
+# deliberate contrast to ORA's unset-triple no-collapse boot run); the
+# ranking pick runs fGSEA and the table attr + selected_row choices go
+# live
+w10g <- new.env()
+w10g_err <- NULL; w10g_boot <- NULL; w10g_view <- NULL
+w10g_vals <- NULL; w10g_ret <- NULL; w10g_allow <- NULL
+shiny::testServer(.w10_boot(w10g, fd = .w10_gs_fd), {
+  w10g_err <<- tryCatch({
+    .w10_flush(session, 8)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w10g_boot <<- .w10_ret_shape(w10g$ret)
+  w10g_view <<- store_registry_view(w10g$store, "resultspace.fgsea")
+  session$setInputs(`fgsea-tris_fgsea-analysis` = "ttest")
+  session$flushReact()
+  session$setInputs(`fgsea-tris_fgsea-subset` = "A_vs_B")
+  session$flushReact()
+  session$setInputs(`fgsea-tris_fgsea-variable` = "stat")
+  .w10_flush(session, 8)
+  w10g_vals <<- store_read(w10g$store)
+  w10g_ret <<- .w10_ret_shape(w10g$ret)
+  w10g_allow <<- .w10_allowed(w10g$store)
+})
+ok(is.null(w10g_err), "WP-10 fgsea: GS-attached run boot stays alive")
+ok(ut_cmp_identical(w10g_boot, PANEL_W10_FGSEA_GS_BOOT_RET),
+   "WP-10 fgsea: the unset-triple boot does NOT run (table attr NULL until a ranking settles - fGSEA's run-preconditioned semantics, the contrast to ORA's boot run)")
+ok(ut_cmp_identical(w10g_view, PANEL_W10_FGSEA_GS_VIEW),
+   "WP-10 fgsea: GS registry view byte-identical (single ttest branch; both ranking variables; selected_row choices cold at boot)")
+ok(ut_cmp_identical(w10g_vals, PANEL_W10_FGSEA_GS_PICK_VALS),
+   "WP-10 fgsea: the ranking pick keeps the settled triple + NULL selected_row (byte-identical)")
+ok(ut_cmp_identical(w10g_ret, PANEL_W10_FGSEA_GS_PICK_RET),
+   "WP-10 fgsea: the ranking pick's table attr is the real fGSEA table (panel_results excerpt source; NES-ordered pathways pinned)")
+ok(ut_cmp_identical(w10g_allow, PANEL_W10_FGSEA_GS_PICK_ALLOWED),
+   "WP-10 fgsea: post-run selected_row choices are the tested gene sets (run-preconditioned semantics)")
+
+# ------------------- agent round-trip: the L0 apply-callback path ----
+# set_enrichment_parameters(method = "fgsea") lands through
+# apply_agent_enrichment's exact body (validate -> store_apply on the
+# ROOT store -> receipt, note verbatim) over the REAL L1 composition
+# booted with the GS-attached dataset. TWO phases, both frozen from
+# the pre-migration capture: (1) the cold full-five-key apply - the
+# ranking has not settled, so the run-preconditioned selected_row
+# REJECTS with per-key resilience (the L0 comment's own example),
+# exactly like ORA's cold-path rejection semantics; (2) the store->UI
+# push acknowledged headless (setInputs with the pushed triple - the
+# retention-ack pattern; a real browser applies the input messages),
+# which settles the ranking, runs fGSEA and the pathway row APPLIES.
+w10a <- new.env()
+w10a$store <- widget_store_new()
+app_w10a <- function(input, output, session) {
+  w10a$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(.w10_ex),
+    reactive_phenoData = reactive(.w10_pd),
+    reactive_featureData = reactive(.w10_gs_fd),
+    reactive_i = reactive(.w10_sel),
+    reactive_highlight = reactive(NULL),
+    status = reactive(NULL),
+    store = w10a$store)
+}
+w10a_err <- NULL; w10a_receipt <- NULL; w10a_receipt2 <- NULL; w10a_vals <- NULL
+shiny::testServer(app_w10a, {
+  w10a_err <<- tryCatch({
+    .w10_flush(session, 8)
+    update <- list(method = "fgsea", collapse = "ttest|A_vs_B|stat",
+                   selected_pathway = "GS_A")
+    validated <- agent_normalize_enrichment_update(update, .w10_gs_fd)
+    receipt <- shiny::isolate(
+      store_apply(w10a$store, validated$patch, origin = "agent",
+                  strict = FALSE))
+    w10a_receipt <<- list(
+      method = validated$method,
+      panel_tab = validated$tab,
+      applied = receipt$applied,
+      applied_values = receipt$diff,
+      unchanged = receipt$skipped,
+      rejected = receipt$rejected %||% list(),
+      note = paste(
+        "The panel opens and the enrichment recomputes from the currently",
+        "selected features (ORA) or the full ranking (fGSEA); read the top",
+        "rows back through get_omics_viewer_state(sections='panel_results')."))
+    .w10_flush(session, 8)
+    # acknowledge the pushed triple headless (the browser's input events)
+    session$setInputs(`rs-fgsea-tris_fgsea-analysis` = "ttest")
+    session$flushReact()
+    session$setInputs(`rs-fgsea-tris_fgsea-subset` = "A_vs_B")
+    session$flushReact()
+    session$setInputs(`rs-fgsea-tris_fgsea-variable` = "stat")
+    .w10_flush(session, 8)
+    update2 <- list(method = "fgsea", selected_pathway = "GS_A")
+    validated2 <- agent_normalize_enrichment_update(update2, .w10_gs_fd)
+    receipt2 <- shiny::isolate(
+      store_apply(w10a$store, validated2$patch, origin = "agent",
+                  strict = FALSE))
+    w10a_receipt2 <<- list(
+      method = validated2$method,
+      panel_tab = validated2$tab,
+      applied = receipt2$applied,
+      applied_values = receipt2$diff,
+      unchanged = receipt2$skipped,
+      rejected = receipt2$rejected %||% list(),
+      note = paste(
+        "The panel opens and the enrichment recomputes from the currently",
+        "selected features (ORA) or the full ranking (fGSEA); read the top",
+        "rows back through get_omics_viewer_state(sections='panel_results')."))
+    .w10_flush(session, 8)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w10a_vals <<- store_read(w10a$store)
+})
+ok(is.null(w10a_err),
+   "WP-10 fgsea: the real L1 composition with a GS-attached dataset boots for the agent round-trip")
+ok(ut_cmp_identical(w10a_receipt, PANEL_W10_FGSEA_AGENT_RECEIPT),
+   "WP-10 fgsea: cold set_enrichment_parameters receipt byte-identical pre/post migration (the four patch keys apply incl. the tab switch; the run-preconditioned selected_row rejects with the suggestion-bearing reason)")
+ok(ut_cmp_identical(w10a_receipt2, PANEL_W10_FGSEA_AGENT_RECEIPT2),
+   "WP-10 fgsea: after the acknowledged push settles the ranking and fGSEA runs, the pathway row applies (receipt 2 byte-identical; the agent-coupling proof, PD-49 school)")
+ok(ut_cmp_identical(w10a_vals, PANEL_W10_FGSEA_AGENT_VALS),
+   "WP-10 fgsea: the full result-space store state after both writes byte-identical (zero diff outside the migration surface)")
+
+# ------------------- retention (D3 unification) ----
+# structural (deterministic, WP-0 MINOR-2 pattern): the module's ONE
+# panel_keep closure holds exactly TWO observers - the helper's
+# bind-sync observer and the fgs_tab visibility-gated mirror (the
+# pre-WP-10 hand-rolled .fgs_keep list held the same two via its two
+# keep() call sites; the restore observer was never kept and stays
+# untouched; the results table owns its retention internally via
+# dataTableDownload_module's .dtd_keep).
+# Functional (retention direction, PD-8): after gc() x2 BOTH write
+# directions still land - the user ranking pick (UI -> store sync)
+# and the agent cascade write (store_apply -> store with a GENUINELY
+# DIFFERENT value - store_apply skips same-value keys, so a vacuous
+# write would arm nothing and prove nothing; the WP-9 fix-round shape,
+# 40de15e): pending ARMED (1L) after the apply, then acknowledged
+# through the same kept observer once the user input follows, and
+# DRAINED (0L).
+w10k <- new.env()
+w10k_err <- NULL; w10k_nobs <- NULL; w10k_pick <- NULL; w10k_agent <- NULL
+w10k_armed <- NULL; w10k_preack <- NULL; w10k_pending <- NULL
+shiny::testServer(.w10_mkctx(w10k, fd = .w10_gs_fd), {
+  w10k_err <<- tryCatch({
+    .w10_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  obs <- get("obs", envir = environment(w10k$ctx$keep))
+  w10k_nobs <<- length(obs)
+  gc(); gc()
+  # write direction 1: user picks (UI -> store)
+  session$setInputs(`fgsea-tris_fgsea-analysis` = "ttest")
+  session$flushReact()
+  session$setInputs(`fgsea-tris_fgsea-subset` = "A_vs_B")
+  session$flushReact()
+  session$setInputs(`fgsea-tris_fgsea-variable` = "stat")
+  session$flushReact(); session$flushReact()
+  w10k_pick <<- store_read(w10k$child)[.w10_TRIO]
+  # write direction 2: agent write (store_apply -> store + ack). The
+  # written value must GENUINELY DIFFER from the user pick ("stat" ->
+  # "pval", the second ranking column of .w10_gs_fd): store_apply
+  # skips same-value keys (diff against the store), so a vacuous write
+  # arms no pending entry and the identical setInputs fires no input
+  # event - both assertions would hold trivially and a broken kept
+  # observer would go undetected.
+  store_apply(w10k$child, list(xax_variable = "pval"),
+              origin = "agent")
+  session$flushReact()
+  w10k_armed <<- length(w10k$store$pending)
+  w10k_preack <<- store_read(w10k$child)$resultspace.fgsea.xax_variable
+  session$setInputs(`fgsea-tris_fgsea-variable` = "pval")
+  session$flushReact(); session$flushReact()
+  w10k_agent <<- store_read(w10k$child)[.w10_TRIO]
+  w10k_pending <<- length(w10k$store$pending)
+})
+ok(is.null(w10k_err), "WP-10 fgsea: retention boot stays alive")
+ok(ut_cmp_identical(w10k_nobs, 2L),
+   "WP-10 fgsea: exactly the bind-sync + fgs_tab-mirror observers land in the panel_keep list (D3; the pre-WP-10 .fgs_keep list held the same two)")
+ok(ut_cmp_identical(unname(unlist(w10k_pick)), c("ttest", "A_vs_B", "stat")),
+   "WP-10 fgsea: kept bind observer still fires after gc() x2 (user ranking pick reaches the store)")
+ok(ut_cmp_identical(w10k_armed, 1L) &&
+   ut_cmp_identical(w10k_preack, "pval"),
+   "WP-10 fgsea: the agent write with a genuinely changed value arms pending (1) and lands in the store pre-ack (non-vacuous write)")
+ok(ut_cmp_identical(unname(unlist(w10k_agent)), c("ttest", "A_vs_B", "pval")) &&
+   ut_cmp_identical(w10k_pending, 0L),
+   "WP-10 fgsea: the agent ranking write still acknowledges after gc() x2 (store write direction; pending armed then drained through the kept observer)")
+
+# ------------------- the store-less legacy branch stays alive ----
+w10n_err <- NULL
+shiny::testServer(.w10_mklegacy(), {
+  w10n_err <<- tryCatch({
+    .w10_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+})
+ok(is.null(w10n_err),
+   "WP-10 fgsea: the no-store legacy branch (reactiveVal cascade path) still boots")
+
+# ------------------- app level: the REAL L1 composition ----
+w10l1 <- new.env()
+w10l1$store <- widget_store_new()
+app_w10l1 <- function(input, output, session) {
+  w10l1$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(NULL),
+    store = w10l1$store)
+}
+w10l1_err <- NULL; w10l1_payload <- NULL
+shiny::testServer(app_w10l1, {
+  w10l1_err <<- tryCatch({
+    .w10_flush(session, 3)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w10l1_payload <<- tryCatch(shiny::isolate(w10l1$status()),
+                            error = function(e) conditionMessage(e))
+})
+ok(is.null(w10l1_err),
+   "WP-10 fgsea: the real L1 composition boots headless post-migration (context built at the call site)")
+ok(ut_cmp_identical(names(w10l1_payload), PANEL_W10_FGSEA_GOLDEN_L1_NAMES),
+   "WP-10 fgsea: L1 status payload keeps its exact key order (snapshot schema untouched)")
+ok(ut_cmp_identical(w10l1_payload$analyst_fgsea, PANEL_W10_FGSEA_GOLDEN_L1_FGSEA),
+   "WP-10 fgsea: analyst_fgsea payload byte-identical pre/post migration (cold boot: sanitized list(xax = NULL); the table attr never rides the legacy transport)")
+ok(ut_cmp_identical(
+  sort(intersect(vapply(store_registry_view(w10l1$store), function(r) r$id, ""),
+                 PANEL_W10_FGSEA_IDS)),
+  PANEL_W10_FGSEA_IDS),
+   "WP-10 fgsea: the real L1 boot carries all four fgsea keys (the D12 freeze above pins the full 72-id vector)")
+
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
 # loops and the L0 availability read (tabName/moduleName non-empty scalar

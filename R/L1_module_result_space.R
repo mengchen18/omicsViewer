@@ -145,10 +145,38 @@ L1_result_space_module <- function(
     )
 
     # session restore finished
+    # WP-10: fGSEA converts to the shared socket machinery with ZERO
+    # store-key/behavior change (the WP-5..WP-9 pure-migration pattern;
+    # the LAST panel migration). Like ORA it is agent-coupled - the
+    # set_enrichment_parameters tool (method = "fgsea"), the
+    # panel_results excerpt reader and the enrichment normalizer
+    # address this panel's store keys, none of them rewritten here
+    # (proven unchanged by the frozen L0 apply-callback receipt golden,
+    # byte-identical pre/post over a GS-attached dataset). The context
+    # (D13; WP-11 collapses the per-panel builds into the registry
+    # loop) carries the store and the per-instance retention helper,
+    # which the module consumes; fdata/status/session ride along for
+    # shape parity (dormant this pass). Legacy formals stay
+    # (direct-instantiation path); the three ranking-cascade keys plus
+    # the results-table row selection (run-preconditioned
+    # selected_row) keep registering byte-identically (frozen
+    # pre-migration golden, tests/test_panelRegistry.R). The legacy
+    # restore observer and the return-with-table-attr (the
+    # panel_results excerpt source) stay in the module verbatim (D4
+    # panel semantics).
+    fgsea_context <- panel_context(
+      id = "fgsea", tab_value = "fGSEA",
+      store = store_fgsea,
+      data = Filter(is.function, list(fdata = reactive_featureData)),
+      selection = Filter(is.function, list(feature = reactive_i)),
+      status = reactive(status()$analyst_fgsea),
+      session = session
+    )
     v2 <- enrichment_fgsea_module("fgsea",
       reactive_featureData = reactive_featureData,
       reactive_status = reactive(status()$analyst_fgsea),
-      store = store_fgsea
+      store = store_fgsea,
+      context = fgsea_context
     )
 
     # session restore finished
