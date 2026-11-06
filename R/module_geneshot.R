@@ -85,6 +85,24 @@ geneshot_ui <- function(id) {
   )
 }
 
+# The ONE geneshot cascade derivation (P9, panel debt WP-6): the
+# non-numeric, non-GS feature-annotation colnames split into the nx3
+# cascade matrix. This single function replaced the two hand-rolled
+# twin derivations (the module's old `triset` reactive and the `.gs_ts`
+# choices provider, which had divergent empty-data guards); it adopts
+# the stricter `length(cn) == 0L` guard of the two (NULL when no
+# eligible column exists), which is behavior-identical for real data -
+# the only change is on crafted all-numeric/GS-only/NULL feature data,
+# where the legacy `triset` reactive used to yield a 0x3 matrix and the
+# cascade UI choices were already NULL.
+geneshot_triset <- function(fd) {
+  if (is.null(fd)) return(NULL)
+  cn <- colnames(fd)[!vapply(fd, is.numeric, logical(1)) &
+                       !grepl("^GS\\|", colnames(fd))]
+  if (length(cn) == 0L) return(NULL)
+  str_split_fixed(cn, "\\|", n = 3)
+}
+
 #' Geneshot Search Server Function
 #'
 #' @description
@@ -149,84 +167,87 @@ geneshot_ui <- function(id) {
 #'   registers on the store; the Search button registers on the WP-C
 #'   action tier (run_control) instead - it is a command, not a value.
 #'
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   plan D13). When given, the module consumes the child store
+#'   (\code{context$store}) and the per-instance retention helper
+#'   (\code{context$keep}) from it; data/selection/status keep arriving
+#'   through their formals (nothing moved into the module in WP-6). All
+#'   legacy formals keep working for direct instantiation.
+#'
 geneshot_module <- function(
   id, pdata, fdata, expr, feature_selected, sample_selected, object,
-  reactive_status = reactive(NULL), store = NULL
+  reactive_status = reactive(NULL), store = NULL, context = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
 
-  triset <- reactive({
-    fd <- fdata()
-    cn <- colnames(fd)[!vapply(fd, is.numeric, logical(1)) & !grepl("^GS\\|", colnames(fd))]
-    str_split_fixed(cn, "\\|", n = 3)
-  })
+  # ------------------------------------------------------------------
+  # WP-6 (panel debt, D13): the panel context, built at the L1 call
+  # site (WP-11 collapses the per-panel builds into the registry
+  # loop). Context wins when present; the legacy formals remain the
+  # direct-instantiation path (the string/dose/ptm precedent). This
+  # module consumes store + keep from the context; fdata/
+  # feature_selected/reactive_status keep arriving through their
+  # formals (nothing moved into the module in this WP).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+  }
+
+  # P9 (panel debt, WP-6): the ONE derivation (geneshot_triset above)
+  # feeds both the module cascade reactive and the store-backed
+  # choices providers; the divergent twin derivations are gone.
+  triset <- reactive(geneshot_triset(fdata()))
 
   # ------------------------------------------------------------------
   # Canonical widget-store bindings (control plane, plan section 6, S4).
   # The search term and the ID-mapper cascade register on the store; the
   # cascade is driven by store_watch selectors (meta_scatter pattern).
+  #
+  # WP-6 (panel debt): retention is the shared per-instance
+  # panel_keep() factory (D3 - the context's closure when context-built,
+  # else a fresh local one for direct instantiation), and the cascade
+  # boilerplate (guarded triset source, ts1/ts2/ts3 choices providers,
+  # the three xax_* registrations, triselector wiring through
+  # store_watch/store_epoch and the UI->store sync) is the shared
+  # panel_triset_bind helper (D4). Labels/help stay panel-owned; the
+  # registered keys/kinds/labels/help/depends_on are byte-identical to
+  # the hand-rolled block (frozen pre-migration golden,
+  # tests/test_panelRegistry.R).
   # ------------------------------------------------------------------
-  .gs_store_observers <- list()
-  .gs_keep <- function(obs) {
-    .gs_store_observers[[length(.gs_store_observers) + 1L]] <<- obs
-    invisible(obs)
-  }
+  keep <- if (is.null(context)) panel_keep() else context$keep
   xax <- reactiveVal()
   if (!is.null(store)) {
-    .gs_ts <- function() {
-      fd <- tryCatch(fdata(), shiny.silent.error = function(e) NULL,
-                     error = function(e) NULL)
-      if (is.null(fd)) return(NULL)
-      cn <- colnames(fd)[!vapply(fd, is.numeric, logical(1)) &
-                           !grepl("^GS\\|", colnames(fd))]
-      if (length(cn) == 0L) return(NULL)
-      str_split_fixed(cn, "\\|", n = 3)
-    }
-    .gs_ts1 <- function() {
-      ts <- .gs_ts()
-      if (is.null(ts)) character(0) else unique(ts[, 1])
-    }
-    .gs_ts2 <- function(a) {
-      ts <- .gs_ts()
-      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
-      else unique(ts[ts[, 1] %in% a, 2])
-    }
-    .gs_ts3 <- function(a, b) {
-      ts <- .gs_ts()
-      if (is.null(ts)) character(0)
-      else {
-        i <- rep(TRUE, nrow(ts))
-        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
-        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
-        unique(ts[i, 3])
-      }
-    }
-    kg1 <- paste0(store$prefix, ".xax_analysis")
-    kg2 <- paste0(store$prefix, ".xax_subset")
+    # the search term is a plain string binding (panel semantics); it
+    # registers FIRST so the store's registration order stays term,
+    # xax_analysis, xax_subset, xax_variable exactly as the pre-WP-6
+    # single store_register call produced
     store_register(
       store,
       widget_binding("term", "string", label = "Search terms",
         help = paste("Semicolon-separated literature search terms for the",
-                     "Geneshot AutoRIF query")),
-      widget_binding("xax_analysis", "select", label = "ID mapper category",
-        help = "Annotation category used to map Geneshot genes to features",
-        choices_provider = function(v) .gs_ts1()),
-      widget_binding("xax_subset", "select", label = "ID mapper subcategory",
-        help = "Subcategory within the ID-mapper category",
-        depends_on = "xax_analysis",
-        choices_provider = function(v) .gs_ts2(v[[kg1]])),
-      widget_binding("xax_variable", "select_cascaded", label = "ID mapper column",
-        help = paste("Feature annotation column Geneshot genes are matched",
-                     "against for the overlap highlight"),
-        depends_on = c("xax_analysis", "xax_subset"),
-        choices_provider = function(v) .gs_ts3(v[[kg1]], v[[kg2]]))
+                     "Geneshot AutoRIF query"))
     )
+    v1 <- panel_triset_bind(
+      store, keep,
+      tri_id = "geneNameCol", tri_label = "Map ID",
+      triset_source = function() geneshot_triset(fdata()),
+      bindings = list(
+        analysis = list(
+          label = "ID mapper category",
+          help = "Annotation category used to map Geneshot genes to features"),
+        subset = list(
+          label = "ID mapper subcategory",
+          help = "Subcategory within the ID-mapper category"),
+        variable = list(
+          label = "ID mapper column",
+          help = paste("Feature annotation column Geneshot genes are matched",
+                       "against for the overlap highlight"))))
     # WP-C action tier: the Search button registers as an action; the
     # named handler is defined with rif below and resolved from this
-    # scope at call time.
+    # scope at call time. (Panel semantics: stays in the module, WP-6.)
     store_register_action(
       store,
       widget_action("submit", label = "Search related genes",
@@ -242,18 +263,9 @@ geneshot_module <- function(
         handler = function(params)
           shiny::withReactiveDomain(session, .geneshot_submit()))
     )
-    v1 <- triselector_module(
-      "geneNameCol", reactive_x = triset, label = "Map ID",
-      reactive_selector1 = store_watch(store, "xax_analysis"),
-      reactive_selector2 = store_watch(store, "xax_subset"),
-      reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store))
-    # UI -> store: settled triples only (WP2 store_bind_triselector)
-    store_bind_triselector(store,
-      keys = c(analysis = "xax_analysis", subset = "xax_subset",
-               variable = "xax_variable"),
-      sel = v1, keep = .gs_keep)
-    .gs_keep(observeEvent(input$term, {
+    # term sync/seed/push observers stay in the module (panel semantics,
+    # D4), on the shared keep() closure (D3)
+    keep(observeEvent(input$term, {
       # R-L3: a cleared term syncs too - the store used to keep the stale
       # term and snapshots saved a term the UI no longer showed
       if (!is.null(input$term))
@@ -263,7 +275,7 @@ geneshot_module <- function(
     # seed the term once it exists and is non-empty; the cascade has no
     # meaningful default and fills on the first pick
     .gs_seeded <- FALSE
-    .gs_keep(observe({
+    keep(observe({
       if (.gs_seeded) return(NULL)
       if (is.null(input$term)) return(NULL)
       .gs_seeded <<- TRUE
@@ -272,7 +284,7 @@ geneshot_module <- function(
     # store -> UI push for external writes only (pending entries mark them)
     .gs_epoch <- store_epoch(store)
     .gs_root_store <- if (is.null(store$parent)) store else store$parent
-    .gs_keep(observe({
+    keep(observe({
       .gs_epoch()
       tm <- store_read(store, "term")[[1]]
       if (!is.null(tm) &&

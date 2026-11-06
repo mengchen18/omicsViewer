@@ -193,12 +193,35 @@ L1_result_space_module <- function(
     )
 
     # session restore finished
+    # WP-6: Geneshot converts to the shared socket machinery with ZERO
+    # store-key/behavior change (the WP-5 pure-migration pattern) PLUS
+    # the P9 triset dedup: the module's twin derivations (the triset
+    # reactive and the .gs_ts choices provider, divergent empty-data
+    # guards) collapsed into ONE geneshot_triset(fd) feeding both. The
+    # context (D13; WP-11 collapses the per-panel builds into the
+    # registry loop) carries the store and the per-instance retention
+    # helper, which the module consumes; data/selection/status/session
+    # ride along for shape parity (dormant this pass). Legacy formals
+    # stay (direct-instantiation path); the term binding + submit
+    # action + term sync/seed/push observers stay in the module (panel
+    # semantics, D4); the four resultspace.geneshot.* keys register
+    # byte-identically (frozen pre-migration golden,
+    # tests/test_panelRegistry.R).
+    geneshot_context <- panel_context(
+      id = "geneshotTab", tab_value = "Geneshot",
+      store = store_geneshot,
+      data = Filter(is.function, list(fdata = reactive_featureData)),
+      selection = Filter(is.function, list(feature = reactive_i)),
+      status = reactive(status()$analyst_gene_shot),
+      session = session
+    )
     v6 <- geneshot_module(
       "geneshotTab",
       fdata = reactive_featureData,
       feature_selected = reactive_i,
       reactive_status = reactive(status()$analyst_gene_shot),
-      store = store_geneshot
+      store = store_geneshot,
+      context = geneshot_context
     )
 
     # session restore finished

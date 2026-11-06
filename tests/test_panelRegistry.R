@@ -1377,6 +1377,380 @@ ok(ut_cmp_identical(
   PANEL_W5_PTM_IDS),
    "WP-5 ptm: the real L1 boot carries the three ptm keys (the D12 freeze above pins the full 72-id vector)")
 
+## --------------- WP-6: Geneshot migration + P9 (D3/D4/D13) ----
+# The SECOND pure migration WP (the WP-5 pattern) PLUS the P9 triset
+# dedup: the module's twin cascade derivations (the `triset` reactive
+# and the `.gs_ts` choices provider, with divergent empty-data guards)
+# collapsed into ONE geneshot_triset(fd). The goldens below were
+# captured from the PRE-MIGRATION HEAD (16c6cc6, 2026-11-06) BEFORE any
+# edit, by booting the then-current geneshot_module exactly like the L1
+# call site (child store resultspace.geneshot over demo.RDS fd0, feature
+# 1 selected) and dput()ing the outputs - the WP-0 ORA-golden /
+# WP-5 PTM fixture pattern. They are FROZEN: never regenerate them from
+# the migrated code (that would make the equivalence claim circular).
+geneshot_module <- omicsViewer:::geneshot_module
+geneshot_triset <- omicsViewer:::geneshot_triset
+PANEL_W6_GS_IDS <- sort(c(
+  "resultspace.geneshot.term",
+  "resultspace.geneshot.xax_analysis",
+  "resultspace.geneshot.xax_subset",
+  "resultspace.geneshot.xax_variable"))
+# frozen pre-migration golden: BOTH pre-fix P9 derivations return this
+# same 4x3 matrix over the demo fd (the derivations only diverged on
+# crafted empty data - see the crafted cases below)
+PANEL_W6_GS_TRIPLET <- structure(
+  c("General", "General", "StringDB", "SeqLogo",
+    "All", "All", "All", "All",
+    "Gene.name", "Protein.ID", "ID", "seq.window"),
+  dim = c(4L, 3L))
+# frozen pre-migration golden: the registry view over demo fd0 -
+# id/kind/label/help/depends_on/min/max/allowed_values of all four
+# bindings (term first: the pre-WP-6 single store_register call produced
+# exactly this registration order)
+PANEL_W6_GS_GOLDEN_VIEW <- list(
+  list(id = "resultspace.geneshot.term", kind = "string",
+       label = "Search terms",
+       help = paste("Semicolon-separated literature search terms for the",
+                    "Geneshot AutoRIF query"),
+       depends_on = character(0), min = NULL, max = NULL,
+       allowed_values = NULL),
+  list(id = "resultspace.geneshot.xax_analysis", kind = "select",
+       label = "ID mapper category",
+       help = "Annotation category used to map Geneshot genes to features",
+       depends_on = character(0), min = NULL, max = NULL,
+       allowed_values = c("General", "StringDB", "SeqLogo")),
+  list(id = "resultspace.geneshot.xax_subset", kind = "select",
+       label = "ID mapper subcategory",
+       help = "Subcategory within the ID-mapper category",
+       depends_on = "resultspace.geneshot.xax_analysis", min = NULL,
+       max = NULL, allowed_values = character(0)),
+  list(id = "resultspace.geneshot.xax_variable", kind = "select_cascaded",
+       label = "ID mapper column",
+       help = paste("Feature annotation column Geneshot genes are matched",
+                    "against for the overlap highlight"),
+       depends_on = c("resultspace.geneshot.xax_analysis",
+                      "resultspace.geneshot.xax_subset"),
+       min = NULL, max = NULL,
+       allowed_values = c("Gene.name", "Protein.ID", "ID", "seq.window")))
+# frozen pre-migration golden: the raw binding metadata incl. the
+# agent_writable flags (all four agent-visible AND writable)
+PANEL_W6_GS_GOLDEN_META <- list(
+  list(id = "resultspace.geneshot.term", kind = "string",
+       label = "Search terms",
+       help = paste("Semicolon-separated literature search terms for the",
+                    "Geneshot AutoRIF query"),
+       depends_on = character(0), agent_writable = TRUE),
+  list(id = "resultspace.geneshot.xax_analysis", kind = "select",
+       label = "ID mapper category",
+       help = "Annotation category used to map Geneshot genes to features",
+       depends_on = character(0), agent_writable = TRUE),
+  list(id = "resultspace.geneshot.xax_subset", kind = "select",
+       label = "ID mapper subcategory",
+       help = "Subcategory within the ID-mapper category",
+       depends_on = "resultspace.geneshot.xax_analysis",
+       agent_writable = TRUE),
+  list(id = "resultspace.geneshot.xax_variable", kind = "select_cascaded",
+       label = "ID mapper column",
+       help = paste("Feature annotation column Geneshot genes are matched",
+                    "against for the overlap highlight"),
+       depends_on = c("resultspace.geneshot.xax_analysis",
+                      "resultspace.geneshot.xax_subset"),
+       agent_writable = TRUE))
+# frozen pre-migration golden: the cold store values (geneshot has NO
+# cascade auto-default - the cascade fills on the first pick - and the
+# term seeds only once a non-empty term exists)
+PANEL_W6_GS_GOLDEN_COLD <- list(
+  `resultspace.geneshot.term` = NULL,
+  `resultspace.geneshot.xax_analysis` = NULL,
+  `resultspace.geneshot.xax_subset` = NULL,
+  `resultspace.geneshot.xax_variable` = NULL)
+# frozen pre-migration golden: the module return (the analyst_gene_shot
+# payload source) in a cold headless boot
+PANEL_W6_GS_GOLDEN_RET <- list(xax = NULL, term = NULL)
+# frozen pre-migration golden: the real-L1 status payload key order and
+# the analyst_gene_shot entry
+PANEL_W6_GS_GOLDEN_L1_STATUS <- list(
+  names = c("analyst_active_tab", "analyst_feature_general",
+            "analyst_sample_general", "analyst_gene_shot", "analyst_fgsea",
+            "analyst_ora", "analyst_ptm", "analyst_dose_response",
+            "analyst_additional"),
+  analyst_gene_shot = list(xax = NULL, term = NULL))
+# shared boot factories: context-built (the WP-6 L1 call-site shape;
+# holder receives the context so the keep closure is inspectable) and
+# legacy direct (formals only - the pre-WP-6 shape, still supported)
+.w6_mkctx <- function(child, holder, fd = fd0, feat = 1L,
+                      status_payload = NULL) {
+  force(child); force(holder)
+  function(input, output, session) {
+    .fd <- reactive(fd); .ft <- reactive(feat); .st <- reactive(status_payload)
+    holder$ctx <- panel_context(
+      id = "geneshotTab", tab_value = "Geneshot", store = child,
+      data = list(fdata = .fd), selection = list(feature = .ft),
+      status = .st, session = session)
+    holder$ret <- geneshot_module(
+      "geneshotTab", pdata = reactive(NULL), fdata = .fd,
+      expr = reactive(NULL), feature_selected = .ft,
+      sample_selected = reactive(NULL), object = reactive(NULL),
+      reactive_status = .st, store = child, context = holder$ctx)
+  }
+}
+.w6_mklegacy <- function(child, fd = fd0, feat = 1L, status_payload = NULL) {
+  force(child)
+  function(input, output, session) {
+    geneshot_module(
+      "geneshotTab", pdata = reactive(NULL), fdata = reactive(fd),
+      expr = reactive(NULL), feature_selected = reactive(feat),
+      sample_selected = reactive(NULL), object = reactive(NULL),
+      reactive_status = reactive(status_payload), store = child)
+  }
+}
+.w6_meta <- function(store) {
+  lapply(grep("^resultspace\\.geneshot\\.", names(store$bindings),
+              value = TRUE),
+         function(k) {
+           b <- store$bindings[[k]]
+           list(id = k, kind = b$kind, label = b$label, help = b$help,
+                depends_on = b$depends_on, agent_writable = b$agent_writable)
+         })
+}
+
+# --- P9: the ONE derivation equals BOTH pre-fix derivations over the
+# demo fd (they were captured separately pre-migration and agreed), and
+# the plan-sanctioned unified semantics on the crafted divergent cases
+# (the old `triset` reactive returned a 0x3 matrix there; the old .gs_ts
+# returned NULL - the shared function adopts the stricter NULL guard)
+ok(ut_cmp_identical(geneshot_triset(fd0), PANEL_W6_GS_TRIPLET),
+   "WP-6 geneshot P9: geneshot_triset(demo fd) equals BOTH captured pre-fix derivations (they agreed over real data)")
+ok(ut_cmp_identical(
+  geneshot_triset(data.frame(a = 1:8, b = 9:16)), NULL) &&
+    ut_cmp_identical(
+      geneshot_triset(data.frame(`GS|x|y` = letters[1:8],
+                                 row.names = paste0("F", 1:8),
+                                 check.names = FALSE)), NULL) &&
+    ut_cmp_identical(geneshot_triset(NULL), NULL),
+   "WP-6 geneshot P9: crafted divergent cases (all-numeric / GS-only / NULL fd) pin the UNIFIED stricter guard (NULL; the plan's sanctioned semantic, old triset reactive gave a 0x3 matrix)")
+ok(ut_cmp_identical(
+  geneshot_triset(data.frame(
+    num = 1:8, `GS|x|y` = letters[1:8], `General|All|Gene` = paste0("g", 1:8),
+    row.names = paste0("F", 1:8), check.names = FALSE)),
+  structure(c("General", "All", "Gene"), dim = c(1L, 3L))),
+   "WP-6 geneshot P9: numeric and GS columns are filtered out of the cascade (mixed fd yields the eligible column only)")
+
+# --- context boot equals the frozen pre-migration golden, byte-for-byte
+w6 <- new.env()
+w6$store <- widget_store_new()
+w6$child <- widget_store_child(w6$store, "resultspace.geneshot")
+w6_err <- NULL; w6_view <- NULL; w6_meta <- NULL; w6_vals <- NULL
+w6_ret <- NULL
+shiny::testServer(.w6_mkctx(w6$child, w6), {
+  w6_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # registry view INSIDE the session (WP-3 lore: choices providers read
+  # live reactives; outside a reactive context they degrade to empty)
+  w6_view <<- store_registry_view(w6$store, "resultspace.geneshot")
+  w6_meta <<- .w6_meta(w6$store)
+  w6_vals <<- store_read(w6$child)
+  w6_ret <<- tryCatch(shiny::isolate(w6$ret()), error = function(e) NULL)
+})
+ok(is.null(w6_err),
+   "WP-6 geneshot: module boots headless context-built (the new L1 call-site shape)")
+ok(ut_cmp_identical(sort(vapply(w6_view, function(r) r$id, "")), PANEL_W6_GS_IDS),
+   "WP-6 geneshot: exactly the four frozen bindings register under resultspace.geneshot (D12 untouched)")
+ok(ut_cmp_identical(w6_view, PANEL_W6_GS_GOLDEN_VIEW),
+   "WP-6 geneshot: registry view byte-identical to the frozen pre-migration golden (term first + the cascade trio over demo fd)")
+ok(ut_cmp_identical(w6_meta, PANEL_W6_GS_GOLDEN_META),
+   "WP-6 geneshot: raw binding meta byte-identical incl. agent_writable TRUE x4")
+ok(ut_cmp_identical(w6_vals, PANEL_W6_GS_GOLDEN_COLD),
+   "WP-6 geneshot: cold store values byte-identical (no cascade auto-default; term unseeded)")
+ok(ut_cmp_identical(w6_ret, PANEL_W6_GS_GOLDEN_RET),
+   "WP-6 geneshot: module return (the analyst_gene_shot payload source) stays list(xax = NULL, term = NULL) before any UI commit")
+
+# --- legacy direct boot registers identically to the context boot
+w6l <- new.env()
+w6l$store <- widget_store_new()
+w6l$child <- widget_store_child(w6l$store, "resultspace.geneshot")
+w6l_err <- NULL; w6l_view <- NULL; w6l_meta <- NULL
+shiny::testServer(.w6_mklegacy(w6l$child), {
+  w6l_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w6l_view <<- store_registry_view(w6l$store, "resultspace.geneshot")
+  w6l_meta <<- .w6_meta(w6l$store)
+})
+ok(is.null(w6l_err),
+   "WP-6 geneshot: legacy direct instantiation (formals only, no context) still boots")
+ok(ut_cmp_identical(w6l_view, PANEL_W6_GS_GOLDEN_VIEW) &&
+   ut_cmp_identical(w6l_meta, PANEL_W6_GS_GOLDEN_META),
+   "WP-6 geneshot: legacy boot registers byte-identically to the golden (both boot paths agree)")
+ok(ut_cmp_identical(w6l_view, w6_view),
+   "WP-6 geneshot: context boot and legacy boot register identically (D13 argument coalescing)")
+
+# --- behavior pins (pre-migration captures): user cascade pick + term
+# edit sync into the store; the module return reports the settled
+# triple; the cascade choices stay state-dependent
+w6b <- new.env()
+w6b$store <- widget_store_new()
+w6b$child <- widget_store_child(w6b$store, "resultspace.geneshot")
+w6b_err <- NULL; w6b_vals <- NULL; w6b_ret <- NULL; w6b_ch <- NULL
+shiny::testServer(.w6_mkctx(w6b$child, w6b), {
+  w6b_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  session$setInputs(`geneshotTab-geneNameCol-analysis` = "General")
+  session$flushReact()
+  session$setInputs(`geneshotTab-geneNameCol-subset` = "All")
+  session$flushReact()
+  session$setInputs(`geneshotTab-geneNameCol-variable` = "Gene.name")
+  session$flushReact(); session$flushReact()
+  session$setInputs(`geneshotTab-term` = "p53; BRCA1")
+  session$flushReact(); session$flushReact()
+  w6b_vals <<- store_read(w6b$child)
+  w6b_ret <<- tryCatch(shiny::isolate(w6b$ret()), error = function(e) NULL)
+  v <- store_registry_view(w6b$store, "resultspace.geneshot")
+  w6b_ch <<- stats::setNames(lapply(v, `[[`, "allowed_values"),
+                            vapply(v, function(r) r$id, ""))
+})
+ok(is.null(w6b_err), "WP-6 geneshot: user-pick boot stays alive")
+ok(ut_cmp_identical(
+  unname(unlist(w6b_vals[c("resultspace.geneshot.xax_analysis",
+                    "resultspace.geneshot.xax_subset",
+                    "resultspace.geneshot.xax_variable")])),
+  c("General", "All", "Gene.name")),
+   "WP-6 geneshot: the user ID-mapper pick syncs into the store (pre-migration behavior)")
+ok(ut_cmp_identical(w6b_vals$resultspace.geneshot.term, "p53; BRCA1"),
+   "WP-6 geneshot: the user search-term edit syncs into the store (pre-migration behavior)")
+ok(ut_cmp_identical(
+  w6b_ret,
+  list(xax = list(analysis = "General", subset = "All",
+                  variable = "Gene.name"),
+       term = "p53; BRCA1")),
+   "WP-6 geneshot: module return reports the settled triple + term after the commits (analyst_gene_shot payload content)")
+ok(ut_cmp_identical(
+  w6b_ch,
+  list(`resultspace.geneshot.term` = NULL,
+       `resultspace.geneshot.xax_analysis` = c("General", "StringDB", "SeqLogo"),
+       `resultspace.geneshot.xax_subset` = "All",
+       `resultspace.geneshot.xax_variable` = c("Gene.name", "Protein.ID"))),
+   "WP-6 geneshot: cascade choices stay state-dependent (subset narrows, variable filtered by the General branch)")
+
+# --- legacy status restore path unchanged: an analyst_gene_shot payload
+# with term + triple re-applies through store_apply(origin = "restore")
+# (pre-migration capture; geneshot has no auto-seed, so the restore IS
+# the store's initial cascade content)
+w6r <- new.env()
+w6r$store <- widget_store_new()
+w6r$child <- widget_store_child(w6r$store, "resultspace.geneshot")
+w6r_err <- NULL; w6r_vals <- NULL; w6r_ret <- NULL
+shiny::testServer(.w6_mkctx(
+  w6r$child, w6r,
+  status_payload = list(term = "restored term",
+                        xax = c("StringDB", "All", "ID"))), {
+  w6r_err <<- tryCatch({
+    for (i in 1:5) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w6r_vals <<- store_read(w6r$child)
+  w6r_ret <<- tryCatch(shiny::isolate(w6r$ret()), error = function(e) NULL)
+})
+ok(is.null(w6r_err),
+   "WP-6 geneshot: boot with a legacy analyst_gene_shot status payload stays alive")
+ok(ut_cmp_identical(
+  unname(unlist(w6r_vals[c("resultspace.geneshot.xax_analysis",
+                    "resultspace.geneshot.xax_subset",
+                    "resultspace.geneshot.xax_variable")])),
+  c("StringDB", "All", "ID")),
+   "WP-6 geneshot: the legacy restore path re-applies the payload triple (single transactional path preserved)")
+ok(ut_cmp_identical(w6r_vals$resultspace.geneshot.term, "restored term"),
+   "WP-6 geneshot: the legacy restore path re-applies the payload term")
+ok(ut_cmp_identical(w6r_ret, list(xax = NULL, term = NULL)),
+   "WP-6 geneshot: module return stays cold after a restore-only boot (v1 commits through the UI, not the store)")
+
+# --- retention (D3): the shared per-instance panel_keep holds the
+# helper's bind-sync observer AND the module's term sync/seed/push
+# observers (structural, deterministic - WP-0 MINOR-2 pattern); after
+# gc() x2 a user pick still reaches the store through the kept
+# observers (the WP-0 gc pattern, retention direction only per PD-8)
+w6k <- new.env()
+w6k$store <- widget_store_new()
+w6k$child <- widget_store_child(w6k$store, "resultspace.geneshot")
+w6k_err <- NULL; w6k_nobs <- NULL; w6k_vals <- NULL
+shiny::testServer(.w6_mkctx(w6k$child, w6k), {
+  w6k_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # structural: everything the module kept lives in the CONTEXT's
+  # panel_keep closure (D3 - the retention owner), not a module-local list
+  obs <- get("obs", envir = environment(w6k$ctx$keep))
+  w6k_nobs <<- length(obs)
+  # gc integration (retention direction): collect twice, then user
+  # picks must still reach the store through the kept observers
+  # (the context - the L1-frame analogue - is the observers' only anchor)
+  gc(); gc()
+  session$setInputs(`geneshotTab-geneNameCol-analysis` = "SeqLogo")
+  session$flushReact()
+  session$setInputs(`geneshotTab-geneNameCol-subset` = "All")
+  session$flushReact()
+  session$setInputs(`geneshotTab-geneNameCol-variable` = "seq.window")
+  session$flushReact(); session$flushReact()
+  session$setInputs(`geneshotTab-term` = "post-gc term")
+  session$flushReact(); session$flushReact()
+  w6k_vals <<- store_read(w6k$child)
+})
+ok(is.null(w6k_err), "WP-6 geneshot: retention boot stays alive")
+ok(ut_cmp_identical(w6k_nobs, 4L),
+   "WP-6 geneshot: exactly the bind-sync + term-sync + term-seed + term-push observers land in the context's panel_keep list (D3 unification)")
+ok(ut_cmp_identical(
+  unname(unlist(w6k_vals[c("resultspace.geneshot.xax_analysis",
+                    "resultspace.geneshot.xax_subset",
+                    "resultspace.geneshot.xax_variable")])),
+  c("SeqLogo", "All", "seq.window")),
+   "WP-6 geneshot: the kept cascade sync observer still fires after gc() x2 (user pick reaches the store)")
+ok(ut_cmp_identical(w6k_vals$resultspace.geneshot.term, "post-gc term"),
+   "WP-6 geneshot: the kept term sync observer still fires after gc() x2 (term edit reaches the store)")
+
+# --- app level: the REAL L1 composition's status payload keeps its key
+# order and its analyst_gene_shot entry byte-identical (pre-migration
+# capture); the D12 enumeration freeze earlier in this suite already
+# pins the store keys of the same boot (72 ids incl. the four geneshot
+# keys)
+w6l1 <- new.env()
+w6l1$store <- widget_store_new()
+app_w6l1 <- function(input, output, session) {
+  w6l1$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(NULL),
+    store = w6l1$store)
+}
+w6l1_err <- NULL; w6l1_payload <- NULL
+shiny::testServer(app_w6l1, {
+  w6l1_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w6l1_payload <<- tryCatch(shiny::isolate(w6l1$status()),
+                            error = function(e) conditionMessage(e))
+})
+ok(is.null(w6l1_err),
+   "WP-6 geneshot: the real L1 composition boots headless post-migration")
+ok(ut_cmp_identical(names(w6l1_payload), PANEL_W6_GS_GOLDEN_L1_STATUS$names),
+   "WP-6 geneshot: L1 status payload keeps its exact key order (snapshot schema untouched)")
+ok(ut_cmp_identical(w6l1_payload$analyst_gene_shot,
+                   PANEL_W6_GS_GOLDEN_L1_STATUS$analyst_gene_shot),
+   "WP-6 geneshot: analyst_gene_shot payload byte-identical pre/post migration (list(xax = NULL, term = NULL) in a cold boot)")
+ok(ut_cmp_identical(
+  sort(intersect(vapply(store_registry_view(w6l1$store), function(r) r$id, ""),
+                 PANEL_W6_GS_IDS)),
+  PANEL_W6_GS_IDS),
+   "WP-6 geneshot: the real L1 boot carries the four geneshot keys (the D12 freeze above pins the full 72-id vector)")
+
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
 # loops and the L0 availability read (tabName/moduleName non-empty scalar
