@@ -218,6 +218,212 @@ ok(
   "the volcanoCategories attribute opts a custom category in"
 )
 
+# --- volcano family expansion (DESeq/DESeq2/t-test/limma) ---------------------
+
+# Every default family category gets the same same-(category, contrast)
+# detection; ids stay plain when only one category yields a contrast.
+metaFam <- data.frame(
+  "DESeq|D1_vs_D2|mean.diff" = c(-1, 0, 1),
+  "DESeq|D1_vs_D2|log.fdr" = c(2, 1, 3),
+  "DESeq2|D3_vs_D4|mean.diff" = c(1, 0, -1),
+  "DESeq2|D3_vs_D4|log.fdr" = c(3, 2, 1),
+  "limma|L1_vs_L2|mean.diff" = c(-2, 0, 2),
+  "limma|L1_vs_L2|log.pvalue" = c(4, 2, 5),
+  "t-test|T1_vs_T2|mean.diff" = c(1, 1, -1),
+  "t-test|T1_vs_T2|log.fdr" = c(1, 2, 3),
+  check.names = FALSE
+)
+trisetFam <- matrix(
+  c("DESeq", "D1_vs_D2", "mean.diff",
+    "DESeq", "D1_vs_D2", "log.fdr",
+    "DESeq2", "D3_vs_D4", "mean.diff",
+    "DESeq2", "D3_vs_D4", "log.fdr",
+    "limma", "L1_vs_L2", "mean.diff",
+    "limma", "L1_vs_L2", "log.pvalue",
+    "t-test", "T1_vs_T2", "mean.diff",
+    "t-test", "T1_vs_T2", "log.fdr"),
+  ncol = 3, byrow = TRUE
+)
+viewsFam <- detect_quick_views(metaFam, trisetFam)
+ok(
+  ut_cmp_equal(
+    viewsFam$id,
+    c("volcano_D1_vs_D2", "volcano_D3_vs_D4", "volcano_L1_vs_L2", "volcano_T1_vs_T2")
+  ),
+  "DESeq/DESeq2/limma/t-test volcano columns are detected"
+)
+ok(
+  ut_cmp_equal(
+    viewsFam$y,
+    c("DESeq|D1_vs_D2|log.fdr", "DESeq2|D3_vs_D4|log.fdr",
+      "limma|L1_vs_L2|log.pvalue", "t-test|T1_vs_T2|log.fdr")
+  ),
+  "family volcanos keep their own category and variable"
+)
+
+# Two family categories yielding the SAME contrast get disambiguated
+# ids/labels; a single category sharing no contrast keeps byte-stable ids.
+metaPair <- data.frame(
+  "ttest|A_vs_B|mean.diff" = c(-1, 0, 1),
+  "ttest|A_vs_B|log.fdr" = c(2, 1, 3),
+  "limma|A_vs_B|mean.diff" = c(1, 0, -1),
+  "limma|A_vs_B|log.fdr" = c(3, 2, 1),
+  check.names = FALSE
+)
+trisetPair <- matrix(
+  c("ttest", "A_vs_B", "mean.diff",
+    "ttest", "A_vs_B", "log.fdr",
+    "limma", "A_vs_B", "mean.diff",
+    "limma", "A_vs_B", "log.fdr"),
+  ncol = 3, byrow = TRUE
+)
+viewsPair <- detect_quick_views(metaPair, trisetPair)
+ok(
+  ut_cmp_equal(viewsPair$id, c("volcano_A_vs_B_ttest", "volcano_A_vs_B_limma")),
+  "shared contrast across family categories disambiguates ids"
+)
+ok(
+  ut_cmp_equal(
+    viewsPair$label,
+    c("Volcano A vs B (ttest)", "Volcano A vs B (limma)")
+  ),
+  "shared contrast across family categories disambiguates labels"
+)
+
+# Pairing stays strictly same-(category, contrast): mixed-contrast and
+# cross-category column pairs are NOT volcanos, and the variable names are
+# constrained to x = mean.diff with y in {log.fdr, log.pvalue}.
+metaNoVolcano <- data.frame(
+  "ttest|A|mean.diff" = c(-1, 0, 1),
+  "ttest|B|log.fdr" = c(2, 1, 3),
+  "ttest|A_vs_B|mean.diff" = c(-1, 0, 1),
+  "DESeq2|A_vs_B|log.fdr" = c(2, 1, 3),
+  "limma|C_vs_D|log2FC" = c(-1, 0, 1),
+  "limma|C_vs_D|padj" = c(2, 1, 3),
+  check.names = FALSE
+)
+trisetNoVolcano <- matrix(
+  c("ttest", "A", "mean.diff",
+    "ttest", "B", "log.fdr",
+    "ttest", "A_vs_B", "mean.diff",
+    "DESeq2", "A_vs_B", "log.fdr",
+    "limma", "C_vs_D", "log2FC",
+    "limma", "C_vs_D", "padj"),
+  ncol = 3, byrow = TRUE
+)
+ok(
+  ut_cmp_equal(nrow(detect_quick_views(metaNoVolcano, trisetNoVolcano)), 0),
+  "mixed-contrast, cross-category and log2FC/padj pairs are not volcanos"
+)
+
+# volcanoCategories keeps REPLACE semantics: a valid dataset-level list wins
+# entirely, demoting even ttest columns.
+metaReplace <- data.frame(
+  "ttest|A_vs_B|mean.diff" = c(-1, 0, 1),
+  "ttest|A_vs_B|log.fdr" = c(2, 1, 3),
+  "MyTest|A_vs_B|mean.diff" = c(1, 0, -1),
+  "MyTest|A_vs_B|log.fdr" = c(3, 2, 1),
+  check.names = FALSE
+)
+trisetReplace <- matrix(
+  c("ttest", "A_vs_B", "mean.diff",
+    "ttest", "A_vs_B", "log.fdr",
+    "MyTest", "A_vs_B", "mean.diff",
+    "MyTest", "A_vs_B", "log.fdr"),
+  ncol = 3, byrow = TRUE
+)
+attr(metaReplace, "volcanoCategories") <- "MyTest"
+ok(
+  ut_cmp_equal(
+    detect_quick_views(metaReplace, trisetReplace)$x,
+    "MyTest|A_vs_B|mean.diff"
+  ),
+  "volcanoCategories REPLACE: the dataset list wins entirely"
+)
+
+# Family-wide claim: a custom shortcut referencing ONE family category
+# suppresses the auto volcanos of EVERY family category, not just its own
+# (over-suppression is intended; define customs to keep specific views).
+metaFamily <- data.frame(
+  "ttest|A_vs_B|mean.diff" = c(-1, 0, 1),
+  "ttest|A_vs_B|log.fdr" = c(2, 1, 3),
+  "DESeq2|A_vs_B|mean.diff" = c(1, 0, -1),
+  "DESeq2|A_vs_B|log.fdr" = c(3, 2, 1),
+  check.names = FALSE
+)
+trisetFamily <- matrix(
+  c("ttest", "A_vs_B", "mean.diff",
+    "ttest", "A_vs_B", "log.fdr",
+    "DESeq2", "A_vs_B", "mean.diff",
+    "DESeq2", "A_vs_B", "log.fdr"),
+  ncol = 3, byrow = TRUE
+)
+attr(metaFamily, "shortcut") <- list(
+  mine = c(
+    "ttest|A_vs_B|mean.diff",
+    "ttest|A_vs_B|log.fdr",
+    name = "Mine"
+  )
+)
+ok(
+  ut_cmp_equal(prepare_quick_views(metaFamily, trisetFamily)$id, "mine"),
+  "custom ttest shortcut suppresses the DESeq2 auto volcano too"
+)
+
+# Old-dataset lockout regression (THE critical check): rows persisted inside
+# the quickViews attribute by an earlier prepare round with original
+# source == "auto" RENDER but never CLAIM. Without the source split, the
+# stored ttest auto would claim the whole family and permanently suppress
+# the newly detected DESeq2 volcano at app load.
+metaOld <- metaFamily
+attr(metaOld, "shortcut") <- NULL
+attr(metaOld, "quickViews") <- data.frame(
+  id = "volcano_A_vs_B",
+  label = "Volcano A vs B",
+  x = "ttest|A_vs_B|mean.diff",
+  y = "ttest|A_vs_B|log.fdr",
+  description = "mean.diff versus log.fdr for A_vs_B",
+  source = "auto",
+  stringsAsFactors = FALSE
+)
+viewsOld <- prepare_quick_views(metaOld, trisetFamily)
+ok(
+  ut_cmp_equal(viewsOld$id, c("volcano_A_vs_B", "volcano_A_vs_B_DESeq2")),
+  "persisted auto volcano renders without claiming the family"
+)
+ok(
+  ut_cmp_equal(viewsOld$y, c("ttest|A_vs_B|log.fdr", "DESeq2|A_vs_B|log.fdr")),
+  "newly detected family volcano survives next to the persisted one"
+)
+ok(
+  ut_cmp_equal(viewsOld$source, c("auto", "auto")),
+  "persisted auto rows keep their auto source marker"
+)
+
+# A genuine custom stored beside persisted autos still claims the family:
+# the custom (DESeq2 axes) renders, the persisted auto (ttest axes) renders,
+# and every auto-detected view is suppressed.
+metaOldClaim <- metaFamily
+attr(metaOldClaim, "shortcut") <- NULL
+attr(metaOldClaim, "quickViews") <- data.frame(
+  id = c("myVolcano", "volcano_A_vs_B"),
+  label = c("My volcano", "Volcano A vs B"),
+  x = c("DESeq2|A_vs_B|mean.diff", "ttest|A_vs_B|mean.diff"),
+  y = c("DESeq2|A_vs_B|log.fdr", "ttest|A_vs_B|log.fdr"),
+  description = c("mine", "theirs"),
+  source = c("custom", "auto"),
+  stringsAsFactors = FALSE
+)
+viewsOldClaim <- prepare_quick_views(metaOldClaim, trisetFamily)
+ok(
+  ut_cmp_equal(viewsOldClaim$id, c("myVolcano", "volcano_A_vs_B")),
+  "stored genuine custom claims the family; persisted autos still render"
+)
+ok(
+  ut_cmp_equal(viewsOldClaim$source, c("custom", "auto")),
+  "source markers survive the combined render set"
+)
+
 set.seed(1234)
 exprTest <- matrix(rnorm(100), nrow = 5, ncol = 20)
 rownames(exprTest) <- paste0("f", 1:5)
@@ -252,7 +458,7 @@ ok(
 ok(
   ut_cmp_equal(
     attr(Biobase::fData(prepared), "volcanoCategories"),
-    c("ttest", "DE")
+    c("ttest", "DE", "DESeq", "DESeq2", "t-test", "limma")
   ),
   "prepOmicsViewer persists the volcanoCategories attribute"
 )

@@ -66,7 +66,7 @@ MIN_SAMPLES_CORRELATION <- 12
 #'   corner auto-selection. Override per dataset through
 #'   `prepOmicsViewer(volcano.categories = ...)` (stored as the
 #'   `volcanoCategories` feature-data attribute).
-VOLCANO_DEFAULT_ANALYSES <- c("ttest", "DE")
+VOLCANO_DEFAULT_ANALYSES <- c("ttest", "DE", "DESeq", "DESeq2", "t-test", "limma")
 
 #' @description Quantile threshold for NA imputation (default 15th percentile).
 #' Used when filling missing values in expression data.

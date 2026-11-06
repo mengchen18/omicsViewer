@@ -4,9 +4,9 @@
 #' shortcuts are read from the \code{"quickViews"} or \code{"shortcut"}
 #' attribute of feature/sample metadata. Common PCA and volcano views are
 #' detected from the standard omicsViewer column naming conventions; a custom
-#' shortcut referencing a volcano-producing analysis category (ttest/DE by
-#' default) takes that category over and suppresses its auto-detected volcano
-#' views.
+#' shortcut referencing a column of a volcano-producing analysis category
+#' (see \code{\link{volcano_analyses}}) claims the whole volcano family and
+#' suppresses all auto-detected volcano views.
 #'
 #' @return Documentation-only topic; no return value.
 #' @keywords internal
@@ -151,7 +151,8 @@ parse_quick_views <- function(shortcuts, triset = NULL, source = "custom") {
 #' auto-selection) is keyed on the analysis token of the
 #' \code{Category|Subcategory|Variable} column convention. The recognized
 #' categories default to \code{VOLCANO_DEFAULT_ANALYSES} (\code{ttest},
-#' \code{DE}) and can be overridden per dataset through the
+#' \code{DE}, \code{DESeq}, \code{DESeq2}, \code{t-test} and \code{limma})
+#' and can be overridden per dataset through the
 #' \code{"volcanoCategories"} feature-data attribute, written by
 #' \code{\link{prepOmicsViewer}}'s \code{volcano.categories} argument.
 #' Invalid/missing attribute values fall back to the default set.
@@ -249,10 +250,13 @@ detect_quick_views <- function(meta, triset = NULL) {
   }
 
   # Volcano views: any analysis category recognized by volcano_analyses()
-  # (ttest/DE by default). x = <category>|<contrast>|mean.diff,
-  # y = <category>|<contrast>|log.fdr (fallback log.pvalue).
+  # (ttest/DE/DESeq/DESeq2/t-test/limma by default). x =
+  # <category>|<contrast>|mean.diff, y = same category and contrast
+  # <category>|<contrast>|log.fdr (fallback log.pvalue).
   vcand <- volcano_x_candidates(meta)
   if (!is.null(vcand)) {
+    volcanoViews <- list()
+    volcanoCats <- character(0)
     for (i in seq_len(nrow(vcand))) {
       xx <- vcand$x[i]
       contrast <- vcand$contrast[i]
@@ -264,13 +268,28 @@ detect_quick_views <- function(meta, triset = NULL) {
       }
       if (!yy %in% cn)
         next
-      entries <- c(entries, list(list(
+      volcanoViews <- c(volcanoViews, list(list(
         id = paste0("volcano_", .quick_view_id(contrast)),
         label = paste("Volcano", gsub("_vs_", " vs ", contrast, fixed = TRUE)),
         x = xx,
         y = yy,
         description = sprintf("mean.diff versus %s for %s", yLabel, contrast)
       )))
+      volcanoCats <- c(volcanoCats, vcand$category[i])
+    }
+    # Disambiguate ids/labels only when more than one family category yields
+    # the same contrast (e.g. ttest|A_vs_B and limma|A_vs_B columns):
+    # single-category ids stay byte-stable (pinned by e2e baselines).
+    if (length(volcanoViews)) {
+      vids <- vapply(volcanoViews, function(e) e$id, character(1))
+      clashed <- vids %in% vids[duplicated(vids)]
+      for (j in which(clashed)) {
+        volcanoViews[[j]]$id <- paste(
+          volcanoViews[[j]]$id, .quick_view_id(volcanoCats[j]), sep = "_"
+        )
+        volcanoViews[[j]]$label <- paste0(volcanoViews[[j]]$label, " (", volcanoCats[j], ")")
+      }
+      entries <- c(entries, volcanoViews)
     }
   }
 
@@ -296,32 +315,64 @@ get_quick_views <- function(meta) {
 #'
 #' @description
 #' Custom shortcuts are listed first, followed by auto-detected PCA,
-#' correlation and volcano views that do not duplicate a custom (x, y) pair.
+#' correlation and volcano views that do not duplicate a stored (x, y) pair.
 #' A custom shortcut referencing a column of a volcano-producing analysis
-#' category (\code{\link{volcano_analyses}}; ttest/DE by default) claims that
-#' whole category: all auto-detected volcano views for it are suppressed, so a
-#' manually defined volcano is never duplicated by the auto-generated one.
+#' category (\code{\link{volcano_analyses}}; ttest/DE/DESeq/DESeq2/t-test/
+#' limma by default) claims the whole volcano family: ALL auto-detected
+#' volcano views are suppressed, regardless of category, contrast or exact
+#' axes, so a manually defined volcano is never duplicated by an
+#' auto-generated near-duplicate. Rows persisted inside the
+#' \code{"quickViews"} attribute by an earlier prepare round with original
+#' \code{source == "auto"} render again but never claim — otherwise the
+#' volcano autos stored in an older dataset would permanently suppress
+#' newly detected family members at app load.
 #'
 #' @param meta Feature or sample metadata.
 #' @param triset Matrix returned by \code{\link{trisetter}}.
 #' @return A data.frame of available quick-view definitions.
 #' @keywords internal
 prepare_quick_views <- function(meta, triset = NULL) {
-  custom <- parse_quick_views(get_quick_views(meta), triset = triset, source = "custom")
+  raw <- get_quick_views(meta)
+  # D6-style source split: persisted rows originally marked "auto" render
+  # but never claim. parse_quick_views() would rebrand every stored row
+  # "custom" (it ignores any source column), so the split must happen on the
+  # raw attribute value.
+  persistedAuto <- .empty_quick_views()
+  if (is.data.frame(raw) && nrow(raw) && "source" %in% colnames(raw)) {
+    isAuto <- !is.na(raw$source) & raw$source == "auto"
+    if (any(isAuto)) {
+      persistedAuto <- parse_quick_views(
+        raw[isAuto, , drop = FALSE], triset = triset, source = "auto"
+      )
+      raw <- raw[!isAuto, , drop = FALSE]
+      if (!nrow(raw))
+        raw <- NULL
+    }
+  }
+  custom <- parse_quick_views(raw, triset = triset, source = "custom")
+  if (nrow(persistedAuto)) {
+    # Mirror the single-pass parse over the stored set: unique ids and
+    # first-occurrence (x, y) dedup across both halves. Genuine customs are
+    # bound first, so they win shared axes and keep their source marker.
+    custom <- rbind(custom, persistedAuto)
+    custom$id <- make.unique(custom$id, sep = "_")
+    custom <- custom[!duplicated(custom[c("x", "y")]), , drop = FALSE]
+  }
   auto <- detect_quick_views(meta, triset = triset)
   if (nrow(custom) && nrow(auto)) {
     used <- paste(custom$x, custom$y, sep = "\r")
     auto <- auto[!paste(auto$x, auto$y, sep = "\r") %in% used, , drop = FALSE]
-    # A custom shortcut that uses a column of a volcano-producing category
-    # claims the whole category: drop every auto volcano view for it,
-    # regardless of contrast or exact axes.
+    # A custom shortcut that uses a column of ANY volcano-producing category
+    # claims the whole family: drop every auto volcano view for it,
+    # regardless of category, contrast or exact axes (over-suppression is
+    # intended; define customs to keep specific views). Only genuine customs
+    # claim — persisted auto rows (source == "auto") never do.
     firstToken <- function(v) sub("\\|.*", "", v)
-    claimed <- intersect(
-      unique(firstToken(c(custom$x, custom$y))),
-      volcano_analyses(meta)
-    )
-    if (length(claimed))
-      auto <- auto[!firstToken(auto$x) %in% claimed, , drop = FALSE]
+    claiming <- custom$source == "custom"
+    if (any(claiming) &&
+        any(unique(firstToken(c(custom$x[claiming], custom$y[claiming]))) %in%
+            volcano_analyses(meta)))
+      auto <- auto[!firstToken(auto$x) %in% volcano_analyses(meta), , drop = FALSE]
   }
   out <- rbind(custom, auto)
   if (!nrow(out))
