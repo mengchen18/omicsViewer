@@ -3956,7 +3956,9 @@ ok(ut_cmp_identical(w9a_vals, PANEL_W9_ORA_AGENT_VALS),
 # their retention internally via dataTableDownload_module's .dtd_keep).
 # Functional (retention direction, PD-8): after gc() x2 BOTH write
 # directions still land - the user cascade pick (UI -> store sync) and
-# the agent cascade write (store_apply -> store, acknowledged through
+# the agent cascade write (store_apply -> store with a GENUINELY
+# DIFFERENT value - store_apply skips same-value keys, so a vacuous
+# write would arm nothing and prove nothing - acknowledged through
 # the same kept observer once the user input follows; agentWidgets ORA
 # pattern).
 w9k <- new.env()
@@ -3978,11 +3980,16 @@ shiny::testServer(.w9_mkctx(w9k), {
   session$setInputs(`ora-tris_ora-variable` = "Gene.name")
   session$flushReact(); session$flushReact()
   w9k_pick <<- store_read(w9k$child)[.w9_TRIO]
-  # write direction 2: agent write (store_apply -> store + ack)
-  store_apply(w9k$child, list(xax_variable = "Gene.name"),
+  # write direction 2: agent write (store_apply -> store + ack). The
+  # written value must GENUINELY DIFFER from the user pick ("Gene.name"
+  # -> "Protein.ID"): store_apply skips same-value keys (diff against
+  # the store), so a vacuous write arms no pending entry and the
+  # identical setInputs fires no input event - both assertions would
+  # hold trivially and a broken kept observer would go undetected.
+  store_apply(w9k$child, list(xax_variable = "Protein.ID"),
               origin = "agent")
   session$flushReact()
-  session$setInputs(`ora-tris_ora-variable` = "Gene.name")
+  session$setInputs(`ora-tris_ora-variable` = "Protein.ID")
   session$flushReact(); session$flushReact()
   w9k_agent <<- store_read(w9k$child)[.w9_TRIO]
   w9k_pending <<- length(w9k$store$pending)
@@ -3992,9 +3999,9 @@ ok(ut_cmp_identical(w9k_nobs, 1L),
    "WP-9 ora: exactly the bind-sync observer lands in the panel_keep list (D3; the pre-WP-9 .ora_keep list held the same single observer)")
 ok(ut_cmp_identical(unname(unlist(w9k_pick)), c("General", "All", "Gene.name")),
    "WP-9 ora: kept bind observer still fires after gc() x2 (user cascade pick reaches the store)")
-ok(ut_cmp_identical(unname(unlist(w9k_agent)), c("General", "All", "Gene.name")) &&
+ok(ut_cmp_identical(unname(unlist(w9k_agent)), c("General", "All", "Protein.ID")) &&
    ut_cmp_identical(w9k_pending, 0L),
-   "WP-9 ora: agent cascade write still lands and acknowledges after gc() x2 (store write direction; pending drains through the kept observer)")
+   "WP-9 ora: agent cascade write with a genuinely changed value still lands and acknowledges after gc() x2 (store write direction; pending drains through the kept observer)")
 
 # ------------------- the store-less legacy branch stays alive ----
 w9n_err <- NULL
