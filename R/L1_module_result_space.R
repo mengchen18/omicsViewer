@@ -112,6 +112,27 @@ L1_result_space_module <- function(
     }
 
     # session restore finished
+    # WP-7: Feature-general converts to the shared socket machinery with
+    # ZERO store-key/behavior change (the WP-5/WP-6 pure-migration
+    # pattern). The context (D13; WP-11 collapses the per-panel builds
+    # into the registry loop) carries the store and the per-instance
+    # retention helper, which the module consumes; data/selection/
+    # status/session ride along for shape parity (dormant this pass).
+    # Legacy formals stay (direct-instantiation path); the five
+    # resultspace.feature_general.* bindings (plus the attr4 panel's
+    # 19 child-store registrations) register byte-identically (frozen
+    # pre-migration golden, tests/test_panelRegistry.R).
+    feature_context <- panel_context(
+      id = "feature_general", tab_value = "Feature",
+      store = store_feature_general,
+      data = Filter(is.function, list(
+        expr = reactive_expr, pdata = reactive_phenoData,
+        fdata = reactive_featureData)),
+      selection = Filter(is.function, list(
+        feature = reactive_i, sample = reactive_highlight)),
+      status = reactive(status()$analyst_feature_general),
+      session = session
+    )
     v <- feature_general_module("feature_general",
       reactive_expr = reactive_expr,
       reactive_i = reactive_i,
@@ -119,7 +140,8 @@ L1_result_space_module <- function(
       reactive_phenoData = reactive_phenoData,
       reactive_featureData = reactive_featureData,
       reactive_status = reactive(status()$analyst_feature_general),
-      store = store_feature_general
+      store = store_feature_general,
+      context = feature_context
     )
 
     # session restore finished

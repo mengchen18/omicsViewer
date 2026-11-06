@@ -55,6 +55,12 @@ feature_general_ui <- function(id) {
 #'   the regression-line switch, and the embedded attribute-4 panel)
 #'   registers on the store and is driven through the store protocol;
 #'   when NULL the legacy status-restore path is kept.
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   plan D13). When given, the module consumes the child store
+#'   (\code{context$store}) and the per-instance retention helper
+#'   (\code{context$keep}) from it; data/selection/status keep arriving
+#'   through their formals (nothing moved into the module in WP-7). All
+#'   legacy formals keep working for direct instantiation.
 #' @importFrom DT renderDataTable
 #' @importFrom reshape2 melt
 #' @importFrom shinyWidgets radioGroupButtons updateRadioGroupButtons
@@ -95,12 +101,32 @@ feature_general_module <- function(id,
                                    reactive_phenoData,
                                    reactive_featureData,
                                    reactive_status = reactive(NULL),
-                                   store = NULL) {
+                                   store = NULL, context = NULL) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  
+
+  # ------------------------------------------------------------------
+  # WP-7 (panel debt, D13): the panel context, built at the L1 call
+  # site (WP-11 collapses the per-panel builds into the registry
+  # loop). Context wins when present; the legacy formals remain the
+  # direct-instantiation path (the ptm/geneshot precedent). This
+  # module consumes store + keep from the context; data/selection/
+  # reactive_status keep arriving through their formals (nothing moved
+  # in this WP).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+  }
+  # WP-7 (panel debt, D3): ONE retention closure for the whole module.
+  # The organic-growth split (a store-glue .fg_keep list inside the
+  # store branch plus a separate .fg_view_keep list for the view-type
+  # carrier observer) is unified: the context's panel_keep() closure
+  # when context-built, else a fresh local one for direct
+  # instantiation. Retention is retention.
+  keep <- if (is.null(context)) panel_keep() else context$keep
+
   # selector
   triset <- reactive({
     ts <- trisetter(expr = reactive_expr(), meta = reactive_phenoData(), combine = "pheno")
@@ -110,59 +136,57 @@ feature_general_module <- function(id,
   xax <- reactiveVal()
 
   # ------------------------------------------------------------------
-  # Canonical widget-store bindings (control plane, plan section 6, S4).\n  # The link-variable cascade is driven by store_watch selectors
-  # (meta_scatter pattern); the plot-type radio and regression-line state
-  # sync/push through the standard observers. The embedded attr4 panel
-  # registers under <prefix>.attr4.* inside attr4selector_module.
+  # Canonical widget-store bindings (control plane, plan section 6, S4).
+  # The link-variable cascade is driven by store_watch selectors
+  # (meta_scatter pattern); the plot-type radio and regression-line
+  # state sync/push through the standard observers. The embedded attr4
+  # panel registers under <prefix>.attr4.* inside attr4selector_module.
+  #
+  # WP-7 (panel debt): retention is the shared per-instance
+  # panel_keep() factory (D3), and the cascade boilerplate (guarded
+  # pheno triset source minus Surv rows, ts1/ts2/ts3 choices providers,
+  # the three xax_* registrations, triselector wiring through
+  # store_watch/store_epoch and the UI->store sync) is the shared
+  # panel_triset_bind helper (D4). The extra plot_type/regression_line
+  # bindings and the embedded attr4 panel stay in the module (panel
+  # semantics; the attr4 registrations flow through this panel's child
+  # store untouched). Labels/help stay panel-owned; the registered
+  # keys/kinds/labels/help/depends_on are byte-identical to the
+  # hand-rolled block (frozen pre-migration golden,
+  # tests/test_panelRegistry.R). The trio registers FIRST so the
+  # binding registration order stays xax_analysis, xax_subset,
+  # xax_variable, plot_type, regression_line exactly as the pre-WP-7
+  # single 5-binding store_register call produced.
   # ------------------------------------------------------------------
   if (!is.null(store)) {
-    .fg_ts <- function() {
-      if (is.null(reactive_expr()) || is.null(reactive_phenoData()))
-        return(NULL)
-      ts <- tryCatch(
-        trisetter(expr = reactive_expr(), meta = reactive_phenoData(),
-                  combine = "pheno"),
-        shiny.silent.error = function(e) NULL, error = function(e) NULL)
-      if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) return(NULL)
-      ts[ts[, 1] != "Surv", , drop = FALSE]
-    }
-    .fg_ts1 <- function() {
-      ts <- .fg_ts()
-      if (is.null(ts)) character(0) else unique(ts[, 1])
-    }
-    .fg_ts2 <- function(a) {
-      ts <- .fg_ts()
-      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
-      else unique(ts[ts[, 1] %in% a, 2])
-    }
-    .fg_ts3 <- function(a, b) {
-      ts <- .fg_ts()
-      if (is.null(ts)) character(0)
-      else {
-        i <- rep(TRUE, nrow(ts))
-        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
-        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
-        unique(ts[i, 3])
-      }
-    }
-    kx1 <- paste0(store$prefix, ".xax_analysis")
-    kx2 <- paste0(store$prefix, ".xax_subset")
+    v1 <- panel_triset_bind(
+      store, keep,
+      tri_id = "tris_feature_general", tri_label = "Link to variable",
+      triset_source = function() {
+        if (is.null(reactive_expr()) || is.null(reactive_phenoData()))
+          return(NULL)
+        ts <- tryCatch(
+          trisetter(expr = reactive_expr(), meta = reactive_phenoData(),
+                    combine = "pheno"),
+          shiny.silent.error = function(e) NULL, error = function(e) NULL)
+        if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) return(NULL)
+        ts[ts[, 1] != "Surv", , drop = FALSE]
+      },
+      bindings = list(
+        analysis = list(
+          label = "Link variable category",
+          help = paste("Annotation category of the variable the selected",
+                       "features are compared across")),
+        subset = list(
+          label = "Link variable subcategory",
+          help = "Subcategory within the link-variable category"),
+        variable = list(
+          label = "Link variable",
+          help = paste("Variable the selected features are plotted or tested",
+                       "against (phenotype annotation or Feature|Auto| row)"))),
+      allow_unset = TRUE)
     store_register(
       store,
-      widget_binding("xax_analysis", "select",
-        label = "Link variable category",
-        help = paste("Annotation category of the variable the selected",
-                     "features are compared across"),
-        choices_provider = function(v) .fg_ts1()),
-      widget_binding("xax_subset", "select", label = "Link variable subcategory",
-        help = "Subcategory within the link-variable category",
-        depends_on = "xax_analysis",
-        choices_provider = function(v) .fg_ts2(v[[kx1]])),
-      widget_binding("xax_variable", "select_cascaded", label = "Link variable",
-        help = paste("Variable the selected features are plotted or tested",
-                     "against (phenotype annotation or Feature|Auto| row)"),
-        depends_on = c("xax_analysis", "xax_subset"),
-        choices_provider = function(v) .fg_ts3(v[[kx1]], v[[kx2]])),
       widget_binding("plot_type", "enum", label = "Plot type",
         help = paste("Beeswarm/box view or ROC/PR classification curves",
                      "(categorical link variable with few features)"),
@@ -170,18 +194,6 @@ feature_general_module <- function(id,
       widget_binding("regression_line", "boolean", label = "Regression line",
         help = "Draw a regression line in the single-feature scatter view")
     )
-    # observer-GC rule: keep every store-glue observer referenced
-    .fg_store_observers <- list()
-    .fg_keep <- function(obs) {
-      .fg_store_observers[[length(.fg_store_observers) + 1L]] <<- obs
-      invisible(obs)
-    }
-    v1 <- triselector_module(
-      "tris_feature_general", reactive_x = triset, label = "Link to variable",
-      reactive_selector1 = store_watch(store, "xax_analysis"),
-      reactive_selector2 = store_watch(store, "xax_subset"),
-      reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store), allow_unset = TRUE)
   } else {
     v1 <- triselector_module(
       "tris_feature_general", reactive_x = triset, label = "Link to variable",
@@ -228,14 +240,11 @@ feature_general_module <- function(id,
   # genuine view-type change or a radio flip. Reading the show* reactives
   # directly in the renderUI rebuilt the plot container on EVERY feature
   # selection change (identical() containers, but a remount resets plotly
-  # state and flashes the panel). Observer-GC rule: kept referenced.
+  # state and flashes the panel). Observer-GC rule: kept referenced - on
+  # the module's ONE panel_keep closure since WP-7 (retention is
+  # retention; the split keep lists were organic growth).
   .fg_view_type <- reactiveVal(NULL)
-  .fg_view_observers <- list()
-  .fg_view_keep <- function(obs) {
-    .fg_view_observers[[length(.fg_view_observers) + 1L]] <<- obs
-    invisible(obs)
-  }
-  .fg_view_keep(observe({
+  keep(observe({
     vt <- if (showBoxplot()) "boxplot"
           else if (showScatter()) "scatter"
           else if (showBeeswarm()) "dual"
@@ -348,23 +357,19 @@ feature_general_module <- function(id,
 
   # ------------------------------------------------------------------
   # Store glue for the plot-type radio and regression-line state (the
-  # link-variable cascade syncs through v1() below; cutoffs/attr4 live in
+  # link-variable cascade syncs through the store_bind_triselector
+  # inside panel_triset_bind above; cutoffs/attr4 live in
   # attr4selector_module). Acknowledgement-aware: a pushed value written
   # into showRegLine acks through the same observer that mirrors user
   # checkbox edits arriving via v_scatter()$regline.
   # ------------------------------------------------------------------
   if (!is.null(store)) {
     .fg_root_store <- if (is.null(store$parent)) store else store$parent
-    # UI -> store: settled triples only (WP2 store_bind_triselector)
-    store_bind_triselector(store,
-      keys = c(analysis = "xax_analysis", subset = "xax_subset",
-               variable = "xax_variable"),
-      sel = v1, keep = .fg_keep)
-    .fg_keep(observeEvent(input$internal_radio, {
+    keep(observeEvent(input$internal_radio, {
       if (!is.null(input$internal_radio))
         store_sync_from_ui(store, "plot_type", input$internal_radio)
     }, ignoreInit = TRUE))
-    .fg_keep(observe({
+    keep(observe({
       if (is.null(showRegLine())) return(NULL)
       store_sync_from_ui(store, "regression_line", showRegLine())
     }))
@@ -372,7 +377,7 @@ feature_general_module <- function(id,
     # Seed unset scalar keys once the inputs exist (restore-first-wins);
     # the cascade is genuinely unset by default and fills on first pick
     .fg_seeded <- FALSE
-    .fg_keep(observe({
+    keep(observe({
       if (.fg_seeded) return(NULL)
       if (is.null(input$internal_radio) || is.null(showRegLine()))
         return(NULL)
@@ -384,7 +389,7 @@ feature_general_module <- function(id,
     # Store -> UI push for external writes only (pending entries mark them);
     # the cascade re-derives from the store_watch selectors themselves
     .fg_epoch <- store_epoch(store)
-    .fg_keep(observe({
+    keep(observe({
       .fg_epoch()
       pt <- store_read(store, "plot_type")[[1]]
       if (!is.null(pt) &&
