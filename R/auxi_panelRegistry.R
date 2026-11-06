@@ -53,6 +53,12 @@ NULL
 #'     \code{input$analyst} and the \code{analyst_tab} store choices).
 #'   \item \code{label}/\code{icon} - the tab label / FontAwesome icon
 #'     name used by the navbar composition (WP-12 consumes these).
+#'   \item \code{tab_title}/\code{sr_title}/\code{aria_label} - the
+#'     tab tooltip (the title span's \code{title} attribute), the
+#'     screen-reader-only h2 text and its \code{aria-label}; the navbar
+#'     composition renders all three (WP-12). NULL (absent) means the
+#'     generic tab builder omits that attribute - the seed records all
+#'     carry them.
 #'   \item \code{order} - registry list order equals today's literal
 #'     composition order: Feature, ORA, fGSEA, Response, StringDB,
 #'     SeqLogo, Geneshot, Sample.
@@ -83,12 +89,17 @@ NULL
 #' @param stateful Scalar logical; whether legacy status transport
 #'   applies.
 #' @param status_key NULL or the \code{analyst_*} snapshot key.
+#' @param tab_title NULL or the tab tooltip string (title attribute of
+#'   the tab label span).
+#' @param sr_title NULL or the screen-reader-only h2 text.
+#' @param aria_label NULL or the h2's aria-label string.
 #' @return A validated record (named list).
 #' @keywords internal
 #' @rdname panelRegistryHelpers
 panel_record <- function(module_id, store_id, tab_value, label, icon,
                          order, requires, ui, server, stateful = TRUE,
-                         status_key = NULL) {
+                         status_key = NULL, tab_title = NULL,
+                         sr_title = NULL, aria_label = NULL) {
   .panel_chr <- function(x, what) {
     if (!is.character(x) || length(x) != 1L || is.na(x) || !nzchar(x))
       stop("panel_record: ", what, " must be a single non-empty character string.",
@@ -121,11 +132,16 @@ panel_record <- function(module_id, store_id, tab_value, label, icon,
     stop("panel_record: stateful must be TRUE or FALSE.", call. = FALSE)
   if (!is.null(status_key))
     status_key <- .panel_chr(status_key, "status_key")
+  for (.panel_fld in c("tab_title", "sr_title", "aria_label"))
+    if (!is.null(get(.panel_fld)))
+      assign(.panel_fld, .panel_chr(get(.panel_fld), .panel_fld))
   list(
     module_id = module_id, store_id = store_id, tab_value = tab_value,
     label = label, icon = icon, order = as.integer(order),
     requires = requires, ui = ui, server = server,
-    stateful = isTRUE(stateful), status_key = status_key
+    stateful = isTRUE(stateful), status_key = status_key,
+    tab_title = tab_title, sr_title = sr_title,
+    aria_label = aria_label
   )
 }
 
@@ -169,6 +185,9 @@ delayedAssign(
     module_id = "feature_general",
     store_id = "resultspace.feature_general",
     tab_value = "Feature", label = "Feature", icon = "chart-column",
+    tab_title = "Selected-feature analysis.\nCompares the abundance of the currently selected feature(s) across sample groups:\nbeeswarm/box plots with group-comparison statistics (t-test or Wilcoxon for two groups,\nANOVA/Kruskal-Wallis for more), or ROC / precision-recall curves when a binary\noutcome is chosen.\nInterpretation: the box spans the interquartile range with the median as center line.\nA small p-value (e.g. < 0.05) indicates a statistically significant group difference -\nalways judge effect size and overlap on the plot too. For ROC/PR curves: AUC near 1.0\nmeans the feature separates the two classes well; 0.5 is no better than chance.",
+    sr_title = "Feature Analysis",
+    aria_label = "Statistical analysis and visualization of selected features including boxplots with group comparisons and ROC curves for binary outcomes",
     order = 1L,
     requires = function(fd, pd) TRUE,
     ui = feature_general_ui, server = feature_general_module,
@@ -178,6 +197,9 @@ delayedAssign(
     module_id = "fgsea",
     store_id = "resultspace.fgsea",
     tab_value = "fGSEA", label = "fGSEA", icon = "arrow-down-short-wide",
+    tab_title = "Fast gene set enrichment analysis (GSEA on a ranked list).\nUnlike ORA, fGSEA uses ALL features, ranked by a statistic you choose (e.g. fold\nchange or signed p-value), and asks whether a gene set's members cluster at the\ntop or bottom of that ranking - no hard significance cutoff needed.\nInterpretation: NES (normalized enrichment score) > 0 means the set is enriched\namong up-ranked features, NES < 0 depleted/enriched at the other end; padj < 0.05\nis a common significance threshold; the leading edge lists the members driving\nthe enrichment signal.",
+    sr_title = "Fast Gene Set Enrichment Analysis",
+    aria_label = "Ranked gene set enrichment analysis computing normalized enrichment scores and identifying leading edge genes",
     order = 3L,
     requires = function(fd, pd) !is.null(fd) && !is.null(attr(fd, "GS")),
     ui = enrichment_fgsea_ui, server = enrichment_fgsea_module,
@@ -187,6 +209,9 @@ delayedAssign(
     module_id = "ora",
     store_id = "resultspace.ora",
     tab_value = "ORA", label = "ORA", icon = "object-group",
+    tab_title = "Over-representation analysis (hypergeometric test).\nTests whether your currently selected features belong to a gene set (pathway, GO\ncategory, custom set) more often than expected by chance. Needs a well-defined\nselection, e.g. significant hits from the Feature tab.\nInterpretation: the p-value is the chance probability of the observed overlap; FDR\ncorrects for testing many gene sets (FDR < 0.05 is a common significance cutoff);\nthe odds ratio / gene ratio measures enrichment strength. The second table lists\nthe overlapping features per gene set. Results depend on selection size and the\nbackground gene set collection.",
+    sr_title = "Over-Representation Analysis",
+    aria_label = "Gene set over-representation analysis using hypergeometric test to identify enriched pathways and functional categories",
     order = 2L,
     requires = function(fd, pd) !is.null(fd) && !is.null(attr(fd, "GS")),
     ui = enrichment_analysis_ui, server = enrichment_analysis_module,
@@ -196,6 +221,9 @@ delayedAssign(
     module_id = "stringdb",
     store_id = "resultspace.stringdb",
     tab_value = "StringDB", label = "StringDB", icon = "share-nodes",
+    tab_title = "Protein-protein interaction network (STRING database).\nQueries STRING for known and predicted interactions among the currently selected\nfeatures (max ~300; set the taxonomy code, e.g. 9606 = human) and draws the\nnetwork - nodes are proteins, edges are interactions. Requires internet access.\nInterpretation: edge confidence reflects combined evidence (experiments,\ndatabases, text mining); dense clusters often correspond to functional modules or\ncomplexes; highly connected hub proteins may be key regulators.",
+    sr_title = "STRING Protein Interaction Network",
+    aria_label = "Protein-protein interaction network from STRING database showing physical and functional associations",
     order = 5L,
     requires = function(fd, pd)
       !is.null(fd) && any(grepl("^StringDB\\|", colnames(fd))),
@@ -209,6 +237,9 @@ delayedAssign(
     module_id = "sample_general",
     store_id = "resultspace.sample_general",
     tab_value = "Sample", label = "Sample", icon = "arrows-down-to-people",
+    tab_title = "Selected-sample analysis.\nAnalyses the currently selected samples against the rest of the cohort:\nbeeswarm plots for continuous variables, contingency tables of categorical\nannotations (chi-square / Fisher's exact test), and Kaplan-Meier survival\ncurves with the log-rank test when time-to-event data are available.\nInterpretation: a small contingency p-value means the selected samples differ in\nthat annotation more than expected by chance. Kaplan-Meier curves show the\nevent-free proportion over time per group; the log-rank p-value tests whether the\ncurves differ. Check group sizes (n) - small groups make tests unreliable.",
+    sr_title = "Sample Analysis",
+    aria_label = "Statistical analysis of selected samples including group comparisons, contingency tables, and Kaplan-Meier survival curves",
     order = 8L,
     requires = function(fd, pd) TRUE,
     ui = sample_general_ui, server = sample_general_module,
@@ -218,6 +249,9 @@ delayedAssign(
     module_id = "geneshotTab",
     store_id = "resultspace.geneshot",
     tab_value = "Geneshot", label = "Geneshot", icon = "book-open",
+    tab_title = "Literature-based gene discovery.\nSearches PubMed-associated literature (AutoRIF) for genes co-mentioned with your\nsearch term(s); separate multiple terms with ';'. Useful for hypothesis generation.\nInterpretation: the scatter plot shows publication count (x) versus the share of a\ngene's publications mentioning your term (y). Genes in the upper right are both\nwell studied and specifically associated with your topic. A '+' marks genes that\nare present in your current feature selection. Ranking reflects literature bias,\nnot statistical evidence from your data.",
+    sr_title = "Geneshot Literature Search",
+    aria_label = "Literature-based gene discovery using PubMed co-mention analysis to find genes associated with search terms",
     order = 7L,
     requires = function(fd, pd) TRUE,
     ui = geneshot_ui, server = geneshot_module,
@@ -227,6 +261,9 @@ delayedAssign(
     module_id = "ptm",
     store_id = "resultspace.ptm",
     tab_value = "SeqLogo", label = "SeqLogo", icon = "font",
+    tab_title = "PTM motif enrichment (sequence logo).\nTakes the amino-acid sequence windows around the selected modification sites and\ntests which residues are over-represented at each position, shown as a sequence\nlogo around the modification site (position 0).\nInterpretation: taller letters mean the amino acid (or property class) is more\nconserved/enriched at that position; significant enrichment versus all sites in\nthe dataset hints at the kinase or recognition machinery involved.",
+    sr_title = "Post-Translational Modification Motifs",
+    aria_label = "PTM motif enrichment analysis identifying overrepresented amino acid sequence patterns around modification sites",
     order = 6L,
     requires = function(fd, pd)
       !is.null(fd) && any(grepl("^SeqLogo\\|", colnames(fd))),
@@ -237,6 +274,9 @@ delayedAssign(
     module_id = "rescurve",
     store_id = "resultspace.dose_response",  # NEW in WP-3 (D2/D18)
     tab_value = "Response", label = "Response", icon = "capsules",
+    tab_title = "Dose-response curves (4-parameter logistic fit).\nFits abundance vs concentration for the selected features and estimates EC50/IC50\n(concentration giving half-maximal effect), Hill slope (curve steepness) and the\ntop/bottom response plateaus.\nInterpretation: a lower EC50/IC50 means higher potency; the Hill slope shows how\nabruptly the response switches; the parameter table gives fitted values with\nconfidence intervals. Points are observed data, the line the model fit.",
+    sr_title = "Dose-Response Curves",
+    aria_label = "Dose-response curve fitting with EC50 and IC50 estimation using 4-parameter logistic regression model",
     order = 4L,
     requires = function(fd, pd)
       !is.null(fd) && any(grepl("^ResponseCurve\\|", colnames(fd))),
