@@ -2236,17 +2236,6 @@ set.seed(7)
   }
 }
 .w7_mklegacy <- function(pd = .w7_pd, ex = .w7_ex, fd = .w7_fd,
-                         feat = 3L, status_payload = NULL) {
-  function(input, output, session) {
-    feature_general_module(
-      "feature_general", reactive_expr = reactive(ex),
-      reactive_i = reactive(feat), reactive_highlight = reactive(NULL),
-      reactive_phenoData = reactive(pd),
-      reactive_featureData = reactive(fd),
-      reactive_status = reactive(status_payload))
-  }
-}
-.w7_mklegacy <- function(pd = .w7_pd, ex = .w7_ex, fd = .w7_fd,
                           feat = 3L, status_payload = NULL) {
   function(input, output, session) {
     feature_general_module(
