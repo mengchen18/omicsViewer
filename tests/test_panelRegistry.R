@@ -5532,9 +5532,23 @@ WP12_DEMO_HTML <- structure("<head>\n  <title>Analysis</title>\n</head>\n<head>\
 
 ## runtime helpers (byte-mirrors of the capture script's logic)
 .wp12_norm <- function(h) {
+  # WP-12 review NIT-2 (anchored patterns, tightened in the WP-13 round):
+  # every rule is anchored to the exact syntactic position the
+  # nondeterministic id occupies, so a content difference confined to
+  # digits inside a "tab-<n>-" / "btn-<n>" substring of PANEL CONTENT
+  # (tooltip, label, prose) can no longer be masked. tabset ids appear as
+  # pane ids and navbar hrefs (tab-<seed>-<n>; the trailing pane index is
+  # deterministic and stays); the shinyWidgets btn ids ride attribute
+  # values AND the same ids echoed inside the widget <script> (jQuery
+  # selector + swDrop args), so the rule anchors on the surrounding
+  # quote and covers the sw-drop-/sw-content- prefixed forms - the frozen
+  # goldens normalize identically under the anchored set (byte-checked
+  # by the md5/full-literal assertions below).
   h <- gsub('data-tabsetid="[0-9]+"', 'data-tabsetid="TSID"', h)
-  h <- gsub("tab-[0-9]+-", "tab-TSID-", h)
-  gsub("btn-[0-9]+", "btn-RID", h)
+  h <- gsub('id="tab-[0-9]+-', 'id="tab-TSID-', h)
+  h <- gsub('href="#tab-[0-9]+-', 'href="#tab-TSID-', h)
+  gsub("(['\"])(#?)(sw-drop-|sw-content-|)btn-[0-9]+(['\"])",
+       "\\1\\2\\3btn-RID\\4", h, perl = TRUE)
 }
 .wp12_tabs <- function(h) {
   ul <- regexpr('shiny-tab-input', h)
