@@ -3401,6 +3401,644 @@ ok(ut_cmp_identical(
   PANEL_W8_SG_IDS),
    "WP-8 sg: the real L1 boot carries all 27 sample_general keys (the D12 freeze above pins the full 72-id vector)")
 
+## --------------- WP-9: ORA migration (D3/D4/D13) ----
+# The FIRST agent-coupled migration: ORA is the plan's reference citizen,
+# and three agent surfaces address this panel's store keys - the
+# set_enrichment_parameters tool (apply_agent_enrichment: validate ->
+# store_apply over the resultspace.ora.* keys), the panel_results
+# excerpt reader (the module return's table attr, WP-7/F4) and the
+# enrichment normalizer (agent_normalize_enrichment_update). NONE of
+# them are rewritten here; the migration is the WP-5..WP-8
+# pure-migration pattern (retention -> panel_keep, D3; cascade
+# boilerplate -> panel_triset_bind, D4; context threading, D13) and the
+# agent coupling is proven UNCHANGED by goldens: the L0 apply-callback
+# receipt over a real GS-attached dataset is byte-identical pre/post.
+# The restore observer and the return-with-table-attr stay in the
+# module verbatim (D4 panel semantics; the run-preconditioned
+# selected_row semantics of the results table ride the untouched
+# dataTableDownload_module wiring).
+#
+# The WP-0 ORA-cascade FROZEN GOLDEN FIXTURE earlier in this suite (the
+# verbatim pre-WP-0 copy vs panel_triset_bind) now doubles as THE
+# pre-migration record of the hand-rolled block: the real module adopted
+# the helper in this WP, so that equivalence assertion (helper == frozen
+# verbatim copy) is exactly the claim that the migration is
+# behavior-preserving; it stays green and untouched.
+#
+# Golden-fixture provenance (PD-29/PD-33/PD-38/PD-43 school): all
+# goldens below were captured from PRE-MIGRATION HEAD 7213ffa BEFORE
+# any WP-9 edit (before the WP-8 NIT-2 test commit fe248b7, for strict
+# provenance - it touches no R/ code), by booting the then-current
+# enrichment_analysis_module exactly like the L1 call site / the
+# agentWidgets S4 shape and dput()ing the outputs: the 4-binding
+# registry view + raw meta (incl. agent_writable) + cold values +
+# module return + pre-run selected_row semantics over demo fd; the
+# user-pick and legacy-restore triples; the GS-attached run surface
+# (boot table, collapsed-run table attr, live selected_row choices);
+# the set_enrichment_parameters round-trip through the L0 apply
+# callback path over the REAL L1 composition with a GS-attached
+# dataset; the real-L1 analyst_ora payload + status key order; and the
+# triset derivation over demo fd (trisetter combine="none"). The
+# IDENTICAL capture script was re-run POST-migration: all 20 outputs
+# byte-identical (the PD-33/PD-38 pre/post proof, stash-free). The
+# fixtures are FROZEN: never regenerate them from the migrated code
+# (that would make the equivalence claim circular).
+enrichment_analysis_module <- omicsViewer:::enrichment_analysis_module
+agent_normalize_enrichment_update <- omicsViewer:::agent_normalize_enrichment_update
+
+# -------------------------------------------------- frozen goldens ----
+# the 4 ids (3 cascade + the run-preconditioned results-row selection)
+PANEL_W9_ORA_IDS <- sort(paste0("resultspace.ora.",
+  c("xax_analysis", "xax_subset", "xax_variable", "selected_row")))
+
+PANEL_W9_ORA_GOLDEN_VIEW <- 
+list(list(id = "resultspace.ora.xax_analysis", kind = "select", 
+    label = "Collapse category", help = "Annotation category whose values the input features are collapsed on before testing over-representation", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "PCA", "mean", "n value", "quantile", "ttest", "Rank", "GS", 
+    "StringDB", "Cor", "SeqLogo", "ResponseCurve")), list(id = "resultspace.ora.xax_subset", 
+    kind = "select", label = "Collapse subcategory", help = "Subcategory within the collapse category", 
+    depends_on = "resultspace.ora.xax_analysis", min = NULL, 
+    max = NULL, allowed_values = character(0)), list(id = "resultspace.ora.xax_variable", 
+    kind = "select_cascaded", label = "Collapse variable", help = "Variable the input features are collapsed on (feature annotation column)", 
+    depends_on = c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset"
+    ), min = NULL, max = NULL, allowed_values = c("Gene.name", 
+    "Protein.ID", "Intensity", "PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", 
+    "PC4(4.8%)", "PC5(3.6%)", "PC6(2.9%)", "PC7(2.8%)", "PC8(2.5%)", 
+    "RE", "ME", "LE", "MT", "WT", "pvalue", "log.pvalue", "fdr", 
+    "log.fdr", "mean.diff", "X786O_NCI60", "A498_NCI60", "A549_NCI60", 
+    "ACHN_NCI60", "BT549_NCI60", "CAKI1_NCI60", "CCRFCEM_NCI60", 
+    "COLO205_NCI60", "DU145_NCI60", "EKVX_NCI60", "HCC2998_NCI60", 
+    "HCT116_NCI60", "HCT15_NCI60", "HL60_NCI60", "HOP62_NCI60", 
+    "HOP92_NCI60", "HS578T_NCI60", "HT29_NCI60", "IGROV1_NCI60", 
+    "K562_NCI60", "KM12_NCI60", "LOXIMVI_NCI60", "M14_NCI60", 
+    "MALME3M_NCI60", "MCF7_NCI60", "MDAMB231_NCI60", "MDAMB435_NCI60", 
+    "MDAMB468_NCI60", "MOLT4_NCI60")), list(id = "resultspace.ora.selected_row", 
+    kind = "select", label = "Selected pathway", help = "Gene set whose row is selected in the results table; drives the overlap-genes table below", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = character(0)))
+
+PANEL_W9_ORA_GOLDEN_META <- 
+list(list(id = "resultspace.ora.xax_analysis", kind = "select", 
+    label = "Collapse category", help = "Annotation category whose values the input features are collapsed on before testing over-representation", 
+    depends_on = character(0), agent_writable = TRUE), list(id = "resultspace.ora.xax_subset", 
+    kind = "select", label = "Collapse subcategory", help = "Subcategory within the collapse category", 
+    depends_on = "resultspace.ora.xax_analysis", agent_writable = TRUE), 
+    list(id = "resultspace.ora.xax_variable", kind = "select_cascaded", 
+        label = "Collapse variable", help = "Variable the input features are collapsed on (feature annotation column)", 
+        depends_on = c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset"
+        ), agent_writable = TRUE), list(id = "resultspace.ora.selected_row", 
+        kind = "select", label = "Selected pathway", help = "Gene set whose row is selected in the results table; drives the overlap-genes table below", 
+        depends_on = character(0), agent_writable = TRUE))
+
+PANEL_W9_ORA_GOLDEN_COLD <- 
+list(resultspace.ora.xax_analysis = NULL, resultspace.ora.xax_subset = NULL, 
+    resultspace.ora.xax_variable = NULL, resultspace.ora.selected_row = NULL)
+
+PANEL_W9_ORA_GOLDEN_ALLOWED_COLD <- 
+list(resultspace.ora.xax_analysis = c("General", "PCA", "mean", 
+"n value", "quantile", "ttest", "Rank", "GS", "StringDB", "Cor", 
+"SeqLogo", "ResponseCurve"), resultspace.ora.xax_subset = character(0), 
+    resultspace.ora.xax_variable = c("Gene.name", "Protein.ID", 
+    "Intensity", "PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", 
+    "PC5(3.6%)", "PC6(2.9%)", "PC7(2.8%)", "PC8(2.5%)", "RE", 
+    "ME", "LE", "MT", "WT", "pvalue", "log.pvalue", "fdr", "log.fdr", 
+    "mean.diff", "X786O_NCI60", "A498_NCI60", "A549_NCI60", "ACHN_NCI60", 
+    "BT549_NCI60", "CAKI1_NCI60", "CCRFCEM_NCI60", "COLO205_NCI60", 
+    "DU145_NCI60", "EKVX_NCI60", "HCC2998_NCI60", "HCT116_NCI60", 
+    "HCT15_NCI60", "HL60_NCI60", "HOP62_NCI60", "HOP92_NCI60", 
+    "HS578T_NCI60", "HT29_NCI60", "IGROV1_NCI60", "K562_NCI60", 
+    "KM12_NCI60", "LOXIMVI_NCI60", "M14_NCI60", "MALME3M_NCI60", 
+    "MCF7_NCI60", "MDAMB231_NCI60", "MDAMB435_NCI60", "MDAMB468_NCI60", 
+    "MOLT4_NCI60"), resultspace.ora.selected_row = character(0))
+
+PANEL_W9_ORA_GOLDEN_RET <- 
+list(xax = NULL, table = NULL)
+
+PANEL_W9_ORA_GOLDEN_PICK_VALS <- 
+list(resultspace.ora.xax_analysis = "General", resultspace.ora.xax_subset = "All", 
+    resultspace.ora.xax_variable = "Gene.name", resultspace.ora.selected_row = NULL)
+
+PANEL_W9_ORA_GOLDEN_PICK_RET <- 
+list(xax = list(analysis = "General", subset = "All", variable = "Gene.name"), 
+    table = NULL)
+
+PANEL_W9_ORA_GOLDEN_PICK_ALLOWED <- 
+list(resultspace.ora.xax_analysis = c("General", "PCA", "mean", 
+"n value", "quantile", "ttest", "Rank", "GS", "StringDB", "Cor", 
+"SeqLogo", "ResponseCurve"), resultspace.ora.xax_subset = "All", 
+    resultspace.ora.xax_variable = c("Gene.name", "Protein.ID", 
+    "Intensity"), resultspace.ora.selected_row = character(0))
+
+PANEL_W9_ORA_GOLDEN_RESTORE_VALS <- 
+list(resultspace.ora.xax_analysis = "General", resultspace.ora.xax_subset = "All", 
+    resultspace.ora.xax_variable = "Gene.name", resultspace.ora.selected_row = NULL)
+
+PANEL_W9_ORA_GOLDEN_RESTORE_RET <- 
+list(xax = NULL, table = NULL)
+
+PANEL_W9_ORA_TRISET <- 
+list(dim = c(713L, 3L), analysis_levels = c("General", "PCA", 
+"mean", "n value", "quantile", "ttest", "Rank", "GS", "StringDB", 
+"Cor", "SeqLogo", "ResponseCurve"), first_rows = structure(c("General", 
+"General", "General", "PCA", "PCA", "PCA", "All", "All", "All", 
+"All", "All", "All", "Gene.name", "Protein.ID", "Intensity", 
+"PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)"), dim = c(6L, 3L)), variable_head50 = c("Gene.name", 
+"Protein.ID", "Intensity", "PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", 
+"PC4(4.8%)", "PC5(3.6%)", "PC6(2.9%)", "PC7(2.8%)", "PC8(2.5%)", 
+"RE", "ME", "LE", "MT", "WT", "pvalue", "log.pvalue", "fdr", 
+"log.fdr", "mean.diff", "X786O_NCI60", "A498_NCI60", "A549_NCI60", 
+"ACHN_NCI60", "BT549_NCI60", "CAKI1_NCI60", "CCRFCEM_NCI60", 
+"COLO205_NCI60", "DU145_NCI60", "EKVX_NCI60", "HCC2998_NCI60", 
+"HCT116_NCI60", "HCT15_NCI60", "HL60_NCI60", "HOP62_NCI60", "HOP92_NCI60", 
+"HS578T_NCI60", "HT29_NCI60", "IGROV1_NCI60", "K562_NCI60", "KM12_NCI60", 
+"LOXIMVI_NCI60", "M14_NCI60", "MALME3M_NCI60", "MCF7_NCI60", 
+"MDAMB231_NCI60", "MDAMB435_NCI60", "MDAMB468_NCI60", "MOLT4_NCI60"
+))
+
+PANEL_W9_ORA_AGENT_RECEIPT <- 
+list(method = "ora", panel_tab = "ORA", applied = c("resultspace.ora.xax_analysis", 
+"resultspace.ora.selected_row", "resultspace.analyst_tab", "resultspace.ora.xax_subset", 
+"resultspace.ora.xax_variable"), applied_values = list(resultspace.ora.xax_analysis = "General", 
+    resultspace.ora.selected_row = "GS_A", resultspace.analyst_tab = "ORA", 
+    resultspace.ora.xax_subset = "All", resultspace.ora.xax_variable = "Gene.name"), 
+    unchanged = character(0), rejected = list(), note = "The panel opens and the enrichment recomputes from the currently selected features (ORA) or the full ranking (fGSEA); read the top rows back through get_omics_viewer_state(sections='panel_results').")
+
+PANEL_W9_ORA_AGENT_VALS <- 
+list(resultspace.analyst_tab = "ORA", resultspace.feature_general.xax_analysis = NULL, 
+    resultspace.feature_general.xax_subset = NULL, resultspace.feature_general.xax_variable = NULL, 
+    resultspace.feature_general.plot_type = NULL, resultspace.feature_general.regression_line = FALSE, 
+    resultspace.feature_general.attr4.color_analysis = NULL, 
+    resultspace.feature_general.attr4.color_subset = NULL, resultspace.feature_general.attr4.color_variable = NULL, 
+    resultspace.feature_general.attr4.shape_analysis = NULL, 
+    resultspace.feature_general.attr4.shape_subset = NULL, resultspace.feature_general.attr4.shape_variable = NULL, 
+    resultspace.feature_general.attr4.size_analysis = NULL, resultspace.feature_general.attr4.size_subset = NULL, 
+    resultspace.feature_general.attr4.size_variable = NULL, resultspace.feature_general.attr4.tooltip_analysis = NULL, 
+    resultspace.feature_general.attr4.tooltip_subset = NULL, 
+    resultspace.feature_general.attr4.tooltip_variable = NULL, 
+    resultspace.feature_general.attr4.search_analysis = NULL, 
+    resultspace.feature_general.attr4.search_subset = NULL, resultspace.feature_general.attr4.search_variable = NULL, 
+    resultspace.feature_general.attr4.search_value = character(0), 
+    resultspace.feature_general.attr4.xcut = NULL, resultspace.feature_general.attr4.ycut = NULL, 
+    resultspace.feature_general.attr4.scorner = "None", resultspace.fgsea.xax_analysis = NULL, 
+    resultspace.fgsea.xax_subset = NULL, resultspace.fgsea.xax_variable = NULL, 
+    resultspace.fgsea.selected_row = NULL, resultspace.ora.xax_analysis = "General", 
+    resultspace.ora.xax_subset = "All", resultspace.ora.xax_variable = "Gene.name", 
+    resultspace.ora.selected_row = "GS_A", resultspace.stringdb.taxonomy = NULL, 
+    resultspace.stringdb.show_labels = NULL, resultspace.stringdb.selected_row = NULL, 
+    resultspace.sample_general.xax_analysis = NULL, resultspace.sample_general.xax_subset = NULL, 
+    resultspace.sample_general.xax_variable = NULL, resultspace.sample_general.attr4.color_analysis = NULL, 
+    resultspace.sample_general.attr4.color_subset = NULL, resultspace.sample_general.attr4.color_variable = NULL, 
+    resultspace.sample_general.attr4.shape_analysis = NULL, resultspace.sample_general.attr4.shape_subset = NULL, 
+    resultspace.sample_general.attr4.shape_variable = NULL, resultspace.sample_general.attr4.size_analysis = NULL, 
+    resultspace.sample_general.attr4.size_subset = NULL, resultspace.sample_general.attr4.size_variable = NULL, 
+    resultspace.sample_general.attr4.tooltip_analysis = NULL, 
+    resultspace.sample_general.attr4.tooltip_subset = NULL, resultspace.sample_general.attr4.tooltip_variable = NULL, 
+    resultspace.sample_general.attr4.search_analysis = NULL, 
+    resultspace.sample_general.attr4.search_subset = NULL, resultspace.sample_general.attr4.search_variable = NULL, 
+    resultspace.sample_general.attr4.search_value = character(0), 
+    resultspace.sample_general.attr4.xcut = NULL, resultspace.sample_general.attr4.ycut = NULL, 
+    resultspace.sample_general.attr4.scorner = "None", resultspace.sample_general.survival_censor = NULL, 
+    resultspace.sample_general.batch_show_phenotype = NULL, resultspace.sample_general.batch_show_features = NULL, 
+    resultspace.sample_general.batch_phenotype_selected_row = NULL, 
+    resultspace.sample_general.batch_feature_selected_row = NULL, 
+    resultspace.geneshot.term = NULL, resultspace.geneshot.xax_analysis = NULL, 
+    resultspace.geneshot.xax_subset = NULL, resultspace.geneshot.xax_variable = NULL, 
+    resultspace.ptm.xax_analysis = NULL, resultspace.ptm.xax_subset = NULL, 
+    resultspace.ptm.xax_variable = NULL, resultspace.dose_response.feature_table = NULL, 
+    resultspace.dose_response.param_table = NULL)
+
+PANEL_W9_ORA_GS_BOOT_RET <- 
+list(xax = NULL, table = list(class = "data.frame", names = c("pathway", 
+"desc", "p.value", "p.adjusted", "OR", "size_overlap", "size_geneset", 
+"size_input", "size_backgroung", "overlap_ids"), nrow = 2L, pathways = c("GS_A", 
+"GS_D")))
+
+PANEL_W9_ORA_GS_VIEW <- 
+list(list(id = "resultspace.ora.xax_analysis", kind = "select", 
+    label = "Collapse category", help = "Annotation category whose values the input features are collapsed on before testing over-representation", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = "General"), 
+    list(id = "resultspace.ora.xax_subset", kind = "select", 
+        label = "Collapse subcategory", help = "Subcategory within the collapse category", 
+        depends_on = "resultspace.ora.xax_analysis", min = NULL, 
+        max = NULL, allowed_values = character(0)), list(id = "resultspace.ora.xax_variable", 
+        kind = "select_cascaded", label = "Collapse variable", 
+        help = "Variable the input features are collapsed on (feature annotation column)", 
+        depends_on = c("resultspace.ora.xax_analysis", "resultspace.ora.xax_subset"
+        ), min = NULL, max = NULL, allowed_values = "Gene.name"), 
+    list(id = "resultspace.ora.selected_row", kind = "select", 
+        label = "Selected pathway", help = "Gene set whose row is selected in the results table; drives the overlap-genes table below", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = c("GS_A", 
+        "GS_D")))
+
+PANEL_W9_ORA_GS_PICK_VALS <- 
+list(resultspace.ora.xax_analysis = "General", resultspace.ora.xax_subset = "All", 
+    resultspace.ora.xax_variable = "Gene.name", resultspace.ora.selected_row = NULL)
+
+PANEL_W9_ORA_GS_PICK_RET <- 
+list(xax = list(analysis = "General", subset = "All", variable = "Gene.name"), 
+    table = list(class = "data.frame", names = c("pathway", "desc", 
+    "p.value", "p.adjusted", "OR", "size_overlap", "size_geneset", 
+    "size_input", "size_backgroung", "overlap_ids"), nrow = 2L, 
+        pathways = c("GS_A", "GS_D")))
+
+PANEL_W9_ORA_GS_PICK_ALLOWED <- 
+list(resultspace.ora.xax_analysis = "General", resultspace.ora.xax_subset = "All", 
+    resultspace.ora.xax_variable = "Gene.name", resultspace.ora.selected_row = c("GS_A", 
+    "GS_D"))
+
+PANEL_W9_ORA_GOLDEN_L1_NAMES <- 
+c("analyst_active_tab", "analyst_feature_general", "analyst_sample_general", 
+"analyst_gene_shot", "analyst_fgsea", "analyst_ora", "analyst_ptm", 
+"analyst_dose_response", "analyst_additional")
+
+PANEL_W9_ORA_GOLDEN_L1_ORA <- 
+list(xax = NULL)
+
+
+# -------------------------------------------------- boot factories ----
+# GS-attached synthetic fd (the agentWidgets S4 ora shape,
+# deterministic) drives the run/table/agent surfaces; demo fd0 (no GS)
+# drives the registration/pick/restore surfaces
+.w9_gs_fd <- data.frame(
+  `General|All|Gene.name` = paste0("g", 1:30),
+  row.names = paste0("F", 1:30), check.names = FALSE)
+attr(.w9_gs_fd, "GS") <- data.frame(
+  featureId = factor(paste0("F", c(1:10, 6:20, 21:30, 1:5, 25:28))),
+  gsId = factor(rep(c("GS_A", "GS_B", "GS_C", "GS_D"),
+                    c(10, 15, 10, 9))))
+set.seed(9)
+.w9_pd <- data.frame(group = c("A", "A", "B", "B"),
+                     row.names = paste0("S", 1:4))
+.w9_ex <- matrix(rnorm(120), nrow = 30,
+                 dimnames = list(paste0("F", 1:30), paste0("S", 1:4)))
+.w9_sel <- paste0("F", 1:5)
+# context-built (the WP-9 L1 call-site shape; holder receives the
+# context so the keep closure is inspectable)
+.w9_mkctx <- function(holder, fd = fd0, i = NULL, status_payload = NULL) {
+  force(holder)
+  function(input, output, session) {
+    .fd <- reactive(fd); .ii <- reactive(i); .st <- reactive(status_payload)
+    holder$store <- widget_store_new()
+    holder$child <- widget_store_child(holder$store, "resultspace.ora")
+    holder$ctx <- panel_context(
+      id = "ora", tab_value = "ORA", store = holder$child,
+      data = list(fdata = .fd), selection = list(feature = .ii),
+      status = .st, session = session)
+    holder$ret <- enrichment_analysis_module(
+      "ora", reactive_featureData = .fd, reactive_i = .ii,
+      reactive_status = .st, store = holder$child, context = holder$ctx)
+  }
+}
+# legacy direct boot (formals only - the pre-WP-9 shape, still supported)
+.w9_boot <- function(env, fd = fd0, i = NULL, status_payload = NULL) {
+  force(env)
+  function(input, output, session) {
+    env$store <- widget_store_new()
+    env$child <- widget_store_child(env$store, "resultspace.ora")
+    env$ret <- enrichment_analysis_module(
+      "ora", reactive_featureData = reactive(fd), reactive_i = reactive(i),
+      reactive_status = reactive(status_payload), store = env$child)
+  }
+}
+# store-less legacy boot (no store, no context - the reactiveVal path)
+.w9_mklegacy <- function(fd = fd0, i = NULL, status_payload = NULL) {
+  function(input, output, session) {
+    enrichment_analysis_module(
+      "ora", reactive_featureData = reactive(fd), reactive_i = reactive(i),
+      reactive_status = reactive(status_payload))
+  }
+}
+.w9_meta <- function(root) {
+  ks <- grep("^resultspace\\.ora(\\.|$)", names(root$bindings), value = TRUE)
+  lapply(ks, function(k) {
+    b <- root$bindings[[k]]
+    list(id = k, kind = b$kind, label = b$label, help = b$help,
+         depends_on = b$depends_on, agent_writable = b$agent_writable)
+  })
+}
+.w9_allowed <- function(root) {
+  v <- store_registry_view(root, "resultspace.ora")
+  stats::setNames(lapply(v, `[[`, "allowed_values"),
+                  vapply(v, function(r) r$id, ""))
+}
+# the module return as the status builder / excerpt reader see it (the
+# table attr summarized - content pins, not the whole data frame)
+.w9_tab_sum <- function(tab) {
+  if (!is.data.frame(tab)) return(tab)
+  list(class = class(tab)[[1]], names = colnames(tab), nrow = nrow(tab),
+       pathways = as.character(tab$pathway))
+}
+.w9_ret_shape <- function(ret) {
+  r <- tryCatch(shiny::isolate(ret()), error = function(e) NULL)
+  list(xax = r$xax, table = .w9_tab_sum(attr(r, "table")))
+}
+.w9_flush <- function(session, n = 6)
+  for (k in seq_len(n)) tryCatch(session$flushReact(), error = function(e) NULL)
+.w9_TRIO <- paste0("resultspace.ora.",
+                   c("xax_analysis", "xax_subset", "xax_variable"))
+
+# ------------------- registration: context boot = the frozen golden ----
+w9 <- new.env()
+w9_err <- NULL; w9_view <- NULL; w9_meta <- NULL
+shiny::testServer(.w9_mkctx(w9), {
+  w9_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # registry view INSIDE the session (WP-3 lore: choices providers read
+  # live reactives; outside a reactive context they degrade to empty)
+  w9_view <<- store_registry_view(w9$store, "resultspace.ora")
+  w9_meta <<- .w9_meta(w9$store)
+})
+ok(is.null(w9_err),
+   "WP-9 ora: module boots headless context-built (the new L1 call-site shape)")
+ok(ut_cmp_identical(sort(vapply(w9_view, function(r) r$id, "")),
+                    PANEL_W9_ORA_IDS),
+   "WP-9 ora: exactly the four frozen bindings register (3 cascade + run-preconditioned selected_row; D12 untouched)")
+ok(ut_cmp_identical(w9_view, PANEL_W9_ORA_GOLDEN_VIEW),
+   "WP-9 ora: registry view byte-identical to the frozen pre-migration golden (over demo fd: 12 analysis levels, full variable order)")
+ok(ut_cmp_identical(w9_meta, PANEL_W9_ORA_GOLDEN_META),
+   "WP-9 ora: raw binding meta byte-identical incl. agent_writable TRUE x4 (the set_enrichment_parameters surface)")
+
+# ------------------- cold values + module return + pre-run table attr ----
+w9c <- new.env()
+w9c_err <- NULL; w9c_cold <- NULL; w9c_ret <- NULL; w9c_allow <- NULL
+shiny::testServer(.w9_mkctx(w9c), {
+  w9c_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w9c_cold <<- store_read(w9c$store)
+  w9c_ret <<- .w9_ret_shape(w9c$ret)
+  w9c_allow <<- .w9_allowed(w9c$store)
+})
+ok(is.null(w9c_err), "WP-9 ora: cold-boot capture stays alive")
+ok(ut_cmp_identical(w9c_cold, PANEL_W9_ORA_GOLDEN_COLD),
+   "WP-9 ora: cold store values byte-identical (cascade + selected_row all NULL without a run)")
+ok(ut_cmp_identical(w9c_ret, PANEL_W9_ORA_GOLDEN_RET),
+   "WP-9 ora: module return (the analyst_ora payload source + panel_results excerpt source) byte-identical: list(xax = NULL), table attr NULL pre-run")
+ok(ut_cmp_identical(w9c_allow, PANEL_W9_ORA_GOLDEN_ALLOWED_COLD),
+   "WP-9 ora: pre-run selected_row choices are empty (run-preconditioned semantics; only tested pathways become rows)")
+
+# ------------------- user pick + state-dependent choices (demo fd) ----
+w9p <- new.env()
+w9p_err <- NULL; w9p_vals <- NULL; w9p_ret <- NULL; w9p_allow <- NULL
+shiny::testServer(.w9_mkctx(w9p), {
+  w9p_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  session$setInputs(`ora-tris_ora-analysis` = "General")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-subset` = "All")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-variable` = "Gene.name")
+  .w9_flush(session, 3)
+  w9p_vals <<- store_read(w9p$store)
+  w9p_ret <<- .w9_ret_shape(w9p$ret)
+  w9p_allow <<- .w9_allowed(w9p$store)
+})
+ok(is.null(w9p_err), "WP-9 ora: user-pick boot stays alive")
+ok(ut_cmp_identical(w9p_vals, PANEL_W9_ORA_GOLDEN_PICK_VALS),
+   "WP-9 ora: user General|All|Gene.name pick reproduces the frozen store values (4 keys, byte-identical)")
+ok(ut_cmp_identical(w9p_ret, PANEL_W9_ORA_GOLDEN_PICK_RET),
+   "WP-9 ora: module return reports the settled triple (analyst_ora payload content)")
+ok(ut_cmp_identical(w9p_allow, PANEL_W9_ORA_GOLDEN_PICK_ALLOWED),
+   "WP-9 ora: cascade choices stay state-dependent (subset narrows to All, variable to the 3 General columns)")
+
+# ------------------- legacy status restore path ----
+w9r <- new.env()
+w9r_err <- NULL; w9r_vals <- NULL; w9r_ret <- NULL
+shiny::testServer(.w9_boot(w9r, status_payload = list(
+  xax = c("General", "All", "Gene.name"))), {
+  w9r_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w9r_vals <<- store_read(w9r$store)
+  w9r_ret <<- .w9_ret_shape(w9r$ret)
+})
+ok(is.null(w9r_err),
+   "WP-9 ora: boot with a legacy analyst_ora payload stays alive")
+ok(ut_cmp_identical(w9r_vals, PANEL_W9_ORA_GOLDEN_RESTORE_VALS),
+   "WP-9 ora: the legacy restore path re-applies the triple through the store (observer untouched, 4 keys byte-identical)")
+ok(ut_cmp_identical(w9r_ret, PANEL_W9_ORA_GOLDEN_RESTORE_RET),
+   "WP-9 ora: module return stays cold after a restore-only boot (the triple lands in the store; v1 has not been user-driven)")
+
+# ------------------- legacy boot registers identically (D13) ----
+w9l <- new.env()
+w9l_err <- NULL; w9l_view <- NULL; w9l_meta <- NULL; w9l_cold <- NULL
+shiny::testServer(.w9_boot(w9l), {
+  w9l_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w9l_view <<- store_registry_view(w9l$store, "resultspace.ora")
+  w9l_meta <<- .w9_meta(w9l$store)
+  w9l_cold <<- store_read(w9l$store)
+})
+ok(is.null(w9l_err),
+   "WP-9 ora: legacy direct instantiation (store formal only, no context) still boots")
+ok(ut_cmp_identical(w9l_view, PANEL_W9_ORA_GOLDEN_VIEW) &&
+   ut_cmp_identical(w9l_meta, PANEL_W9_ORA_GOLDEN_META) &&
+   ut_cmp_identical(w9l_cold, PANEL_W9_ORA_GOLDEN_COLD),
+   "WP-9 ora: legacy store boot registers and seeds byte-identically to the golden (both boot paths agree)")
+ok(ut_cmp_identical(w9l_view, w9_view),
+   "WP-9 ora: context boot and legacy boot register identically (D13 argument coalescing)")
+
+# ------------------- the triset derivation (combine = "none") ----
+tsd9 <- trisetter(meta = fd0, combine = "none")
+ok(ut_cmp_identical(list(dim = dim(tsd9),
+                         analysis_levels = unique(tsd9[, 1]),
+                         first_rows = utils::head(tsd9, 6L),
+                         variable_head50 = utils::head(unique(tsd9[, 3]), 50)),
+                    list(dim = PANEL_W9_ORA_TRISET$dim,
+                         analysis_levels = PANEL_W9_ORA_TRISET$analysis_levels,
+                         first_rows = PANEL_W9_ORA_TRISET$first_rows,
+                         variable_head50 = PANEL_W9_ORA_TRISET$variable_head50)),
+   "WP-9 ora: the cascade triset source over demo fd = trisetter(combine=none) (713x3; the raw fd column inventory incl. GS/StringDB/Cor/SeqLogo/ResponseCurve levels)")
+
+# ------------------- GS dataset: the run / table-attr surface ----
+# module-direct boot (legacy formals) with a real GS attr: the unset
+# triple runs ORA on the raw selection by historical contract, so the
+# table attr is live at boot; the user collapse pick re-runs on the
+# collapsed pathway; selected_row choices follow the run
+w9g <- new.env()
+w9g_err <- NULL; w9g_boot <- NULL; w9g_view <- NULL
+w9g_vals <- NULL; w9g_ret <- NULL; w9g_allow <- NULL
+shiny::testServer(.w9_boot(w9g, fd = .w9_gs_fd, i = .w9_sel), {
+  w9g_err <<- tryCatch({
+    .w9_flush(session, 8)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w9g_boot <<- .w9_ret_shape(w9g$ret)
+  w9g_view <<- store_registry_view(w9g$store, "resultspace.ora")
+  session$setInputs(`ora-tris_ora-analysis` = "General")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-subset` = "All")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-variable` = "Gene.name")
+  .w9_flush(session, 8)
+  w9g_vals <<- store_read(w9g$store)
+  w9g_ret <<- .w9_ret_shape(w9g$ret)
+  w9g_allow <<- .w9_allowed(w9g$store)
+})
+ok(is.null(w9g_err), "WP-9 ora: GS-attached run boot stays alive")
+ok(ut_cmp_identical(w9g_boot, PANEL_W9_ORA_GS_BOOT_RET),
+   "WP-9 ora: the unset-triple boot run puts the real results table on the return's table attr (panel_results excerpt source; xax still NULL)")
+ok(ut_cmp_identical(w9g_view, PANEL_W9_ORA_GS_VIEW),
+   "WP-9 ora: GS registry view byte-identical (single General branch; selected_row choices live from the boot run)")
+ok(ut_cmp_identical(w9g_vals, PANEL_W9_ORA_GS_PICK_VALS),
+   "WP-9 ora: the collapsed run keeps the same settled triple + NULL selected_row (byte-identical)")
+ok(ut_cmp_identical(w9g_ret, PANEL_W9_ORA_GS_PICK_RET),
+   "WP-9 ora: the collapsed run's table attr is the gene-name-collapsed table (same shape/pathway set pinned)")
+ok(ut_cmp_identical(w9g_allow, PANEL_W9_ORA_GS_PICK_ALLOWED),
+   "WP-9 ora: post-run selected_row choices are the tested gene sets (run-preconditioned semantics)")
+
+# ------------------- agent round-trip: the L0 apply-callback path ----
+# set_enrichment_parameters lands through apply_agent_enrichment's
+# exact body (validate -> store_apply on the ROOT store -> receipt,
+# note verbatim) over the REAL L1 composition booted with the
+# GS-attached dataset (so resultspace.analyst_tab is registered exactly
+# as in the app). The frozen receipt is the pre-migration capture: the
+# first agent-coupled migration proves the tool surface byte-identical.
+w9a <- new.env()
+w9a$store <- widget_store_new()
+app_w9a <- function(input, output, session) {
+  w9a$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(.w9_ex),
+    reactive_phenoData = reactive(.w9_pd),
+    reactive_featureData = reactive(.w9_gs_fd),
+    reactive_i = reactive(.w9_sel),
+    reactive_highlight = reactive(NULL),
+    status = reactive(NULL),
+    store = w9a$store)
+}
+w9a_err <- NULL; w9a_receipt <- NULL; w9a_vals <- NULL
+shiny::testServer(app_w9a, {
+  w9a_err <<- tryCatch({
+    .w9_flush(session, 8)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  update <- list(method = "ora", collapse = "General|All|Gene.name",
+                 selected_pathway = "GS_A")
+  validated <- agent_normalize_enrichment_update(update, .w9_gs_fd)
+  receipt <- shiny::isolate(
+    store_apply(w9a$store, validated$patch, origin = "agent",
+                strict = FALSE))
+  w9a_receipt <<- list(
+    method = validated$method,
+    panel_tab = validated$tab,
+    applied = receipt$applied,
+    applied_values = receipt$diff,
+    unchanged = receipt$skipped,
+    rejected = receipt$rejected %||% list(),
+    note = paste(
+      "The panel opens and the enrichment recomputes from the currently",
+      "selected features (ORA) or the full ranking (fGSEA); read the top",
+      "rows back through get_omics_viewer_state(sections='panel_results')."))
+  .w9_flush(session, 8)
+  w9a_vals <<- store_read(w9a$store)
+})
+ok(is.null(w9a_err),
+   "WP-9 ora: the real L1 composition with a GS-attached dataset boots for the agent round-trip")
+ok(ut_cmp_identical(w9a_receipt, PANEL_W9_ORA_AGENT_RECEIPT),
+   "WP-9 ora: set_enrichment_parameters receipt byte-identical pre/post migration (all five patch keys applied incl. the run-preconditioned selected_row + the tab switch)")
+ok(ut_cmp_identical(w9a_vals, PANEL_W9_ORA_AGENT_VALS),
+   "WP-9 ora: the full result-space store state after the agent write byte-identical (zero diff outside the migration surface)")
+
+# ------------------- retention (D3 unification) ----
+# structural (deterministic, WP-0 MINOR-2 pattern): the module's ONE
+# panel_keep closure holds exactly the helper's bind-sync observer (the
+# hand-rolled .ora_keep list held the same single observer; the restore
+# observer was never kept and stays untouched; the results tables own
+# their retention internally via dataTableDownload_module's .dtd_keep).
+# Functional (retention direction, PD-8): after gc() x2 BOTH write
+# directions still land - the user cascade pick (UI -> store sync) and
+# the agent cascade write (store_apply -> store, acknowledged through
+# the same kept observer once the user input follows; agentWidgets ORA
+# pattern).
+w9k <- new.env()
+w9k_err <- NULL; w9k_nobs <- NULL; w9k_pick <- NULL; w9k_agent <- NULL
+w9k_pending <- NULL
+shiny::testServer(.w9_mkctx(w9k), {
+  w9k_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  obs <- get("obs", envir = environment(w9k$ctx$keep))
+  w9k_nobs <<- length(obs)
+  gc(); gc()
+  # write direction 1: user picks (UI -> store)
+  session$setInputs(`ora-tris_ora-analysis` = "General")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-subset` = "All")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-variable` = "Gene.name")
+  session$flushReact(); session$flushReact()
+  w9k_pick <<- store_read(w9k$child)[.w9_TRIO]
+  # write direction 2: agent write (store_apply -> store + ack)
+  store_apply(w9k$child, list(xax_variable = "Gene.name"),
+              origin = "agent")
+  session$flushReact()
+  session$setInputs(`ora-tris_ora-variable` = "Gene.name")
+  session$flushReact(); session$flushReact()
+  w9k_agent <<- store_read(w9k$child)[.w9_TRIO]
+  w9k_pending <<- length(w9k$store$pending)
+})
+ok(is.null(w9k_err), "WP-9 ora: retention boot stays alive")
+ok(ut_cmp_identical(w9k_nobs, 1L),
+   "WP-9 ora: exactly the bind-sync observer lands in the panel_keep list (D3; the pre-WP-9 .ora_keep list held the same single observer)")
+ok(ut_cmp_identical(unname(unlist(w9k_pick)), c("General", "All", "Gene.name")),
+   "WP-9 ora: kept bind observer still fires after gc() x2 (user cascade pick reaches the store)")
+ok(ut_cmp_identical(unname(unlist(w9k_agent)), c("General", "All", "Gene.name")) &&
+   ut_cmp_identical(w9k_pending, 0L),
+   "WP-9 ora: agent cascade write still lands and acknowledges after gc() x2 (store write direction; pending drains through the kept observer)")
+
+# ------------------- the store-less legacy branch stays alive ----
+w9n_err <- NULL
+shiny::testServer(.w9_mklegacy(), {
+  w9n_err <<- tryCatch({
+    .w9_flush(session)
+    NULL
+  }, error = function(e) conditionMessage(e))
+})
+ok(is.null(w9n_err),
+   "WP-9 ora: the no-store legacy branch (reactiveVal cascade path) still boots")
+
+# ------------------- app level: the REAL L1 composition ----
+w9l1 <- new.env()
+w9l1$store <- widget_store_new()
+app_w9l1 <- function(input, output, session) {
+  w9l1$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(NULL),
+    store = w9l1$store)
+}
+w9l1_err <- NULL; w9l1_payload <- NULL
+shiny::testServer(app_w9l1, {
+  w9l1_err <<- tryCatch({
+    .w9_flush(session, 3)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w9l1_payload <<- tryCatch(shiny::isolate(w9l1$status()),
+                            error = function(e) conditionMessage(e))
+})
+ok(is.null(w9l1_err),
+   "WP-9 ora: the real L1 composition boots headless post-migration (context built at the call site)")
+ok(ut_cmp_identical(names(w9l1_payload), PANEL_W9_ORA_GOLDEN_L1_NAMES),
+   "WP-9 ora: L1 status payload keeps its exact key order (snapshot schema untouched)")
+ok(ut_cmp_identical(w9l1_payload$analyst_ora, PANEL_W9_ORA_GOLDEN_L1_ORA),
+   "WP-9 ora: analyst_ora payload byte-identical pre/post migration (cold boot: sanitized list(xax = NULL); the table attr never rides the legacy transport)")
+ok(ut_cmp_identical(
+  sort(intersect(vapply(store_registry_view(w9l1$store), function(r) r$id, ""),
+                 PANEL_W9_ORA_IDS)),
+  PANEL_W9_ORA_IDS),
+   "WP-9 ora: the real L1 boot carries all four ora keys (the D12 freeze above pins the full 72-id vector)")
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
 # loops and the L0 availability read (tabName/moduleName non-empty scalar

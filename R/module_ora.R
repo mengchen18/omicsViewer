@@ -39,6 +39,12 @@ enrichment_analysis_ui <- function(id) {
 #'   regression tests (MockShinySession cannot report the
 #'   \code{output_*_hidden} clientData flag). NULL (default) keeps the
 #'   real \code{\link{output_visible}} read.
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   WP-9, plan D13 - built at the L1 call site). The module consumes
+#'   the child store (\code{context$store}) and the per-instance
+#'   retention helper (\code{context$keep}) from it; feature data, the
+#'   selection and the sliced status keep arriving through their
+#'   formals. NULL (default) keeps the direct-instantiation path.
 #' @importFrom fastmatch fmatch
 #' @importFrom stats cutree
 #' @examples
@@ -63,12 +69,25 @@ enrichment_analysis_ui <- function(id) {
 
 enrichment_analysis_module <- function(
   id, reactive_featureData, reactive_i, reactive_status = reactive(NULL),
-  store = NULL, reactive_visible = NULL
+  store = NULL, reactive_visible = NULL, context = NULL
 ) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
+  
+  # ------------------------------------------------------------------
+  # WP-9 (panel debt, D13): the panel context, built at the L1 call
+  # site (WP-11 collapses the per-panel builds into the registry
+  # loop). Context wins when present; the legacy formals remain the
+  # direct-instantiation path (the WP-5..WP-8 precedent). This module
+  # consumes store + keep from the context; reactive_featureData /
+  # reactive_i / reactive_status keep arriving through their formals
+  # (nothing moved in this WP).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+  }
   
   reactive_pathway <- reactive({
     attr(reactive_featureData(), "GS")
@@ -83,73 +102,48 @@ enrichment_analysis_module <- function(
   # The collapse-features cascade is driven by store_watch selectors
   # (meta_scatter pattern); the results-table row selection registers
   # through dataTableDownload_module (it drives the overlap-genes table).
+  #
+  # WP-9 (panel debt): retention is the shared per-instance
+  # panel_keep() factory (D3 - the context's closure when
+  # context-built, else a fresh local one for direct instantiation;
+  # the hand-rolled .ora_keep list is gone), and the cascade
+  # boilerplate (guarded fd triset source, ts1/ts2/ts3 choices
+  # providers, the three xax_* registrations, triselector wiring
+  # through store_watch/store_epoch and the UI->store sync) is the
+  # shared panel_triset_bind helper (D4). Labels/help stay
+  # panel-owned; the registered keys/kinds/labels/help/depends_on are
+  # byte-identical to the hand-rolled block (frozen pre-migration
+  # golden, tests/test_panelRegistry.R). The store-path triselector
+  # reads the helper's guarded reactive(.ts()) instead of the module's
+  # unguarded triset reactive (the PD-6 sanctioned difference,
+  # identical for every real data flow); the legacy no-store branch
+  # keeps the triset reactive above.
   # ------------------------------------------------------------------
-  .ora_store_observers <- list()
-  .ora_keep <- function(obs) {
-    .ora_store_observers[[length(.ora_store_observers) + 1L]] <<- obs
-    invisible(obs)
-  }
+  keep <- if (is.null(context)) panel_keep() else context$keep
   xax <- reactiveVal()
   if (!is.null(store)) {
-    .ora_ts <- function() {
-      fd <- tryCatch(reactive_featureData(),
-                     shiny.silent.error = function(e) NULL,
-                     error = function(e) NULL)
-      if (is.null(fd)) return(NULL)
-      ts <- tryCatch(trisetter(meta = fd, combine = "none"),
-                     shiny.silent.error = function(e) NULL,
-                     error = function(e) NULL)
-      if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) NULL else ts
-    }
-    .ora_ts1 <- function() {
-      ts <- .ora_ts()
-      if (is.null(ts)) character(0) else unique(ts[, 1])
-    }
-    .ora_ts2 <- function(a) {
-      ts <- .ora_ts()
-      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
-      else unique(ts[ts[, 1] %in% a, 2])
-    }
-    .ora_ts3 <- function(a, b) {
-      ts <- .ora_ts()
-      if (is.null(ts)) character(0)
-      else {
-        i <- rep(TRUE, nrow(ts))
-        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
-        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
-        unique(ts[i, 3])
-      }
-    }
-    ko1 <- paste0(store$prefix, ".xax_analysis")
-    ko2 <- paste0(store$prefix, ".xax_subset")
-    store_register(
-      store,
-      widget_binding("xax_analysis", "select",
-        label = "Collapse category",
-        help = paste("Annotation category whose values the input features",
-                     "are collapsed on before testing over-representation"),
-        choices_provider = function(v) .ora_ts1()),
-      widget_binding("xax_subset", "select", label = "Collapse subcategory",
-        help = "Subcategory within the collapse category",
-        depends_on = "xax_analysis",
-        choices_provider = function(v) .ora_ts2(v[[ko1]])),
-      widget_binding("xax_variable", "select_cascaded", label = "Collapse variable",
-        help = paste("Variable the input features are collapsed on",
-                     "(feature annotation column)"),
-        depends_on = c("xax_analysis", "xax_subset"),
-        choices_provider = function(v) .ora_ts3(v[[ko1]], v[[ko2]]))
-    )
-    v1 <- triselector_module(
-      "tris_ora", reactive_x = triset, label = "Collapse features on",
-      reactive_selector1 = store_watch(store, "xax_analysis"),
-      reactive_selector2 = store_watch(store, "xax_subset"),
-      reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store))
-    # UI -> store: settled triples only (WP2 store_bind_triselector)
-    store_bind_triselector(store,
-      keys = c(analysis = "xax_analysis", subset = "xax_subset",
-               variable = "xax_variable"),
-      sel = v1, keep = .ora_keep)
+    v1 <- panel_triset_bind(
+      store, keep,
+      tri_id = "tris_ora", tri_label = "Collapse features on",
+      triset_source = function() {
+        fd <- tryCatch(reactive_featureData(),
+                       shiny.silent.error = function(e) NULL,
+                       error = function(e) NULL)
+        if (is.null(fd)) return(NULL)
+        trisetter(meta = fd, combine = "none")
+      },
+      bindings = list(
+        analysis = list(
+          label = "Collapse category",
+          help = paste("Annotation category whose values the input features",
+                       "are collapsed on before testing over-representation")),
+        subset = list(
+          label = "Collapse subcategory",
+          help = "Subcategory within the collapse category"),
+        variable = list(
+          label = "Collapse variable",
+          help = paste("Variable the input features are collapsed on",
+                       "(feature annotation column)"))))
   } else {
     v1 <- triselector_module(
       "tris_ora", reactive_x = triset, label = "Collapse features on",

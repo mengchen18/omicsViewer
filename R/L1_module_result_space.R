@@ -152,10 +152,35 @@ L1_result_space_module <- function(
     )
 
     # session restore finished
+    # WP-9: ORA converts to the shared socket machinery with ZERO
+    # store-key/behavior change (the WP-5..WP-8 pure-migration pattern;
+    # ORA is the reference citizen and the FIRST agent-coupled migration
+    # - the set_enrichment_parameters tool, the panel_results excerpt
+    # reader and the enrichment normalizer all address this panel's
+    # store keys, none of them rewritten here). The context (D13; WP-11
+    # collapses the per-panel builds into the registry loop) carries the
+    # store and the per-instance retention helper, which the module
+    # consumes; data/selection/status/session ride along for shape
+    # parity (dormant this pass). Legacy formals stay
+    # (direct-instantiation path); the three cascade keys plus the
+    # results-table row selection (run-preconditioned selected_row)
+    # keep registering byte-identically (frozen pre-migration golden,
+    # tests/test_panelRegistry.R). The legacy restore observer and the
+    # return-with-table-attr (the panel_results excerpt source) stay in
+    # the module verbatim (D4 panel semantics).
+    ora_context <- panel_context(
+      id = "ora", tab_value = "ORA",
+      store = store_ora,
+      data = Filter(is.function, list(fdata = reactive_featureData)),
+      selection = Filter(is.function, list(feature = reactive_i)),
+      status = reactive(status()$analyst_ora),
+      session = session
+    )
     v3 <- enrichment_analysis_module("ora",
       reactive_i = reactive_i, reactive_featureData = reactive_featureData,
       reactive_status = reactive(status()$analyst_ora),
-      store = store_ora
+      store = store_ora,
+      context = ora_context
     )
 
     # ------------------------------------------------------------------
