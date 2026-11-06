@@ -49,9 +49,16 @@ sample_general_ui <- function(id) {
 #' @param store Optional child view of the canonical widget store
 #'   (\code{\link{widget_store_child}}) for this module, e.g.
 #'   \code{resultspace.sample_general}. When given, the module's
-#'   user-editable surface (the link-variable cascade and the embedded
-#'   attribute-4 panel) registers on the store; when NULL the legacy
-#'   status-restore path is kept.
+#'   user-editable surface (the link-variable cascade, the embedded
+#'   attribute-4 panel, the survival censor slider and the batch
+#'   comparison switches/rows) registers on the store; when NULL the
+#'   legacy status-restore path is kept.
+#' @param context Optional panel context bundle (\code{\link{panel_context}};
+#'   plan D13). When given, the module consumes the child store
+#'   (\code{context$store}) and the per-instance retention helper
+#'   (\code{context$keep}) from it; data/selection/status keep arriving
+#'   through their formals (nothing moved into the module in WP-8). All
+#'   legacy formals keep working for direct instantiation.
 #' @examples
 #' #' # library(shiny)
 #' # #
@@ -77,12 +84,32 @@ sample_general_ui <- function(id) {
 #'
 sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   reactive_j = reactive(NULL), reactive_status = reactive(NULL),
-  store = NULL) {
+  store = NULL, context = NULL) {
 
   moduleServer(id, function(input, output, session) {
 
   ns <- session$ns
-  
+
+  # ------------------------------------------------------------------
+  # WP-8 (panel debt, D13): the panel context, built at the L1 call
+  # site (WP-11 collapses the per-panel builds into the registry
+  # loop). Context wins when present; the legacy formals remain the
+  # direct-instantiation path (the feature/ptm/geneshot precedent).
+  # This module consumes store + keep from the context; data/selection/
+  # reactive_status keep arriving through their formals (nothing moved
+  # in this WP).
+  # ------------------------------------------------------------------
+  if (!is.null(context)) {
+    store <- context$store %||% store
+  }
+  # WP-8 (panel debt, D3): ONE retention closure for the whole module.
+  # The organic-growth split (a store-glue .sg_keep list inside the
+  # store branch plus a separate .sg_view_keep list for the view-type
+  # carrier observer) is unified: the context's panel_keep() closure
+  # when context-built, else a fresh local one for direct
+  # instantiation. Retention is retention (the WP-7 pattern).
+  keep <- if (is.null(context)) panel_keep() else context$keep
+
   triset <- reactive({
     trisetter(meta = reactive_phenoData(), expr = reactive_expr(), combine = "pheno")
   })
@@ -93,78 +120,66 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   # Canonical widget-store bindings (control plane, plan section 6, S4):
   # the link-variable cascade (beeswarm / contingency / survival switch).
   # The attr4 panel registers under <prefix>.attr4.* inside
-  # attr4selector_module. Choices providers mirror triset() WITHOUT req()
+  # attr4selector_module; the survival submodule's censor slider under
+  # <prefix>.survival_censor; the batch comparison switches/rows under
+  # <prefix>.batch_* - all through this panel's child store, all
+  # untouched by WP-8. Choices providers mirror triset() WITHOUT req()
   # (a shiny.validation condition inside a provider aborts the whole
   # store_apply transaction) and include the Surv category, which decides
-  # the survival view.
+  # the survival view (the deliberate opposite of feature-general's
+  # minus-Surv cascade).
+  #
+  # WP-8 (panel debt): retention is the shared per-instance
+  # panel_keep() factory (D3), and the cascade boilerplate (guarded
+  # pheno triset source KEEPING the Surv rows - Kaplan-Meier -,
+  # ts1/ts2/ts3 choices providers, the three xax_* registrations, the
+  # triselector wiring through store_watch/store_epoch and the
+  # UI->store sync) is the shared panel_triset_bind helper (D4). The
+  # .sg_apply_triple dual-path helper (store / legacy xax) stays
+  # verbatim (the module's internal legacy fallback, not L1 glue);
+  # labels/help stay panel-owned; the registered keys/kinds/labels/
+  # help/depends_on are byte-identical to the hand-rolled block (frozen
+  # pre-migration golden, tests/test_panelRegistry.R). The trio
+  # registers FIRST so the binding registration order stays
+  # xax_analysis, xax_subset, xax_variable, then attr4/survival/batch
+  # exactly as the pre-WP-8 module produced (store_registry_view/
+  # store_read iterate in registration order).
   # ------------------------------------------------------------------
   if (!is.null(store)) {
-    .sg_ts <- function() {
-      if (is.null(reactive_phenoData())) return(NULL)
-      ts <- tryCatch(
-        trisetter(meta = reactive_phenoData(), expr = reactive_expr(),
-                  combine = "pheno"),
-        shiny.silent.error = function(e) NULL, error = function(e) NULL)
-      if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) NULL else ts
-    }
-    .sg_ts1 <- function() {
-      ts <- .sg_ts()
-      if (is.null(ts)) character(0) else unique(ts[, 1])
-    }
-    .sg_ts2 <- function(a) {
-      ts <- .sg_ts()
-      if (is.null(ts) || is.null(a) || !nzchar(a)) character(0)
-      else unique(ts[ts[, 1] %in% a, 2])
-    }
-    .sg_ts3 <- function(a, b) {
-      ts <- .sg_ts()
-      if (is.null(ts)) character(0)
-      else {
-        i <- rep(TRUE, nrow(ts))
-        if (!is.null(a) && nzchar(a)) i <- i & ts[, 1] %in% a
-        if (!is.null(b) && nzchar(b)) i <- i & ts[, 2] %in% b
-        unique(ts[i, 3])
-      }
-    }
-    kx1 <- paste0(store$prefix, ".xax_analysis")
-    kx2 <- paste0(store$prefix, ".xax_subset")
-    store_register(
-      store,
-      widget_binding("xax_analysis", "select",
-        label = "Link variable category",
-        help = paste("Annotation category of the variable the selected",
-                     "samples are analyzed against"),
-        choices_provider = function(v) .sg_ts1()),
-      widget_binding("xax_subset", "select", label = "Link variable subcategory",
-        help = "Subcategory within the link-variable category",
-        depends_on = "xax_analysis",
-        choices_provider = function(v) .sg_ts2(v[[kx1]])),
-      widget_binding("xax_variable", "select_cascaded", label = "Link variable",
-        help = paste("Variable driving the analysis view: numeric gives a",
-                     "beeswarm, categorical a contingency table, Surv a",
-                     "Kaplan-Meier curve"),
-        depends_on = c("xax_analysis", "xax_subset"),
-        choices_provider = function(v) .sg_ts3(v[[kx1]], v[[kx2]]))
-    )
-    .sg_store_observers <- list()
-    .sg_keep <- function(obs) {
-      .sg_store_observers[[length(.sg_store_observers) + 1L]] <<- obs
-      invisible(obs)
-    }
+    v1 <- panel_triset_bind(
+      store, keep,
+      tri_id = "tris_sample_general", tri_label = "Link selection to",
+      triset_source = function() {
+        if (is.null(reactive_phenoData())) return(NULL)
+        ts <- tryCatch(
+          trisetter(meta = reactive_phenoData(), expr = reactive_expr(),
+                    combine = "pheno"),
+          shiny.silent.error = function(e) NULL, error = function(e) NULL)
+        if (is.null(ts) || !is.matrix(ts) || nrow(ts) == 0L) NULL else ts
+      },
+      bindings = list(
+        analysis = list(
+          label = "Link variable category",
+          help = paste("Annotation category of the variable the selected",
+                       "samples are analyzed against")),
+        subset = list(
+          label = "Link variable subcategory",
+          help = "Subcategory within the link-variable category"),
+        variable = list(
+          label = "Link variable",
+          help = paste("Variable driving the analysis view: numeric gives a",
+                       "beeswarm, categorical a contingency table, Surv a",
+                       "Kaplan-Meier curve"))),
+      allow_unset = TRUE)
     # programmatic triple writes (status restore, batch link) share one
-    # helper; user picks sync back through the v1() observer below
+    # helper; user picks sync back through the bind observer inside
+    # panel_triset_bind (store_bind_triselector, WP2 semantics)
     .sg_apply_triple <- function(p1, p2, p3, origin = "system") {
       patch <- stats::setNames(list(p1, p2, p3),
                                c("xax_analysis", "xax_subset", "xax_variable"))
       tryCatch(store_apply(store, patch, origin = origin, strict = FALSE),
                error = function(e) NULL)
     }
-    v1 <- triselector_module(
-      "tris_sample_general", reactive_x = triset, label = "Link selection to",
-      reactive_selector1 = store_watch(store, "xax_analysis"),
-      reactive_selector2 = store_watch(store, "xax_subset"),
-      reactive_selector3 = store_watch(store, "xax_variable"),
-      reactive_axis_request = store_epoch(store), allow_unset = TRUE)
   } else {
     .sg_apply_triple <- function(p1, p2, p3, origin = "system") {
       xax(NULL)
@@ -226,14 +241,11 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
   # carrier (one kept observer) - pheno() recomputes on every link change
   # but only its $type decides the view, so the container must not be
   # rebuilt while the type is unchanged (remounts reset plot state and
-  # rebuild the attr4 panel). Observer-GC rule: kept referenced.
+  # rebuild the attr4 panel). Observer-GC rule: kept referenced - on
+  # the module's ONE panel_keep closure since WP-8 (retention is
+  # retention; the split keep lists were organic growth).
   .sg_view_type <- reactiveVal(NULL)
-  .sg_view_observers <- list()
-  .sg_view_keep <- function(obs) {
-    .sg_view_observers[[length(.sg_view_observers) + 1L]] <<- obs
-    invisible(obs)
-  }
-  .sg_view_keep(observe({
+  keep(observe({
     vt <- tryCatch(pheno()$type, shiny.silent.error = function(e) NULL,
                    error = function(e) NULL)
     if (!identical(vt, .sg_view_type()))
@@ -358,18 +370,11 @@ sample_general_module <- function(id, reactive_phenoData, reactive_expr,
     }
   })
 
-  # Store glue: UI -> store sync for the cascade. The binding fires on
-  # settled triples only (WP2 store_bind_triselector): mid-cascade echoes
-  # never enter the store, and store pushes are acknowledged through the
-  # same path once the triselector confirms. The cascade has no meaningful
-  # default, so unlike the scalar widgets it is not seeded and fills on the
-  # first pick.
-  if (!is.null(store)) {
-    store_bind_triselector(store,
-      keys = c(analysis = "xax_analysis", subset = "xax_subset",
-               variable = "xax_variable"),
-      sel = v1, keep = .sg_keep)
-  }
+  # WP-8 (panel debt): the cascade UI->store sync (store_bind_triselector,
+  # WP2 semantics: settled triples only, mid-cascade echoes never enter
+  # the store, store pushes acknowledged through the same path) moved
+  # into panel_triset_bind above. The cascade has no meaningful default,
+  # so it is not seeded and fills on the first pick.
 
   ## save and restore status
   observeEvent(reactive_status(), {

@@ -206,12 +206,34 @@ L1_result_space_module <- function(
     v4 <- string_module("stringdb", context = string_context)
 
     # session restore finished
+    # WP-8: Sample-general converts to the shared socket machinery with
+    # ZERO store-key/behavior change (the WP-5..WP-7 pure-migration
+    # pattern). The context (D13; WP-11 collapses the per-panel builds
+    # into the registry loop) carries the store and the per-instance
+    # retention helper, which the module consumes; data/selection/
+    # status/session ride along for shape parity (dormant this pass).
+    # Legacy formals stay (direct-instantiation path); the three own
+    # resultspace.sample_general.* cascade keys register byte-identically
+    # KEEPING the Surv category (Kaplan-Meier - the deliberate opposite
+    # of feature-general's minus-Surv cascade), with the attr4 (19),
+    # survival (1) and batch (4) child-store registrations untouched
+    # (frozen pre-migration golden, tests/test_panelRegistry.R).
+    sample_context <- panel_context(
+      id = "sample_general", tab_value = "Sample",
+      store = store_sample_general,
+      data = Filter(is.function, list(
+        expr = reactive_expr, pdata = reactive_phenoData)),
+      selection = Filter(is.function, list(sample = reactive_highlight)),
+      status = reactive(status()$analyst_sample_general),
+      session = session
+    )
     v5 <- sample_general_module(
       "sample_general",
       reactive_phenoData = reactive_phenoData, reactive_expr = reactive_expr,
       reactive_j = reactive_highlight,
       reactive_status = reactive(status()$analyst_sample_general),
-      store = store_sample_general
+      store = store_sample_general,
+      context = sample_context
     )
 
     # session restore finished

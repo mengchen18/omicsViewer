@@ -2611,6 +2611,783 @@ ok(ut_cmp_identical(
   PANEL_W7_FG_IDS),
    "WP-7 fg: the real L1 boot carries all 24 feature_general keys (the D12 freeze above pins the full 72-id vector)")
 
+## --------------- WP-8: Sample-general migration (D3/D4/D13) ----
+# The second-largest pure migration (the WP-5/WP-6/WP-7 pattern):
+# sample-general composes attr4selector, beeswarm, contingency-table and
+# SURVIVAL submodules, and its store surface is 27 keys (3 own cascade +
+# 19 attr4 + 1 survival_censor + 4 batch_* registered through this
+# panel's child store). SUBMODULES ARE UNTOUCHED (the plan's WP-8 scope
+# is panel glue only; attr4/plotly/contingency/survival/batch internals
+# are front-run boundaries of later work, not this WP). The migration
+# unifies retention (.sg_keep + .sg_view_keep -> ONE panel_keep
+# instance, D3), moves the cascade boilerplate into panel_triset_bind
+# (D4: triset_source = trisetter(combine="pheno") KEEPING the Surv rows
+# - Kaplan-Meier, the deliberate opposite of feature-general's
+# minus-Surv cascade; allow_unset = TRUE) and threads the context
+# (D13). The .sg_apply_triple dual-path helper (store / legacy xax)
+# stays verbatim in the module (its internal legacy fallback, not L1
+# glue).
+#
+# Golden-fixture provenance (PD-29/PD-33/PD-38 school): all goldens
+# below were captured from PRE-MIGRATION HEAD 74924e3 BEFORE any edit
+# (before the WP-7 NIT cleanup commit dd69868, for strict provenance),
+# by booting the then-current sample_general_module exactly like the L1
+# call site / the agentWidgets S4 shape and dput()ing the outputs:
+# the FULL 27-binding registry view + raw meta (incl. agent_writable) +
+# cold store values + module return, user-pick/restore triples over two
+# datasets (synthetic + demo.RDS), the real-L1 analyst_sample_general
+# payload + status key order, and the KEEPING-Surv triset derivation
+# over demo pdata. The IDENTICAL capture script was re-run
+# post-migration: all 21 outputs byte-identical (the PD-33 pre/post
+# proof). The fixtures are FROZEN: never regenerate them from the
+# migrated code (that would make the equivalence claim circular).
+sample_general_module <- omicsViewer:::sample_general_module
+
+# -------------------------------------------------- frozen goldens ----
+# the 27 ids (3 own cascade + 19 attr4 + 1 survival + 4 batch, all
+# under the panel's child store)
+
+PANEL_W8_SG_IDS <- sort(c(
+  paste0("resultspace.sample_general.", c(
+    "xax_analysis", "xax_subset", "xax_variable", "survival_censor",
+    "batch_show_phenotype", "batch_show_features",
+    "batch_phenotype_selected_row", "batch_feature_selected_row")),
+  paste0("resultspace.sample_general.attr4.", c(
+    outer(c("color", "shape", "size", "tooltip", "search"),
+          c("_analysis", "_subset", "_variable"), FUN = paste0),
+    "search_value", "xcut", "ycut", "scorner"))))
+
+
+PANEL_W8_SG_GOLDEN_VIEW <- list(list(id = "resultspace.sample_general.xax_analysis", kind = "select", 
+    label = "Link variable category", help = "Annotation category of the variable the selected samples are analyzed against", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "Surv", "Feature")), list(id = "resultspace.sample_general.xax_subset", 
+    kind = "select", label = "Link variable subcategory", help = "Subcategory within the link-variable category", 
+    depends_on = "resultspace.sample_general.xax_analysis", min = NULL, 
+    max = NULL, allowed_values = character(0)), list(id = "resultspace.sample_general.xax_variable", 
+    kind = "select_cascaded", label = "Link variable", help = "Variable driving the analysis view: numeric gives a beeswarm, categorical a contingency table, Surv a Kaplan-Meier curve", 
+    depends_on = c("resultspace.sample_general.xax_analysis", 
+    "resultspace.sample_general.xax_subset"), min = NULL, max = NULL, 
+    allowed_values = c("group", "score", "time", "F1", "F2", 
+    "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", 
+    "F13", "F14", "F15", "F16")), list(id = "resultspace.sample_general.attr4.color_analysis", 
+    kind = "select", label = "Color attribute category", help = "First level of the color attribute cascade (annotation category) to color the figure's points by a group or annotation column", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "Surv", "Feature")), list(id = "resultspace.sample_general.attr4.color_subset", 
+    kind = "select", label = "Color attribute subcategory", help = "Second level of the color attribute cascade to color the figure's points by a group or annotation column", 
+    depends_on = "resultspace.sample_general.attr4.color_analysis", 
+    min = NULL, max = NULL, allowed_values = character(0)), list(
+    id = "resultspace.sample_general.attr4.color_variable", kind = "select_cascaded", 
+    label = "Color attribute variable", help = "Annotation variable to color the figure's points by a group or annotation column", 
+    depends_on = c("resultspace.sample_general.attr4.color_analysis", 
+    "resultspace.sample_general.attr4.color_subset"), min = NULL, 
+    max = NULL, allowed_values = c("group", "score", "time", 
+    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", 
+    "F11", "F12", "F13", "F14", "F15", "F16")), list(id = "resultspace.sample_general.attr4.shape_analysis", 
+    kind = "select", label = "Shape attribute category", help = "First level of the shape attribute cascade (annotation category) to give the figure's points a different shape per group", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "Surv", "Feature")), list(id = "resultspace.sample_general.attr4.shape_subset", 
+    kind = "select", label = "Shape attribute subcategory", help = "Second level of the shape attribute cascade to give the figure's points a different shape per group", 
+    depends_on = "resultspace.sample_general.attr4.shape_analysis", 
+    min = NULL, max = NULL, allowed_values = character(0)), list(
+    id = "resultspace.sample_general.attr4.shape_variable", kind = "select_cascaded", 
+    label = "Shape attribute variable", help = "Annotation variable to give the figure's points a different shape per group", 
+    depends_on = c("resultspace.sample_general.attr4.shape_analysis", 
+    "resultspace.sample_general.attr4.shape_subset"), min = NULL, 
+    max = NULL, allowed_values = c("group", "score", "time", 
+    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", 
+    "F11", "F12", "F13", "F14", "F15", "F16")), list(id = "resultspace.sample_general.attr4.size_analysis", 
+    kind = "select", label = "Size attribute category", help = "First level of the size attribute cascade (annotation category) to scale the figure's point size by a numeric column", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "Surv", "Feature")), list(id = "resultspace.sample_general.attr4.size_subset", 
+    kind = "select", label = "Size attribute subcategory", help = "Second level of the size attribute cascade to scale the figure's point size by a numeric column", 
+    depends_on = "resultspace.sample_general.attr4.size_analysis", 
+    min = NULL, max = NULL, allowed_values = character(0)), list(
+    id = "resultspace.sample_general.attr4.size_variable", kind = "select_cascaded", 
+    label = "Size attribute variable", help = "Annotation variable to scale the figure's point size by a numeric column", 
+    depends_on = c("resultspace.sample_general.attr4.size_analysis", 
+    "resultspace.sample_general.attr4.size_subset"), min = NULL, 
+    max = NULL, allowed_values = c("group", "score", "time", 
+    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", 
+    "F11", "F12", "F13", "F14", "F15", "F16")), list(id = "resultspace.sample_general.attr4.tooltip_analysis", 
+    kind = "select", label = "Tooltips attribute category", help = "First level of the tooltips attribute cascade (annotation category) shown in the figure's hover tooltip", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "Surv", "Feature")), list(id = "resultspace.sample_general.attr4.tooltip_subset", 
+    kind = "select", label = "Tooltips attribute subcategory", 
+    help = "Second level of the tooltips attribute cascade shown in the figure's hover tooltip", 
+    depends_on = "resultspace.sample_general.attr4.tooltip_analysis", 
+    min = NULL, max = NULL, allowed_values = character(0)), list(
+    id = "resultspace.sample_general.attr4.tooltip_variable", 
+    kind = "select_cascaded", label = "Tooltips attribute variable", 
+    help = "Annotation variable shown in the figure's hover tooltip", 
+    depends_on = c("resultspace.sample_general.attr4.tooltip_analysis", 
+    "resultspace.sample_general.attr4.tooltip_subset"), min = NULL, 
+    max = NULL, allowed_values = c("group", "score", "time", 
+    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", 
+    "F11", "F12", "F13", "F14", "F15", "F16")), list(id = "resultspace.sample_general.attr4.search_analysis", 
+    kind = "select", label = "Search attribute category", help = "First level of the search attribute cascade (annotation category) whose values the gene highlight picker circles as open-ring markers on the figure", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "Surv", "Feature")), list(id = "resultspace.sample_general.attr4.search_subset", 
+    kind = "select", label = "Search attribute subcategory", 
+    help = "Second level of the search attribute cascade whose values the gene highlight picker circles as open-ring markers on the figure", 
+    depends_on = "resultspace.sample_general.attr4.search_analysis", 
+    min = NULL, max = NULL, allowed_values = character(0)), list(
+    id = "resultspace.sample_general.attr4.search_variable", 
+    kind = "select_cascaded", label = "Search attribute variable", 
+    help = "Annotation variable whose values the gene highlight picker circles as open-ring markers on the figure", 
+    depends_on = c("resultspace.sample_general.attr4.search_analysis", 
+    "resultspace.sample_general.attr4.search_subset"), min = NULL, 
+    max = NULL, allowed_values = c("group", "score", "time", 
+    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", 
+    "F11", "F12", "F13", "F14", "F15", "F16")), list(id = "resultspace.sample_general.attr4.search_value", 
+    kind = "multi_select", label = "Search highlight values", 
+    help = "Gene name or other value of the selected Search column to draw as open-ring highlights on the figure; set the Search column first; empty clears the highlight", 
+    depends_on = "resultspace.sample_general.attr4.search_variable", 
+    min = NULL, max = NULL, allowed_values = character(0)), list(
+    id = "resultspace.sample_general.attr4.xcut", kind = "string", 
+    label = "X cutoff", help = "X-axis cutoff for area selection; a number or an R expression such as -log10(0.05)", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = NULL), 
+    list(id = "resultspace.sample_general.attr4.ycut", kind = "string", 
+        label = "Y cutoff", help = "Y-axis cutoff for area selection; a number or an R expression such as log10(2)", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = NULL), 
+    list(id = "resultspace.sample_general.attr4.scorner", kind = "select", 
+        label = "Selected area", help = "Plot region selected by the cutoffs (corner or volcano mode)", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = "None"), 
+    list(id = "resultspace.sample_general.survival_censor", kind = "numeric", 
+        label = "Censor time", help = "Time at which the Kaplan-Meier analysis right-censors observations. PRECONDITION: requires a survival-type (Surv) sample variable selected as the x-axis variable - the censor slider exists only in the survival view; a write that lands before the view renders is applied when it does", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = NULL), 
+    list(id = "resultspace.sample_general.batch_show_phenotype", 
+        kind = "boolean", label = "Compare phenotype variables", 
+        help = "Test all phenotype variables between selected and unselected samples", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = NULL), 
+    list(id = "resultspace.sample_general.batch_show_features", 
+        kind = "boolean", label = "Compare features", help = "Test all molecular features between selected and unselected samples", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = NULL), 
+    list(id = "resultspace.sample_general.batch_phenotype_selected_row", 
+        kind = "select", label = "Selected phenotype variable", 
+        help = "Phenotype-comparison row selected in the batch results table; drives the sample link. PRECONDITION: requires the Compare-phenotype toggle on, a sample selection defining two groups, and the batch panel visible - the comparison computes only then, and the row choices are its computed rows", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = character(0)), 
+    list(id = "resultspace.sample_general.batch_feature_selected_row", 
+        kind = "select", label = "Selected feature", help = "Feature-comparison row selected in the batch results table; drives the sample link. PRECONDITION: requires the Compare-features toggle on, a sample selection defining two groups, and the batch panel visible - the comparison computes only then, and the row choices are its computed rows", 
+        depends_on = character(0), min = NULL, max = NULL, allowed_values = character(0)))
+PANEL_W8_SG_GOLDEN_META <- list(list(id = "resultspace.sample_general.xax_analysis", kind = "select", 
+    label = "Link variable category", help = "Annotation category of the variable the selected samples are analyzed against", 
+    depends_on = character(0), agent_writable = TRUE), list(id = "resultspace.sample_general.xax_subset", 
+    kind = "select", label = "Link variable subcategory", help = "Subcategory within the link-variable category", 
+    depends_on = "resultspace.sample_general.xax_analysis", agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.xax_variable", kind = "select_cascaded", 
+        label = "Link variable", help = "Variable driving the analysis view: numeric gives a beeswarm, categorical a contingency table, Surv a Kaplan-Meier curve", 
+        depends_on = c("resultspace.sample_general.xax_analysis", 
+        "resultspace.sample_general.xax_subset"), agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.attr4.color_analysis", 
+        kind = "select", label = "Color attribute category", 
+        help = "First level of the color attribute cascade (annotation category) to color the figure's points by a group or annotation column", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.color_subset", 
+        kind = "select", label = "Color attribute subcategory", 
+        help = "Second level of the color attribute cascade to color the figure's points by a group or annotation column", 
+        depends_on = "resultspace.sample_general.attr4.color_analysis", 
+        agent_writable = TRUE), list(id = "resultspace.sample_general.attr4.color_variable", 
+        kind = "select_cascaded", label = "Color attribute variable", 
+        help = "Annotation variable to color the figure's points by a group or annotation column", 
+        depends_on = c("resultspace.sample_general.attr4.color_analysis", 
+        "resultspace.sample_general.attr4.color_subset"), agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.attr4.shape_analysis", 
+        kind = "select", label = "Shape attribute category", 
+        help = "First level of the shape attribute cascade (annotation category) to give the figure's points a different shape per group", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.shape_subset", 
+        kind = "select", label = "Shape attribute subcategory", 
+        help = "Second level of the shape attribute cascade to give the figure's points a different shape per group", 
+        depends_on = "resultspace.sample_general.attr4.shape_analysis", 
+        agent_writable = TRUE), list(id = "resultspace.sample_general.attr4.shape_variable", 
+        kind = "select_cascaded", label = "Shape attribute variable", 
+        help = "Annotation variable to give the figure's points a different shape per group", 
+        depends_on = c("resultspace.sample_general.attr4.shape_analysis", 
+        "resultspace.sample_general.attr4.shape_subset"), agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.attr4.size_analysis", 
+        kind = "select", label = "Size attribute category", help = "First level of the size attribute cascade (annotation category) to scale the figure's point size by a numeric column", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.size_subset", 
+        kind = "select", label = "Size attribute subcategory", 
+        help = "Second level of the size attribute cascade to scale the figure's point size by a numeric column", 
+        depends_on = "resultspace.sample_general.attr4.size_analysis", 
+        agent_writable = TRUE), list(id = "resultspace.sample_general.attr4.size_variable", 
+        kind = "select_cascaded", label = "Size attribute variable", 
+        help = "Annotation variable to scale the figure's point size by a numeric column", 
+        depends_on = c("resultspace.sample_general.attr4.size_analysis", 
+        "resultspace.sample_general.attr4.size_subset"), agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.attr4.tooltip_analysis", 
+        kind = "select", label = "Tooltips attribute category", 
+        help = "First level of the tooltips attribute cascade (annotation category) shown in the figure's hover tooltip", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.tooltip_subset", 
+        kind = "select", label = "Tooltips attribute subcategory", 
+        help = "Second level of the tooltips attribute cascade shown in the figure's hover tooltip", 
+        depends_on = "resultspace.sample_general.attr4.tooltip_analysis", 
+        agent_writable = TRUE), list(id = "resultspace.sample_general.attr4.tooltip_variable", 
+        kind = "select_cascaded", label = "Tooltips attribute variable", 
+        help = "Annotation variable shown in the figure's hover tooltip", 
+        depends_on = c("resultspace.sample_general.attr4.tooltip_analysis", 
+        "resultspace.sample_general.attr4.tooltip_subset"), agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.attr4.search_analysis", 
+        kind = "select", label = "Search attribute category", 
+        help = "First level of the search attribute cascade (annotation category) whose values the gene highlight picker circles as open-ring markers on the figure", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.search_subset", 
+        kind = "select", label = "Search attribute subcategory", 
+        help = "Second level of the search attribute cascade whose values the gene highlight picker circles as open-ring markers on the figure", 
+        depends_on = "resultspace.sample_general.attr4.search_analysis", 
+        agent_writable = TRUE), list(id = "resultspace.sample_general.attr4.search_variable", 
+        kind = "select_cascaded", label = "Search attribute variable", 
+        help = "Annotation variable whose values the gene highlight picker circles as open-ring markers on the figure", 
+        depends_on = c("resultspace.sample_general.attr4.search_analysis", 
+        "resultspace.sample_general.attr4.search_subset"), agent_writable = TRUE), 
+    list(id = "resultspace.sample_general.attr4.search_value", 
+        kind = "multi_select", label = "Search highlight values", 
+        help = "Gene name or other value of the selected Search column to draw as open-ring highlights on the figure; set the Search column first; empty clears the highlight", 
+        depends_on = "resultspace.sample_general.attr4.search_variable", 
+        agent_writable = TRUE), list(id = "resultspace.sample_general.attr4.xcut", 
+        kind = "string", label = "X cutoff", help = "X-axis cutoff for area selection; a number or an R expression such as -log10(0.05)", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.ycut", kind = "string", 
+        label = "Y cutoff", help = "Y-axis cutoff for area selection; a number or an R expression such as log10(2)", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.attr4.scorner", kind = "select", 
+        label = "Selected area", help = "Plot region selected by the cutoffs (corner or volcano mode)", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.survival_censor", kind = "numeric", 
+        label = "Censor time", help = "Time at which the Kaplan-Meier analysis right-censors observations. PRECONDITION: requires a survival-type (Surv) sample variable selected as the x-axis variable - the censor slider exists only in the survival view; a write that lands before the view renders is applied when it does", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.batch_show_phenotype", 
+        kind = "boolean", label = "Compare phenotype variables", 
+        help = "Test all phenotype variables between selected and unselected samples", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.batch_show_features", 
+        kind = "boolean", label = "Compare features", help = "Test all molecular features between selected and unselected samples", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.batch_phenotype_selected_row", 
+        kind = "select", label = "Selected phenotype variable", 
+        help = "Phenotype-comparison row selected in the batch results table; drives the sample link. PRECONDITION: requires the Compare-phenotype toggle on, a sample selection defining two groups, and the batch panel visible - the comparison computes only then, and the row choices are its computed rows", 
+        depends_on = character(0), agent_writable = TRUE), list(
+        id = "resultspace.sample_general.batch_feature_selected_row", 
+        kind = "select", label = "Selected feature", help = "Feature-comparison row selected in the batch results table; drives the sample link. PRECONDITION: requires the Compare-features toggle on, a sample selection defining two groups, and the batch panel visible - the comparison computes only then, and the row choices are its computed rows", 
+        depends_on = character(0), agent_writable = TRUE))
+PANEL_W8_SG_GOLDEN_COLD <- list(resultspace.sample_general.xax_analysis = NULL, resultspace.sample_general.xax_subset = NULL, 
+    resultspace.sample_general.xax_variable = NULL, resultspace.sample_general.attr4.color_analysis = NULL, 
+    resultspace.sample_general.attr4.color_subset = NULL, resultspace.sample_general.attr4.color_variable = NULL, 
+    resultspace.sample_general.attr4.shape_analysis = NULL, resultspace.sample_general.attr4.shape_subset = NULL, 
+    resultspace.sample_general.attr4.shape_variable = NULL, resultspace.sample_general.attr4.size_analysis = NULL, 
+    resultspace.sample_general.attr4.size_subset = NULL, resultspace.sample_general.attr4.size_variable = NULL, 
+    resultspace.sample_general.attr4.tooltip_analysis = NULL, 
+    resultspace.sample_general.attr4.tooltip_subset = NULL, resultspace.sample_general.attr4.tooltip_variable = NULL, 
+    resultspace.sample_general.attr4.search_analysis = NULL, 
+    resultspace.sample_general.attr4.search_subset = NULL, resultspace.sample_general.attr4.search_variable = NULL, 
+    resultspace.sample_general.attr4.search_value = character(0), 
+    resultspace.sample_general.attr4.xcut = NULL, resultspace.sample_general.attr4.ycut = NULL, 
+    resultspace.sample_general.attr4.scorner = "None", resultspace.sample_general.survival_censor = NULL, 
+    resultspace.sample_general.batch_show_phenotype = NULL, resultspace.sample_general.batch_show_features = NULL, 
+    resultspace.sample_general.batch_phenotype_selected_row = NULL, 
+    resultspace.sample_general.batch_feature_selected_row = NULL)
+PANEL_W8_SG_GOLDEN_RET <- list(xax = NULL, attr4 = list(selectColor = NULL, selectShape = NULL, 
+    selectSize = NULL, selectTooltip = NULL, searchOnCol = NULL, 
+    searchValue = NULL, xcut = NULL, ycut = NULL, acorner = NULL))
+PANEL_W8_SG_GOLDEN_PICK_VALS <- list(resultspace.sample_general.xax_analysis = "Surv", resultspace.sample_general.xax_subset = "All", 
+    resultspace.sample_general.xax_variable = "time", resultspace.sample_general.attr4.color_analysis = NULL, 
+    resultspace.sample_general.attr4.color_subset = NULL, resultspace.sample_general.attr4.color_variable = NULL, 
+    resultspace.sample_general.attr4.shape_analysis = NULL, resultspace.sample_general.attr4.shape_subset = NULL, 
+    resultspace.sample_general.attr4.shape_variable = NULL, resultspace.sample_general.attr4.size_analysis = NULL, 
+    resultspace.sample_general.attr4.size_subset = NULL, resultspace.sample_general.attr4.size_variable = NULL, 
+    resultspace.sample_general.attr4.tooltip_analysis = NULL, 
+    resultspace.sample_general.attr4.tooltip_subset = NULL, resultspace.sample_general.attr4.tooltip_variable = NULL, 
+    resultspace.sample_general.attr4.search_analysis = NULL, 
+    resultspace.sample_general.attr4.search_subset = NULL, resultspace.sample_general.attr4.search_variable = NULL, 
+    resultspace.sample_general.attr4.search_value = character(0), 
+    resultspace.sample_general.attr4.xcut = NULL, resultspace.sample_general.attr4.ycut = NULL, 
+    resultspace.sample_general.attr4.scorner = "None", resultspace.sample_general.survival_censor = NULL, 
+    resultspace.sample_general.batch_show_phenotype = NULL, resultspace.sample_general.batch_show_features = NULL, 
+    resultspace.sample_general.batch_phenotype_selected_row = NULL, 
+    resultspace.sample_general.batch_feature_selected_row = NULL)
+PANEL_W8_SG_GOLDEN_PICK_RET <- list(xax = list(analysis = "Surv", subset = "All", variable = "time"), 
+    attr4 = list(selectColor = NULL, selectShape = NULL, selectSize = NULL, 
+        selectTooltip = NULL, searchOnCol = NULL, searchValue = NULL, 
+        xcut = NULL, ycut = NULL, acorner = NULL))
+PANEL_W8_SG_GOLDEN_PICK_CH <- list(resultspace.sample_general.xax_analysis = c("General", "Surv", 
+"Feature"), resultspace.sample_general.xax_subset = "All", resultspace.sample_general.xax_variable = "time")
+PANEL_W8_SG_GOLDEN_RESTORE_VALS <- list(resultspace.sample_general.xax_analysis = "Surv", resultspace.sample_general.xax_subset = "All", 
+    resultspace.sample_general.xax_variable = "time", resultspace.sample_general.attr4.color_analysis = NULL, 
+    resultspace.sample_general.attr4.color_subset = NULL, resultspace.sample_general.attr4.color_variable = NULL, 
+    resultspace.sample_general.attr4.shape_analysis = NULL, resultspace.sample_general.attr4.shape_subset = NULL, 
+    resultspace.sample_general.attr4.shape_variable = NULL, resultspace.sample_general.attr4.size_analysis = NULL, 
+    resultspace.sample_general.attr4.size_subset = NULL, resultspace.sample_general.attr4.size_variable = NULL, 
+    resultspace.sample_general.attr4.tooltip_analysis = NULL, 
+    resultspace.sample_general.attr4.tooltip_subset = NULL, resultspace.sample_general.attr4.tooltip_variable = NULL, 
+    resultspace.sample_general.attr4.search_analysis = NULL, 
+    resultspace.sample_general.attr4.search_subset = NULL, resultspace.sample_general.attr4.search_variable = NULL, 
+    resultspace.sample_general.attr4.search_value = character(0), 
+    resultspace.sample_general.attr4.xcut = NULL, resultspace.sample_general.attr4.ycut = NULL, 
+    resultspace.sample_general.attr4.scorner = "None", resultspace.sample_general.survival_censor = NULL, 
+    resultspace.sample_general.batch_show_phenotype = NULL, resultspace.sample_general.batch_show_features = NULL, 
+    resultspace.sample_general.batch_phenotype_selected_row = NULL, 
+    resultspace.sample_general.batch_feature_selected_row = NULL)
+PANEL_W8_SG_GOLDEN_RESTORE_RET <- list(xax = NULL, attr4 = list(selectColor = NULL, selectShape = NULL, 
+    selectSize = NULL, selectTooltip = NULL, searchOnCol = NULL, 
+    searchValue = NULL, xcut = NULL, ycut = NULL, acorner = NULL))
+PANEL_W8_SG_GOLDEN_UNSET_VALS <- list(resultspace.sample_general.xax_analysis = "General", resultspace.sample_general.xax_subset = "All", 
+    resultspace.sample_general.xax_variable = "--select--")
+PANEL_W8_SG_DEMO_OWN_VIEW <- list(list(id = "resultspace.sample_general.xax_analysis", kind = "select", 
+    label = "Link variable category", help = "Annotation category of the variable the selected samples are analyzed against", 
+    depends_on = character(0), min = NULL, max = NULL, allowed_values = c("General", 
+    "PCA", "Surv", "Feature")), list(id = "resultspace.sample_general.xax_subset", 
+    kind = "select", label = "Link variable subcategory", help = "Subcategory within the link-variable category", 
+    depends_on = "resultspace.sample_general.xax_analysis", min = NULL, 
+    max = NULL, allowed_values = character(0)), list(id = "resultspace.sample_general.xax_variable", 
+    kind = "select_cascaded", label = "Link variable", help = "Variable driving the analysis view: numeric gives a beeswarm, categorical a contingency table, Surv a Kaplan-Meier curve", 
+    depends_on = c("resultspace.sample_general.xax_analysis", 
+    "resultspace.sample_general.xax_subset"), min = NULL, max = NULL, 
+    allowed_values = c("Cell.line", "MDR", "Doubleing.Time", 
+    "Origin", "TP53.Status", "Gender", "numberOfFeatures", "PC1(10.5%)", 
+    "PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", "PC5(3.6%)", "PC6(2.9%)", 
+    "PC7(2.8%)", "PC8(2.5%)", "OS", "DFS", "Dose", "Curve", "X32.TYW5", 
+    "X52.CNOT1", "X55.MAP1LC3B.MAP1LC3B2", "X73.METTL15", "X107.ESPN", 
+    "X120.WASH3P.WASH2P.WASH1", "X266.KIF2A", "X267.KIF2A", "X269.DDX39A", 
+    "X273.ACOT7", "X274.MYO1C", "X276.MYO1F", "X279.HAX1", "X283.STXBP3", 
+    "X288.AP3B1", "X290.APBB1", "X291.LGALS8", "X294.NFKBIE", 
+    "X295.PSMD11", "X296.PSMD12", "X297.PSMD9", "X298.ATOX1", 
+    "X299.MEN1", "X302.SUPT5H", "X308.HIP1", "X311.WWP2", "X312.CDC7", 
+    "X313.PIK3CD", "X318.DCTN6", "X320.WASL", "X321.IPO5")))
+PANEL_W8_SG_DEMO_OWN_COLD <- list(resultspace.sample_general.xax_analysis = NULL, resultspace.sample_general.xax_subset = NULL, 
+    resultspace.sample_general.xax_variable = NULL)
+PANEL_W8_SG_DEMO_RET <- list(xax = NULL, attr4 = list(selectColor = NULL, selectShape = NULL, 
+    selectSize = NULL, selectTooltip = NULL, searchOnCol = NULL, 
+    searchValue = NULL, xcut = NULL, ycut = NULL, acorner = NULL))
+PANEL_W8_SG_DEMO_PICK_VALS <- list(resultspace.sample_general.xax_analysis = "Surv", resultspace.sample_general.xax_subset = "all", 
+    resultspace.sample_general.xax_variable = "OS")
+PANEL_W8_SG_DEMO_PICK_RET <- list(xax = list(analysis = "Surv", subset = "all", variable = "OS"), 
+    attr4 = list(selectColor = NULL, selectShape = NULL, selectSize = NULL, 
+        selectTooltip = NULL, searchOnCol = NULL, searchValue = NULL, 
+        xcut = NULL, ycut = NULL, acorner = NULL))
+PANEL_W8_SG_DEMO_PICK_CH <- list(resultspace.sample_general.xax_analysis = c("General", "PCA", 
+"Surv", "Feature"), resultspace.sample_general.xax_subset = "all", 
+    resultspace.sample_general.xax_variable = c("OS", "DFS"))
+PANEL_W8_SG_DEMO_RESTORE_VALS <- list(resultspace.sample_general.xax_analysis = "General", resultspace.sample_general.xax_subset = "All", 
+    resultspace.sample_general.xax_variable = "Cell.line")
+PANEL_W8_SG_TRISET <- list(dim = c(2721L, 3L), analysis_levels = c("General", "PCA", 
+"Surv", "Feature"), surv_rows = structure(c("Surv", "Surv", "all", 
+"all", "OS", "DFS"), dim = 2:3), non_feature_pca_rows = structure(c("General", 
+"General", "General", "General", "General", "General", "General", 
+"Surv", "Surv", "General", "General", "All", "All", "All", "All", 
+"All", "All", "All", "all", "all", "All", "All", "Cell.line", 
+"MDR", "Doubleing.Time", "Origin", "TP53.Status", "Gender", "numberOfFeatures", 
+"OS", "DFS", "Dose", "Curve"), dim = c(11L, 3L)), variable_head50 = c("Cell.line", 
+"MDR", "Doubleing.Time", "Origin", "TP53.Status", "Gender", "numberOfFeatures", 
+"PC1(10.5%)", "PC2(7.2%)", "PC3(5.4%)", "PC4(4.8%)", "PC5(3.6%)", 
+"PC6(2.9%)", "PC7(2.8%)", "PC8(2.5%)", "OS", "DFS", "Dose", "Curve", 
+"X32.TYW5", "X52.CNOT1", "X55.MAP1LC3B.MAP1LC3B2", "X73.METTL15", 
+"X107.ESPN", "X120.WASH3P.WASH2P.WASH1", "X266.KIF2A", "X267.KIF2A", 
+"X269.DDX39A", "X273.ACOT7", "X274.MYO1C", "X276.MYO1F", "X279.HAX1", 
+"X283.STXBP3", "X288.AP3B1", "X290.APBB1", "X291.LGALS8", "X294.NFKBIE", 
+"X295.PSMD11", "X296.PSMD12", "X297.PSMD9", "X298.ATOX1", "X299.MEN1", 
+"X302.SUPT5H", "X308.HIP1", "X311.WWP2", "X312.CDC7", "X313.PIK3CD", 
+"X318.DCTN6", "X320.WASL", "X321.IPO5"))
+PANEL_W8_SG_GOLDEN_L1_NAMES <- c("analyst_active_tab", "analyst_feature_general", "analyst_sample_general", 
+"analyst_gene_shot", "analyst_fgsea", "analyst_ora", "analyst_ptm", 
+"analyst_dose_response", "analyst_additional")
+PANEL_W8_SG_GOLDEN_L1_SG <- list(xax = NULL, attr4 = list(selectColor = NULL, selectShape = NULL, 
+    selectSize = NULL, selectTooltip = NULL, searchOnCol = NULL, 
+    searchValue = NULL, xcut = NULL, ycut = NULL, acorner = NULL))
+
+
+# -------------------------------------------------- boot factories ----
+# synthetic data: the agentWidgets S4 sample shape (group/score pheno
+# columns + a Surv column the cascade must KEEP); seeded for determinism
+# (values never enter the store surface, but pin anyway)
+set.seed(7)
+.w8_pd <- data.frame(
+  `General|All|group` = factor(rep(c("A", "B"), each = 4)),
+  `General|All|score` = rnorm(8),
+  `Surv|All|time` = rexp(8),
+  row.names = paste0("S", 1:8), check.names = FALSE)
+.w8_ex <- matrix(rnorm(16 * 8), nrow = 16,
+                 dimnames = list(paste0("F", 1:16), paste0("S", 1:8)))
+# context-built (the WP-8 L1 call-site shape; holder receives the
+# context so the keep closure is inspectable) and legacy direct
+# (formals only - the pre-WP-8 shape, still supported)
+.w8_mkctx <- function(holder, pd = .w8_pd, ex = .w8_ex,
+                      j = c("S1", "S3"), status_payload = NULL) {
+  force(holder)
+  function(input, output, session) {
+    .pd <- reactive(pd); .ex <- reactive(ex); .jj <- reactive(j)
+    .st <- reactive(status_payload)
+    holder$store <- widget_store_new()
+    holder$child <- widget_store_child(holder$store,
+                                       "resultspace.sample_general")
+    holder$ctx <- panel_context(
+      id = "sample_general", tab_value = "Sample", store = holder$child,
+      data = list(expr = .ex, pdata = .pd),
+      selection = list(sample = .jj),
+      status = .st, session = session)
+    holder$ret <- sample_general_module(
+      "sg", reactive_phenoData = .pd, reactive_expr = .ex,
+      reactive_j = .jj, reactive_status = .st,
+      store = holder$child, context = holder$ctx)
+  }
+}
+# no-context legacy boot (store formal only - the pre-WP-8 shape)
+.w8_boot <- function(env, pd = .w8_pd, ex = .w8_ex,
+                     j = c("S1", "S3"), status_payload = NULL) {
+  force(env)
+  function(input, output, session) {
+    env$store <- widget_store_new()
+    env$child <- widget_store_child(env$store,
+                                    "resultspace.sample_general")
+    env$ret <- sample_general_module(
+      "sg", reactive_phenoData = reactive(pd), reactive_expr = reactive(ex),
+      reactive_j = reactive(j),
+      reactive_status = reactive(status_payload),
+      store = env$child)
+  }
+}
+# store-less legacy boot (no store, no context - the reactiveVal path)
+.w8_mklegacy <- function(pd = .w8_pd, ex = .w8_ex, j = c("S1", "S3"),
+                         status_payload = NULL) {
+  function(input, output, session) {
+    sample_general_module(
+      "sg", reactive_phenoData = reactive(pd), reactive_expr = reactive(ex),
+      reactive_j = reactive(j), reactive_status = reactive(status_payload))
+  }
+}
+.w8_meta <- function(store) {
+  lapply(grep("^resultspace\\.sample_general(\\.|$)", names(store$bindings),
+              value = TRUE),
+         function(k) {
+           b <- store$bindings[[k]]
+           list(id = k, kind = b$kind, label = b$label, help = b$help,
+                depends_on = b$depends_on, agent_writable = b$agent_writable)
+         })
+}
+.w8_TRIO <- paste0("resultspace.sample_general.",
+                   c("xax_analysis", "xax_subset", "xax_variable"))
+
+# ------------------- registration: context boot = the frozen golden ----
+w8 <- new.env()
+w8_err <- NULL; w8_view <- NULL; w8_meta <- NULL
+shiny::testServer(.w8_mkctx(w8), {
+  w8_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  # registry view INSIDE the session (WP-3 lore: choices providers read
+  # live reactives; outside a reactive context they degrade to empty)
+  w8_view <<- store_registry_view(w8$store, "resultspace.sample_general")
+  w8_meta <<- .w8_meta(w8$store)
+})
+ok(is.null(w8_err),
+   "WP-8 sg: module boots headless context-built (the new L1 call-site shape)")
+ok(ut_cmp_identical(sort(vapply(w8_view, function(r) r$id, "")),
+                    PANEL_W8_SG_IDS),
+   "WP-8 sg: exactly the 27 frozen bindings register (3 own + 19 attr4 + 1 survival + 4 batch through the child store; D12 untouched)")
+ok(ut_cmp_identical(w8_view, PANEL_W8_SG_GOLDEN_VIEW),
+   "WP-8 sg: registry view byte-identical to the frozen pre-migration golden (registration order preserved: xax trio, attr4, survival_censor, batch)")
+ok(ut_cmp_identical(w8_meta, PANEL_W8_SG_GOLDEN_META),
+   "WP-8 sg: raw binding meta byte-identical incl. agent_writable TRUE x27 (survival_censor + batch_* ride this child store)")
+
+# ------------------- cold values + module return (context boot) ----
+w8c <- new.env()
+w8c_err <- NULL; w8c_cold <- NULL; w8c_ret <- NULL
+shiny::testServer(.w8_mkctx(w8c), {
+  w8c_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w8c_cold <<- store_read(w8c$store)
+  w8c_ret <<- tryCatch(shiny::isolate(w8c$ret()), error = function(e) NULL)
+})
+ok(is.null(w8c_err), "WP-8 sg: cold-boot capture stays alive")
+ok(ut_cmp_identical(w8c_cold, PANEL_W8_SG_GOLDEN_COLD),
+   "WP-8 sg: cold store values byte-identical (cascade unset; attr4 search_value/scorner defaults; survival + batch NULL)")
+ok(ut_cmp_identical(w8c_ret, PANEL_W8_SG_GOLDEN_RET),
+   "WP-8 sg: module return (the analyst_sample_general payload source) byte-identical in a cold boot")
+
+# ------------------- legacy boot registers identically (D13) ----
+w8l <- new.env()
+w8l_err <- NULL; w8l_view <- NULL; w8l_meta <- NULL; w8l_cold <- NULL
+shiny::testServer(.w8_boot(w8l), {
+  w8l_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w8l_view <<- store_registry_view(w8l$store, "resultspace.sample_general")
+  w8l_meta <<- .w8_meta(w8l$store)
+  w8l_cold <<- store_read(w8l$store)
+})
+ok(is.null(w8l_err),
+   "WP-8 sg: legacy direct instantiation (store formal only, no context) still boots")
+ok(ut_cmp_identical(w8l_view, PANEL_W8_SG_GOLDEN_VIEW) &&
+   ut_cmp_identical(w8l_meta, PANEL_W8_SG_GOLDEN_META) &&
+   ut_cmp_identical(w8l_cold, PANEL_W8_SG_GOLDEN_COLD),
+   "WP-8 sg: legacy store boot registers and seeds byte-identically to the golden (both boot paths agree)")
+ok(ut_cmp_identical(w8l_view, w8_view),
+   "WP-8 sg: context boot and legacy boot register identically (D13 argument coalescing)")
+
+# ------------------- cascade user picks + choices (synthetic) ----
+w8p <- new.env()
+w8p_err <- NULL; w8p_vals <- NULL; w8p_ret <- NULL; w8p_ch <- NULL
+shiny::testServer(.w8_mkctx(w8p), {
+  w8p_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
+  session$flushReact()
+  session$setInputs(`sg-tris_sample_general-subset` = "All")
+  session$flushReact()
+  session$setInputs(`sg-tris_sample_general-variable` = "time")
+  session$flushReact(); session$flushReact()
+  w8p_vals <<- store_read(w8p$store)
+  w8p_ret <<- tryCatch(shiny::isolate(w8p$ret()), error = function(e) NULL)
+  v <- store_registry_view(w8p$store, "resultspace.sample_general")
+  w8p_ch <<- stats::setNames(
+    lapply(v[match(.w8_TRIO, vapply(v, function(r) r$id, ""))],
+           `[[`, "allowed_values"), .w8_TRIO)
+})
+ok(is.null(w8p_err), "WP-8 sg: user-pick boot stays alive")
+ok(ut_cmp_identical(w8p_vals, PANEL_W8_SG_GOLDEN_PICK_VALS),
+   "WP-8 sg: user Surv|All|time pick reproduces the frozen store values (27 keys, byte-identical)")
+ok(ut_cmp_identical(w8p_ret, PANEL_W8_SG_GOLDEN_PICK_RET),
+   "WP-8 sg: module return reports the settled Surv triple (analyst_sample_general payload content)")
+ok(ut_cmp_identical(w8p_ch, PANEL_W8_SG_GOLDEN_PICK_CH),
+   "WP-8 sg: cascade choices stay state-dependent (subset narrows to All, variable to time)")
+ok("Surv" %in% PANEL_W8_SG_GOLDEN_VIEW[[1]]$allowed_values &&
+   !("Surv" %in% PANEL_W7_FG_GOLDEN_VIEW[[1]]$allowed_values),
+   "WP-8 sg: KEEPING-Surv is the panel's signature - the analysis level list carries Surv where feature-general's frozen golden excludes it (deliberate opposites)")
+
+# ------------------- demo-data boot (the L1 data shape) ----
+w8d <- new.env()
+w8d_err <- NULL; w8d_view <- NULL; w8d_cold <- NULL; w8d_ret <- NULL
+shiny::testServer(.w8_boot(
+  w8d, pd = Biobase::pData(dat), ex = Biobase::exprs(dat),
+  j = colnames(Biobase::exprs(dat))[1]), {
+  w8d_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  v <- store_registry_view(w8d$store, "resultspace.sample_general")
+  vids <- vapply(v, function(r) r$id, "")
+  w8d_view <<- v[match(.w8_TRIO, vids)]
+  w8d_cold <<- store_read(w8d$store)[.w8_TRIO]
+  w8d_ret <<- tryCatch(shiny::isolate(w8d$ret()), error = function(e) NULL)
+})
+ok(is.null(w8d_err), "WP-8 sg: demo-data boot stays alive")
+ok(ut_cmp_identical(w8d_ret, PANEL_W8_SG_DEMO_RET),
+   "WP-8 sg: demo module return byte-identical in a cold boot")
+ok(ut_cmp_identical(w8d_view, PANEL_W8_SG_DEMO_OWN_VIEW),
+   "WP-8 sg: demo own-binding registry view byte-identical (General/PCA/Surv/Feature analysis levels; head-50 variable order)")
+ok(ut_cmp_identical(w8d_cold, PANEL_W8_SG_DEMO_OWN_COLD),
+   "WP-8 sg: demo own-binding cold values byte-identical")
+
+# demo user pick: Surv | all | OS (the Kaplan-Meier signature pick)
+w8dp <- new.env()
+w8dp_err <- NULL; w8dp_vals <- NULL; w8dp_ret <- NULL; w8dp_ch <- NULL
+shiny::testServer(.w8_boot(
+  w8dp, pd = Biobase::pData(dat), ex = Biobase::exprs(dat),
+  j = colnames(Biobase::exprs(dat))[1]), {
+  w8dp_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
+  session$flushReact()
+  session$setInputs(`sg-tris_sample_general-subset` = "all")
+  session$flushReact()
+  session$setInputs(`sg-tris_sample_general-variable` = "OS")
+  session$flushReact(); session$flushReact()
+  w8dp_vals <<- store_read(w8dp$store)[.w8_TRIO]
+  w8dp_ret <<- tryCatch(shiny::isolate(w8dp$ret()), error = function(e) NULL)
+  v <- store_registry_view(w8dp$store, "resultspace.sample_general")
+  vids <- vapply(v, function(r) r$id, "")
+  w8dp_ch <<- stats::setNames(
+    lapply(v[match(.w8_TRIO, vids)], `[[`, "allowed_values"), .w8_TRIO)
+})
+ok(is.null(w8dp_err), "WP-8 sg: demo user-pick boot stays alive")
+ok(ut_cmp_identical(w8dp_vals, PANEL_W8_SG_DEMO_PICK_VALS),
+   "WP-8 sg: demo Surv|all|OS pick reproduces the frozen store values")
+ok(ut_cmp_identical(w8dp_ret, PANEL_W8_SG_DEMO_PICK_RET),
+   "WP-8 sg: demo module return reports the settled Surv triple")
+ok(ut_cmp_identical(w8dp_ch, PANEL_W8_SG_DEMO_PICK_CH),
+   "WP-8 sg: demo cascade choices stay state-dependent (variable narrows to OS/DFS - the two demo survival variables)")
+
+# ------------------- legacy status restore paths ----
+# the Surv triple re-applies through .sg_apply_triple(origin="restore")
+w8r <- new.env()
+w8r_err <- NULL; w8r_vals <- NULL; w8r_ret <- NULL
+shiny::testServer(.w8_boot(w8r, status_payload = list(
+  xax = c("Surv", "All", "time"))), {
+  w8r_err <<- tryCatch({
+    for (i in 1:6) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w8r_vals <<- store_read(w8r$store)
+  w8r_ret <<- tryCatch(shiny::isolate(w8r$ret()), error = function(e) NULL)
+})
+ok(is.null(w8r_err),
+   "WP-8 sg: boot with a legacy analyst_sample_general payload stays alive")
+ok(ut_cmp_identical(w8r_vals, PANEL_W8_SG_GOLDEN_RESTORE_VALS),
+   "WP-8 sg: the legacy restore path re-applies the Surv triple through the store (27 keys byte-identical)")
+ok(ut_cmp_identical(w8r_ret, PANEL_W8_SG_GOLDEN_RESTORE_RET),
+   "WP-8 sg: module return stays cold after a restore-only boot (the triple lands in the store; v1 has not been user-driven)")
+
+# a saved triple with an UNSET variable pushes the canonical unset
+w8u <- new.env()
+w8u_err <- NULL; w8u_vals <- NULL
+shiny::testServer(.w8_boot(w8u, status_payload = list(
+  xax = list("General", "All", NULL))), {
+  w8u_err <<- tryCatch({
+    for (i in 1:6) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w8u_vals <<- store_read(w8u$store)[.w8_TRIO]
+})
+ok(is.null(w8u_err), "WP-8 sg: unset-variable restore boot stays alive")
+ok(ut_cmp_identical(w8u_vals, PANEL_W8_SG_GOLDEN_UNSET_VALS),
+   "WP-8 sg: an unset saved variable pushes the canonical unset --select-- (todo 2.3 semantics preserved)")
+
+# demo restore triple
+w8dr <- new.env()
+w8dr_err <- NULL; w8dr_vals <- NULL
+shiny::testServer(.w8_boot(
+  w8dr, pd = Biobase::pData(dat), ex = Biobase::exprs(dat),
+  j = colnames(Biobase::exprs(dat))[1],
+  status_payload = list(xax = c("General", "All", "Cell.line"))), {
+  w8dr_err <<- tryCatch({
+    for (i in 1:6) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w8dr_vals <<- store_read(w8dr$store)[.w8_TRIO]
+})
+ok(is.null(w8dr_err), "WP-8 sg: demo restore boot stays alive")
+ok(ut_cmp_identical(w8dr_vals, PANEL_W8_SG_DEMO_RESTORE_VALS),
+   "WP-8 sg: the demo restore triple re-applies byte-identically (General|All|Cell.line)")
+
+# ------------------- the triset derivation (KEEPING Surv) ----
+ts_full8 <- trisetter(expr = Biobase::exprs(dat), meta = Biobase::pData(dat),
+                      combine = "pheno")
+ok(ut_cmp_identical(list(dim = dim(ts_full8),
+                         analysis_levels = unique(ts_full8[, 1]),
+                         non_feature_pca_rows =
+                           ts_full8[!ts_full8[, 1] %in% c("Feature", "PCA"), , drop = FALSE]),
+                    list(dim = PANEL_W8_SG_TRISET$dim,
+                         analysis_levels = PANEL_W8_SG_TRISET$analysis_levels,
+                         non_feature_pca_rows = PANEL_W8_SG_TRISET$non_feature_pca_rows)),
+   "WP-8 sg: the cascade triset source over demo pdata = trisetter(combine=pheno) KEEPING Surv (2721x3; General/PCA/Surv/Feature; the 11 pheno rows)")
+ok(ut_cmp_identical(PANEL_W8_SG_TRISET$surv_rows,
+                    PANEL_W7_FG_TRISET$surv_rows_in_full) &&
+   ut_cmp_identical(PANEL_W8_SG_TRISET$dim - PANEL_W7_FG_TRISET$dim, c(2L, 0L)) &&
+   ut_cmp_identical(PANEL_W8_SG_TRISET$variable_head50[1:15],
+                    PANEL_W7_FG_TRISET$variable_head50[1:15]) &&
+   ut_cmp_identical(setdiff(PANEL_W8_SG_TRISET$variable_head50,
+                            PANEL_W7_FG_TRISET$variable_head50),
+                    c("OS", "DFS")),
+   "WP-8 sg: cross-panel contrast - the same 2 Surv rows feature-general excluded (2719) are exactly the delta here (2721); the shared variable order agrees through PC8(2.5%) and diverges only by OS/DFS entering at positions 16-17")
+
+# ------------------- retention (D3 unification) ----
+# structural (deterministic, WP-0 MINOR-2 pattern): the module's ONE
+# panel_keep closure holds the helper's bind-sync observer and the
+# view-type carrier observer (previously the SPLIT .sg_view_keep list);
+# the beeswarm htest observer keeps its own module-local list (out of
+# the plan's unification scope), and the survival/batch/attr4
+# submodules own their retention internally (untouched). Functional
+# (retention direction, PD-8): after gc() x2 a user Surv pick still
+# reaches the store.
+w8k <- new.env()
+w8k_err <- NULL; w8k_nobs <- NULL; w8k_vals <- NULL
+shiny::testServer(.w8_mkctx(w8k), {
+  w8k_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  obs <- get("obs", envir = environment(w8k$ctx$keep))
+  w8k_nobs <<- length(obs)
+  gc(); gc()
+  session$setInputs(`sg-tris_sample_general-analysis` = "Surv")
+  session$flushReact()
+  session$setInputs(`sg-tris_sample_general-subset` = "All")
+  session$flushReact()
+  session$setInputs(`sg-tris_sample_general-variable` = "time")
+  session$flushReact(); session$flushReact()
+  w8k_vals <<- store_read(w8k$child)[.w8_TRIO]
+})
+ok(is.null(w8k_err), "WP-8 sg: retention boot stays alive")
+ok(ut_cmp_identical(w8k_nobs, 2L),
+   "WP-8 sg: exactly the bind-sync + view-type observers land in ONE panel_keep list (D3 unification of .sg_keep + .sg_view_keep; htest stays module-local)")
+ok(ut_cmp_identical(
+  unname(unlist(w8k_vals)),
+  c("Surv", "All", "time")),
+   "WP-8 sg: the kept bind observer still fires after gc() x2 (the Surv cascade pick reaches the store)")
+
+# ------------------- submodule bindings riding the store ----
+# the survival submodule registers survival_censor through THIS panel's
+# child store (store formal wiring verbatim); the batch comparison
+# module the four batch_* keys - all pinned by the goldens above; these
+# spot-checks make the group explicit
+w8sv <- Filter(function(r) identical(r$id, "resultspace.sample_general.survival_censor"),
+               PANEL_W8_SG_GOLDEN_VIEW)[[1]]
+ok(ut_cmp_identical(w8sv$kind, "numeric") &&
+   ut_cmp_identical(w8sv$label, "Censor time") &&
+   ut_cmp_identical(w8sv$allowed_values, NULL),
+   "WP-8 sg: the survival submodule's censor slider rides this child store (kind numeric, open bounds, agent-writable)")
+ok(ut_cmp_identical(
+  unname(vapply(Filter(function(r) grepl("\\.batch_", r$id),
+                        PANEL_W8_SG_GOLDEN_VIEW),
+                function(r) r$kind, "")),
+  c("boolean", "boolean", "select", "select")),
+   "WP-8 sg: the batch comparison module's two switches + two selected-row bindings ride this child store")
+
+# ------------------- the store-less legacy branch stays alive ----
+w8n_err <- NULL
+shiny::testServer(.w8_mklegacy(), {
+  w8n_err <<- tryCatch({
+    session$flushReact(); session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+})
+ok(is.null(w8n_err),
+   "WP-8 sg: the no-store legacy branch (reactiveVal cascade path) still boots")
+
+# ------------------- app level: the REAL L1 composition ----
+w8l1 <- new.env()
+w8l1$store <- widget_store_new()
+app_w8l1 <- function(input, output, session) {
+  w8l1$status <- omicsViewer:::L1_result_space_module(
+    "rs",
+    reactive_expr = reactive(Biobase::exprs(dat)),
+    reactive_phenoData = reactive(Biobase::pData(dat)),
+    reactive_featureData = reactive(fd0),
+    status = reactive(NULL),
+    store = w8l1$store)
+}
+w8l1_err <- NULL; w8l1_payload <- NULL
+shiny::testServer(app_w8l1, {
+  w8l1_err <<- tryCatch({
+    for (i in 1:3) session$flushReact()
+    NULL
+  }, error = function(e) conditionMessage(e))
+  w8l1_payload <<- tryCatch(shiny::isolate(w8l1$status()),
+                            error = function(e) conditionMessage(e))
+})
+ok(is.null(w8l1_err),
+   "WP-8 sg: the real L1 composition boots headless post-migration (context built at the call site)")
+ok(ut_cmp_identical(names(w8l1_payload), PANEL_W8_SG_GOLDEN_L1_NAMES),
+   "WP-8 sg: L1 status payload keeps its exact key order (snapshot schema untouched)")
+ok(ut_cmp_identical(w8l1_payload$analyst_sample_general,
+                    PANEL_W8_SG_GOLDEN_L1_SG),
+   "WP-8 sg: analyst_sample_general payload byte-identical pre/post migration (cold boot: xax NULL, attr4 nine-field NULL shape)")
+ok(ut_cmp_identical(
+  sort(intersect(vapply(store_registry_view(w8l1$store), function(r) r$id, ""),
+                 PANEL_W8_SG_IDS)),
+  PANEL_W8_SG_IDS),
+   "WP-8 sg: the real L1 boot carries all 27 sample_general keys (the D12 freeze above pins the full 72-id vector)")
+
 ## ------------------- WP-2: additionalTabs entry validation (P8) ----
 # panel_validate_additional_tabs checks EXACTLY the 5 fields the two L1
 # loops and the L0 availability read (tabName/moduleName non-empty scalar
