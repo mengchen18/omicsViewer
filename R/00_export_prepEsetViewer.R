@@ -54,8 +54,10 @@
 #' @param SummarizedExperiment Logical. If TRUE, returns a \code{SummarizedExperiment} object;
 #'   if FALSE, returns an \code{ExpressionSet}. Default: TRUE.
 #' @param volcano.categories Character vector of analysis category names whose
-#'   \code{<category>|<contrast>|mean.diff} columns (paired with \code{log.fdr}
-#'   or \code{log.pvalue}) form a volcano view. These categories drive the
+#'   columns (an effect-size x variable such as \code{mean.diff}, \code{logFC}
+#'   or \code{log2FoldChange}, paired with a significance y variable such as
+#'   \code{log.fdr}, \code{log.pvalue} or \code{log.padj}) form a volcano
+#'   view. These categories drive the
 #'   default feature-space axes, the auto-detected volcano quick views and the
 #'   volcano corner auto-selection in the app. Default (since 2.1.85): the
 #'   DE analysis family \code{c("ttest", "DE", "DESeq", "DESeq2", "t-test", "limma")}.
@@ -334,9 +336,9 @@ prepOmicsViewer <- function(
       anyNA(volcano.categories) || any(!nzchar(volcano.categories)))
     stop("volcano.categories must be a character vector of non-empty category names")
   attr(fData, "volcanoCategories") <- volcano.categories
-  vcand <- volcano_x_candidates(fData)
-  fx1 <- if (is.null(vcand)) character(0) else vcand$x
-  fy1 <- intersect(colnames(fData), sub("mean.diff$", "log.fdr", fx1))
+  vpairs <- volcano_pair_candidates(fData)
+  fx1 <- if (is.null(vpairs)) character(0) else vpairs$x
+  fy1 <- if (is.null(vpairs)) character(0) else vpairs$y
   fx2 <- grep("PCA\\|All\\|PC1\\(", colnames(fData), value = TRUE)
   fy2 <- grep("PCA\\|All\\|PC2\\(", colnames(fData), value = TRUE)
   px <- grep("PCA\\|All\\|PC1\\(", colnames(pData), value = TRUE)

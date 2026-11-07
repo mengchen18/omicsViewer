@@ -87,8 +87,10 @@ NULL = no survival analysis.}
 if FALSE, returns an \code{ExpressionSet}. Default: TRUE.}
 
 \item{volcano.categories}{Character vector of analysis category names whose
-\code{<category>|<contrast>|mean.diff} columns (paired with \code{log.fdr}
-or \code{log.pvalue}) form a volcano view. These categories drive the
+columns (an effect-size x variable such as \code{mean.diff}, \code{logFC}
+or \code{log2FoldChange}, paired with a significance y variable such as
+\code{log.fdr}, \code{log.pvalue} or \code{log.padj}) form a volcano
+view. These categories drive the
 default feature-space axes, the auto-detected volcano quick views and the
 volcano corner auto-selection in the app. Default (since 2.1.85): the
 DE analysis family \code{c("ttest", "DE", "DESeq", "DESeq2", "t-test", "limma")}.

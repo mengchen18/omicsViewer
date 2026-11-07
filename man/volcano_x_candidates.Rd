@@ -11,11 +11,15 @@ volcano_x_candidates(meta)
 }
 \value{
 A data.frame with columns \code{x} (column name), \code{category},
-  \code{contrast} - in column order - or NULL when nothing matches.
+\code{contrast}, \code{variable} and \code{priority} (token priority,
+lower first; ties keep column order) - or NULL when nothing matches.
 }
 \description{
-Columns of the form \code{<category>|<contrast>|mean.diff} where
-\code{<category>} is recognized by \code{\link{volcano_analyses}}.
+Columns of the form \code{<category>|<contrast>|<variable>} where
+\code{<category>} is recognized by \code{\link{volcano_analyses}} and
+\code{<variable>} is an effect-size token from
+\code{VOLCANO_DEFAULT_X_VARIABLES} (\code{mean.diff}, \code{logFC},
+\code{log2FoldChange}, ...; matched case- and separator-insensitively).
 Tokenization mirrors \code{\link{trisetter}} (split on the first two
 pipes), so a contrast containing \code{|} stays intact.
 }

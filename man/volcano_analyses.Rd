@@ -23,5 +23,14 @@ and can be overridden per dataset through the
 \code{"volcanoCategories"} feature-data attribute, written by
 \code{\link{prepOmicsViewer}}'s \code{volcano.categories} argument.
 Invalid/missing attribute values fall back to the default set.
+
+The x/y axis VARIABLES are recognized the same way through
+\code{VOLCANO_DEFAULT_X_VARIABLES} (effect size: \code{mean.diff},
+\code{logFC}, \code{log2FoldChange}, ...) and
+\code{VOLCANO_DEFAULT_Y_VARIABLES} (significance: \code{log.fdr},
+\code{log.pvalue}, \code{log.padj}, \code{log.P}, \code{neglog10p}, ...);
+matching is case-insensitive and ignores \code{.}, \code{_} and \code{-}
+separators, so \code{logFC}, \code{log.fc} and \code{Log_FC} are
+equivalent (see \code{\link{is_volcano_x_variable}}).
 }
 \keyword{internal}

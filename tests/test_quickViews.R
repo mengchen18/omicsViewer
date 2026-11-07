@@ -520,3 +520,128 @@ shiny::testServer(quickClickApp, {
     "second quick-view click switches immediately"
   )
 })
+
+# --- Generalized volcano variable tokens (2.1.86+) ---------------------------
+# The volcano x/y variables are recognized case- and separator-insensitively
+# (VOLCANO_DEFAULT_X_VARIABLES / VOLCANO_DEFAULT_Y_VARIABLES), so DESeq2- and
+# limma-style column names (log2FoldChange, logFC, log.padj, log.P, ...) form
+# volcano quick views too. Raw p-scale names (pvalue, padj, FDR, ...) never do.
+
+is_volcano_x_variable <- omicsViewer:::is_volcano_x_variable
+is_volcano_y_variable <- omicsViewer:::is_volcano_y_variable
+volcano_pair_candidates <- omicsViewer:::volcano_pair_candidates
+
+ok(
+  ut_cmp_equal(
+    unname(vapply(
+      c("mean.diff", "logFC", "log2FoldChange", "Log_FC", "log2.fc", "foldChange"),
+      is_volcano_x_variable, logical(1)
+    )),
+    rep(TRUE, 6)
+  ),
+  "is_volcano_x_variable matches effect-size tokens case/separator-insensitively"
+)
+ok(
+  ut_cmp_equal(
+    unname(vapply(
+      c("log.fdr", "log.pvalue", "log.padj", "log.P", "log.Padj", "log.bh.pval",
+        "log.qvalue", "neglog10p", "NegLog10.PAdj"),
+      is_volcano_y_variable, logical(1)
+    )),
+    rep(TRUE, 9)
+  ),
+  "is_volcano_y_variable matches significance tokens case/separator-insensitively"
+)
+ok(
+  ut_cmp_equal(
+    unname(vapply(
+      c("pvalue", "padj", "P.Value", "adj.P.Val", "FDR", "qvalue", "pval", "log", "FC"),
+      function(v) is_volcano_x_variable(v) || is_volcano_y_variable(v), logical(1)
+    )),
+    rep(FALSE, 9)
+  ),
+  "raw p-scale and ambiguous names are not volcano variables"
+)
+
+genCn <- c(
+  "DE|A_vs_B|mean.diff", "DE|A_vs_B|log.padj",
+  "limma|L1_vs_L2|logFC", "limma|L1_vs_L2|log.P",
+  "DESeq2|D_vs_E|log2FoldChange", "DESeq2|D_vs_E|neglog10padj",
+  "DESeq2|F_vs_G|logFC"
+)
+genMeta <- data.frame(
+  setNames(rep(list(1:3), length(genCn)), genCn),
+  check.names = FALSE
+)
+genTriset <- do.call(rbind, strsplit(genCn, "|", fixed = TRUE))
+genViews <- detect_quick_views(genMeta, genTriset)
+ok(
+  ut_cmp_equal(
+    genViews$id,
+    c("volcano_A_vs_B", "volcano_D_vs_E", "volcano_L1_vs_L2")
+  ),
+  "DESeq2/limma-style columns auto-detect as volcano quick views"
+)
+ok(
+  ut_cmp_equal(
+    genViews$y,
+    c("DE|A_vs_B|log.padj", "DESeq2|D_vs_E|neglog10padj", "limma|L1_vs_L2|log.P")
+  ),
+  "volcano y axis accepts log.padj / log.P / neglog10padj"
+)
+ok(
+  ut_cmp_equal(
+    genViews$x,
+    c("DE|A_vs_B|mean.diff", "DESeq2|D_vs_E|log2FoldChange", "limma|L1_vs_L2|logFC")
+  ),
+  "volcano x axis accepts logFC / log2FoldChange; priority orders the views"
+)
+ok(
+  ut_cmp_equal("volcano_F_vs_G" %in% genViews$id, FALSE),
+  "contrast without a significance y column yields no volcano view"
+)
+
+# Priority: mean.diff + log.fdr win over other tokens for the same contrast,
+# and only ONE view is emitted per (category, contrast).
+mixCn <- c(
+  "ttest|X_vs_Y|logFC", "ttest|X_vs_Y|mean.diff",
+  "ttest|X_vs_Y|log.padj", "ttest|X_vs_Y|log.fdr", "ttest|X_vs_Y|log.pvalue"
+)
+mixMeta <- data.frame(
+  setNames(rep(list(1:3), length(mixCn)), mixCn),
+  check.names = FALSE
+)
+mixPairs <- volcano_pair_candidates(mixMeta)
+ok(
+  ut_cmp_equal(nrow(mixPairs), 1),
+  "one volcano pair per (category, contrast) when several tokens match"
+)
+ok(
+  ut_cmp_equal(c(mixPairs$x, mixPairs$y),
+               c("ttest|X_vs_Y|mean.diff", "ttest|X_vs_Y|log.fdr")),
+  "classic tokens (mean.diff, log.fdr) keep priority over the new tokens"
+)
+
+# prepOmicsViewer default axes also pair the generalized tokens.
+genFd <- data.frame(
+  "DE|A_vs_B|logFC" = rnorm(5),
+  "DE|A_vs_B|log.padj" = abs(rnorm(5)),
+  row.names = rownames(exprTest),
+  check.names = FALSE
+)
+# prepOmicsViewer prefixes user-supplied fData columns with "General|All|"
+# (they are not analysis results), so they never claim volcano default axes -
+# unchanged by the token generalization; the generalized tokens apply to
+# properly named analysis columns (in-app analyses or datasets prepared
+# outside prepOmicsViewer).
+genPrep <- prepOmicsViewer(
+  expr = exprTest,
+  pData = pdTest,
+  fData = genFd,
+  PCA = FALSE,
+  SummarizedExperiment = FALSE
+)
+ok(
+  ut_cmp_equal(attr(genPrep, "fx"), NULL),
+  "General-prefixed user columns are not volcano default axes"
+)

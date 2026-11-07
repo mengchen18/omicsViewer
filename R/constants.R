@@ -60,13 +60,37 @@ MIN_ROC_PR_LABELS <- 2
 MIN_SAMPLES_CORRELATION <- 12
 
 #' @description Analysis categories whose `Category|Subcategory|Variable` columns
-#'   form a volcano view (`<category>|<contrast>|mean.diff` paired with
-#'   `<category>|<contrast>|log.fdr` or `log.pvalue`). Drives the default
-#'   feature-space axes, the auto-detected volcano quick views and the volcano
-#'   corner auto-selection. Override per dataset through
+#'   form a volcano view (an x variable from `VOLCANO_DEFAULT_X_VARIABLES`
+#'   paired with a y variable from `VOLCANO_DEFAULT_Y_VARIABLES`). Drives the
+#'   default feature-space axes, the auto-detected volcano quick views and the
+#'   volcano corner auto-selection. Override per dataset through
 #'   `prepOmicsViewer(volcano.categories = ...)` (stored as the
 #'   `volcanoCategories` feature-data attribute).
 VOLCANO_DEFAULT_ANALYSES <- c("ttest", "DE", "DESeq", "DESeq2", "t-test", "limma")
+
+#' @description Feature-data variable names (the third `Category|Subcategory|Variable`
+#'   token) recognized as the effect-size x axis of a volcano view, in
+#'   priority order. Matching is case-insensitive and ignores `.`, `_` and
+#'   `-` separators (`logFC`, `log.fc` and `Log_FC` are equivalent). The
+#'   priority order keeps datasets following the classic omicsViewer
+#'   convention (`mean.diff` + `log.fdr`/`log.pvalue`) byte-stable: their
+#'   auto-detected quick views and default axes are unchanged when new tokens
+#'   are appended.
+VOLCANO_DEFAULT_X_VARIABLES <- c(
+  "mean.diff", "log2FoldChange", "logFC", "log2FC", "logFoldChange",
+  "foldChange")
+
+#' @description Feature-data variable names recognized as the significance y
+#'   axis of a volcano view, in priority order (`log.fdr`/`log.pvalue` first
+#'   for byte-stability with the classic convention). Matching is
+#'   case-insensitive and ignores `.`, `_` and `-` separators. The tokens
+#'   follow the app's convention that larger y = more significant (the
+#'   `-log10` scale); raw p-scale columns (`pvalue`, `padj`, `P.Value`,
+#'   `adj.P.Val`, `FDR`, `qvalue`) are deliberately NOT recognized.
+VOLCANO_DEFAULT_Y_VARIABLES <- c(
+  "log.fdr", "log.pvalue", "log.P", "log.padj", "log.Padj", "log.bh.pval",
+  "log.qvalue", "log.qval", "neglog10p", "neglog10pvalue", "neglog10padj",
+  "neglog10fdr", "neglog10qvalue")
 
 #' @description Quantile threshold for NA imputation (default 15th percentile).
 #' Used when filling missing values in expression data.

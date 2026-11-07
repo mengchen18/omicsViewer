@@ -157,6 +157,15 @@ parse_quick_views <- function(shortcuts, triset = NULL, source = "custom") {
 #' \code{\link{prepOmicsViewer}}'s \code{volcano.categories} argument.
 #' Invalid/missing attribute values fall back to the default set.
 #'
+#' The x/y axis VARIABLES are recognized the same way through
+#' \code{VOLCANO_DEFAULT_X_VARIABLES} (effect size: \code{mean.diff},
+#' \code{logFC}, \code{log2FoldChange}, ...) and
+#' \code{VOLCANO_DEFAULT_Y_VARIABLES} (significance: \code{log.fdr},
+#' \code{log.pvalue}, \code{log.padj}, \code{log.P}, \code{neglog10p}, ...);
+#' matching is case-insensitive and ignores \code{.}, \code{_} and \code{-}
+#' separators, so \code{logFC}, \code{log.fc} and \code{Log_FC} are
+#' equivalent (see \code{\link{is_volcano_x_variable}}).
+#'
 #' @param meta Feature or sample metadata (or NULL). Only the
 #'   \code{"volcanoCategories"} attribute is consulted.
 #' @return Character vector of analysis category names.
@@ -170,17 +179,58 @@ volcano_analyses <- function(meta = NULL) {
   v
 }
 
+# Normalize a volcano variable token: case-insensitive and
+# separator-insensitive (".", "_" and "-" are stripped), so logFC,
+# log.fc and Log_FC compare equal. The third token of a
+# Category|Subcategory|Variable column name.
+.volcano_var_norm <- function(v) tolower(gsub("[._-]", "", v))
+
+#' Test a variable name for volcano axis membership
+#'
+#' Recognizes the effect-size x variables (\code{VOLCANO_DEFAULT_X_VARIABLES}:
+#' \code{mean.diff}, \code{log2FoldChange}, \code{logFC}, \code{log2FC},
+#' \code{logFoldChange}, \code{foldChange}) and the significance y variables
+#' (\code{VOLCANO_DEFAULT_Y_VARIABLES}: \code{log.fdr}, \code{log.pvalue},
+#' \code{log.P}, \code{log.padj}, \code{log.Padj}, \code{log.bh.pval},
+#' \code{log.qvalue}, \code{log.qval}, \code{neglog10p},
+#' \code{neglog10pvalue}, \code{neglog10padj}, \code{neglog10fdr},
+#' \code{neglog10qvalue}) - case- and separator-insensitively. Raw p-scale
+#' columns (\code{pvalue}, \code{padj}, \code{P.Value}, \code{adj.P.Val},
+#' \code{FDR}, \code{qvalue}) are deliberately not recognized: the volcano
+#' corner geometry assumes larger y = more significant (the \code{-log10}
+#' convention).
+#'
+#' @param variable Single variable name (third token of a
+#'   \code{Category|Subcategory|Variable} column name).
+#' @return TRUE when the variable is recognized as a volcano x (effect size)
+#'   or y (significance) axis.
+#' @name volcano_variable_matching
+#' @keywords internal
+is_volcano_x_variable <- function(variable)
+  isTRUE(.volcano_var_norm(variable) %in%
+           .volcano_var_norm(VOLCANO_DEFAULT_X_VARIABLES))
+
+#' @rdname volcano_variable_matching
+#' @keywords internal
+is_volcano_y_variable <- function(variable)
+  isTRUE(.volcano_var_norm(variable) %in%
+           .volcano_var_norm(VOLCANO_DEFAULT_Y_VARIABLES))
+
 #' Volcano x-axis candidate columns from metadata
 #'
 #' @description
-#' Columns of the form \code{<category>|<contrast>|mean.diff} where
-#' \code{<category>} is recognized by \code{\link{volcano_analyses}}.
+#' Columns of the form \code{<category>|<contrast>|<variable>} where
+#' \code{<category>} is recognized by \code{\link{volcano_analyses}} and
+#' \code{<variable>} is an effect-size token from
+#' \code{VOLCANO_DEFAULT_X_VARIABLES} (\code{mean.diff}, \code{logFC},
+#' \code{log2FoldChange}, ...; matched case- and separator-insensitively).
 #' Tokenization mirrors \code{\link{trisetter}} (split on the first two
 #' pipes), so a contrast containing \code{|} stays intact.
 #'
 #' @param meta Feature or sample metadata.
 #' @return A data.frame with columns \code{x} (column name), \code{category},
-#'   \code{contrast} - in column order - or NULL when nothing matches.
+#' \code{contrast}, \code{variable} and \code{priority} (token priority,
+#' lower first; ties keep column order) - or NULL when nothing matches.
 #' @keywords internal
 volcano_x_candidates <- function(meta) {
   if (is.null(meta))
@@ -192,13 +242,69 @@ volcano_x_candidates <- function(meta) {
   if (!length(cats))
     return(NULL)
   parts <- str_split_fixed(cn, "\\|", n = 3)
-  keep <- parts[, 3] == "mean.diff" & parts[, 1] %in% cats
+  pri <- match(.volcano_var_norm(parts[, 3]),
+               .volcano_var_norm(VOLCANO_DEFAULT_X_VARIABLES))
+  keep <- !is.na(pri) & parts[, 1] %in% cats
   if (!any(keep))
     return(NULL)
-  data.frame(
+  out <- data.frame(
     x = cn[keep], category = parts[keep, 1], contrast = parts[keep, 2],
+    variable = parts[keep, 3], priority = pri[keep],
     stringsAsFactors = FALSE, row.names = NULL
   )
+  out[order(out$priority, seq_len(nrow(out))), , drop = FALSE]
+}
+
+#' Preferred volcano (x, y) column pairs from metadata
+#'
+#' @description
+#' For each analysis category and contrast recognized by
+#' \code{\link{volcano_analyses}}, the preferred effect-size x column
+#' (highest-priority \code{VOLCANO_DEFAULT_X_VARIABLES} token) paired with
+#' the preferred significance y column (highest-priority
+#' \code{VOLCANO_DEFAULT_Y_VARIABLES} token: \code{log.fdr}, then
+#' \code{log.pvalue}, then the remaining tokens; ties keep column order).
+#' One row per (category, contrast); contrasts without a y candidate are
+#' dropped. The priority order keeps datasets following the classic
+#' omicsViewer convention (\code{mean.diff} + \code{log.fdr}/
+#' \code{log.pvalue}) byte-stable.
+#'
+#' @param meta Feature or sample metadata.
+#' @return A data.frame with columns \code{x}, \code{y}, \code{category},
+#' \code{contrast}, \code{xVariable}, \code{yVariable} - in x-priority
+#' order - or NULL when nothing matches.
+#' @keywords internal
+volcano_pair_candidates <- function(meta) {
+  vcand <- volcano_x_candidates(meta)
+  if (is.null(vcand))
+    return(NULL)
+  cn <- colnames(meta)
+  parts <- str_split_fixed(cn, "\\|", n = 3)
+  ypri <- match(.volcano_var_norm(parts[, 3]),
+                .volcano_var_norm(VOLCANO_DEFAULT_Y_VARIABLES))
+  ycand <- which(!is.na(ypri) & parts[, 1] %in% volcano_analyses(meta))
+  rows <- list()
+  seen <- character(0)
+  for (i in seq_len(nrow(vcand))) {
+    key <- paste(vcand$category[i], vcand$contrast[i], sep = "\r")
+    if (key %in% seen)
+      next
+    seen <- c(seen, key)
+    same <- ycand[parts[ycand, 1] == vcand$category[i] &
+                    parts[ycand, 2] == vcand$contrast[i]]
+    if (!length(same))
+      next
+    best <- same[which.min(ypri[same])]
+    rows[[length(rows) + 1L]] <- data.frame(
+      x = vcand$x[i], y = cn[best],
+      category = vcand$category[i], contrast = vcand$contrast[i],
+      xVariable = vcand$variable[i], yVariable = parts[best, 3],
+      stringsAsFactors = FALSE, row.names = NULL
+    )
+  }
+  if (!length(rows))
+    return(NULL)
+  do.call(rbind, rows)
 }
 
 #' Detect standard quick views from metadata column names
@@ -250,33 +356,23 @@ detect_quick_views <- function(meta, triset = NULL) {
   }
 
   # Volcano views: any analysis category recognized by volcano_analyses()
-  # (ttest/DE/DESeq/DESeq2/t-test/limma by default). x =
-  # <category>|<contrast>|mean.diff, y = same category and contrast
-  # <category>|<contrast>|log.fdr (fallback log.pvalue).
-  vcand <- volcano_x_candidates(meta)
-  if (!is.null(vcand)) {
-    volcanoViews <- list()
-    volcanoCats <- character(0)
-    for (i in seq_len(nrow(vcand))) {
-      xx <- vcand$x[i]
-      contrast <- vcand$contrast[i]
-      yy <- paste(c(vcand$category[i], contrast, "log.fdr"), collapse = "|")
-      yLabel <- "log.fdr"
-      if (!yy %in% cn) {
-        yy <- paste(c(vcand$category[i], contrast, "log.pvalue"), collapse = "|")
-        yLabel <- "log.pvalue"
-      }
-      if (!yy %in% cn)
-        next
-      volcanoViews <- c(volcanoViews, list(list(
-        id = paste0("volcano_", .quick_view_id(contrast)),
-        label = paste("Volcano", gsub("_vs_", " vs ", contrast, fixed = TRUE)),
-        x = xx,
-        y = yy,
-        description = sprintf("mean.diff versus %s for %s", yLabel, contrast)
-      )))
-      volcanoCats <- c(volcanoCats, vcand$category[i])
-    }
+  # (ttest/DE/DESeq/DESeq2/t-test/limma by default). One view per
+  # (category, contrast): the preferred x token from
+  # VOLCANO_DEFAULT_X_VARIABLES (mean.diff, logFC, log2FoldChange, ...)
+  # paired with the preferred y token from VOLCANO_DEFAULT_Y_VARIABLES
+  # (log.fdr, log.pvalue, log.padj, ...); matching ignores case and
+  # ./_/- separators (see volcano_pair_candidates).
+  vp <- volcano_pair_candidates(meta)
+  if (!is.null(vp)) {
+    volcanoViews <- lapply(seq_len(nrow(vp)), function(i) list(
+      id = paste0("volcano_", .quick_view_id(vp$contrast[i])),
+      label = paste("Volcano", gsub("_vs_", " vs ", vp$contrast[i], fixed = TRUE)),
+      x = vp$x[i],
+      y = vp$y[i],
+      description = sprintf("%s versus %s for %s",
+                            vp$xVariable[i], vp$yVariable[i], vp$contrast[i])
+    ))
+    volcanoCats <- vp$category
     # Disambiguate ids/labels only when more than one family category yields
     # the same contrast (e.g. ttest|A_vs_B and limma|A_vs_B columns):
     # single-category ids stay byte-stable (pinned by e2e baselines).

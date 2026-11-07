@@ -514,10 +514,15 @@ meta_scatter_module <- function(
       updateTabsetPanel(session, "axisModeTabs", selected = input$axisMode)
     }, ignoreInit = TRUE))
 
-    # Detect volcano plot: x=mean.diff, y=log.fdr/log.pvalue (both from a
-    # volcano-producing analysis category - the DE family by default since
-    # 2.1.85 (ttest, DE, DESeq, DESeq2, t-test, limma), overridable
-    # per dataset via the volcanoCategories attribute, see volcano_analyses),
+    # Detect volcano plot: x = an effect-size variable from
+    # VOLCANO_DEFAULT_X_VARIABLES (mean.diff, logFC, log2FoldChange, ...),
+    # y = a significance variable from VOLCANO_DEFAULT_Y_VARIABLES
+    # (log.fdr, log.pvalue, log.padj, ...; matching ignores case and
+    # ./_/- separators, see is_volcano_x_variable/is_volcano_y_variable),
+    # both from a volcano-producing analysis category - the DE family by
+    # default since 2.1.85 (ttest, DE, DESeq, DESeq2, t-test, limma),
+    # overridable per dataset via the volcanoCategories attribute (see
+    # volcano_analyses),
     # read from the DISPLAYED (settled) triselector triples. The
     # store watchers lag one observer hop behind a user edit (the store
     # sync runs after the committed flip), which armed the volcano-exit
@@ -537,8 +542,8 @@ meta_scatter_module <- function(
       cats <- volcano_analyses(reactive_meta())
       isTRUE(xv$analysis %in% cats) &&
         isTRUE(yv$analysis %in% cats) &&
-        identical(xv$variable, "mean.diff") &&
-        yv$variable %in% c("log.fdr", "log.pvalue")
+        is_volcano_x_variable(xv$variable) &&
+        is_volcano_y_variable(yv$variable)
     })
 
     # The displayed axes have caught up with the canonical store axes. The
